@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="SlicingTool" default="jarProjectTool" basedir="..">
+    <description>
+    	Jar all class files into one file to be run by the slicing tool.
+    </description>
+	
+	<!-- Defining a list of directory names to be used -->
+	<property name="targetDir" value="${basedir}/../slicingTool" />
+	<property name="classDir" value="${basedir}/classes" />
+	<property name="orgDir" value="${classDir}/org" />
+	<property name="libDir" value="${basedir}/lib" />
+	
+	<!-- Empty the direcotry. If nothing there, it should do nothing -->
+	<target name="delete">
+		<delete dir="${targetDir}" />
+	</target>
+	
+	<!-- make a directory first. If it is there, it should do nothing -->
+	<target name="mkdir" depends="delete">
+		<mkdir dir="${targetDir}" /> 
+	</target>
+	
+	<!-- copy all files to the target directory -->
+	<!-- Don't delete the target dir since CVS information is there -->
+	<target name="jarProjectTool">
+		<jar destfile="${targetDir}/ProjectSlicingTool.jar">
+			<fileset dir="${classDir}">
+				<include name="org/gk/util/**" />
+				<include name="org/gk/schema/**" />
+				<include name="org/gk/persistence/**" />
+				<include name="org/gk/model/**" />
+				<include name="org/gk/database/util/**" />
+				<include name="org/gk/slicing/**" />
+				<include name="org/gk/render/**" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.gk.slicing.SlicingEngine" />
+				<attribute name="Class-Path" value="mysql.jar jdom.jar log4j-1.2.12.jar" />
+			</manifest>
+		</jar>
+		<!-- Don't try to use mysql-connector-java-5.**.jar. There is a memory usage problem in this jar file.
+		     use this jar file will always get out of memeory problem -->
+		<!-- The above problem has been solved by setting a property in the JDBC driver -->
+		<!-- copy file="${libDir}/mysql-connector-java-5.0.8-bin.jar" tofile="${targetDir}/mysql.jar" / -->
+		<!-- copy file="${libDir}/jdom/jdom.jar" tofile="${targetDir}/jdom.jar" / -->
+		<!-- copy file="${libDir}/log4j-1.2.12.jar" tofile="${targetDir}/log4j-1.2.12.jar" / -->
+		<!-- copy file="${basedir}/SliceLog4j.properties" tofile="${targetDir}/SliceLog4j.properties" / -->
+	</target>	
+	
+</project>  

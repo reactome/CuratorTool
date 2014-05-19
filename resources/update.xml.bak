@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources uri="http://brie8.cshl.org/download/tools/curatorTool/update">
+<resource name="org.jar" timestamp="1095783591248" deleteDir="true" />
+<resource name="docs.jar" timestamp="1094139776034" deleteDir="true" />
+<resource name="resources.jar" timestamp="1095345174724" deleteDir="false" />
+<resource name="lib.jar" timestamp="1093289285644" deleteDir="false" />
+<resource name="images.jar" timestamp="1093289283470" deleteDir="true" />
+</resources>

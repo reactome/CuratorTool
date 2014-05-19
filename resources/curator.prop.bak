@@ -1,0 +1,20 @@
+#Reactome Curator Tool
+#Thu Sep 23 16:57:00 EDT 2004
+firstName=Guanming
+windowBounds=60 80 1106 832
+projectSpecies=Homo sapiens
+dbPort=3306
+lookAndFeel=aqua
+defaultProj=C\:\\gkTest\\test
+dbHost=localhost
+affiliationAddress=1 Bungtown Road, Cold Spring Harbor, NY 11724
+lastName=Wu
+selectedView=Event Hierarchical View
+defaultPerson=140537
+affiliationName=CSHL
+useTransaction=true
+schemaViewJSP2=335
+dbUser=wgm
+dbName=gk_central_sep_23
+schemaViewJSP1=564
+schemaViewJSP0=353

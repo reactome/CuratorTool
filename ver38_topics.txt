@@ -1,0 +1,31 @@
+977225	Amyloids
+109581	Apotosis
+69620	Cell Cycle Checkpoints
+69278	Cell Cycle, Mitotic
+446728  Cell junction organization
+73886	Chromosome maintenance
+1266738 Developmental Biology
+381150	Diabetes pathways
+73894	DNA Repair
+69306	DNA Replication
+74160	Gene Expression
+109582	Hemostasis
+162906  HIV infection
+168256  Immune system
+168254  Influenza Infection
+1500620 Meiosis 
+199991	Membrane Trafficking
+1430728	Metabolism
+71387	Metabolism of carbohydrates
+556833	Metabolism of lipids and lipoproteins
+392499	Metabolism of proteins
+75071	mRNA Processing
+397014  Muscle contraction
+870392	Mycobacterium tuberculosis biological processes
+112316  Neuronal System
+211000	Regulatory RNAs
+1474165	Reproduction
+162582	Signal transduction
+111885	Signaling by Opioid receptors
+74159	Transcription
+382551  Transmembrane transport of small molecules
