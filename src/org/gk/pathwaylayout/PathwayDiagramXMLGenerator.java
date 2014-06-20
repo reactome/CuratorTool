@@ -64,7 +64,11 @@ public class PathwayDiagramXMLGenerator {
         // Force to make sure all points are correct validated
         PathwayEditor pathwayEditor = new PathwayEditor();
         pathwayEditor.setRenderable(pathway);
-        new PathwayDiagramGeneratorViaAT().paintOnImage(pathwayEditor);
+        PathwayDiagramGeneratorViaAT helper = new PathwayDiagramGeneratorViaAT();
+        helper.paintOnImage(pathwayEditor);
+        // Do a tight node for avoiding text overflow
+        pathwayEditor.tightNodes(true);
+        helper.paintOnImage(pathwayEditor);
         GKBWriter writer = getDiagramWriter(pd);
         writer.save(new Project(pathway), 
                     os);

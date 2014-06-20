@@ -1111,7 +1111,8 @@ public class InstanceUtilities {
          for (GKInstance inst : allRelatedPEs) {
              if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.referenceEntity)) {
                  GKInstance refEntity = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.referenceEntity);
-                 refEntities.add(refEntity);
+                 if (refEntity != null) // Some OpenSet may have empty ReferenceEntity.
+                     refEntities.add(refEntity);
              }
          }
          return refEntities;
