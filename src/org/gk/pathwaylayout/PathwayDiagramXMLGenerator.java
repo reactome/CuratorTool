@@ -38,6 +38,9 @@ import org.junit.Test;
 public class PathwayDiagramXMLGenerator {
     
     public PathwayDiagramXMLGenerator() {
+        // Make sure if these static variable values are used
+        Node.setWidthRatioOfBoundsToText(1.0d);
+        Node.setHeightRatioOfBoundsToText(1.0d);
     }
     
     /**
@@ -66,12 +69,31 @@ public class PathwayDiagramXMLGenerator {
         pathwayEditor.setRenderable(pathway);
         PathwayDiagramGeneratorViaAT helper = new PathwayDiagramGeneratorViaAT();
         helper.paintOnImage(pathwayEditor);
-        // Do a tight node for avoiding text overflow
-        pathwayEditor.tightNodes(true);
-        helper.paintOnImage(pathwayEditor);
+//        // Do a tight node for avoiding text overflow
+        if (isHumanPathway(pd)) {
+            // Tight nodes should be applied to human pathways only
+            // Entities in predicted diagrams have weird "name copied from...",
+            // which may bloat the sizes of nodes there.
+            pathwayEditor.tightNodes(true);
+            helper.paintOnImage(pathwayEditor);
+        }
         GKBWriter writer = getDiagramWriter(pd);
         writer.save(new Project(pathway), 
                     os);
+    }
+    
+    private boolean isHumanPathway(GKInstance pd) throws Exception {
+        List<GKInstance> pathways = pd.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
+        if (pathways == null || pathways.size() == 0)
+            return true;
+        for (GKInstance pathway : pathways) {
+            List<GKInstance> species = pathway.getAttributeValuesList(ReactomeJavaConstants.species);
+            for (GKInstance tmp : species) {
+                if (tmp.getDBID().equals(48887L))
+                    return true;
+            }
+        }
+        return false;
     }
     
     private GKBWriter getDiagramWriter(GKInstance pd) {
