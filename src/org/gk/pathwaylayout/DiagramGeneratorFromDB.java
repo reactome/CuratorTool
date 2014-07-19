@@ -197,11 +197,17 @@ public class DiagramGeneratorFromDB {
         pathwayId = 4839735L;
         // A disease pathway
 //        Long pathwayId = 4839735L;
-        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                               "gk_central", 
-                               "authortool", 
-                               "T001test");
-        dba.setUseCache(false);
+        pathwayId = 2894858L;
+        pathwayId = 5658433L;
+//        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+//                               "gk_central", 
+//                               "authortool", 
+//                               "T001test");
+        dba = new MySQLAdaptor("localhost",
+                               "gk_current_ver48",
+                               "root",
+                               "macmysql01");
+        dba.setUseCache(true);
         imageBaseDir = "tmp";
         // Get the pathway diagram
         GKInstance pathway = dba.fetchInstance(pathwayId);

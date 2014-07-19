@@ -10,9 +10,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
+import org.junit.Test;
 
 /**
  * A utitlity class to generate the display name for the GKInstance object. This class 
@@ -250,15 +253,24 @@ public class InstanceDisplayNameGenerator {
 		if (values != null && values.size() > 0) {
 			buffer.append(", ");
 			String dateTime = values.get(0).toString();
-			// Convert the format
-			// Year
-			buffer.append(dateTime.substring(0, 4));
-			buffer.append("-");
-			// Month
-			buffer.append(dateTime.substring(4, 6));
-			buffer.append("-");
-			// Day
-			buffer.append(dateTime.substring(6, 8));
+			// There are two types of values that have been used: 2009-06-02 06:18:22 or 20140719002733
+			// Two ways to process dateTime information
+			Pattern pattern = Pattern.compile("^(\\d){4}-(\\d){2}-(\\d){2}");
+	        Matcher matcher = pattern.matcher(dateTime);
+	        if (matcher.find()) {
+	            buffer.append(matcher.group());
+	        }
+	        else {
+	            // Convert the format
+	            // Year
+	            buffer.append(dateTime.substring(0, 4));
+	            buffer.append("-");
+	            // Month
+	            buffer.append(dateTime.substring(4, 6));
+	            buffer.append("-");
+	            // Day
+	            buffer.append(dateTime.substring(6, 8));
+	        }
 		}
 		return buffer.toString();
 	}

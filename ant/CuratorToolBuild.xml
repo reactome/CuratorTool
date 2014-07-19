@@ -24,7 +24,7 @@
     </description>
 	
 	<!-- Defining a list of directory names to be used -->
-	<property name="targetDir" value="${basedir}/../../ReactomeBuild/CuratorToolBuildFiles" />
+	<property name="targetDir" value="${basedir}/../../Documents/ReactomeBuild/CuratorToolBuildFiles" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="srcDir" value="${basedir}/src" />
 	<property name="orgDir" value="${classDir}/org" />
@@ -35,7 +35,7 @@
 	<property name="libDir" value="${basedir}/lib" />
 	<property name="launcher" value="${classDir}/launcher" />
 	<!-- For creating updating jar files and update.html -->
-	<property name="updateTargetDir" value="${basedir}/../../ReactomeUpdate" />
+	<property name="updateTargetDir" value="${basedir}/../../Documents/ReactomeUpdate" />
 	
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">

@@ -1,3 +1,11 @@
+Build 79 notes (July 18, 2014)
+
+Two bug fixes:
+
+1). Updating _displayName for InstanceEdit instances after curators modifies their values generates corrupted _displayNames.
+
+2). In the not “Use ELV for Drawing” mode in the entity level view, creating a flow line between an Entity and a ProcessNode generates a null exception because of null Reactome ID.
+
 Build 78 notes (May 5, 2014)
 
 Bug fix: Fixed the bug related to “Dump to File” feature for results generated from these three QAs: Unsynchronized Reactions in Diagrams, Reactions in All Diagrams, and Pathways in All Diagrams.

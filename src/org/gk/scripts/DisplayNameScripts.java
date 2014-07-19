@@ -17,6 +17,7 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.PersistenceManager;
 import org.junit.Test;
 
 /**
@@ -39,10 +40,7 @@ public class DisplayNameScripts {
     private MySQLAdaptor getDba() throws Exception {
         if (dba != null)
             return dba;
-        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                               "gk_central",
-                               "wgm", 
-                               "zhe10jiang23");
+        dba = PersistenceManager.getManager().getPreConfiguedDBAdaptor();
         return dba;
     }
     
@@ -59,6 +57,38 @@ public class DisplayNameScripts {
             total ++;
             inst.setDisplayName(newName);
             toBeUpdated.add(inst);
+        }
+        System.out.println("Total: " + total);
+        ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
+    }
+    
+    /**
+     * Some _displayNames in IEs are not correct for some reason. This method is used to fix those instances.
+     * @throws Exception
+     */
+    @Test
+    public void updateDisplayNamesInIEs() throws Exception {
+        MySQLAdaptor dba = getDba();
+        Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.InstanceEdit,
+                                                                ReactomeJavaConstants._displayName, 
+                                                                "like",
+                                                                "%-");
+//        Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.InstanceEdit);
+        dba.loadInstanceAttributeValues(c, new String[] {
+                ReactomeJavaConstants.dateTime,
+                ReactomeJavaConstants.author
+        });
+        int total = 0;
+        List<GKInstance> toBeUpdated = new ArrayList<GKInstance>();
+        for (GKInstance inst : c) {
+            String name = inst.getDisplayName();
+            if (name == null || !name.endsWith("-"))
+                continue;
+            total ++;
+            String newName = InstanceDisplayNameGenerator.generateDisplayName(inst);
+            inst.setDisplayName(newName);
+            toBeUpdated.add(inst);
+//            System.out.println(inst + "\t" + name);
         }
         System.out.println("Total: " + total);
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
