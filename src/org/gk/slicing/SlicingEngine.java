@@ -17,6 +17,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -50,6 +51,8 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class SlicingEngine {
+    // For logging
+    private static final Logger logger = Logger.getLogger(SlicingEngine.class);
     // Constants
     private final String DUMP_FILE_NAME = "slicingDump.sql";
     private final String SCHEMA_FILE_NAME = "slicingSchema.sql";
@@ -64,8 +67,6 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
-    // For debug
-    private boolean debug = false;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -266,9 +267,7 @@ public class SlicingEngine {
                 diagramHelper.removeDoNotReleaseEvents(inst, sourceDBA);
             }
         }
-        if (debug) {
-            System.out.println("extractPathwayDiagrams(): " + sliceMap.size());
-        }
+        logger.info("extractPathwayDiagrams(): " + sliceMap.size());
     }
     
     public Map extractEvents() throws Exception {
@@ -464,8 +463,7 @@ public class SlicingEngine {
                 }
             }
         }
-        if (debug)
-            System.out.println("extractConcurrentEventSets: " + sliceMap.size() + " instances.");
+        logger.info("extractConcurrentEventSets: " + sliceMap.size() + " instances.");
     }
     
 //    /**
@@ -501,8 +499,7 @@ public class SlicingEngine {
                 }
             }
         }
-        if (debug)
-            System.out.println("extractReferrers: " + sliceMap.size() + " instances.");
+        logger.info("extractReferrers: " + sliceMap.size() + " instances.");
     }
     
     /**
@@ -552,15 +549,15 @@ public class SlicingEngine {
 	    stat.close();
 	    dbIDs.removeAll(idsInDB);
 	    Long dbID = null;
+	    output.println("Instance existence checking:");
 	    for (Iterator it = dbIDs.iterator(); it.hasNext();) {
 	        dbID = (Long) it.next();
 	        sliceMap.remove(dbID);
 	        output.println("Instance with DB_ID \"" + dbID + "\" " +
 	        		           "is used but not in table DatabaseObject!");
 	    }
-	    if (debug) {
-	        System.out.println("validateExitence(): " + sliceMap.size() + " instances.");
-	    }
+	    output.println();
+	    logger.info("validateExitence(): " + sliceMap.size() + " instances.");
 	}
 
     
@@ -576,6 +573,7 @@ public class SlicingEngine {
         Long dbID = null;
         GKInstance ref = null;
         SchemaAttribute att = null;
+        output.println("Instance attribute values checking:");
         for (Iterator it = sliceMap.keySet().iterator(); it.hasNext();) {
             dbID = (Long) it.next();
             instance = (GKInstance) sliceMap.get(dbID);
@@ -597,6 +595,7 @@ public class SlicingEngine {
                 }
             }
         }
+        output.println();
     }
     
     /**
@@ -790,8 +789,7 @@ public class SlicingEngine {
             if (sliceMap.containsKey(locatedEvent.getDBID()))
                 extractReferencesToInstance(reactionCoordinate);
         }
-        if (debug)
-            System.out.println("extractReactionCoordinates: " + sliceMap.size() + " instances.");
+        logger.info("extractReactionCoordinates: " + sliceMap.size() + " instances.");
     }
     
     public List getSpeciesIDs() throws IOException {
@@ -842,8 +840,7 @@ public class SlicingEngine {
                 extractReferencesToInstance(regulation);
             }
         }
-        if (debug)
-            System.out.println("extractRegulations: " + sliceMap.size() + " instances.");
+        logger.info("extractRegulations: " + sliceMap.size() + " instances.");
     }
     
     private void checkFollowingEventsInFloating() throws Exception {
@@ -875,8 +872,7 @@ public class SlicingEngine {
                 break;
             preCount = dbIDs.size();
         }
-        if (debug)
-            System.out.println("checkFollowingEvents: " + sliceMap.size() + " instances.");
+        logger.info("checkFollowingEvents: " + sliceMap.size() + " instances.");
     }
     
     
@@ -889,12 +885,10 @@ public class SlicingEngine {
             dbID = (Long) it.next();
             instance = (GKInstance) eventMap.get(dbID);
             extractReferencesToInstance(instance);
-            if (debug)
-                System.out.println("Total touched instances: " + checkedIDs.size());
+//            logger.info("Total touched instances: " + checkedIDs.size());
         }
-        if (debug)
-            System.out.println("extractReferences(): " + sliceMap.size() + " instances");
-        System.out.println("Time for extractReferences: " + (System.currentTimeMillis() - time1));
+        logger.info("extractReferences(): " + sliceMap.size() + " instances");
+        logger.info("Time for extractReferences: " + (System.currentTimeMillis() - time1));
     }
     
     private void extractReferencesToInstance(GKInstance instance) throws Exception {
@@ -904,8 +898,7 @@ public class SlicingEngine {
         GKInstance tmp = null;
         List values = null;
         GKSchemaAttribute att = null;
-        if (debug)
-            System.out.println("Instance: " + instance);
+//        logger.info("Instance: " + instance);
         while (current.size() > 0) {
             for (Iterator it = current.iterator(); it.hasNext();) {
                 tmp = (GKInstance) it.next();
@@ -941,8 +934,7 @@ public class SlicingEngine {
             current.clear();
             current.addAll(next);
             next.clear();
-            if (debug)
-                System.out.println("Current: " + current.size());
+//            logger.info("Current: " + current.size());
         }
     }
     
@@ -1014,8 +1006,7 @@ public class SlicingEngine {
                           targetDbPwd);
         importCommand.append(" ");
         importCommand.append(targetDbName);
-        if (debug)
-            System.out.println("runImport: " + importCommand.toString());
+        logger.info("runImport: " + importCommand.toString());
         Process process = Runtime.getRuntime().exec(importCommand.toString());
         OutputStream output = process.getOutputStream();
         InputStream input = new FileInputStream(fileName);
@@ -1073,9 +1064,7 @@ public class SlicingEngine {
                           targetDbPwd);
         createDB.append(" create ");
         createDB.append(targetDbName);
-        if (debug) {
-            System.out.println("createTargetDatabase: " + createDB.toString());
-        }
+        logger.info("createTargetDatabase: " + createDB.toString());
         Process process = Runtime.getRuntime().exec(createDB.toString());
         String message = getErrorMessage(process);
         process.waitFor();
