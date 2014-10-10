@@ -12,8 +12,6 @@ import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -27,9 +25,7 @@ import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
-import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
-import org.gk.util.StringUtils;
 import org.junit.Test;
 
 /**
@@ -195,8 +191,13 @@ public class SlicingEngine {
             output = new PrintStream(new FileOutputStream(logFileName));
         else
             output = System.err;
-        validateExistence(output);
-        validateAttributes(output);
+        SlicingQualityAssay qa = new SlicingQualityAssay();
+        qa.setSliceMap(this.sliceMap);
+        qa.setSourceDBA(sourceDBA);
+        qa.validateExistence(output);
+        qa.validateAttributes(output);
+        qa.validateEventsInHierarchy(topLevelIDs,
+                                     output);
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -323,13 +324,12 @@ public class SlicingEngine {
                     frontPage.addAttributeValue("frontPageItem", process);
                 }
                 else
-                    System.err.println("Specified top-level event is not in the slice: " + dbID);
+                    logger.error("Specified top-level event is not in the slice: " + dbID);
             }
             targetDBA.storeInstance(frontPage);
         }
         catch(Exception e) {
-            System.err.println("SlicingEngine.addFrontPage(): " + e);
-            e.printStackTrace();
+            logger.error("SlicingEngine.addFrontPage(): " + e, e);
         }
     }
 
@@ -356,8 +356,7 @@ public class SlicingEngine {
             targetDBA.storeInstance(release);
         }
         catch(Exception e) {
-            System.err.println("SlicingEngine.addReleaseNumber(): " + e);
-            e.printStackTrace();
+            logger.error("SlicingEngine.addReleaseNumber(): " + e, e);
         }
     }
     
@@ -528,77 +527,6 @@ public class SlicingEngine {
     }
     
     /**
-     * This check is to prevent some database errors: an Instance is used
-     * in attribute table but this instance is not registered in DatabaseObject
-     * table. Such instances should not be in the slice.
-     * @throws SQLException
-     */
-	private void validateExistence(PrintStream output) throws SQLException {
-	    SchemaClass root = ((GKSchema)sourceDBA.getSchema()).getRootClass();
-	    List dbIDs = new ArrayList(sliceMap.keySet());
-		String query = "SELECT DB_ID FROM " + root.getName() + " WHERE DB_ID IN (" + 
-		                StringUtils.join(",", dbIDs) + ")";
-		Set idsInDB = new HashSet();
-		Statement stat = sourceDBA.getConnection().createStatement();
-		ResultSet resultSet = stat.executeQuery(query);
-	    while (resultSet.next()) {
-	        long id = resultSet.getLong(1);
-	        idsInDB.add(new Long(id));
-	    }
-	    resultSet.close();
-	    stat.close();
-	    dbIDs.removeAll(idsInDB);
-	    Long dbID = null;
-	    output.println("Instance existence checking:");
-	    for (Iterator it = dbIDs.iterator(); it.hasNext();) {
-	        dbID = (Long) it.next();
-	        sliceMap.remove(dbID);
-	        output.println("Instance with DB_ID \"" + dbID + "\" " +
-	        		           "is used but not in table DatabaseObject!");
-	    }
-	    output.println();
-	    logger.info("validateExitence(): " + sliceMap.size() + " instances.");
-	}
-
-    
-    /**
-     * Make sure all instance references in the slice. If not, those references should be 
-     * removed from the attribute list. This check is used in case there are some database
-     * errors in the source. Another case is an unrelease event is used by a released event.
-     * @throws Exception
-     */
-    private void validateAttributes(PrintStream output) throws Exception {
-        GKInstance instance = null;
-        List values = null;
-        Long dbID = null;
-        GKInstance ref = null;
-        SchemaAttribute att = null;
-        output.println("Instance attribute values checking:");
-        for (Iterator it = sliceMap.keySet().iterator(); it.hasNext();) {
-            dbID = (Long) it.next();
-            instance = (GKInstance) sliceMap.get(dbID);
-            instance.setIsInflated(true); // To prevent to fetch values again.
-            for (Iterator it1 = instance.getSchemClass().getAttributes().iterator(); it1.hasNext();) {
-                att = (GKSchemaAttribute) it1.next();
-                if (!att.isInstanceTypeAttribute())
-                    continue;
-                values = instance.getAttributeValuesList(att);
-                if (values == null || values.size() == 0)
-                    continue;
-                for (Iterator it2 = values.iterator(); it2.hasNext();) {
-                    ref = (GKInstance) it2.next();
-                    if (!sliceMap.containsKey(ref.getDBID())) {
-                        it2.remove();
-                        output.println("\"" + ref.toString() + "\" in \"" + att.getName() + "\" for \"" + instance + 
-                                           "\" is not in the slice and removed from the attribute list!");
-                    }
-                }
-            }
-        }
-        output.println();
-    }
-    
-    /**
      * Save GKInstances in the slice to the target database.
      * 
      * @throws Exception
@@ -625,11 +553,10 @@ public class SlicingEngine {
         catch (Exception e) {
             if (isTnSupported)
                 targetDBA.rollback();
-            System.err.println("SlicingEngine.dumpInstances(): " + e);
-            e.printStackTrace();
+            logger.error("SlicingEngine.dumpInstances(): " + e, e);
         }
         long time2 = System.currentTimeMillis();
-        System.out.println("Time for dumpInstances(): " + (time2 - time1));
+        logger.info("Time for dumpInstances(): " + (time2 - time1));
     }
     
     /**
@@ -782,8 +709,8 @@ public class SlicingEngine {
             reactionCoordinate = (GKInstance) it.next();
             locatedEvent = (GKInstance) reactionCoordinate.getAttributeValue("locatedEvent");
             if (locatedEvent == null) {
-                System.err.println("SlicingEngine.checkReactionCooridnates(): " + 
-                                   reactionCoordinate.getDBID() + " has no locatedEvent!");
+                logger.error("SlicingEngine.checkReactionCooridnates(): " + 
+                        reactionCoordinate.getDBID() + " has no locatedEvent!");
                 continue; // Escape
             }
             if (sliceMap.containsKey(locatedEvent.getDBID()))
@@ -906,7 +833,7 @@ public class SlicingEngine {
                     continue; // It has been checked
                 checkedIDs.add(tmp.getDBID());
                 if (tmp.getSchemClass() == null)
-                    System.out.println("Current event: " + tmp.getDBID());
+                    logger.error("Current event: " + tmp.getDBID() + " has no SchemaClass assigned!");
                 // Check if an event should be in a slice
                 if (tmp.getSchemClass().isa("Event") &&
                     !eventMap.containsKey(tmp.getDBID())) 
@@ -924,7 +851,7 @@ public class SlicingEngine {
                     for (Iterator it2 = values.iterator(); it2.hasNext();) {
                         GKInstance reference = (GKInstance) it2.next();
                         if (reference.getSchemClass() == null)
-                            System.out.println("reference is wrong: " + reference);
+                            logger.error("reference is wrong: " + reference + ". No SchemaClass is assigned to it!");
                         if (checkedIDs.contains(reference.getDBID()))
                             continue;
                         next.add(reference);
@@ -1029,7 +956,7 @@ public class SlicingEngine {
         }
         reader.close();
         is.close();
-        System.err.println(buffer.toString());
+        logger.error(buffer.toString());
         return buffer.toString();
     }
     
@@ -1110,7 +1037,7 @@ public class SlicingEngine {
         // These cannot work
         //mysqldump.append(" > ");
         //mysqldump.append(dumpFileName);
-        System.out.println("runDumpCommand: " + mysqldump.toString());
+        logger.info("runDumpCommand: " + mysqldump.toString());
         Process process = Runtime.getRuntime().exec(mysqldump.toString());
         InputStream input = process.getInputStream();
         OutputStream output = new FileOutputStream(dumpFileName);
@@ -1224,8 +1151,7 @@ public class SlicingEngine {
             engine.slice();
         }
         catch (Exception e) {
-            System.err.println("SlicingEnginee.main(): " + e);
-            e.printStackTrace();
+            logger.error("SlicingEnginee.main(): " + e, e);
         }
     }
     
