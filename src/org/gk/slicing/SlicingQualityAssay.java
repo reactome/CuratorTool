@@ -84,9 +84,12 @@ public class SlicingQualityAssay {
         long time2 = System.currentTimeMillis();
         logger.info("validateEventsInHierarchy: " + (time2 - time1) / 1000.0d + " seconds.");
         logger.info("Events that have not listed in the pathway hierarchy: " + eventsNotInTree.size() + " instances");
-        output.println("\nEvents that have not listed in the pathway hierarchy: " + eventsNotInTree.size());
-        for (GKInstance event : eventsNotInTree)
-            output.println(event);
+        output.println("Events that have not listed in the pathway hierarchy: " + eventsNotInTree.size());
+        for (GKInstance event : eventsNotInTree) {
+            GKInstance species = (GKInstance) event.getAttributeValue(ReactomeJavaConstants.species);
+            output.println(event + "\t" + (species == null ? "No species provided" : species.getDisplayName()));
+        }
+        output.println();
     }
     
     /**
@@ -123,6 +126,7 @@ public class SlicingQualityAssay {
                 }
             }
         }
+        output.println();
     }
     
     /**
@@ -154,6 +158,7 @@ public class SlicingQualityAssay {
             output.println("Instance with DB_ID \"" + dbID + "\" " +
                                "is used but not in table DatabaseObject!");
         }
+        output.println();
         logger.info("validateExitence(): " + sliceMap.size() + " instances.");
     }
     

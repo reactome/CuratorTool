@@ -195,9 +195,9 @@ public class SlicingEngine {
         qa.setSliceMap(this.sliceMap);
         qa.setSourceDBA(sourceDBA);
         qa.validateExistence(output);
-        qa.validateAttributes(output);
         qa.validateEventsInHierarchy(topLevelIDs,
                                      output);
+        qa.validateAttributes(output);
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -1057,6 +1057,7 @@ public class SlicingEngine {
         // Try project based slicing engine
         SlicingEngine engine = new ProjectBasedSlicingEngine();
         try {
+            long time1 = System.currentTimeMillis();
             Properties properties = loadProperties();
             // Check if it is in development mode
             String isInDev = properties.getProperty("isInDev");
@@ -1149,6 +1150,8 @@ public class SlicingEngine {
             engine.setSpeciesFileName(speciesFileName);
             engine.setLogFileName(logFileName);
             engine.slice();
+            long time2 = System.currentTimeMillis();
+            logger.info("Total time for slicing: " + (time2 - time1) / (1000 * 60.0d) + " minutes");
         }
         catch (Exception e) {
             logger.error("SlicingEnginee.main(): " + e, e);
