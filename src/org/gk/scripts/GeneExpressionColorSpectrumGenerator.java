@@ -33,6 +33,8 @@ public class GeneExpressionColorSpectrumGenerator {
         System.out.println("Color: " + new Color(65280));
         System.out.println("Yellow: " + Color.yellow.toString());
         System.out.println("Blue: " + Color.BLUE.toString());
+        System.out.println("Red: " + Color.red.toString());
+        System.out.println("Green: " + Color.green.toString());
     }
     
     @Test
@@ -47,16 +49,16 @@ public class GeneExpressionColorSpectrumGenerator {
         //                                              new Point(0, height), 
         //                                              new float[]{0.0f, 0.5f, 1.0f}, 
         //                                              new Color[]{Color.red, Color.green, Color.blue});
+//        
+//        Paint color = new LinearGradientPaint(new Point(0, 0), 
+//                                              new Point(0, height), 
+//                                              new float[]{0.0f, 1.0f}, 
+//                                              new Color[]{Color.yellow, Color.blue});
         
-        Paint color = new LinearGradientPaint(new Point(0, 0), 
-                                              new Point(0, height), 
-                                              new float[]{0.0f, 1.0f}, 
-                                              new Color[]{Color.yellow, Color.blue});
-        
-        //        Paint color = new LinearGradientPaint(new Point(0, 0),
-        //                                              new Point(0, height),
-        //                                              new float[]{0.0f, 1.0f},
-        //                                              new Color[]{Color.red, Color.green});
+                Paint color = new LinearGradientPaint(new Point(0, 0),
+                                                      new Point(0, height),
+                                                      new float[]{0.0f, 1.0f},
+                                                      new Color[]{Color.red, Color.green});
         
         Graphics2D g2 = (Graphics2D) image.getGraphics();
         g2.setPaint(color);

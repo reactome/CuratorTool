@@ -275,6 +275,7 @@ public class ReactomeJavaConstants {
     public static final String includedLocation = "includedLocation";
     
     public static final String normalReaction = "normalReaction";
+    public static final String normalPathway = "normalPathway";
     public static final String entityFunctionalStatus = "entityFunctionalStatus";
     
     public static final String cellType = "cellType";

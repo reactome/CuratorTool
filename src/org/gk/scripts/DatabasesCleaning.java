@@ -11,9 +11,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.gk.database.ReverseAttributePane;
 import org.gk.model.GKInstance;
@@ -30,6 +32,30 @@ import org.junit.Test;
 public class DatabasesCleaning {
     
     public DatabasesCleaning() {
+    }
+    
+    @Test
+    public void checkComplexInferred() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+                                            "gk_current_ver50",
+                                            "root", 
+                                            "macmysql01");
+        Collection<GKInstance> complexes = dba.fetchInstancesByClass(ReactomeJavaConstants.PhysicalEntity);
+        dba.loadInstanceAttributeValues(complexes, new String[]{ReactomeJavaConstants.inferredTo});
+        int count = 0;
+        int total = 0;
+        for (GKInstance complex : complexes) {
+            List<GKInstance> list = complex.getAttributeValuesList(ReactomeJavaConstants.inferredTo);
+            if (list.size() > 0)
+                total ++;
+            Set<GKInstance> set = new HashSet<GKInstance>(list);
+            if (list.size() > set.size()) {
+                System.out.println(complex);
+                count ++;
+            }
+        }
+        System.out.println(count);
+        System.out.println("Total complexes that have been inferred: " + total);
     }
     
     @Test

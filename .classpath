@@ -49,11 +49,6 @@
 	<classpathentry kind="lib" path="lib/javamail/mailapi.jar"/>
 	<classpathentry kind="lib" path="lib/javamail/pop3.jar"/>
 	<classpathentry kind="lib" path="lib/javamail/smtp.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JDK1.6.0">
-		<attributes>
-			<attribute name="owner.project.facets" value="java"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="lib/uniprotjapi/aopalliance.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/commons-codec.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/commons-httpclient.jar"/>
@@ -64,5 +59,10 @@
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.web.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/uniprotjapi.jar"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.0.8-bin.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 7 [1.7.0_67]">
+		<attributes>
+			<attribute name="owner.project.facets" value="java"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
