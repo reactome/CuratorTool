@@ -6,6 +6,7 @@ package org.gk.pathwaylayout;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -20,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import javax.imageio.ImageIO;
 
 import org.apache.log4j.Logger;
 import org.gk.gkEditor.CoordinateSerializer;
@@ -39,6 +42,7 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
+import org.gk.util.SwingImageCreator;
 import org.junit.Test;
 
 /**
@@ -187,6 +191,39 @@ public class DiagramGeneratorFromDB {
                        pathwayDir);
     }
     
+    /**
+     * Find the PathwayDiagram related to this Pathway instance. A PathwayDiagram can be referred
+     * by PathwayDigram's representedPathway slot. But for a disease pathway, a PathwayDiagram can
+     * be linked via its normalPathway, which links to a PathwayDiagram. This change has been made
+     * as of November, 2014.
+     * @param pathway
+     * @return
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    public GKInstance getPathwayDiagram(GKInstance pathway) throws Exception {
+        // Find PathwayDiagram
+        Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
+                                                    ReactomeJavaConstants.representedPathway, 
+                                                    "=",
+                                                    pathway);
+        if (c != null && c.size() > 0) {
+            GKInstance diagram = (GKInstance) c.iterator().next();
+            return diagram;
+        }
+        // For a disease pathway, its diagram may be linked via its normal pathway slot.
+        if (pathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
+            GKInstance normalPathway = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.normalPathway);
+            c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
+                                             ReactomeJavaConstants.representedPathway, 
+                                             "=",
+                                             pathway);
+            if (c != null && c.size() > 0)
+                return (GKInstance) c.iterator().next();
+        }
+        return null;
+    }
+    
     @Test
     public void testGenerateImageOnly() throws Exception {
         // Signaling by NGF
@@ -198,13 +235,13 @@ public class DiagramGeneratorFromDB {
         // A disease pathway
 //        Long pathwayId = 4839735L;
         pathwayId = 2894858L;
-        pathwayId = 5658433L;
+        pathwayId = 1226099L;
 //        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                               "gk_central", 
 //                               "authortool", 
 //                               "T001test");
         dba = new MySQLAdaptor("localhost",
-                               "gk_current_ver48",
+                               "gk_central_120114_fireworks",
                                "root",
                                "macmysql01");
         dba.setUseCache(true);
@@ -216,25 +253,26 @@ public class DiagramGeneratorFromDB {
             throw new IllegalArgumentException("Pathway doesn't exist: " + pathwayId);
         }
         // Find PathwayDiagram
-        Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
-                                                                 ReactomeJavaConstants.representedPathway, 
-                                                                 "=",
-                                                                 pathway);
-        if (c == null || c.size() == 0) {
+        GKInstance diagram = getPathwayDiagram(pathway);
+        if (diagram == null) {
             logger.error("Pathway diagram is not available for " + pathway.getDisplayName());
             throw new IllegalStateException("Pathway diagram is not available for " + pathway.getDisplayName());
         }
-        GKInstance diagram = (GKInstance) c.iterator().next();
         // Need to find the top level directory
-        File pathwayDir = getPathwayDir(pathway);
-        RenderablePathway rPathway = createImageFiles(diagram, 
-                                                      pathway,
-                                                      pathwayDir);
+        File pathwayDir = new File(imageBaseDir);
+        
+        DiagramGKBReader reader = new DiagramGKBReader();
+        reader.setPersistenceAdaptor(diagram.getDbAdaptor());
+        RenderablePathway rPathway = reader.openDiagram(diagram);
+        
+        // Export a PNG image
+        exportImageFile(rPathway, diagram, pathway, pathwayDir, "png");
+        
         PathwayDiagramXMLGenerator xmlGenerator = new PathwayDiagramXMLGenerator();
         String xml = xmlGenerator.generateXMLForPathwayDiagram(diagram, 
                                                                pathway);
         FileUtilities fu = new FileUtilities();
-        fu.setOutput(imageBaseDir + "/PathwayDiagram.xml");
+        fu.setOutput(imageBaseDir + "/" + pathway.getDisplayName() + ".xml");
         fu.printLine(xml);
         fu.close();
     }
@@ -301,6 +339,7 @@ public class DiagramGeneratorFromDB {
         List<?> pathways = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
         // It should have multiple pathways, and one of them should be normal pathway, and others
         // should be disease related
+        GKInstance normalPathway = null;
         if (pathways != null && pathways.size() > 1) {
             int diseaseCount = 0;
             int normalCount = 0;
@@ -309,11 +348,40 @@ public class DiagramGeneratorFromDB {
                 GKInstance disease = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.disease);
                 if (disease != null)
                     diseaseCount ++;
-                else
+                else {
                     normalCount ++;
+                    normalPathway = pathway;
+                }
             }
             if (normalCount == 1 && diseaseCount > 0)
                 return true;
+        }
+        // Check with a new normalPathway slot
+        return isDiseaseRelatedPDInstanceViaNormalPathway(pdInst, normalPathway);
+    }
+    
+    /**
+     * This method is used to check if a PathwayDiagram instance is linked via the normalPathway slot
+     * which is introduced in November, 2014.
+     * @param pdInst
+     * @return
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    private boolean isDiseaseRelatedPDInstanceViaNormalPathway(GKInstance pdInst,
+                                                               GKInstance normalPathway) throws Exception {
+        if (normalPathway == null || !normalPathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway))
+            return false;
+        Collection<GKInstance> referrers = normalPathway.getReferers(ReactomeJavaConstants.normalPathway);
+        if (referrers != null && referrers.size() > 0) {
+            for (GKInstance referrer : referrers) {
+                if (referrer.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                    GKInstance disease = (GKInstance) referrer.getAttributeValue(ReactomeJavaConstants.disease);
+                    GKInstance tmp = (GKInstance) referrer.getAttributeValue(ReactomeJavaConstants.normalPathway);
+                    if (disease != null && tmp != null && normalPathway.getDBID().equals(tmp.getDBID())) // Compare DB_IDs in case cache is not used.
+                        return true;
+                }
+            }
         }
         return false;
     }
@@ -626,7 +694,39 @@ public class DiagramGeneratorFromDB {
                                   pathwayDir);
         return rPathway;
     }
-
+    
+    /**
+     * Export a PathwayDiagram in an image file format. PDF is not supproted here.
+     * @param diagram
+     * @param pathway
+     * @param pathwayDir
+     * @param format
+     * @throws Exception
+     */
+    private void exportImageFile(RenderablePathway rPathway,
+                                 GKInstance diagram,
+                                 GKInstance pathway,
+                                 File pathwayDir,
+                                 String format) throws Exception {
+        PathwayEditor editor = preparePathwayEditor(diagram, 
+                                                    pathway,
+                                                    rPathway);
+        PathwayDiagramGeneratorViaAT generator = new PathwayDiagramGeneratorViaAT();
+        generator.paintOnImage(editor);
+        editor.tightNodes(true);
+        generator.paintOnImage(editor);
+        String fileName = pathway.getDisplayName();
+        fileName = fileName.replaceAll("(\\\\|/)", "-");
+        // Make sure the file name is not too long
+        if (fileName.length() > 255 - 4) // 4 is for .png or .pdf
+            fileName = fileName.substring(0, 255 - 4);
+        // Note: It seems there is a bug in the PDF exporter to set correct FontRenderContext.
+        // Have to call PNG export first to make some rectangles correct.
+        File pngFileName = new File(pathwayDir, fileName + "." + format);
+        BufferedImage image = SwingImageCreator.createImage(editor);
+        ImageIO.write(image, format, pngFileName);
+    }
+    
     /**
      * Prepare an appropriate PathwayEditor object for drawing the diagram.
      * @param diagram

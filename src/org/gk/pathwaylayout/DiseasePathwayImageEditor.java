@@ -779,6 +779,37 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     /**
+     * Find the normal pathway related to the passed disease pathway.
+     * @param diseasePathway
+     * @return
+     * @throws Exception
+     */
+    private GKInstance findNormalPathway(GKInstance diseasePathway,
+                                         GKInstance pdInst) throws Exception {
+        // There should be a normal pathway contained by a disease pathway
+        List<?> subPathways = diseasePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+        // Get the disease pathway instance
+        List<GKInstance> pathways = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
+        
+        GKInstance normalPathway = null;
+        
+        for (Object obj : subPathways) {
+            GKInstance subPathway = (GKInstance) obj;
+            GKInstance disease = (GKInstance) subPathway.getAttributeValue(ReactomeJavaConstants.disease);
+            if (disease == null && contains(subPathway, pathways)) {
+                normalPathway = subPathway;
+                break;
+            }
+        }
+        
+        // Check if we should use the normal pathway slot
+        if (diseasePathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
+            normalPathway = (GKInstance) diseasePathway.getAttributeValue(ReactomeJavaConstants.normalPathway);
+        }
+        return normalPathway;
+    }
+    
+    /**
      * Split objects into normal and disease components
      */
     private void splitObjects()  {
@@ -801,15 +832,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             else {
                 diseasePathway = pathway;
                 // There should be a normal pathway contained by a disease pathway
-                List<?> subPathways = diseasePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-                for (Object obj : subPathways) {
-                    GKInstance subPathway = (GKInstance) obj;
-                    disease = (GKInstance) subPathway.getAttributeValue(ReactomeJavaConstants.disease);
-                    if (disease == null && contains(subPathway, pathways)) {
-                        normalPathway = subPathway;
-                        break;
-                    }
-                }
+                normalPathway = findNormalPathway(diseasePathway, pdInst);
             }
             if (normalPathway != null) {
                 // Get all disease related objects
