@@ -214,10 +214,12 @@ public class DiagramGeneratorFromDB {
         // For a disease pathway, its diagram may be linked via its normal pathway slot.
         if (pathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
             GKInstance normalPathway = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.normalPathway);
+            if (normalPathway == null)
+                return null;
             c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                              ReactomeJavaConstants.representedPathway, 
                                              "=",
-                                             pathway);
+                                             normalPathway);
             if (c != null && c.size() > 0)
                 return (GKInstance) c.iterator().next();
         }
@@ -236,14 +238,16 @@ public class DiagramGeneratorFromDB {
 //        Long pathwayId = 4839735L;
         pathwayId = 2894858L;
         pathwayId = 1226099L;
-//        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-//                               "gk_central", 
-//                               "authortool", 
-//                               "T001test");
-        dba = new MySQLAdaptor("localhost",
-                               "gk_central_120114_fireworks",
-                               "root",
-                               "macmysql01");
+        pathwayId = 5467345L; // An overlaid gene
+        pathwayId = 5619054L; // Use normalPathway
+        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                               "gk_central", 
+                               "authortool", 
+                               "T001test");
+//        dba = new MySQLAdaptor("localhost",
+//                               "gk_central_120114_fireworks",
+//                               "root",
+//                               "macmysql01");
         dba.setUseCache(true);
         imageBaseDir = "tmp";
         // Get the pathway diagram
@@ -272,7 +276,7 @@ public class DiagramGeneratorFromDB {
         String xml = xmlGenerator.generateXMLForPathwayDiagram(diagram, 
                                                                pathway);
         FileUtilities fu = new FileUtilities();
-        fu.setOutput(imageBaseDir + "/" + pathway.getDisplayName() + ".xml");
+        fu.setOutput(imageBaseDir + "/" + pathway.getDBID() + ".xml");
         fu.printLine(xml);
         fu.close();
     }
@@ -353,7 +357,7 @@ public class DiagramGeneratorFromDB {
                     normalPathway = pathway;
                 }
             }
-            if (normalCount == 1 && diseaseCount > 0)
+            if (normalCount > 0 && diseaseCount > 0) // A shared diagram between normal and disease pathway
                 return true;
         }
         // Check with a new normalPathway slot
