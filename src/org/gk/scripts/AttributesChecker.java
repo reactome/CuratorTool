@@ -431,7 +431,7 @@ public class AttributesChecker {
     public Map<String, List<Point>> loadUniProtToChains() throws IOException {
         Map<String, List<Point>> rtn = new HashMap<String, List<Point>>();
         FileUtilities fu = new FileUtilities();
-        String fileName = "/Users/gwu/datasets/UniProt/release_2013_05/uniprotToChainWithName.txt";
+        String fileName = "resources/uniprotToChainWithName.txt";
         fu.setInput(fileName);
         String line = null;
         while ((line = fu.readLine()) != null) {
@@ -452,13 +452,10 @@ public class AttributesChecker {
     
     @Test
     public void extraUniprotToChain() throws IOException {
-//        String dir = "/Users/gwu/datasets/UniProt/release_2013_02/";
-        String dir = "/Users/gwu/datasets/UniProt/release_2013_05/";
-        String fileName = dir + "uniprot_sprot_human.dat";
-//        String outName = dir + "uniprotToChain.txt";
+        String dir = "resources/";
         String outName = dir + "uniprotToChainWithName.txt";
         FileUtilities fu = new FileUtilities();
-        fu.setInput(fileName);
+        fu.setInput("http://www.uniprot.org/uniprot/?sort=&desc=&query=&fil=organism:%22Homo%20sapiens%20(Human)%20[9606]%22&format=txt", true);
         fu.setOutput(outName);
         boolean inNew = true;
         String line = null;

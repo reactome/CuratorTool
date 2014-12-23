@@ -25,7 +25,7 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class PhysicalEntityRename {
-    protected final String DIR_NAME = "/Users/gwu/Documents/wgm/work/reactome/Rename/";
+    protected final String DIR_NAME = "resources/rename/";
 //    protected final String DIR_NAME = "";
     private List<String> positionablePrefixes;
     private MySQLAdaptor dba;
@@ -43,7 +43,8 @@ public class PhysicalEntityRename {
                                                 args[3]);
             PhysicalEntityRename renamer = new PhysicalEntityRename();
             renamer.setDBA(dba);
-            renamer.renameEWASesInDb();
+            renamer.checkRenameEWASInstances();
+            //renamer.renameEWASesInDb();
 //            renamer.fixEWASNamesInDb();
         }
         catch(Exception e) {
@@ -60,7 +61,7 @@ public class PhysicalEntityRename {
     public void checkRenamedEWASesInDb() throws Exception {
         MySQLAdaptor dba = getDBA();
         // Read the logging file to get the list of DB_IDs for renamed EWASes
-        String fileName = DIR_NAME + "EWASRename_gk_central_050313.txt";
+        String fileName = DIR_NAME + "EWASRename_gk_central_.txt";
         Map<Long, String> dbIdToNewName = loadDbIdToName(fileName);
         System.out.println("Total Renamed EWASes: " + dbIdToNewName.size());
         List<Long> dbIds = new ArrayList<Long>(dbIdToNewName.keySet());
@@ -162,7 +163,7 @@ public class PhysicalEntityRename {
         // Check if phosphorylation positions should be ordered based on coordiantes
         System.out.println("\nPhosphorylations ordering based on coordinates:");
         total = 0;
-        fileName = DIR_NAME + "EWASRenameForFix_051513.txt";
+        fileName = DIR_NAME + "EWASRenameForFix_.txt";
         Map<Long, String> dbIdToFixName = loadDbIdToName(fileName);
         for (GKInstance inst : renamedEWASes) {
             String newName = dbIdToNewName.get(inst.getDBID());
@@ -343,9 +344,9 @@ public class PhysicalEntityRename {
         List<Long> escapeList2 = loadDBIds(DIR_NAME + "isoform_derived_ewases.txt", true);
         System.out.println("New escape list: " + escapeList2.size());
         // Load DB_IDs that have been renamed before from a logging file
-        List<Long> renamedList = loadDBIds(DIR_NAME + "EWASRename_gk_central_050313.txt", true);
+        List<Long> renamedList = loadDBIds(DIR_NAME + "EWASRename_gk_central_.txt", true);
         System.out.println("Total renamed in the first time: " + renamedList.size());
-        List<Long> newEscapeList = loadDBIds(DIR_NAME + "exemptions_05242013.txt", true);
+        List<Long> newEscapeList = loadDBIds(DIR_NAME + "exemptions_.txt", true);
         
         Set<Long> escapedIds = new HashSet<Long>();
 //        escapedIds.addAll(escapeList1);
@@ -388,7 +389,7 @@ public class PhysicalEntityRename {
         List<GKInstance> toBeUpdated = new ArrayList<GKInstance>();
         FileUtilities fu = new FileUtilities();
 //        String fileName = DIR_NAME + "Missed_EWASes_all_052413.txt";
-        String fileName = DIR_NAME + "Missed_First_EWASes_052813.txt";
+        String fileName = DIR_NAME + "Missed_First_EWASes_.txt";
         fu.setOutput(fileName);
         fu.printLine("DB_ID\tStart_Coordinate\tEnd_Coordinate\tOld_Display_Name\tNew_Display_Name\tCurator");
         for (GKInstance ewas : ewases) {
@@ -518,6 +519,7 @@ public class PhysicalEntityRename {
         MySQLAdaptor dba = getDBA();
         // A list of escapes
         List<Long> escapeIds = loadDBIds(DIR_NAME + "exceptions.txt", false);
+        new AttributesChecker().extraUniprotToChain();
         Map<String, List<Point>> uniprotToChains = new AttributesChecker().loadUniProtToChains();
         // For human proteins only
         GKInstance human = dba.fetchInstance(48887L);
@@ -536,11 +538,11 @@ public class PhysicalEntityRename {
 //        String fileName = DIR_NAME + "EWASRename_031413.txt";
 //        String fileName = DIR_NAME + "EWASRename_041613.txt";
 //        String fileName = DIR_NAME + "EWASRename_050313.txt";
-        String fileName = DIR_NAME + "EWASRenameForFix_051513.txt";
+        String fileName = DIR_NAME + "EWASRenameForFix_.txt";
         FileUtilities fu = new FileUtilities();
         fu.setOutput(fileName);
 //        System.out.println("DB_ID\tOld_Display_Name\tNew_Display_Name");
-        fu.printLine("DB_ID\tStart_Coordinate\tEnd_Coordinate\tOld_Display_Name\tNew_Display_Name");
+        fu.printLine("DB_ID\tAuthor\tOld_Display_Name\tNew_Display_Name");
         for (GKInstance inst : c) {
             if (escapeIds.contains(inst.getDBID()))
                 continue;
@@ -549,10 +551,14 @@ public class PhysicalEntityRename {
             if (shouldEscape(inst))
                 continue;
             String newDisplayName = createNewDisplayName(inst, modAccToMapper, uniprotToChains);
-            fu.printLine(inst.getDBID() + "\t" + 
-                         inst.getAttributeValue(ReactomeJavaConstants.startCoordinate) + "\t" + 
-                         inst.getAttributeValue(ReactomeJavaConstants.endCoordinate) + "\t" +
-                         inst.getDisplayName() + "\t" + 
+            String name = (String) inst.getAttributeValuesList(ReactomeJavaConstants.name).get(0);
+            
+            if (name.equalsIgnoreCase(newDisplayName))
+            	continue;
+            
+            fu.printLine(inst.getDBID() + "\t" +
+                         inst.getAttributeValue(ReactomeJavaConstants.created) + "\t" + 
+                         name + "\t" + 
                          newDisplayName);
         }
         fu.close();
@@ -588,10 +594,10 @@ public class PhysicalEntityRename {
             newDisplayName = newDisplayName + coordinateText;
         }
         // Add to name for the time being
-        List<String> names = inst.getAttributeValuesList(ReactomeJavaConstants.name);
-        names.add(0, newDisplayName);
-        newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(inst);
-        names.remove(0); // Get back to the original one
+        //List<String> names = inst.getAttributeValuesList(ReactomeJavaConstants.name);
+        //names.add(0, newDisplayName);
+        //newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(inst);
+        //names.remove(0); // Get back to the original one
         return newDisplayName;
     }
     
@@ -903,7 +909,7 @@ public class PhysicalEntityRename {
      */
     @Test
     public void fixEWASNamesInDb() throws Exception {
-        String fileName = DIR_NAME + "EWASRename_050313.txt";
+        String fileName = DIR_NAME + "EWASRename_.txt";
         MySQLAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
@@ -939,7 +945,7 @@ public class PhysicalEntityRename {
     @Test
     public void renameEWASesInDb() throws Exception {
 //        String fileName = DIR_NAME + "EWASRename_050313.txt";
-        String fileName = DIR_NAME + "Missed_First_EWASes_052813.txt";
+        String fileName = DIR_NAME + "Missed_First_EWASes_.txt";
         MySQLAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
@@ -997,7 +1003,7 @@ public class PhysicalEntityRename {
      */
     @Test
     public void fixSimpleEntityInstances() throws Exception {
-        String fileName = "/Users/gwu/Documents/wgm/work/reactome/Rename/SimpleEntityRenamedList_gk_central_102612.txt";
+        String fileName = "rename/SimpleEntityRenamedList_gk_central_.txt";
         Set<Long> dbIds = new HashSet<Long>();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
@@ -1041,7 +1047,7 @@ public class PhysicalEntityRename {
     
     @Test
     public void renameSmallMolecules() throws Exception {
-        String fileName = "/Users/gwu/Documents/wgm/work/reactome/Rename/small_mol_renaming.txt";
+        String fileName = "rename/small_mol_renaming.txt";
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -1106,12 +1112,12 @@ public class PhysicalEntityRename {
      */
     @Test
     public void compareTwoRenamingResults() throws IOException {
-        String fileName1 = DIR_NAME + "Missed_EWASes_051713.txt";
-        fileName1 = DIR_NAME + "Missed_First_EWASes_052413.txt";
+        String fileName1 = DIR_NAME + "Missed_EWASes_.txt";
+        fileName1 = DIR_NAME + "Missed_First_EWASes_.txt";
         Map<Long, String> dbIdToNewName1 = loadDbIdToNewName(fileName1);
         List<Long> dbIds1 = new ArrayList<Long>(dbIdToNewName1.keySet());
-        String fileName2 = DIR_NAME + "Missed_EWASes_052413.txt";
-        fileName2 = DIR_NAME + "Missed_First_EWASes_052813.txt";
+        String fileName2 = DIR_NAME + "Missed_EWASes_.txt";
+        fileName2 = DIR_NAME + "Missed_First_EWASes_.txt";
         Map<Long, String> dbIdToNewName2 = loadDbIdToNewName(fileName2);
         List<Long> dbIds2 = new ArrayList<Long>(dbIdToNewName2.keySet());
         dbIds1.removeAll(dbIds2);
