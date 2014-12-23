@@ -786,13 +786,17 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      */
     private GKInstance findNormalPathway(GKInstance diseasePathway,
                                          GKInstance pdInst) throws Exception {
+        GKInstance normalPathway = null;
+        // Check if we should use the normal pathway slot
+        if (diseasePathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
+            normalPathway = (GKInstance) diseasePathway.getAttributeValue(ReactomeJavaConstants.normalPathway);
+        }
+        if (normalPathway != null)
+            return normalPathway;
         // There should be a normal pathway contained by a disease pathway
         List<?> subPathways = diseasePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
         // Get the disease pathway instance
         List<GKInstance> pathways = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
-        
-        GKInstance normalPathway = null;
-        
         for (Object obj : subPathways) {
             GKInstance subPathway = (GKInstance) obj;
             GKInstance disease = (GKInstance) subPathway.getAttributeValue(ReactomeJavaConstants.disease);
@@ -800,11 +804,6 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 normalPathway = subPathway;
                 break;
             }
-        }
-        
-        // Check if we should use the normal pathway slot
-        if (diseasePathway.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
-            normalPathway = (GKInstance) diseasePathway.getAttributeValue(ReactomeJavaConstants.normalPathway);
         }
         return normalPathway;
     }
