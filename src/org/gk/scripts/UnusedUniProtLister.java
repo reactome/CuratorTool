@@ -5,9 +5,11 @@
 package org.gk.scripts;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,9 +33,28 @@ import org.junit.Test;
  *
  */
 public class UnusedUniProtLister {
-    
+    private MySQLAdaptor dba;
+	
     public UnusedUniProtLister() {
     }
+    
+    public static void main(String[] args) {
+        try {
+            // Need to get the database connection information
+            if (args.length < 4) {
+                System.err.println("Usage: java org.gk.scripts.UnusedUniProtLister dbHost dbName dbUser dbPwd");
+                System.exit(1);
+            }
+            
+            UnusedUniProtLister lister = new UnusedUniProtLister();
+            lister.setDBA(args[0], args[1], args[2], args[3]);
+            lister.list();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     
     /**
      * Used to help Lisa to merge files.
@@ -116,7 +137,7 @@ public class UnusedUniProtLister {
      */
     @Test
     public void generateFIScoresForUnUsedUniProtIds() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        setDBA();
         // Check UniProt only
         GKInstance uniprot = dba.fetchInstance(2L);
         Collection refGeneProducts = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
@@ -270,7 +291,6 @@ public class UnusedUniProtLister {
     
     @Test
     public void list() throws Exception {
-        MySQLAdaptor dba = getDBA();
         // Check UniProt only
         GKInstance uniprot = dba.fetchInstance(2L);
         Collection refGeneProducts = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
@@ -301,7 +321,8 @@ public class UnusedUniProtLister {
         // Generate out for this list.
 //        String outFileName = "/Users/wgm/Documents/gkteam/Lisa/UnUsedUniProts040910.txt";
 //        String outFileName = "/Users/gwu/Documents/gkteam/Lisa/UnUsedUniProts111511.txt";
-        String outFileName = "/Users/gwu/Documents/gkteam/Lisa/UnUsedUniProts121511.txt";
+        String now = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        String outFileName = "UnUsedUniProts" + now + ".txt";
         FileUtilities fu = new FileUtilities();
         fu.setOutput(outFileName);
         fu.printLine("List of human ReferenceGeneProduct instances that have not been used by EWAS referenceEntity:");
@@ -332,12 +353,11 @@ public class UnusedUniProtLister {
         System.out.println("Total accession not used: " + accessions.size());
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_042914",
-                                            "root", 
-                                            "macmysql01");
-        return dba;
+    private void setDBA() throws Exception {
+         dba = new MySQLAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
     }
     
+    private void setDBA(String host, String db, String user, String pass) throws Exception {
+        dba = new MySQLAdaptor(host, db, user, pass);
+   }
 }
