@@ -240,6 +240,8 @@ public class DiagramGeneratorFromDB {
         pathwayId = 1226099L;
         pathwayId = 5467345L; // An overlaid gene
         pathwayId = 5619054L; // Use normalPathway
+        pathwayId = 4341670L;
+//        pathwayId = 5657562L; 
         dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                "gk_central", 
                                "authortool", 

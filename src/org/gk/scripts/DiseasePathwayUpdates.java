@@ -26,6 +26,21 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class DiseasePathwayUpdates {
+    private MySQLAdaptor dba;
+    
+    public static void main(String[] args) throws Exception {
+        if (args.length < 4) {
+            System.err.println("java -Xmx4G org.gk.scripts.DiseasePathwayUpdates dbHost dbName dbUser dbPwd");
+            System.exit(0);
+        }
+        MySQLAdaptor dba = new MySQLAdaptor(args[0],
+                                            args[1],
+                                            args[2],
+                                            args[3]);
+        DiseasePathwayUpdates updater = new DiseasePathwayUpdates();
+        updater.setDBA(dba);
+        updater.useNewNormalPathwaySlot();
+    }
     
     /**
      * Default constructor.
@@ -231,11 +246,21 @@ public class DiseasePathwayUpdates {
     }
 
     private MySQLAdaptor getDBA() throws SQLException {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_current_ver51_new_schema",
-                                            "root",
-                                            "macmysql01");
+        if (this.dba != null)
+            return this.dba;
+//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+//                                            "gk_current_ver51_new_schema",
+//                                            "root",
+//                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                                            "test_gk_central_020915_wgm",
+                                            "authortool",
+                                            "T001test");
         return dba;
+    }
+    
+    public void setDBA(MySQLAdaptor dba) {
+        this.dba = dba;
     }
     
     private void useNewNormalPathwaySlot(GKInstance pathway,
