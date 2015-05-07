@@ -18,13 +18,16 @@ import javax.swing.JOptionPane;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.render.Renderable;
+import org.gk.render.RenderablePathway;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
 
@@ -35,6 +38,7 @@ import org.junit.Test;
  * @author wgm
  *
  */
+@SuppressWarnings("rawtypes")
 public class EventCheckOutHandler {
     // A list of attribute that should be escaped during checking out to control
     // the checked out size
@@ -52,6 +56,8 @@ public class EventCheckOutHandler {
     private Map<SchemaClass, Set<GKInstance>> extractPathwayDiagram(Map<Long, GKInstance> touchedMap,
                                                                     Set<GKInstance> events) throws Exception {
         Map<SchemaClass, Set<GKInstance>> pdMap = new HashMap<SchemaClass, Set<GKInstance>>();
+        // Used to fetch instances drawn in a pathway diagram
+        DiagramGKBReader diagramReader = new DiagramGKBReader();
         for (GKInstance event : events) {
             Collection pds = event.getReferers(ReactomeJavaConstants.representedPathway);
             if (pds == null || pds.size() == 0)
@@ -62,9 +68,36 @@ public class EventCheckOutHandler {
                     continue;
                 touchedMap.put(pd.getDBID(), pd);
                 addInstanceToMap(pd, pdMap);
+                extractInstancesInPD(pd, diagramReader, pdMap);
             }
         }
         return pdMap;
+    }
+    
+    /**
+     * Want to get out all instances contained by a PathwayDigram to avoid null errors.
+     * The contained instances in a diagram can be treated as attribute values.
+     * @param pdInst
+     * @param reader
+     * @param pdMap
+     * @throws Exception
+     */
+    private void extractInstancesInPD(GKInstance pdInst,
+                                      DiagramGKBReader reader,
+                                      Map<SchemaClass, Set<GKInstance>> pdMap) throws Exception {
+        PersistenceAdaptor adpator = pdInst.getDbAdaptor();
+        RenderablePathway diagram = reader.openDiagram(pdInst);
+        if (diagram.getComponents() == null || diagram.getComponents().size() == 0)
+            return;
+        for (Object obj : diagram.getComponents()) {
+            Renderable r = (Renderable) obj;
+            if (r.getReactomeId() == null)
+                continue;
+            GKInstance inst = adpator.fetchInstance(r.getReactomeId());
+            if (inst == null)
+                continue;
+            addInstanceToMap(inst, pdMap);
+        }
     }
     
     /**
@@ -461,20 +494,75 @@ public class EventCheckOutHandler {
      * @param fileAdaptor
      * @throws Exception
      */
+    @SuppressWarnings("unchecked")
     public void checkOutEvents(Set<GKInstance> dbEvents,
                                XMLFileAdaptor fileAdaptor) throws Exception {
-        Set<GKInstance> allEvents = new HashSet<GKInstance>();
-        for (GKInstance event : dbEvents) {
-            Set<GKInstance> tmp = InstanceUtilities.getContainedEvents(event);
-            allEvents.addAll(tmp);
-        }
-        // Don't forget to add these events.
-        allEvents.addAll(dbEvents);
+        Set<GKInstance> allEvents = getAllEventsForCheckout(dbEvents);
         Map<SchemaClass, Set<GKInstance>> schemaMap = pullInstances(allEvents);
 //        checkOutPathwayDiagram(schemaMap);
         fileAdaptor.store(schemaMap);
         // Clear isShell flag for GKInstnaces from the database.
         InstanceUtilities.clearShellFlags(schemaMap);
+    }
+
+    /**
+     * Get all events for checking out.
+     * @param dbEvent
+     * @return
+     * @throws Exception
+     */
+    public Set<GKInstance> getAllEventsForCheckout(GKInstance dbEvent) throws Exception {
+        Set<GKInstance> dbEvents = new HashSet<GKInstance>(1);
+        dbEvents.add(dbEvent);
+        return getAllEventsForCheckout(dbEvents);
+    }
+    
+    /**
+     * Get all events to be checked out in full.
+     * @param dbEvents
+     * @return
+     * @throws Exception
+     */
+    public Set<GKInstance> getAllEventsForCheckout(Set<GKInstance> dbEvents) throws Exception {
+        Set<GKInstance> allEvents = new HashSet<GKInstance>();
+        // To gain a little bit performance
+        Set<GKInstance> recursed = new HashSet<GKInstance>();
+        for (GKInstance event : dbEvents) {
+            Set<GKInstance> tmp = InstanceUtilities.getContainedEvents(event);
+            allEvents.addAll(tmp);
+            recursed.add(event);
+        }
+        // Don't forget to add these events.
+        allEvents.addAll(dbEvents);
+        // Disease pathways and normal pathways share diagram. Make sure all of them are checked
+        // out
+        Set<GKInstance> diseaseNormalEvents = new HashSet<GKInstance>();
+        for (GKInstance event : allEvents) {
+            if (event.getSchemClass().isValidAttribute(ReactomeJavaConstants.normalPathway)) {
+                List<GKInstance> values = event.getAttributeValuesList(ReactomeJavaConstants.normalPathway);
+                if (values != null && values.size() > 0) {
+                    diseaseNormalEvents.addAll(values);
+                    for (GKInstance value : values) {
+                        if (recursed.contains(value))
+                            continue;
+                        diseaseNormalEvents.addAll(InstanceUtilities.getContainedEvents(value));
+                        recursed.add(value);
+                    }
+                }
+            }
+            Collection<GKInstance> referrers = event.getReferers(ReactomeJavaConstants.normalPathway);
+            if (referrers != null && referrers.size() > 0) {
+                diseaseNormalEvents.addAll(referrers);
+                for (GKInstance referrer : referrers) {
+                    if (recursed.contains(referrer))
+                        continue;
+                    diseaseNormalEvents.addAll(InstanceUtilities.getContainedEvents(referrer));
+                    recursed.add(referrer);
+                }
+            }
+        }
+        allEvents.addAll(diseaseNormalEvents);
+        return allEvents;
     }
     
     @Test

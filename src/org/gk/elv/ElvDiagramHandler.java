@@ -116,7 +116,7 @@ public class ElvDiagramHandler {
     
     /**
      * This method is used to make sure all displayed objects should be in the local project. Otherwise,
-     * objects that are local created will be deleted, and objects existed in DBs will be downloaded in shell.
+     * objects that are locally created will be deleted, and objects existed in DBs will be downloaded in shell.
      * @param diagram
      * @param parentComp
      * @param fileAdaptor

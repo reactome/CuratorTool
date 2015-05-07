@@ -67,7 +67,9 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
         XMLFileAdaptor fileAdaptor = zoomableEditor.getXMLFileAdaptor();
         List<GKInstance> reactions = new ArrayList<GKInstance>();
         List<GKInstance> entities = new ArrayList<GKInstance>();
-        for (Iterator it = reactomeIds.iterator(); it.hasNext();) {
+        // Just in case duplicated in reactomeIds
+        Set<?> idSet = new HashSet(reactomeIds);
+        for (Iterator it = idSet.iterator(); it.hasNext();) {
             Long id = (Long) it.next();
             GKInstance instance = fileAdaptor.fetchInstance(id);
             if (instance == null)

@@ -175,13 +175,21 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * @throws Exception
      */
     public List<GKInstance> getRepresentedPathwaysInDiagram(RenderablePathway diagram) throws Exception {
-        List<GKInstance> pathways = new ArrayList<GKInstance>();
+        Set<GKInstance> pathways = new HashSet<GKInstance>();
         if (diagram.getReactomeDiagramId() != null) {
             GKInstance pdInst = fetchInstance(diagram.getReactomeDiagramId());
             List<?> values = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
             if (values != null && values.size() > 0) {
-                for (Object obj : values)
-                    pathways.add((GKInstance)obj);
+                for (Object obj : values) {
+                    GKInstance pathway = (GKInstance) obj;
+                    pathways.add(pathway);
+                    // Disease pathways referred by the normalPathway slot share the diagram and should be
+                    // included here.
+                    Collection<?> diseasePathways = pathway.getReferers(ReactomeJavaConstants.normalPathway);
+                    if (diseasePathways != null)
+                        for (Object obj1 : diseasePathways)
+                            pathways.add((GKInstance)obj1);
+                }
             }
         }
         if (pathways.size() == 0 && diagram.getReactomeId() != null) {
@@ -189,7 +197,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
             if (pathway != null)
                 pathways.add(pathway);
         }
-        return pathways;
+        return new ArrayList<GKInstance>(pathways);
     }
     
     /**

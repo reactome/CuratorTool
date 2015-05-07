@@ -184,8 +184,9 @@ public class EventPanePopupManager {
                     //long time1 = System.currentTimeMillis();
                     yield(); // Make sure progDialog.setVisible is called first.
                     progDialog.setText("Pulling instances out of the database...");
-                    Set<GKInstance> events = getAllEvents(eventNode);
+                    GKInstance event = (GKInstance) eventNode.getUserObject();
                     EventCheckOutHandler handler = new EventCheckOutHandler();
+                    Set<GKInstance> events = handler.getAllEventsForCheckout(event);
                     Map<SchemaClass, Set<GKInstance>> schemaMap = handler.pullInstances(events);
                     // Load the pathway diagram in another method
 //                    if (!progDialog.isCancelClicked) {
@@ -220,7 +221,7 @@ public class EventPanePopupManager {
         progDialog.setVisible(true);
     }
     
-    public Set<GKInstance> getAllEvents(DefaultMutableTreeNode eventNode) {
+    private Set<GKInstance> getAllEvents(DefaultMutableTreeNode eventNode) {
         // As if March 7, 2008. Only the selected Event and its contained 
         // event will be checked out. Not the whole project will be checked out.
 //      // Find the root

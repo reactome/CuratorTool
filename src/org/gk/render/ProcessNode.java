@@ -17,7 +17,7 @@ public class ProcessNode extends Node {
         boundsBuffer = 8;
         // Make sure a ProcessNode cannot be copy/paste to make
         // preceding/following event links clear!
-        isTransferrable = false;
+//        isTransferrable = false; // As of May 7, 2015, this is turned to off so that a sub-pathway can be linked to multiple places.
     }
     
     public ProcessNode(String displayName) {
