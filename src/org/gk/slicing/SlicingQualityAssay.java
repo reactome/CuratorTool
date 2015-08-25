@@ -71,7 +71,7 @@ public class SlicingQualityAssay {
             eventsInTree.addAll(containedEvents);
             eventsInTree.add(event); // Don't forget itself
         }
-        // Get a list of events that are not coverted
+        // Get a list of events that are not covered
         List<GKInstance> eventsNotInTree = new ArrayList<GKInstance>();
         for (Long dbId : sliceMap.keySet()) {
             GKInstance event = sliceMap.get(dbId);
@@ -84,10 +84,15 @@ public class SlicingQualityAssay {
         long time2 = System.currentTimeMillis();
         logger.info("validateEventsInHierarchy: " + (time2 - time1) / 1000.0d + " seconds.");
         logger.info("Events that have not listed in the pathway hierarchy: " + eventsNotInTree.size() + " instances");
-        output.println("Events that have not listed in the pathway hierarchy: " + eventsNotInTree.size());
+
+//      https://reactome.atlassian.net/browse/DEV-973 format change
+        output.println("UNLISTED\tevent\tspecies");
         for (GKInstance event : eventsNotInTree) {
             GKInstance species = (GKInstance) event.getAttributeValue(ReactomeJavaConstants.species);
-            output.println(event + "\t" + (species == null ? "No species provided" : species.getDisplayName()));
+            String className = event.getSchemClass().getName();
+            String eventName = event.getDisplayName();
+            String dbId = event.getDBID().toString();
+            output.println("UNLISTED\t"+className+"\t"+dbId+"\t"+eventName+"\t" + (species == null ? "No species provided" : species.getDisplayName()));
         }
         output.println();
     }
@@ -104,7 +109,7 @@ public class SlicingQualityAssay {
         Long dbID = null;
         GKInstance ref = null;
         SchemaAttribute att = null;
-        output.println("Instance attribute values checking:");
+        output.println("ATTRIBUTE_REMOVED\tattClass\tattDbId\tattName\tattribute\tclass\tdbId\tname");
         for (Iterator it = sliceMap.keySet().iterator(); it.hasNext();) {
             dbID = (Long) it.next();
             instance = (GKInstance) sliceMap.get(dbID);
@@ -120,8 +125,18 @@ public class SlicingQualityAssay {
                     ref = (GKInstance) it2.next();
                     if (!sliceMap.containsKey(ref.getDBID())) {
                         it2.remove();
-                        output.println("\"" + ref.toString() + "\" in \"" + att.getName() + "\" for \"" + instance + 
-                                           "\" is not in the slice and removed from the attribute list!");
+                        String refDbId = ref.getDBID().toString();
+                        String refClass = ref.getSchemClass().getName();
+                        String refName = ref.getDisplayName();
+                        String attName = att.getName();
+                        String instanceName = instance.getDisplayName();
+                        String instanceClass = instance.getSchemClass().getName();
+                        // https://reactome.atlassian.net/browse/DEV-973 format change
+                        output.println("ATTRIBUTE_REMOVED\t"+refClass+"\t"+refDbId+"\t"+refName+"\t"+
+                        		attName+"\t"+instanceClass+"\t"+dbID.toString()+"\t"+instanceName);
+
+//                        output.println("\"" + ref.toString() + "\" in \"" + att.getName() + "\" for \"" + instance + 
+//                                           "\" is not in the slice and removed from the attribute list!");
                     }
                 }
             }
@@ -159,7 +174,7 @@ public class SlicingQualityAssay {
                                "is used but not in table DatabaseObject!");
         }
         output.println();
-        logger.info("validateExitence(): " + sliceMap.size() + " instances.");
+        logger.info("validateExistence(): " + sliceMap.size() + " instances.");
     }
     
 }

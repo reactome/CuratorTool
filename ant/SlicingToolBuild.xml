@@ -6,7 +6,7 @@
     </description>
 	
 	<!-- Defining a list of directory names to be used -->
-	<property name="targetDir" value="/Users/gwu/Documents/EclipseWorkspace/slicingTool" />
+	<property name="targetDir" value="/Users/smckay/slicingTool" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="orgDir" value="${classDir}/org" />
 	<property name="libDir" value="${basedir}/lib" />
