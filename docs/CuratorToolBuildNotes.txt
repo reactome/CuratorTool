@@ -1,3 +1,9 @@
+Build 80 notes (May 7, 2015)
+
+1). One bug fix: objects cannot be fully checked out with pathways using or referred by the normalPathway slot. This bug has been fixed by checking out all related pathways fully. Now the user should be able to build/check out disease pathways or normal pathways referred by disease pathways having correct pathway diagrams.
+
+2). One change: a sub-pathway node can be copy/paste or drag/drop multiple times to create aliases. This is required by Karen.
+
 Build 79 notes (July 18, 2014)
 
 Two bug fixes:

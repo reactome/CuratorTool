@@ -258,6 +258,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         nodes.addAll(normalReaction.getInputNodes());
         nodes.addAll(normalReaction.getOutputNodes());
         nodes.addAll(normalReaction.getHelperNodes());
+        // Want to handle regulators too as of July 23, 2015.
+        nodes.addAll(normalReaction.getInhibitorNodes());
+        nodes.addAll(normalReaction.getActivatorNodes());
         // List objects not listed in the disease reaction as crossed objects
         Set<GKInstance> participants = InstanceUtilities.getReactionParticipants(diseaseReaction);
         Set<Long> diseaseIds = new HashSet<Long>();
@@ -423,6 +426,37 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                                                  mapped, 
                                                  catalysts,
                                                  normalNodes);
+        }
+        // Check activators
+        Collection<GKInstance> regulations = diseaseReaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+        if (regulations != null) {
+            List<GKInstance> posRegulators = new ArrayList<GKInstance>();
+            List<GKInstance> negRegulators = new ArrayList<GKInstance>();
+            for (GKInstance regulation : regulations) {
+                GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+                if (!regulator.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
+                    continue; // Work with PE only
+                if (regulation.getSchemClass().isa(ReactomeJavaConstants.PositiveRegulation)) {
+                    posRegulators.add(regulator);
+                }
+                else if (regulation.getSchemClass().isa(ReactomeJavaConstants.NegativeRegulation)) {
+                    negRegulators.add(regulator);
+                }
+            }
+            if (posRegulators.size() > 0) {
+                normalNodes = normalReaction.getActivatorNodes();
+                randomlyMapDiseaseNodesToNormalNodes(normalToDiseaseEntity,
+                                                     mapped,
+                                                     posRegulators,
+                                                     normalNodes);
+            }
+            if (negRegulators.size() > 0) {
+                normalNodes = normalReaction.getInhibitorNodes();
+                randomlyMapDiseaseNodesToNormalNodes(normalToDiseaseEntity,
+                                                     mapped, 
+                                                     negRegulators, 
+                                                     normalNodes);
+            }
         }
         return normalToDiseaseEntity;
     }
