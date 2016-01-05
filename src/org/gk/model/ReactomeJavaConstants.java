@@ -157,6 +157,7 @@ public class ReactomeJavaConstants {
     public static final String otherIdentifier = "otherIdentifier";
     public static final String modification = "modification";
     public static final String reviewed = "reviewed";
+    public static final String revised = "revised";
     public static final String reverseReaction = "reverseReaction";
     public static final String evidenceType = "evidenceType";
     public static final String sourceY = "sourceY";
