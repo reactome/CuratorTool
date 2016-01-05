@@ -658,13 +658,17 @@ public class HierarchicalEventPane extends JPanel {
 	    DefaultMutableTreeNode treeNode = null;
 	    // The first path should be visible
 	    TreePath firstPath = null;
-	    for (Iterator it = nodes.iterator(); it.hasNext();) {
-	        treeNode = (DefaultMutableTreeNode) it.next();
+	    // Use an array so that an selection event can be fired once to avoid any 
+	    // downstream problem (e.g. Event drawing in the event view)
+	    TreePath[] selectedPaths = new TreePath[nodes.size()];
+	    for (int i = 0; i < nodes.size(); i++) {
+	        treeNode = (DefaultMutableTreeNode) nodes.get(i);
 	        TreePath path = new TreePath(model.getPathToRoot(treeNode));
 	        if (firstPath == null) 
 	            firstPath = path;
-	        eventTree.addSelectionPath(path);
+	        selectedPaths[i] = path;
 	    }
+	    eventTree.setSelectionPaths(selectedPaths);
 	    if (firstPath != null)
 	        eventTree.scrollPathToVisible(firstPath);
 	}
