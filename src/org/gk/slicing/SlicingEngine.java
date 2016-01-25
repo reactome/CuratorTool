@@ -17,6 +17,8 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -926,6 +928,8 @@ public class SlicingEngine {
             return false;
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
+        if(!runAlterTables())
+        	return false;
         return true;
     }
     
@@ -1026,6 +1030,61 @@ public class SlicingEngine {
         input.close();
     }
     
+    
+    private boolean runAlterTables() throws Exception {
+    	targetDBA = new MySQLAdaptor(targetDbHost,
+    			targetDbName, 
+    			targetDbUser, 
+    			targetDbPwd, 
+    			targetDbPort);
+    	Connection targetDBAConnection = targetDBA.getConnection();
+    
+    	@SuppressWarnings("rawtypes")
+		java.util.List tables = getTables(targetDBAConnection);
+    	changeToMyISAM(tables,targetDBAConnection);
+    	return true;
+    }
+    
+	@SuppressWarnings("rawtypes")
+	private static java.util.List getTables(Connection conn) {
+		java.util.List tables = new ArrayList();
+		try {
+			Statement statement = conn.createStatement();
+			ResultSet resultset = statement.executeQuery("Show Tables");
+			while (resultset.next()) {
+				String name = resultset.getString(1);
+				tables.add(name);
+			}
+			resultset.close();
+			statement.close();
+		}
+		catch(SQLException e) {
+			e.printStackTrace();
+		}
+		return tables;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void changeToMyISAM(java.util.List tables, Connection conn) {
+		try {
+			Statement statement = conn.createStatement();
+			for (Iterator it = tables.iterator(); it.hasNext();) {
+				String table = it.next().toString();
+				System.err.println("Alter Table to MyISAM: " + table);
+				try {			
+					statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
+				}
+				catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			statement.close();
+		}
+		catch(SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
      
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
@@ -1056,16 +1115,18 @@ public class SlicingEngine {
             return false;
         
         // For the schema file, change the DBEngine to MyISAM
-        Charset charset = StandardCharsets.UTF_8;
-        Path inputFile = Paths.get(dumpFileName);
-        try {	
-        	String content = new String(Files.readAllBytes(inputFile), charset);
-        	content = content.replaceAll("(?i)ENGINE=InnoDB", "ENGINE=MyISAM");
-        	Files.write(inputFile, content.getBytes(charset));     
-        	logger.info("runDumpCommand: changed innodb to myisam");
-        } catch (IOException e) {
-        	throw new RuntimeException("Error changing innodb to MyISAM", e);
-        }
+//        if (!dumpFileName.equals("slicingOntology.sql")) {
+//        	Charset charset = StandardCharsets.UTF_8;
+//        	Path inputFile = Paths.get(dumpFileName);
+//        	try {	
+//        		String content = new String(Files.readAllBytes(inputFile), charset);
+//        		content = content.replaceAll("(?i)ENGINE=InnoDB", "ENGINE=MyISAM");
+//        		Files.write(inputFile, content.getBytes(charset));     
+//        		logger.info("runDumpCommand: changed innodb to myisam");
+//        	} catch (IOException e) {
+//        		throw new RuntimeException("Error changing innodb to MyISAM", e);
+//        	}
+//        }
 
         
         return true;
