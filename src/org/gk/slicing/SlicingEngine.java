@@ -9,6 +9,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,6 +32,8 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
+
+
 
 /**
  * This class is used to take a slice from gk_central for releasing. The slicing works as the following:
@@ -1019,6 +1026,7 @@ public class SlicingEngine {
         input.close();
     }
     
+     
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
         if (isInDev && path != null)
@@ -1046,6 +1054,20 @@ public class SlicingEngine {
         process.destroy();
         if (error.length() > 0)
             return false;
+        
+        // For the schema file, change the DBEngine to MyISAM
+        Charset charset = StandardCharsets.UTF_8;
+        Path inputFile = Paths.get(dumpFileName);
+        try {	
+        	String content = new String(Files.readAllBytes(inputFile), charset);
+        	content = content.replaceAll("(?i)ENGINE=InnoDB", "ENGINE=MyISAM");
+        	Files.write(inputFile, content.getBytes(charset));     
+        	logger.info("runDumpCommand: changed innodb to myisam");
+        } catch (IOException e) {
+        	throw new RuntimeException("Error changing innodb to MyISAM", e);
+        }
+
+        
         return true;
     }
 
