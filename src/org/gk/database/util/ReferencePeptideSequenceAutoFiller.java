@@ -164,8 +164,8 @@ public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFil
             return ;
         // Need to check if the passed identifier is correct or not
         String value = identifier.toString();
-        // This is a very coarse check: make sure it has 6 alphanumerical characters only.
-        if (!value.matches("([A-Z]|\\d){6}")) {
+        // This is a very coarse check: make sure it has 6-10 alphanumerical characters only.
+        if (!value.matches("([A-Z]|\\d){6,10}")) {
             JOptionPane.showMessageDialog(parentComp,
                                           "The provided UniProt identifier is not correct. " +
                                           "It should consisit of 6 alphanumerical characters (upper case only).",
