@@ -918,6 +918,15 @@ public class Node extends Renderable {
         this.attachments = attachments;
     }
     
+    public void layoutNodeAttachemtns() {
+        if (attachments == null || attachments.size() == 0 || getBounds() == null)
+            return;
+        NodeAttachmentAutoLayout layout = new NodeAttachmentAutoLayout();
+        layout.layout(attachments,
+                      getBounds().width,
+                      getBounds().height);
+    }
+    
     /**
      * Remove the selected NodeAttachment.
      */
