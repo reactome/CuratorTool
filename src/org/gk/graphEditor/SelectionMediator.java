@@ -28,6 +28,14 @@ public class SelectionMediator {
         selectables.add(s);
     }
     
+    /**
+     * Get the list of Selectable object.
+     * @return
+     */
+    public List getSelectables() {
+        return this.selectables;
+    }
+    
     public synchronized void fireSelectionEvent(Selectable source) {
         if (selectables == null || selectables.size() == 0)
             return;
