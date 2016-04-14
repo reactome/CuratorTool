@@ -16,8 +16,11 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -238,6 +241,84 @@ public class PathwayDiagramScripts {
         }
     }
     
+    /**
+     * Compare two gk_centrals and find reactions that are not in the second gk_central
+     * for PathwayDiagram instances.
+     * @throws Exception
+     */
+    @Test
+    public void checkReactionsViaComparison() throws Exception {
+        MySQLAdaptor dba1 = new MySQLAdaptor("localhost",
+                                             "gk_central_2016_02_28",
+                                             "root", 
+                                             "macmysql01");
+        MySQLAdaptor dba2 = new MySQLAdaptor("localhost",
+                                             "gk_central_041416",
+                                             "root", 
+                                             "macmysql01");
+        // Get all PathwayDiagrams in the second database that have been modified after the first database
+        Collection<GKInstance> c = dba2.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
+        dba2.loadInstanceAttributeValues(c, new String[]{ReactomeJavaConstants.modified});
+        int count = 0;
+        System.out.println("DB_ID\tDisplayName\tLastModified\tNumberOfRemovedEvents\tRemovedEvents");
+        for (GKInstance pd2 : c) {
+            GKInstance pd1 = dba1.fetchInstance(pd2.getDBID());
+            if (pd1 == null)
+                continue;
+            List<GKInstance> modified1 = pd1.getAttributeValuesList(ReactomeJavaConstants.modified);
+            List<GKInstance> modified2 = pd2.getAttributeValuesList(ReactomeJavaConstants.modified);
+            if (modified2.size() > modified1.size()) { // Means new modification has been performed
+                List<GKInstance> removed = getUnReleasedDeletedEvents(pd2, pd1);
+                if (removed.size() > 0) {
+                    GKInstance lastModified = modified2.get(modified2.size() - 1);
+                    String text = removed.toString();
+                    text = text.substring(1, text.length() - 1);
+                    System.out.println(pd2.getDBID() + "\t" + 
+                            pd2.getDisplayName() + "\t" + 
+                            lastModified.getDisplayName() + "\t" + 
+                            removed.size() + "\t" + 
+                            text);
+                    count ++;
+                }
+            }
+        }
+        System.out.println("Total: " + count);
+    }
+    
+    private List<GKInstance> getUnReleasedDeletedEvents(GKInstance pd2, GKInstance pd1) throws Exception {
+        List<GKInstance> events1 = getDisplayedEvents(pd1);
+        List<GKInstance> events2 = getDisplayedEvents(pd2);
+        Set<Long> dbIds2 = new HashSet<Long>();
+        for (GKInstance event2 : events2) 
+            dbIds2.add(event2.getDBID());
+        for (Iterator<GKInstance> it = events1.iterator(); it.hasNext();) {
+            GKInstance event = it.next();
+            if (dbIds2.contains(event.getDBID())) {
+                it.remove();
+                continue;
+            }
+//            Boolean doRelease = (Boolean) event.getAttributeValue(ReactomeJavaConstants._doRelease);
+//            if (doRelease != null && doRelease)
+//                it.remove();
+        }
+        return events1;
+    }
+    
+    private List<GKInstance> getDisplayedEvents(GKInstance pd) throws Exception {
+        DiagramGKBReader reader = new DiagramGKBReader();
+        RenderablePathway pathway = reader.openDiagram(pd);
+        List<GKInstance> events = new ArrayList<GKInstance>();
+        for (Object o : pathway.getComponents()) {
+            Renderable r = (Renderable) o;
+            if (r.getReactomeId() == null)
+                continue;
+            GKInstance inst = pd.getDbAdaptor().fetchInstance(r.getReactomeId());
+            if (inst.getSchemClass().isa(ReactomeJavaConstants.Event)) {
+                events.add(inst);
+            }
+        }
+        return events;
+    }
     
     @Test
     public void testloadPDIdsFromAddSetAndMemberLinksFile() throws IOException {
