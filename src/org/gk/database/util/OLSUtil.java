@@ -127,6 +127,11 @@ public class OLSUtil {
 				{
 					metadata.put("FORMULA_synonym", s);
 				}
+				List<String> synonymList = JsonPath.read(responseBody, "$._embedded.terms[0].synonyms[?(@ != $._embedded.terms[0].label )]");
+				for (String s : synonymList)
+				{
+					metadata.put("related_synonym", s);
+				}
 			}
 			//System.out.println("term: "+termString);
 		} catch (URIException e) {
