@@ -48,15 +48,12 @@ public class OLSUtil {
 		String termString = "";
 		try {
 			URI uri = new URI("http://www.ebi.ac.uk/ols/api/ontologies/"+ontologyName+"/terms?obo_id="+termId, true);
-			//System.out.println("URI: "+uri.toString());
 			String responseBody = OLSUtil.getRESTResponse(uri);
-			//System.out.println("response: "+responseBody);
 			//Check that there term was found, otherwise JSONPath throws an exception.
 			if (!responseBody.contains("\"status\":404"))
 			{
 				termString = JsonPath.read(responseBody,"$._embedded.terms[0].label");
 			}
-			//System.out.println("term: "+termString);
 		} catch (URIException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -77,9 +74,7 @@ public class OLSUtil {
 		List<String> xrefsList = new ArrayList<String>();
 		try {
 			URI uri = new URI("http://www.ebi.ac.uk/ols/api/ontologies/"+ontologyName+"/terms?obo_id="+termId, true);
-			//System.out.println("URI: "+uri.toString());
 			String responseBody = OLSUtil.getRESTResponse(uri);
-			//System.out.println("response: "+responseBody);
 			//Check that there term was found, otherwise JSONPath throws an exception.
 			if (!responseBody.contains("\"status\":404"))
 			{
@@ -115,9 +110,7 @@ public class OLSUtil {
 		
 		try {
 			URI uri = new URI("http://www.ebi.ac.uk/ols/api/ontologies/"+ontologyName+"/terms?obo_id="+termId, true);
-			//System.out.println("URI: "+uri.toString());
 			String responseBody = OLSUtil.getRESTResponse(uri);
-			//System.out.println("response: "+responseBody);
 			//Check that there term was found, otherwise JSONPath throws an exception.
 			if (!responseBody.contains("\"status\":404"))
 			{
