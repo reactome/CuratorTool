@@ -78,7 +78,7 @@ public class OLSUtil {
 			//Check that there term was found, otherwise JSONPath throws an exception.
 			if (!responseBody.contains("\"status\":404"))
 			{
-				xrefsList = JsonPath.read(responseBody,"$._embedded.terms[0].annotation.database_cross_reference");
+				xrefsList = JsonPath.read(responseBody,"$._embedded.terms[0].annotation[?( @.database_cross_reference != null )].database_cross_reference.*");
 				for (String s : xrefsList)
 				{
 					//The function that calls this expects a map, but is only interested in the values, not the keys, so we'll just give it
@@ -88,7 +88,6 @@ public class OLSUtil {
 					xrefs.put(s, s);
 				}
 			}
-			//System.out.println("term: "+termString);
 		} catch (URIException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -120,13 +119,12 @@ public class OLSUtil {
 				{
 					metadata.put("FORMULA_synonym", s);
 				}
-				List<String> synonymList = JsonPath.read(responseBody, "$._embedded.terms[0].synonyms[?(@ != $._embedded.terms[0].label )]");
+				List<String> synonymList = JsonPath.read(responseBody, "$._embedded.terms[0][?(@.synonyms!=null)].synonyms[?(@ != $._embedded.terms[0].label )]");
 				for (String s : synonymList)
 				{
 					metadata.put("related_synonym", s);
 				}
 			}
-			//System.out.println("term: "+termString);
 		} catch (URIException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
