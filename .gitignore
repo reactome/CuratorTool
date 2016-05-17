@@ -1,1 +1,9 @@
-/classes/
+.DS_Store
+.gitignore
+# Some history files
+.#*.java.*
+log/*
+tmp/*
+*.class
+
+

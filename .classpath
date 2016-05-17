@@ -38,7 +38,7 @@
 	<classpathentry kind="lib" path="lib/ols-client/commons-discovery-0.2.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/commons-logging-1.0.4.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/jaxrpc.jar"/>
-	<classpathentry kind="lib" path="lib/ols-client/ols-client.jar" sourcepath="/Users/wgm/ProgramFiles/ols-client/src"/>
+	<classpathentry kind="lib" path="lib/ols-client/ols-client.jar" sourcepath="/Users/GWu/ProgramFiles/ols-client/src"/>
 	<classpathentry kind="lib" path="lib/ols-client/saaj.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/wsdl4j-1.5.1.jar"/>
 	<classpathentry kind="lib" path="lib/celldesigner/celldesigner.jar"/>
@@ -58,11 +58,11 @@
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.core.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.web.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/uniprotjapi.jar"/>
-	<classpathentry kind="lib" path="lib/mysql-connector-java-5.0.8-bin.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 7 [1.7.0_67]">
 		<attributes>
 			<attribute name="owner.project.facets" value="java"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-5.0.8-bin.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
