@@ -113,16 +113,29 @@ public class OLSUtil {
 			//Check that there term was found, otherwise JSONPath throws an exception.
 			if (!responseBody.contains("\"status\":404"))
 			{
-				List<String> formulaList = JsonPath.read(responseBody,"$._embedded.terms[0].obo_synonym.[?(@.type=='FORMULA')].name");
+				//System.out.println(responseBody);
+				List<String> formulaList = JsonPath.read(responseBody,"$._embedded.terms[0][?(@.obo_synonym != null)].obo_synonym.[?(@.type=='FORMULA')].name");
 				//There should only ever be one formula, but the way that the JSONPath is written, it will return a list (with only one element, hopefully).
 				for (String s : formulaList)
 				{
 					metadata.put("FORMULA_synonym", s);
 				}
 				List<String> synonymList = JsonPath.read(responseBody, "$._embedded.terms[0][?(@.synonyms!=null)].synonyms[?(@ != $._embedded.terms[0].label )]");
+				int i =0;
 				for (String s : synonymList)
 				{
-					metadata.put("related_synonym", s);
+					//Some parts of the application check for the "_synonym" suffix, some parts check for a "related_synonym..." prefix.
+					//So put BOTH in the hash. That way both methods will still work.
+					metadata.put(i+"_related_synonym", s);
+					metadata.put("related_synonym_"+i, s);
+					i++;
+				}
+				
+				List<String> definition = JsonPath.read(responseBody, "$._embedded.terms[0][?(@.description!=null)].description.*");
+				//this should only ever return a list with one item, but because the JSONPath processing thinks it *could* return more (in theory), it will return a list.
+				for (String s : definition)
+				{
+					metadata.put("definition", s);
 				}
 			}
 		} catch (URIException e) {
