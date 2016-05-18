@@ -3,8 +3,10 @@ package org.gk.database.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
@@ -121,8 +123,15 @@ public class OLSUtil {
 					metadata.put("FORMULA_synonym", s);
 				}
 				List<String> synonymList = JsonPath.read(responseBody, "$._embedded.terms[0][?(@.synonyms!=null)].synonyms[?(@ != $._embedded.terms[0].label )]");
+				//The $..annotation.has_related_synonym array could also have synonyms, we should extract those too.
+				List<String> relatedSynonymList = JsonPath.read(responseBody, "$._embedded.terms[0].annotation[?(@.has_related_synonym!=null)].has_related_synonym[?(@ != $._embedded.terms[0].label )]");
+				
+				//use a hashset to deal with possible duplicates
+				synonymList.addAll(relatedSynonymList);
+				Set<String> synonyms = new HashSet<String>(synonymList);
+				
 				int i =0;
-				for (String s : synonymList)
+				for (String s : synonyms)
 				{
 					//Some parts of the application check for the "_synonym" suffix, some parts check for a "related_synonym..." prefix.
 					//So put BOTH in the hash. That way both methods will still work.
@@ -130,6 +139,7 @@ public class OLSUtil {
 					metadata.put("related_synonym_"+i, s);
 					i++;
 				}
+				
 				
 				List<String> definition = JsonPath.read(responseBody, "$._embedded.terms[0][?(@.description!=null)].description.*");
 				//this should only ever return a list with one item, but because the JSONPath processing thinks it *could* return more (in theory), it will return a list.
