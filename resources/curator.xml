@@ -192,7 +192,7 @@
 <!--     <pdURL value="http://reactomedev.oicr.on.ca:8080/ELVWebApp/ElvService" /> -->
 <!--     <devWebELV value="http://reactomedev.oicr.on.ca:8084/entitylevelview/PathwayBrowser.html" /> -->
     <!-- The following two values are set for reactomecurator -->
-    <pdURL value="http://reactomecurator.oicr.on.ca:7080/ELVWebApp/ElvService" />
+    <pdURL value="http://reactomecurator.oicr.on.ca:8080/ELVWebApp/ElvService" />
 <!--     <pdURL value="http://reactomerelease.oicr.on.ca:8080/ELVWebApp/ElvService" /> -->
     <devWebELV value="http://reactomecurator.oicr.on.ca/entitylevelview/PathwayBrowser.html" />
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
