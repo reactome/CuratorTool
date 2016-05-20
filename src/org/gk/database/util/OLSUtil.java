@@ -133,10 +133,11 @@ public class OLSUtil {
 				int i =0;
 				for (String s : synonyms)
 				{
-					//Some parts of the application check for the "_synonym" suffix, some parts check for a "related_synonym..." prefix.
+					//Some parts of the application check for the "_synonym" suffix, some parts check for a "related_synonym..." or "exact_synonym..." prefix.
 					//So put BOTH in the hash. That way both methods will still work.
 					metadata.put(i+"_related_synonym", s);
 					metadata.put("related_synonym_"+i, s);
+					metadata.put("exact_synonym_"+i, s);
 					i++;
 				}
 				
