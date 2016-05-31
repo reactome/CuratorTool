@@ -219,7 +219,7 @@ public class CuratorActionCollection {
 	    if (launchPsiModBrowserAction == null) {
 	        launchPsiModBrowserAction = new AbstractAction("Launch PSI-MOD Browser") {
 	            public void actionPerformed(ActionEvent e) {
-	                String url = "http://www.ebi.ac.uk/ontology-lookup/browse.do?ontName=MOD";
+	                String url = "http://www.ebi.ac.uk/ols/browse.do?ontName=MOD";
 	                try {
 	                    BrowserLauncher.displayURL(url, 
 	                                               curatorFrame);
@@ -240,7 +240,7 @@ public class CuratorActionCollection {
 	    if (launchDiseaseBrowserAction == null) {
 	        launchDiseaseBrowserAction = new AbstractAction("Launch Disease Browser") {
 	            public void actionPerformed(ActionEvent e) {
-	                String url = "http://www.ebi.ac.uk/ontology-lookup/browse.do?ontName=DOID";
+	                String url = "http://www.ebi.ac.uk/ols/browse.do?ontName=DOID";
 	                try {
 	                    BrowserLauncher.displayURL(url, 
 	                                               curatorFrame);

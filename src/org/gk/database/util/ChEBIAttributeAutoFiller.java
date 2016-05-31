@@ -17,7 +17,6 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
 
 import uk.ac.ebi.demo.ols.soap.Query;
-import uk.ac.ebi.demo.ols.soap.QueryServiceLocator;
 
 /**
  * This method is used to auto fill values for ReferenceMolecule based on ChEBI.
@@ -32,13 +31,12 @@ public class ChEBIAttributeAutoFiller extends PsiModAttributeAutoFiller {
     }
     
     @Override
-    @SuppressWarnings("unchecked")
     protected void mapMetaToAttributes(GKInstance instance,
                                        String termId,
                                        Query query)  throws Exception {
         GKInstance dbInst = getReferenceDatabasae("ChEBI");
         instance.setAttributeValue(ReactomeJavaConstants.referenceDatabase, dbInst);
-        Map<String, String> meta = query.getTermMetadata(termId, ONTOLOGY_NAME);
+        Map<String, String> meta = OLSUtil.getTermMetadata(termId, ONTOLOGY_NAME);
         if (meta == null || meta.size() == 0) {
             InstanceDisplayNameGenerator.setDisplayName(instance);
             return;
@@ -59,14 +57,14 @@ public class ChEBIAttributeAutoFiller extends PsiModAttributeAutoFiller {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected void mapCrossReference(GKInstance instance, 
                                      String termId,
                                      Query query) throws Exception {
-        Map<String, String> xrefs = query.getTermXrefs(termId, ONTOLOGY_NAME);
+    	Map<String, String> xrefs = OLSUtil.getTermXrefs(termId, ONTOLOGY_NAME);
         if (xrefs == null || xrefs.size() == 0)
             return;
         // Just want to map to KEGG compound only.
+        //TODO: Map others? It looks like HMDB and others might be available in the new REST response...
         Pattern pattern = Pattern.compile("KEGG COMPOUND:(C(\\d){5})");
         for (String name : xrefs.keySet()) {
             String value = xrefs.get(name);
@@ -117,9 +115,7 @@ public class ChEBIAttributeAutoFiller extends PsiModAttributeAutoFiller {
     public void speedCheck() throws Exception {
         long time1 = System.currentTimeMillis();
         for (int i = 0; i < 100; i++) {
-            QueryServiceLocator locator = new QueryServiceLocator();
-            Query service = locator.getOntologyQuery();
-            Map<String, String> meta = service.getTermMetadata("CHEBI:17794", ONTOLOGY_NAME);
+            Map<String, String> meta = OLSUtil.getTermMetadata("CHEBI:17794", ONTOLOGY_NAME);
         }
         long time2 = System.currentTimeMillis();
         System.out.println("Total time: " + (time2 - time1));

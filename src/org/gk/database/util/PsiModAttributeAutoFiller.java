@@ -6,7 +6,6 @@ package org.gk.database.util;
 
 import java.awt.Component;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,8 +74,7 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
         QueryServiceLocator locator = new QueryServiceLocator();
         Query service = locator.getOntologyQuery();
         // Get the term name
-        String term = service.getTermById(termId,
-                                          ONTOLOGY_NAME);
+        String term = OLSUtil.getTermById(termId,ONTOLOGY_NAME);
         if (term == null) {
             if (parentComp != null)
                 JOptionPane.showMessageDialog(parentComp,
@@ -116,8 +114,7 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
     protected void mapMetaToAttributes(GKInstance instance,
                                        String termId,
                                        Query service) throws Exception {
-        HashMap<String, String> meta = service.getTermMetadata(termId, 
-                                                               ONTOLOGY_NAME);
+    	Map<String, String> meta = OLSUtil.getTermMetadata(termId, ONTOLOGY_NAME);
         if (meta == null || meta.size() == 0)
             return;
         for (String key : meta.keySet()) {
