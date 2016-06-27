@@ -860,7 +860,7 @@ public class SynchronizationManager {
 	 * for return all instances handled in this method (include those handled in match checking with 
 	 * db_copy or merging action selected).
 	 * @param parentDialog the parent JDialog or JFrame. It should be JDialog, JFrame or null.
-	 * @return a list of GKInstances that have been commit to the database.
+	 * @return a list of GKInstances that have been committed to the database.
 	 */
 	public synchronized List<GKInstance> commitToDB(List<GKInstance> instances, 
 	                                                XMLFileAdaptor fileAdaptor, 
