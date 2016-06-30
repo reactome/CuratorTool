@@ -64,7 +64,7 @@ public class AttributeEditManager {
 	
 	public void attributeEdit(AttributeEditEvent e) {
         // Have to mark the editing instance. Call this first before fire events since
-        // some changes depends on this dirty setting. Theoreticaly, the calling sequence
+        // some changes depends on this dirty setting. Theoretically, the calling sequence
         // should not be an issue. PropertyChangeListener should be added to XMLFileAdaptor
         // to listen to the dirt flag setting.
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();

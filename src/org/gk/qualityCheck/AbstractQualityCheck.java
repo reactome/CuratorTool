@@ -392,6 +392,14 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     public void setIsInstancesEscapeNeeded(boolean isNeeded) {
         escapeHelper.setNeedEscapePermissioin(isNeeded);
     }
+    
+    protected List<GKInstance> getDisplayedInstances() {
+        InstanceListPane listPane = getDisplayedList();
+        if (listPane == null)
+            return null;
+        List instances = listPane.getDisplayedInstances();
+        return instances;
+    }
 
     /**
      * A helper method to create an action for dump to file button.
@@ -400,8 +408,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     protected Action createDumpToFileAction() {
         Action action = new AbstractAction("Dump to File") {
             public void actionPerformed(ActionEvent e) {
-                InstanceListPane listPane = getDisplayedList();
-                List instances = listPane.getDisplayedInstances();
+                List instances = getDisplayedInstances();
                 if (instances == null || instances.size() == 0)
                     return;
                 JFileChooser fileChooser = GKApplicationUtilities.createFileChooser(properties);

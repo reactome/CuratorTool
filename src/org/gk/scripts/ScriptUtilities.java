@@ -19,6 +19,7 @@ import org.gk.util.GKApplicationUtilities;
  *
  */
 public class ScriptUtilities {
+    public static final Long GUANMING_WU_DB_ID = 140537L; // For Guanming Wu at CSHL
     
     /**
      * A method to update instance name, _displayName, and adding an IE
@@ -54,6 +55,16 @@ public class ScriptUtilities {
         }
     }
     
+    public static void addIEToModified(GKInstance inst,
+                                       GKInstance ie,
+                                       MySQLAdaptor dba) throws Exception {
+        List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+        inst.addAttributeValue(ReactomeJavaConstants.modified, 
+                                     ie);
+        dba.updateInstanceAttribute(inst,
+                                    ReactomeJavaConstants.modified);
+    }
+    
     public static GKInstance createDefaultIE(MySQLAdaptor dba,
                                              Long defaultPersonId,
                                              boolean needStore) throws Exception {
@@ -69,7 +80,7 @@ public class ScriptUtilities {
     }
     
     /**
-     * Get the acutal author for an instance.
+     * Get the actual author for an instance.
      * @param inst
      * @return
      * @throws Exception

@@ -2,7 +2,6 @@ package org.gk.database;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,10 +9,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
-import org.gk.util.FileUtilities;
+import org.gk.persistence.XMLFileAdaptor;
+import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -31,21 +32,88 @@ public class StableIdentifierGenerator {
 	private final String NUL_SPECIES = "NUL";
 	private final String ALL_SPECIES = "ALL";
 	private Map<String, String> speciesToAbbreviation;
+	private Set<String> stidClasses;
 	
 	public StableIdentifierGenerator() {
 	}
 	
-	private String[] getClassNamesWithStableIds() {
-		String[] names = new String[] {
-				ReactomeJavaConstants.PhysicalEntity,
-				ReactomeJavaConstants.Event,
-				ReactomeJavaConstants.Regulation
-		};
-		return names;
+	/**
+	 * Check if a GKInstance needs to have a stable id.
+	 * @param instance
+	 * @return
+	 */
+	public boolean needStid(GKInstance instance) {
+	    Set<String> classNames = getClassNamesWithStableIds();
+	    for (String className : classNames) {
+	        if (instance.getSchemClass().isa(className))
+	            return true;
+	    }
+	    return false;
 	}
+	
+	public Set<String> getClassNamesWithStableIds() {
+	    if (stidClasses == null) {
+	        stidClasses = new HashSet<String>();
+	        String[] names = new String[] {
+	                ReactomeJavaConstants.PhysicalEntity,
+	                ReactomeJavaConstants.Event,
+	                ReactomeJavaConstants.Regulation
+	        };
+	        for (String name : names)
+	            stidClasses.add(name);
+	    }
+	    return stidClasses;
+	}
+	
+	/**
+	 * Create a StableIdentifier instance for the passed GKInstance object.
+	 * @param instance
+	 * @return
+	 * @throws Exception
+	 */
+	public GKInstance generateStableId(GKInstance instance,
+	                                   GKInstance created,
+	                                   XMLFileAdaptor fileAdaptor) throws Exception {
+	    if (!needStid(instance))
+	        return null;
+	    PersistenceAdaptor adaptor = instance.getDbAdaptor();
+	    SchemaClass stableIdCls = adaptor.getSchema().getClassByName(ReactomeJavaConstants.StableIdentifier);
+	    GKInstance stableId = new GKInstance(stableIdCls);
+	    stableId.setDbAdaptor(adaptor);
+	    String id = generateIdentifier(instance);
+	    stableId.setAttributeValue(ReactomeJavaConstants.identifier, id);
+	    stableId.setAttributeValue(ReactomeJavaConstants.identifierVersion, "1");
+	    if (created != null)
+	        stableId.setAttributeValue(ReactomeJavaConstants.created,
+	                                   created);
+	    stableId.setIsInflated(true);
+	    InstanceDisplayNameGenerator.setDisplayName(stableId);
+	    if (fileAdaptor != null) {
+	        stableId.setDBID(fileAdaptor.getNextLocalID());
+	        fileAdaptor.addNewInstance(stableId);
+	    }
+	    return stableId;
+	}
+
+	/**
+	 * The actual method to generate a stable identifier for a GKInstance.
+	 * @param instance
+	 * @return
+	 * @throws Exception
+	 */
+    public String generateIdentifier(GKInstance instance) throws Exception {
+        String species = getSpeciesForSTID(instance);
+	    String id = "R-" + species + "-" + instance.getDBID();
+        return id;
+    }
 	
 	private String getSpeciesForSTID(GKInstance inst) throws Exception {
 		String species = NUL_SPECIES;
+		if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.isChimeric)) {
+		    Boolean isChimeric = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.isChimeric);
+		    if (isChimeric != null && isChimeric)
+		        return species; // Pre-assumptive for null for all isChimeric instances
+		}
 		if (inst.getSchemClass().isa(ReactomeJavaConstants.Regulation))
 			species = getSpeciesAbbrFromRegulation(inst);
 		else if (inst.getSchemClass().isa(ReactomeJavaConstants.Event))
@@ -54,6 +122,10 @@ public class StableIdentifierGenerator {
 			species = getSpeciesFromSimpleEntity(inst);
 		else if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
 			species = getSpeciesFromEntitySet(inst);
+		else if (inst.getSchemClass().isa(ReactomeJavaConstants.Polymer))
+		    species = getSpeciesFromPolymer(inst);
+		else if (inst.getSchemClass().isa(ReactomeJavaConstants.OtherEntity))
+		    species = ALL_SPECIES; // Species is not a valid attribute for OtherEntity
 		else if (inst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
 			species = getSpeciesFromPhysicalEntity(inst);
 		return species;
@@ -68,16 +140,17 @@ public class StableIdentifierGenerator {
 		Set<GKInstance> members = InstanceUtilities.getContainedInstances(entitySet,
 																		  ReactomeJavaConstants.hasMember);
 		// Check what kind of members based on their schema classes
-		Set<String> clsNames = new HashSet<String>();
+		Set<String> speciesNames = new HashSet<String>();
 		for (GKInstance member : members) {
 			// Don't count EntitySet itself
 			if (member.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
 				continue;
-			clsNames.add(member.getSchemClass().getName());
+			String memberSpecies = getSpeciesForSTID(member);
+			speciesNames.add(memberSpecies);
 		}
-		if (clsNames.size() == 1 && clsNames.equals(ReactomeJavaConstants.SimpleEntity))
-			return ALL_SPECIES;
-		return NUL_SPECIES;
+		if (speciesNames.size() == 1)
+		    return speciesNames.iterator().next();
+		return NUL_SPECIES; // Too complicated
 	}
 	
 	private String getSpeciesFromPhysicalEntity(GKInstance physicalEntity) throws Exception {
@@ -155,7 +228,17 @@ public class StableIdentifierGenerator {
 		return getSpeciesAbbreviation(species);
 	}
 	
-	private GKInstance getSpeciesFromPE(GKInstance pe) throws Exception {
+	private String getSpeciesFromPolymer(GKInstance polymer) throws Exception {
+	    GKInstance species = (GKInstance) polymer.getAttributeValue(ReactomeJavaConstants.species);
+	    if (species != null)
+	        return getSpeciesAbbreviation(species);
+	    GKInstance repeatedUnit = (GKInstance) polymer.getAttributeValue(ReactomeJavaConstants.repeatedUnit);
+	    if (repeatedUnit == null)
+	        return NUL_SPECIES;
+	    return getSpeciesForSTID(repeatedUnit); // Use repeatedUnit's species
+	}
+	
+	public GKInstance getSpeciesFromPE(GKInstance pe) throws Exception {
 		if (!pe.getSchemClass().isValidAttribute(ReactomeJavaConstants.species))
 			return null;
 		GKInstance species = (GKInstance) pe.getAttributeValue(ReactomeJavaConstants.species);

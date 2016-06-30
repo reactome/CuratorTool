@@ -39,17 +39,7 @@ import javax.swing.event.TreeSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import launcher.Launchable;
-
-import org.gk.database.AttributeEditConfig;
-import org.gk.database.AttributeEditEvent;
-import org.gk.database.AttributeEditListener;
-import org.gk.database.AttributeEditManager;
-import org.gk.database.EventCentricViewPane;
-import org.gk.database.EventPanePopupManager;
-import org.gk.database.FrameManager;
-import org.gk.database.SchemaViewPane;
-import org.gk.database.SynchronizationManager;
+import org.gk.database.*;
 import org.gk.graphEditor.EntityLevelView;
 import org.gk.graphEditor.GraphEditorActionEvent;
 import org.gk.graphEditor.GraphEditorActionListener;
@@ -69,6 +59,8 @@ import org.gk.util.GKApplicationUtilities;
 import org.gk.util.RecentProjectHelper;
 import org.w3c.dom.Document;
 
+import launcher.Launchable;
+
 /**
  * This is the main class for the curator tool.
  * @author wugm
@@ -78,7 +70,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.1";
-	public static final int BUILD_NUMBER = 80;
+	public static final int BUILD_NUMBER = 81;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -465,6 +457,9 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		};
 		AttributeEditManager.getManager().addAttributeEditListener(editListener);
 		AttributeEditManager.getManager().addAttributeEditListener(FrameManager.getManager());
+		StableIdentifierUpdater stidUpdated = new StableIdentifierUpdater();
+		stidUpdated.setParentComp(this);
+		AttributeEditManager.getManager().addAttributeEditListener(stidUpdated);
 		// Add actions for converting to the authoring tool.
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getOpenInAuthoringToolAction());
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getExportToAuthoringToolAction());

@@ -322,7 +322,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
                     // Get the Reaction class
                     Map offendMap = new HashMap();
                     initProgressPane("Check " + checkedTypeLabel + " Attributes");
-                    progressPane.setText("Checking " + checkedType + " attributes...");
+                    progressPane.setText("Checking " + checkedTypeLabel + " attributes...");
                     progressPane.setMaximum(instances.size());
                     checkInstances(instances, offendMap);
                     if (progressPane.isCancelled())

@@ -15,7 +15,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
 /**
- * The logic for Complex.compartment check is implmeneted as following:
+ * The logic for Complex.compartment check is implemented as following:
  * 0). The complex should have no-empty compartment value.
  * 1). There should be only one compartment value in Complex though the value itself is a multi-valued
  * attribute

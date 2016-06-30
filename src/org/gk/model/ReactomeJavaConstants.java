@@ -298,4 +298,6 @@ public class ReactomeJavaConstants {
     public static final String alteredAminoAcidFragment = "alteredAminoAcidFragment";
     
     public static final String FailedReaction = "FailedReaction";
+    
+    public static final String isChimeric = "isChimeric";
 }

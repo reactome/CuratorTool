@@ -37,7 +37,6 @@ import javax.swing.event.ListSelectionListener;
 import org.gk.model.AttributeClassNotAllowedException;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.model.PathwayDiagramInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
@@ -1144,6 +1143,11 @@ public class SynchronizationManager {
                 continue; // Escape the attached InstanceEdit
             fileAdaptor.dbIDUpdated(oldDBID, instance);
         }
+        List<GKInstance> stableIds = generateStableIds(localSet,
+                                                       instanceEdit, 
+                                                       dbAdaptor, 
+                                                       fileAdaptor, 
+                                                       parentDialog);
         List<GKInstance> rtnList = new ArrayList<GKInstance>();
         rtnList.addAll(localSet);
         rtnList.addAll(dbList);
@@ -1151,6 +1155,8 @@ public class SynchronizationManager {
             // Remove dirty flag
             for (GKInstance instance : rtnList)
                 fileAdaptor.removeDirtyFlag(instance);
+            if (stableIds != null)
+                rtnList.addAll(stableIds);
             // Have to save all changes
             fileAdaptor.save();
             if (!committedInstancesRtnOnly)
@@ -1164,6 +1170,94 @@ public class SynchronizationManager {
         return null;
     }
 	
+	/**
+	 * Generate stable ids for instances committed into the database.
+	 * @param localSet
+	 * @throws Exception
+	 */
+	private List<GKInstance> generateStableIds(Set<GKInstance> localSet,
+	                                           GKInstance defaultIE,
+	                                           MySQLAdaptor dbAdaptor,
+	                                           XMLFileAdaptor fileAdaptor,
+	                                           Window parentDialog) {
+	    StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
+	    // Keep this map for rollback
+	    Map<GKInstance, GKInstance> instToStableId = new HashMap<GKInstance, GKInstance>();
+	    // For DB_ID updates after commiting to the database
+	    Map<GKInstance, Long> stableIdToDBID = new HashMap<GKInstance, Long>();
+	    try {
+	        for (GKInstance inst : localSet) {
+	            if (!stidGenerator.needStid(inst))
+	                continue;
+	            // Just in case
+	            if (!inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.stableIdentifier))
+	                continue;
+	            GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+	            if (stableId != null)
+	                continue; // Defensive programming: the curator tool will not handle versioning.
+	            stableId = stidGenerator.generateStableId(inst, 
+	                                                      defaultIE,
+	                                                      fileAdaptor);
+	            if (stableId != null) {
+	                inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier,
+	                                       stableId);
+	                instToStableId.put(inst, stableId);
+	                stableIdToDBID.put(stableId, stableId.getDBID());
+	            }
+	        }
+	    }
+	    catch(Exception e) {
+	        System.err.println("SynchronizationManager.generateStableIds(): " + e);
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(parentDialog, 
+                                          "Error in creating StableIdentifier instances: " + e, 
+                                          "Error in StableIdentifier Creation",
+                                          JOptionPane.ERROR_MESSAGE);
+	    }
+	    // Commit into the database
+	    boolean needTransaction = true;
+	    try {
+	        needTransaction = dbAdaptor.supportsTransactions();
+	        if (needTransaction)
+	            dbAdaptor.startTransaction();
+	        List<GKInstance> stableIds = new ArrayList<GKInstance>(stableIdToDBID.keySet());
+	        dbAdaptor.storeLocalInstances(stableIds);
+	        if (needTransaction)
+	            dbAdaptor.commit();
+	        for (GKInstance stableId : stableIdToDBID.keySet()) {
+	            Long oldDBId = stableIdToDBID.get(stableId);
+	            fileAdaptor.dbIDUpdated(oldDBId, stableId);
+	            fileAdaptor.removeDirtyFlag(stableId);
+	        }
+	        return stableIds;
+	    }
+	    catch(Exception e) {
+	        if (needTransaction) {
+                try {
+                    dbAdaptor.rollback();
+                }
+                catch (Exception e2) {
+                    JOptionPane.showMessageDialog(parentDialog, 
+                                                  "Cannot rollback StableIdentifier instances. The database connection might be lost.", 
+                                                  "Error in Database",
+                                                  JOptionPane.ERROR_MESSAGE);
+                }
+            }
+	        // Delete all stable ids
+	        for (GKInstance inst : instToStableId.keySet()) {
+	            GKInstance stableId = instToStableId.get(inst);
+	            inst.removeAttributeValueNoCheck(ReactomeJavaConstants.stableIdentifier, stableId);
+	            fileAdaptor.deleteInstance(stableId);
+	        }
+	        System.err.println("SynchronizationManager.generateStableIds(): " + e);
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(parentDialog,
+                                          "Cannot commit StableIdentifiers to the database.",
+                                          "Error in Committing",
+                                          JOptionPane.ERROR_MESSAGE);
+            return null;
+	    }
+	}
 	
 	/**
      * Search matched instances for a specified local GKInstance object.

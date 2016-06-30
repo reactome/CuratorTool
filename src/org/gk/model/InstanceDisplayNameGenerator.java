@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
-import org.junit.Test;
 
 /**
  * A utitlity class to generate the display name for the GKInstance object. This class 

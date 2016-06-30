@@ -146,7 +146,7 @@ public class DefaultInstanceEditHelper {
 			return(createActiveDefaultInstanceEdit(instanceEdit));
 	}
 	
-	private GKInstance fetchPerson(Window parentWindow) {
+	public GKInstance fetchPerson(Window parentWindow) {
 		GKInstance person = null;
 		if (personID == null) {
 			// Reminding

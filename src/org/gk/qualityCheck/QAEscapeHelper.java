@@ -121,30 +121,44 @@ public class QAEscapeHelper {
             return false;
         }
         // Ask to provide a date time
+        String message = "Please enter a date cutoff here in the format \"YYYY-MM-DD\". All instances\n" +
+                         "that have been edited after this cutoff date will be checked even if they\n" + 
+                         "are listed in the escaped file.";
+        cutoffDate = inputCutoffDate(message, parentComponent);
+        if (cutoffDate == null)
+            return false;
+        needEscape = true;
+        return needEscape;
+    }
+    
+    /**
+     * Set up a cutoff date for QA check. 
+     * @param message
+     * @param parentComponent
+     * @return
+     */
+    public Date inputCutoffDate(String message,
+                                Component parentComponent) {
+        // Ask to provide a date time
         String value = JOptionPane.showInputDialog(parentComponent,
-                                                   "Please enter a date cutoff here in the format \"YYYY-MM-DD\". All instances\n" +
-                                                   "that have been edited after this cutoff date will be checked even if they\n" + 
-                                                   "are listed in the escaped file.",
+                                                   message,
                                                    "Cutoff Date?",
                                                    JOptionPane.QUESTION_MESSAGE);
         if (value == null || value.trim().length() == 0)
-            return false;
-        if (value != null) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            try {
-                cutoffDate = df.parse(value);
-            }
-            catch (ParseException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(parentComponent, 
-                                              "Cannot read the entered date. Please make sure your format is correct: YYYY-MM-DD",
-                                              "Error in Date",
-                                              JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
+            return null;
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            Date cutoffDate = df.parse(value);
+            return cutoffDate;
         }
-        needEscape = true;
-        return needEscape;
+        catch (ParseException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(parentComponent, 
+                                          "Cannot read the entered date. Please make sure your format is correct: YYYY-MM-DD",
+                                          "Error in Date",
+                                          JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
     }
     
     /**
