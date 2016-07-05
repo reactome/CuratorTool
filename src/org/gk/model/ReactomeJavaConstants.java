@@ -154,6 +154,7 @@ public class ReactomeJavaConstants {
     public static final String summation = "summation";
     public static final String journal = "journal";
     public static final String identifier = "identifier";
+    public static final String released = "released";
     public static final String otherIdentifier = "otherIdentifier";
     public static final String modification = "modification";
     public static final String reviewed = "reviewed";

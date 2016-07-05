@@ -13,17 +13,22 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.Collections;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.PersistenceManager;
 import org.gk.util.DialogControlPane;
 
 /**
@@ -72,12 +77,41 @@ public class StableIdentifierUpdater implements AttributeEditListener {
         GKInstance stid = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
         if (stid == null)
             return; // Just in case
+        if (stid.isShell()) {
+            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+            if (dba == null) {
+                JOptionPane.showMessageDialog(parentComp, 
+                                              "Your edit may require an update to a released StableIdentifier object: \n" + 
+                                              stid + "\nPlease connect to the database for checking.", 
+                                              "StableIdentifier Update",
+                                              JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            GKInstance dbInst = dba.fetchInstance(stid.getDBID());
+            if (dbInst != null)
+                SynchronizationManager.getManager().updateFromDB(stid,
+                                                                 dbInst,
+                                                                 parentComp);
+        }
         StableIdentifierGenerator idGenerator = new StableIdentifierGenerator();
         String newIdentifier = idGenerator.generateIdentifier(instance);
         String oldIdentifier = (String) stid.getAttributeValue(ReactomeJavaConstants.identifier);
         if (newIdentifier.equals(oldIdentifier))
             return; // Nothing needs to be changed
-        // Update it
+        // If the StableIdentifier has been released, we should not make any change to it.
+        // But a warning to the curator should be great.
+        Boolean released = true;
+        if (stid.getSchemClass().isValidAttribute(ReactomeJavaConstants.released))
+            released = (Boolean) stid.getAttributeValue(ReactomeJavaConstants.released);
+        if (released != null && released) {
+            JOptionPane.showMessageDialog(parentComp, 
+                                          "Your edit may require an update to a released StableIdentifier object: \n" + 
+                                          stid + "\nIt is recommended to create a new instance instead.", 
+                                          "StableIdentifier Update",
+                                          JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // Update it if this stid is not released
         stid.setAttributeValue(ReactomeJavaConstants.identifier, newIdentifier);
         InstanceDisplayNameGenerator.setDisplayName(stid); // Need to update display name too
         AttributeEditManager.getManager().attributeEdit(stid, 

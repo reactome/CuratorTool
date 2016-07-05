@@ -168,7 +168,7 @@ public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFil
         if (!value.matches("([A-Z]|\\d){6,10}")) {
             JOptionPane.showMessageDialog(parentComp,
                                           "The provided UniProt identifier is not correct. " +
-                                          "It should consisit of 6 alphanumerical characters (upper case only).",
+                                          "It should consisit of 6 or 10 alphanumerical characters (upper case only).",
                                           "Error in Identifier",
                                           JOptionPane.ERROR_MESSAGE);
             return;
