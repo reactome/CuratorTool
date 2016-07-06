@@ -17,6 +17,8 @@ public class ReactomeJavaConstants {
     public static final String Complex = "Complex";
     public static final String Pathway = "Pathway";
     public static final String NegativeRegulation = "NegativeRegulation";
+    public static final String PositiveGeneExpressionRegulation = "PositiveGeneExpressionRegulation";
+    public static final String NegativeGeneExpressionRegulation = "NegativeGeneExpressionRegulation";
     public static final String _InstanceBeforeChange = "_InstanceBeforeChange";
     public static final String Event = "Event";
     public static final String Affiliation = "Affiliation";

@@ -184,7 +184,7 @@
 				<include name="docs/**" />
 				<include name="resources/**" />
 				<include name="images/**" />
-				<!-- include name="lib/skin/**.zip" / -->
+				<include name="lib/**" />
 			</fileset>
 	    </copy>
 		<!-- Need to change the permisions to make these two files executive. The original
