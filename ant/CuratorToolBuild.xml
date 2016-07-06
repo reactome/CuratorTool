@@ -25,17 +25,14 @@
 	
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../../Documents/ReactomeBuild/CuratorToolBuildFiles" />
-	<property name="classDir" value="${basedir}/classes" />
-	<property name="srcDir" value="${basedir}/src" />
-	<property name="orgDir" value="${classDir}/org" />
 	<property name="resourcesDir" value="${basedir}/resources" />
 	<property name="imagesDir" value="${basedir}/images" />
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
-	<property name="libDir" value="${basedir}/lib" />
-	<property name="launcher" value="${classDir}/launcher" />
 	<!-- For creating updating jar files and update.html -->
 	<property name="updateTargetDir" value="${basedir}/../../Documents/ReactomeUpdate" />
+	<property name="libDir" value="${basedir}/lib" />
+	<property name="clsDir" value="${basedir}/classes" />
 	
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
@@ -48,24 +45,13 @@
 	</target>
 	
 	<!-- copy all files to the target directory -->
-	<target name="copy" depends="mkdir">
-		<copy todir="${targetDir}/org">
-			<fileset dir="${orgDir}">
-				<exclude name="reactome/**" />
-			</fileset>
-		</copy>
-		<copy todir="${targetDir}/launcher">
-			<fileset dir="${launcher}">
-			</fileset>
-		</copy>
+	<target name="copy" depends="mkdir, createReactomeCuratorToolJar">
 		<copy todir="${targetDir}/resources">
 			<fileset dir="${resourcesDir}" >
-				<exclude name="*.prop" />
-				<exclude name="*.bak" />
-				<!-- update.xml will be replaced by target update. But this file
-				     is needed for MacOS -->
-				<!-- exclude name="update.xml" / -->
-				<exclude name="Timings.xml" />
+				<include name="curator.xml" />
+				<include name="log4j.properties" />
+				<include name="schema" />
+				<include name="Species.txt" />
 			</fileset>
 		</copy>
 		<copy todir="${targetDir}/images">
@@ -73,16 +59,18 @@
 		</copy>
 		<copy todir="${targetDir}/docs">
 			<fileset dir="${docsDir}">
-				<exclude name="TODO.txt" />
-				<exclude name="BugList.txt" />
+				<include name="CuratorToolBuildNotes.txt" />
+				<include name="CuratorToolManul.html" />
+				<include name="images/**" />
 			</fileset>
 		</copy>
+		<!-- license agreements from third-part libs -->
 		<copy todir="${targetDir}/lib">
 			<fileset dir="${libDir}">
-				<exclude name="skin/**" />
-				<exclude name="ant/**" />
-				<exclude name="celldesigner/**" />
-				<exclude name="uniprotjapi/**" />
+				<include name="batik/**.txt" />
+				<include name="jdom/jaxen.license" />
+				<include name="jdom/jaxen.readme" />
+				<include name="jdom/README" />
 			</fileset>
 		</copy>
 		<!-- Exectutive files for Windows and Linux -->
@@ -92,15 +80,6 @@
 			<fileset dir="${basedir}/ReactomeCuratorTool.app">
 			</fileset>
 		</copy>
-		<!-- create the source jar file -->
-		<jar destfile="${targetDir}/src.jar">
-			<fileset dir="${srcDir}">
-				<exclude name="local/**" />
-				<exclude name="unitTest/**" />
-				<exclude name="org/reactome/go/**" />
-				<exclude name="org/reactome/ant/**" />
-			</fileset>
-		</jar>
 	</target>
 	<!-- the whole process -->
 	<target name="build" depends="copy, createUpdateFile">
@@ -124,28 +103,10 @@
 	</target>
 	<!-- copy all files to the target directory -->
 	<target name="updateJar" depends="cleanJarDir">
-		<jar destfile="${updateTargetDir}/org.jar"> 
-			<fileset dir="${orgDir}">
-				<exclude name="reactome/**" />
-			</fileset>
-		</jar>
+		<!-- Since this update never works, this is used as a mark right now -->
 		<jar destfile="${updateTargetDir}/resources.jar">
 			<fileset dir="${resourcesDir}" >
-				<exclude name="*.prop" />
-				<exclude name="update.xml" />
-				<exclude name="Timings.xml" />
-			</fileset>
-		</jar>
-		<jar destfile="${updateTargetDir}/images.jar">
-			<fileset dir="${imagesDir}" />
-		</jar>
-		<jar destfile="${updateTargetDir}/docs.jar">
-			<fileset dir="${docsDir}">
-			</fileset>
-		</jar>
-		<jar destfile="${updateTargetDir}/lib.jar">
-			<fileset dir="${libDir}">
-				<exclude name="skin/themepack.zip" />
+				<include name="schema" />
 			</fileset>
 		</jar>
 	</target>
@@ -155,14 +116,32 @@
 	</taskdef>
 	<target name="createUpdateFile" depends="updateJar">
 		<updateFile dir="${updateTargetDir}" uri="http://reactomedev.oicr.on.ca/download/tools/curatorTool/update">
-			<resource name="org.jar" deleteDir="true" />
-			<resource name="docs.jar" deleteDir="true" />
+			<!-- Just a mark. Curators have to manually update the installed curator tool. -->
 			<resource name="resources.jar" deleteDir="false" />
-			<!-- For some reason, the lib dir cannot be deleted in the installing folder by InstallyAnyWhere -->
-			<resource name="lib.jar" deleteDir="false" />
-			<resource name="images.jar" deleteDir="true" />
 		</updateFile>
 	</target>
+	
+	<target name="createReactomeCuratorToolJar">
+		<jar destfile="${targetDir}/ReactomeCuratorTool.jar">
+			<fileset dir="${clsDir}">
+				<include name="org/**" />
+				<include name="launcher/**" />
+				<exclude name="org/gk/IDGeneration/**" />
+				<exclude name="org/gk/scripts/**" />
+			</fileset>
+			<zipgroupfileset dir="${libDir}">
+				<include name="*.jar"/>
+				<exclude name="mysql-connector-java-5.1.28-bin.jar" />
+				<include name="batik/**.jar" />
+				<include name="jdom/**.jar" />
+				<include name="junit/**.jar" />
+				<include name="ols-client/**.jar" />
+				<include name="jsonpath/**.jar" />
+				<include name="uniprotjapi/commons*.jar" />
+			</zipgroupfileset>
+		</jar>
+	</target>
+	
 	<!-- The following tasks are for MacOS X related work -->
 	<!-- Generate a Jar files for Reactome Classes -->
 	<property name="jarBundlerDir" value="/Developer/Applications/Java Tools/Jar Bundler.app/Contents/MacOS" />
@@ -198,38 +177,13 @@
 	</target>
 	<!-- Copy all necessary resources files that cannot be contained by jar and zip it -->
 	<!-- Run this task as the second step to build intaller -->
-	<target name="createMacApp" depends="buildOnMac">
-		<copy file="${targetDir}/reactome.jar" todir="${macOSXJavaRootDir}" />
-		<copy todir="${macOSXJavaRootDir}">
-			<fileset dir="${targetDir}/lib">
-				<include name="*.jar" />
-			</fileset>
-			<fileset dir="${targetDir}/lib/batik">
-				<include name="**" />
-			</fileset>
-			<fileset dir="${targetDir}/lib/jdom">
-				<include name="**" />
-			</fileset>
-			<fileset dir="${targetDir}/lib/junit">
-				<include name="**" />
-			</fileset>
-			<fileset dir="${targetDir}/lib/ols-client">
-				<include name="**" />
-			</fileset>
-			<!-- fileset dir="${targetDir}/lib/uniprotjapi">
-				<include name="**" />
-			</fileset -->
-		</copy>
-		<!-- Copy the source files to the builder -->
-		<copy todir="${macOSXAppDir}">
-			<fileset dir="${targetDir}">
-				<include name="src.jar" />
-			</fileset>
-		</copy>
+	<target name="createMacApp" depends="build">
+		<copy file="${targetDir}/ReactomeCuratorTool.jar" todir="${macOSXJavaRootDir}" />
 		<copy todir="${macOSXJavaRootDir}">
 			<fileset dir="${targetDir}">
 				<include name="docs/**" />
 				<include name="resources/**" />
+				<include name="images/**" />
 				<!-- include name="lib/skin/**.zip" / -->
 			</fileset>
 	    </copy>
@@ -237,14 +191,6 @@
 		     permsion is changed after copy.-->
 		<chmod file="${targetDir}/ReactomeCuratorTool.sh" perm="+x" />
 		<chmod file="${macOSXAppDir}/Contents/MacOS/JavaApplicationStub" perm="+x" />
-		<!-- This part has to be handled by hand. It cannnot work correctly. -->
-		<!--
-		<zip destfile="${targetDir}/ReactomeCuratorTool.zip">
-			<fileset dir="${targetDir}">
-				<include name="${AppName}.app/**" />
-			</fileset>
-		</zip>
-		-->
 	</target>
 	<!-- Create a zip file -->
 	<!-- Run this task as the third step to build installer -->

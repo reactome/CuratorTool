@@ -203,8 +203,11 @@ public class Launcher {
 	        remoteR = (Resource) remoteMap.get(name);
 	        localR = (Resource) localMap.get(name);
 	        if (localR == null) {
-	            remoteR.setNeedUpdate(true);
-	            rtn = true;
+	            // As of July 5, 2016, if no remote definition found for a local counterpart,
+	            // we will ignore it.
+	            continue;
+//	            remoteR.setNeedUpdate(true);
+//	            rtn = true;
 	        }
 	        else {
 	            if (remoteR.isNewerThan(localR)) {
