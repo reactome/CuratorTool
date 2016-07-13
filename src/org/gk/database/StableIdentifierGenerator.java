@@ -14,6 +14,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import org.jdom.Document;
@@ -46,6 +47,15 @@ public class StableIdentifierGenerator {
 	    Set<String> classNames = getClassNamesWithStableIds();
 	    for (String className : classNames) {
 	        if (instance.getSchemClass().isa(className))
+	            return true;
+	    }
+	    return false;
+	}
+	
+	public boolean needStid(GKSchemaClass cls) {
+	    Set<String> clsNames = getClassNamesWithStableIds();
+	    for (String clsName : clsNames) {
+	        if (cls.isa(clsName))
 	            return true;
 	    }
 	    return false;

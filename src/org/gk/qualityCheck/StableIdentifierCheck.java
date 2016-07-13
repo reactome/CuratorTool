@@ -68,7 +68,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     public void check(GKSchemaClass cls) {
         validateDataSource();
         StableIdentifierGenerator helper = new StableIdentifierGenerator();
-        if (!helper.getClassNamesWithStableIds().contains(cls.getName())) {
+        if (!helper.needStid(cls)) {
             JOptionPane.showMessageDialog(parentComp, 
                                           cls.getName() + " doesn't need stableIdentifier.",
                                           "No StableIdentifier",
@@ -248,7 +248,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             MySQLAdaptor dba = (MySQLAdaptor) dataSource;
             progressPane.setText("Loading the created attribute...");
             // Try to use attributes. It seems that there is a problem using String: the value
-            // is not loaded actually, or loaded but not registed.
+            // is not loaded actually, or loaded but not registered.
             SchemaAttribute created = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.created);
             dba.loadInstanceAttributeValues(allInstances, created);
             // Need dateTime for created
@@ -369,10 +369,13 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         Map<GKInstance, String> instToValidStid = new HashMap<GKInstance, String>();
         for (GKInstance inst : allInstances) {
             progressPane.setValue(++count);
-            GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-            if (stableId == null)
-                continue; // Don't do anything
             String newIdentifier = stidGenerator.generateIdentifier(inst);
+            GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            if (stableId == null) {
+                // Special case
+                instToValidStid.put(inst, newIdentifier);
+                continue; 
+            }
             String oldIdentifier = (String) stableId.getAttributeValue(ReactomeJavaConstants.identifier);
             if (newIdentifier.equals(oldIdentifier))
                 continue;
@@ -405,33 +408,51 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             return; // Since this check works for the database only, this should not happen.
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        Map<GKInstance, String> stableIdToValidId = resultFrame.getSelectedStableIdToValidId();
-        if (stableIdToValidId.size() > 0) {
+        Map<GKInstance, String> instToValidId = resultFrame.getSelectedInstanceToValidId();
+        if (instToValidId.size() > 0) {
             int confirm = JOptionPane.showConfirmDialog(resultFrame,
                                                         "Only selected StableIdentifiers will be fixed: \n" + 
-                                                         stableIdToValidId.size() + " selected.",
+                                                         instToValidId.size() + " selected.",
                                                         "Fixing Warning",
                                                         JOptionPane.OK_CANCEL_OPTION);
             if (confirm != JOptionPane.OK_OPTION)
                 return;
         }
         else
-            stableIdToValidId = resultFrame.getStableIdToValidId();
-        if (stableIdToValidId.size() == 0) // Just in case
+            instToValidId = resultFrame.getInstanceToValidId();
+        if (instToValidId.size() == 0) // Just in case
             return;
         try {
             GKInstance defaultIE = getDefaultIE();
             if (defaultIE == null)
                 return; // Cannot do anything if no InstanceEdit is available
             // We want to load all modified slot in one shot for quick performance
-            
-            for (GKInstance inst : stableIdToValidId.keySet()) {
-                String validId = stableIdToValidId.get(inst);
-                inst.setAttributeValue(ReactomeJavaConstants.identifier, validId);
-                // Load values first. Just in case. They should have been loaded already
-                inst.getAttributeValuesList(ReactomeJavaConstants.modified);
-                inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                InstanceDisplayNameGenerator.setDisplayName(inst);
+            List<GKInstance> newStableIds = new ArrayList<GKInstance>(); // For new StableIdentifiers
+            List<GKInstance> updatedInsts = new ArrayList<GKInstance>(); // Instances with newly attached StableIds
+            List<GKInstance> updatedStableIds = new ArrayList<GKInstance>(); // Updated StableIds
+            StableIdentifierGenerator generator = new StableIdentifierGenerator();
+            for (GKInstance inst : instToValidId.keySet()) {
+                String validId = instToValidId.get(inst);
+                GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+                if (stableId == null) {
+                    // Need to create a new StableIdentifier instance
+                    stableId = generator.generateStableId(inst,
+                                                          defaultIE,
+                                                          null);
+                    newStableIds.add(stableId);
+                    inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stableId);
+                    inst.getAttributeValue(ReactomeJavaConstants.modified);
+                    inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                    updatedInsts.add(inst);
+                }
+                else {
+                    stableId.setAttributeValue(ReactomeJavaConstants.identifier, validId);
+                    // Load values first. Just in case. They should have been loaded already
+                    stableId.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    stableId.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                    InstanceDisplayNameGenerator.setDisplayName(stableId);
+                    updatedStableIds.add(stableId);
+                }
             }
             boolean needTransaction = false;
             try {
@@ -440,15 +461,22 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                     dba.startTransaction();
                 // Don't forget to commit this defaultIE
                 dba.storeInstance(defaultIE);
-                for (GKInstance inst : stableIdToValidId.keySet()) {
-                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.identifier);
-                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
-                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants._displayName);
+                for (GKInstance newStableId : newStableIds) {
+                    dba.storeInstance(newStableId);
+                }
+                for (GKInstance updatedStableId : updatedStableIds) {
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier);
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified);
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName);
+                }
+                for (GKInstance updatedInst : updatedInsts) {
+                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier);
+                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified);
                 }
                 if (needTransaction)
                     dba.commit();
-                cleanUpResultFrame(stableIdToValidId.keySet());
-                displayFixedStableIds(stableIdToValidId.keySet());
+                cleanUpResultFrame(instToValidId.keySet());
+                displayFixedStableIds(instToValidId.keySet());
             }
             catch(Exception e) {
                 if (needTransaction) {
@@ -476,25 +504,41 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
     
     private void displayFixedStableIds(Set<GKInstance> instances) {
-        if (instances.size() == 0)
-            return;
-        if (instances.size() == 1) {
-            JOptionPane.showMessageDialog(resultFrame,
-                                          "This StableIdentifier has been fixed: " + instances.iterator().next(),
-                                          "Fixing Results",
-                                          JOptionPane.INFORMATION_MESSAGE);
-            return;
+        // Convert to StableIdentifiers for easy display
+        try {
+            List<GKInstance> stableIds = new ArrayList<GKInstance>();
+            for (GKInstance inst : instances) {
+                GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+                if (stableId != null)
+                    stableIds.add(stableId);
+            }
+            if (stableIds.size() == 0)
+                return;
+            
+            if (stableIds.size() == 1) {
+                JOptionPane.showMessageDialog(resultFrame,
+                                              "This StableIdentifier has been fixed: " + stableIds.iterator().next(),
+                                              "Fixing Results",
+                                              JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            InstanceListDialog listDialog = new InstanceListDialog(resultFrame, 
+                    "Fix Results");
+            InstanceUtilities.sortInstances(stableIds);
+            listDialog.setDisplayedInstances(stableIds);
+            listDialog.setSubTitle("The total fixed instances: " + instances.size() + ". Run this QA again to confirm.");
+            listDialog.setSize(600, 400);
+            GKApplicationUtilities.center(listDialog);
+            listDialog.setModal(true);
+            listDialog.setVisible(true);
         }
-        InstanceListDialog listDialog = new InstanceListDialog(resultFrame, 
-                                                               "Fix Results");
-        List<GKInstance> instList = new ArrayList<GKInstance>(instances);
-        InstanceUtilities.sortInstances(instList);
-        listDialog.setDisplayedInstances(instList);
-        listDialog.setSubTitle("The total fixed instances: " + instances.size() + ". Run this QA again to confirm.");
-        listDialog.setSize(600, 400);
-        GKApplicationUtilities.center(listDialog);
-        listDialog.setModal(true);
-        listDialog.setVisible(true);
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(resultFrame,
+                                          "Error in showing fixed results: " + e,
+                                          "Error in Result Display",
+                                          JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
     
     private void cleanUpResultFrame(Set<GKInstance> instances) {
@@ -632,37 +676,37 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             return model.getInstances();
         }
         
-        public Map<GKInstance, String> getSelectedStableIdToValidId() {
-            Map<GKInstance, String> stableIdToValidId = new HashMap<GKInstance, String>();
+        public Map<GKInstance, String> getSelectedInstanceToValidId() {
+            Map<GKInstance, String> instToValidId = new HashMap<GKInstance, String>();
             int[] selectedRows = resultTable.getSelectedRows();
             StableIdCheckResultTableModel model = (StableIdCheckResultTableModel) resultTable.getModel();
             if (selectedRows != null && selectedRows.length > 0) {
                 for (int row : selectedRows) {
                     int modelRow = resultTable.convertRowIndexToModel(row);
-                    stableIdToValidId.put((GKInstance)model.getValueAt(modelRow, 3),
-                                          (String)model.getValueAt(modelRow, 4));
+                    instToValidId.put((GKInstance)model.getValueAt(modelRow, 1),
+                                      (String)model.getValueAt(modelRow, 4));
                 }
             }
-            return stableIdToValidId;
+            return instToValidId;
         }
         
-        public Map<GKInstance, String> getStableIdToValidId() {
-            Map<GKInstance, String> stableIdToValidId = new HashMap<GKInstance, String>();
+        public Map<GKInstance, String> getInstanceToValidId() {
+            Map<GKInstance, String> instToValidId = new HashMap<GKInstance, String>();
             StableIdCheckResultTableModel model = (StableIdCheckResultTableModel) resultTable.getModel();
             for (int i = 0; i < model.getRowCount(); i++) {
-                stableIdToValidId.put((GKInstance)model.getValueAt(i, 3),
+                instToValidId.put((GKInstance)model.getValueAt(i, 1),
                                       (String)model.getValueAt(i, 4));
             }
-            return stableIdToValidId;
+            return instToValidId;
         }
         
         /**
          * Remove the passed StableIds from the table after they are fixed.
          * @param stableIds
          */
-        public void cleanUp(Set<GKInstance> stableIds) {
+        public void cleanUp(Set<GKInstance> instances) {
             StableIdCheckResultTableModel model = (StableIdCheckResultTableModel) resultTable.getModel();
-            model.removeStableIds(stableIds);
+            model.removeInstances(instances);
         }
         
     }
@@ -688,12 +732,11 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             InstanceUtilities.sortInstances(sortedInstList);
         }
         
-        public void removeStableIds(Set<GKInstance> stableIds) {
+        public void removeInstances(Set<GKInstance> instances) {
             try {
                 for (Iterator<GKInstance> it = sortedInstList.iterator(); it.hasNext();) {
                     GKInstance inst = it.next();
-                    GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-                    if (stableIds.contains(stableId)) {
+                    if (instances.contains(inst)) {
                         it.remove();
                         instToValidId.remove(inst);
                     }
