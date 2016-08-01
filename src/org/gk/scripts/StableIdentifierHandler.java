@@ -87,6 +87,72 @@ public class StableIdentifierHandler {
 		return names;
 	}
 	
+	/**
+	 * Because of the bug in the release 81 of the curator tool, generated StableIdentifiers have not
+	 * been assigned to their respective instances.
+	 * @throws Exception
+	 */
+	@Test
+	public void fixStableIdsInDB() throws Exception {
+	    MySQLAdaptor dba = getDBA();
+	    Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
+	    System.out.println("Total instances having no stable ids: " + instToStid.size());
+	    int count = 0;
+	    Map<GKInstance, GKInstance> instToDbStid = new HashMap<GKInstance, GKInstance>();
+	    for (GKInstance inst : instToStid.keySet()) {
+	        GKInstance localStid = instToStid.get(inst);
+	        String identifier = (String) localStid.getAttributeValue(ReactomeJavaConstants.identifier);
+	        // Find if such an instance existing already
+	        Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.StableIdentifier,
+	                                                                ReactomeJavaConstants.identifier,
+	                                                                "=",
+	                                                                identifier);
+	        if (c == null || c.size() == 0) {
+	            System.out.println(inst + "\tnull");
+	            count ++;
+	        }
+	        else if (c.size() > 1)
+	            System.out.println(inst + "\t" + c);
+	        else {
+	            System.out.println(inst + "\t" + c.iterator().next());
+	            instToDbStid.put(inst,  c.iterator().next());
+	        }
+	    }
+	    System.out.println("Instances don't have stableIds created: " + count);
+	    instToStid.keySet().removeAll(instToDbStid.keySet());
+	    System.out.println("The following instances have no StableIds in the database:");
+	    System.out.println(instToStid.keySet());
+	    
+	    // Perform fix now
+        boolean needTransaction = dba.supportsTransactions();
+        try {
+            if (needTransaction)
+                dba.startTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                                                                   ScriptUtilities.GUANMING_WU_DB_ID,
+                                                                   true); // Will store this IE directly
+            for (GKInstance inst : instToDbStid.keySet()) {
+                System.out.println("Fix " + inst);
+                // Store StableIdentifier
+                GKInstance stid = (GKInstance) instToDbStid.get(inst);
+                // Update The original GKInstance now attached with StableIdentifier
+                inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stid);
+                inst.getAttributeValue(ReactomeJavaConstants.modified);
+                inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.stableIdentifier);
+                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
+            }
+            if (needTransaction)
+                dba.commit();
+        }
+        catch(Exception e) {
+            if (needTransaction)
+                dba.rollback();
+            e.printStackTrace();
+            throw e;
+        }
+	}
+	
 	public void generateStableIdsInDB() throws Exception {
 	    MySQLAdaptor dba = getDBA();
 	    Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
@@ -183,7 +249,8 @@ public class StableIdentifierHandler {
 	public void generateInstToSTIDMap() throws Exception {
 		MySQLAdaptor dba = getDBA();
 		Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
-		String fileName = "/Users/Gwu/Documents/temp/GK_Central_Instance_STID_062716.txt";
+//		String fileName = "/Users/Gwu/Documents/temp/GK_Central_Instance_STID_062716.txt";
+		String fileName = "/Users/Gwu/Documents/temp/GK_Central_Instance_STID_080116.txt";
 		outputInstToStid(instToStid, fileName);
 		System.out.println("Total instances: " + instToStid.size());
 	}

@@ -1,3 +1,16 @@
+Build 82 notes (August 1, 2016)
+
+This release is for an important bug fix: The auto-generated StableIdentifiers are not assigned to their corresponding instances.
+
+Build 81 notes (July 15, 2016)
+
+1). Auto-generating StableIdentifier instances for new instances in classes PhysicalEntity, Event and Regulation when they are committed into gk_central.
+
+2). A new QA for checking newly created StableIdentifiers to make sure they are correct and new instances in those three classes have StableIdentifier instances associated. You may perform fixes directly into gk_central. Usually this feature is reserved for Lisa or other person with the role of release manager.
+
+3). Fix: auto-fetching detailed information from EBI ontology looking-up service for PSI-MOD, GO, DO, and ChEBI (https://reactome.atlassian.net/browse/DEV-1352?jql=text%20~%20%22CHEBI%22). This fix has been done by Solomon. Thanks, Solomon!
+
+
 Build 80 notes (May 7, 2015)
 
 1). One bug fix: objects cannot be fully checked out with pathways using or referred by the normalPathway slot. This bug has been fixed by checking out all related pathways fully. Now the user should be able to build/check out disease pathways or normal pathways referred by disease pathways having correct pathway diagrams.
