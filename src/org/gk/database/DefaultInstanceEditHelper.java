@@ -55,7 +55,10 @@ public class DefaultInstanceEditHelper {
 	}
 
 	public void setDefaultPerson(Long personID) {
+	    if (this.personID != null && this.personID.equals(personID))
+	        return; // There is no need to do anything
 		this.personID = personID;
+		refresh(); // Force it to reload since we will need to generate a new default InstanceEdit
 	}
     
     public Long getDefaultPerson() {

@@ -1220,8 +1220,14 @@ public class SynchronizationManager {
 	        needTransaction = dbAdaptor.supportsTransactions();
 	        if (needTransaction)
 	            dbAdaptor.startTransaction();
-	        List<GKInstance> stableIds = new ArrayList<GKInstance>(stableIdToDBID.keySet());
-	        dbAdaptor.storeLocalInstances(stableIds);
+	        // Perform a two-step update/store and hope to have a better
+	        // performance since the first storeLocalInstances is performed in a batch way.
+            List<GKInstance> stableIds = new ArrayList<GKInstance>(stableIdToDBID.keySet());
+            dbAdaptor.storeLocalInstances(stableIds);
+	        for (GKInstance inst : instToStableId.keySet()) {
+	            dbAdaptor.updateInstanceAttribute(inst,
+	                                              ReactomeJavaConstants.stableIdentifier);
+	        }
 	        if (needTransaction)
 	            dbAdaptor.commit();
 	        for (GKInstance stableId : stableIdToDBID.keySet()) {
