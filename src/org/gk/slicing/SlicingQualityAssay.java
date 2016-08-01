@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.gk.database.StableIdentifierGenerator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -142,6 +143,29 @@ public class SlicingQualityAssay {
             }
         }
         output.println();
+    }
+    
+    /**
+     * Make sure StableIds are set for instances required them.
+     * @param output
+     * @throws Exception
+     */
+    public void validateStableIds(PrintStream output) throws Exception {
+        StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
+        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds();
+        output.println("StableIdentifier checking...");
+        int count = 0;
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance inst = sliceMap.get(dbId);
+            if (stidClassNames.contains(inst.getSchemClass().getName())) {
+                GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+                if (stableId == null) {
+                    output.println(inst + " has no stableIdentifier.");
+                    count ++;
+                }
+            }
+        }
+        output.println("Total instances requiring stableIdentifiers but not having them: " + count);
     }
     
     /**

@@ -19,15 +19,20 @@ import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
+import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
 
 
@@ -93,6 +98,8 @@ public class SlicingEngine {
     // To control some parameters for testing
     private boolean isInDev = false;
     private String path = "/usr/local/mysql/bin/";
+    private boolean setReleasedInStableIdentifier = false;
+    private Long defaultPersonId = null;
     
     /**
      * Default constructor
@@ -202,6 +209,7 @@ public class SlicingEngine {
         qa.validateEventsInHierarchy(topLevelIDs,
                                      output);
         qa.validateAttributes(output);
+        qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -210,6 +218,73 @@ public class SlicingEngine {
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
+        setStableIdReleased();
+    }
+    
+    private void setStableIdReleased() throws Exception {
+        if (!setReleasedInStableIdentifier)
+            return; // There is no need to do this.
+        // Make sure released attribute in StableIdentifiers are true in
+        // the target database
+        try {
+            Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
+            for (GKInstance inst : c) {
+                Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
+                if (released == null || !released) {
+                    inst.setAttributeValue(ReactomeJavaConstants.released,
+                                           Boolean.TRUE);
+                    targetDBA.updateInstanceAttribute(inst,
+                                                      ReactomeJavaConstants.released);
+                }
+            }
+        }
+        catch(Exception e) {
+            logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
+            return; // Don't need to continue
+        }
+        // We have to reset stable identifiers in the source database
+        boolean needTransaction = sourceDBA.supportsTransactions();
+        try {
+            if (needTransaction)
+                sourceDBA.startTransaction();
+            
+            GKInstance defaultIE = createDefaultIE();
+            sourceDBA.storeInstance(defaultIE);
+            
+            for (Long dbId : sliceMap.keySet()) {
+                GKInstance inst = sliceMap.get(dbId);
+                if (inst.getSchemClass().isa(ReactomeJavaConstants.StableIdentifier)) {
+                    Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
+                    if (released == null || !released) {
+                        inst.setAttributeValue(ReactomeJavaConstants.released,
+                                               Boolean.TRUE);
+                        sourceDBA.updateInstanceAttribute(inst,
+                                                          ReactomeJavaConstants.released);
+                        inst.getAttributeValue(ReactomeJavaConstants.modified);
+                        inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                        sourceDBA.updateInstanceAttribute(inst, 
+                                                          ReactomeJavaConstants.modified);
+                    }
+                }
+            }
+            if (needTransaction)
+                sourceDBA.commit();
+        }
+        catch(Exception e) {
+            if (needTransaction)
+                sourceDBA.rollback();
+            logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
+        }
+    }
+
+    private GKInstance createDefaultIE() throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+        DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
+        GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
+        GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
+        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,  
+                                    GKApplicationUtilities.getDateTime());
+        InstanceDisplayNameGenerator.setDisplayName(defaultIE);
+        return defaultIE;
     }
     
     private void fillIncludedLocationForComplex(PrintStream ps) throws Exception {
@@ -1203,6 +1278,15 @@ public class SlicingEngine {
                     "Please input \"c\" to direct the validation results to the console");
             if (logFileName.equalsIgnoreCase("c"))
                 logFileName = null;
+            // Set released in StableIdentifier instances
+            String setReleasedInStableIdentifier = properties.getProperty("setReleasedInStableIdentifier");
+            if (setReleasedInStableIdentifier == null || setReleasedInStableIdentifier.trim().length() == 0) {
+                setReleasedInStableIdentifier = getInput("If you want to set released in StableIdenitifers as true, enter true. Otherwise, enter false.");
+            }
+            String defaultPersonId = properties.getProperty("defaultPersonId");
+            if (defaultPersonId == null || defaultPersonId.trim().length() == 0) {
+                defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
+            }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
                                                       dbName,
                                                       user,
@@ -1227,6 +1311,8 @@ public class SlicingEngine {
             engine.setLastReleaseDate(lastReleaseDate);
             engine.setSpeciesFileName(speciesFileName);
             engine.setLogFileName(logFileName);
+            engine.setReleasedInStableIdentifier = new Boolean(setReleasedInStableIdentifier);
+            engine.defaultPersonId = new Long(defaultPersonId);
             engine.slice();
             long time2 = System.currentTimeMillis();
             logger.info("Total time for slicing: " + (time2 - time1) / (1000 * 60.0d) + " minutes");
