@@ -226,6 +226,7 @@ public class SlicingEngine {
             return; // There is no need to do this.
         // Make sure released attribute in StableIdentifiers are true in
         // the target database
+        logger.info("set released = true for target database...");
         try {
             Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
             for (GKInstance inst : c) {
@@ -242,6 +243,7 @@ public class SlicingEngine {
             logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
             return; // Don't need to continue
         }
+        logger.info("set released = true for source database...");
         // We have to reset stable identifiers in the source database
         boolean needTransaction = sourceDBA.supportsTransactions();
         try {
@@ -611,6 +613,7 @@ public class SlicingEngine {
      * @throws Exception
      */
     private void dumpInstances() throws Exception {
+        logger.info("dumpInstances()...");
         long time1 = System.currentTimeMillis();
         targetDBA = new MySQLAdaptor(targetDbHost,
                                      targetDbName, 

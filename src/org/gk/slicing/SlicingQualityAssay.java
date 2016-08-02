@@ -105,6 +105,7 @@ public class SlicingQualityAssay {
      * @throws Exception
      */
     public void validateAttributes(PrintStream output) throws Exception {
+        logger.info("validateAttributes()...");
         GKInstance instance = null;
         List values = null;
         Long dbID = null;
@@ -151,6 +152,7 @@ public class SlicingQualityAssay {
      * @throws Exception
      */
     public void validateStableIds(PrintStream output) throws Exception {
+        logger.info("validateStableIds()...");
         StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
         Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds();
         output.println("StableIdentifier checking...");
