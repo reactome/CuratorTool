@@ -67,14 +67,17 @@ public class InstanceDisplayNameGenerator {
                 return generateCatalystActivityName(instance);
             if (clsName.equals("LiteratureReference"))
                 return generateLiteratureReferenceName(instance);
-            if (clsName.equals("Regulation"))
-                return generateRegulationName(instance, "regulates");
-            if (clsName.equals("PositiveRegulation"))
-                return generateRegulationName(instance, "positively regulates");
-            if (clsName.equals("Requirement"))
+            
+            // The following is for Regulation
+            if (schemaClass.isa(ReactomeJavaConstants.Requirement))
                 return generateRegulationName(instance, "is required for");
-            if (clsName.equals("NegativeRegulation"))
+            if (schemaClass.isa(ReactomeJavaConstants.PositiveRegulation))
+                return generateRegulationName(instance, "positively regulates");
+            if (schemaClass.isa(ReactomeJavaConstants.NegativeRegulation))
                 return generateRegulationName(instance, "negatively regulates");
+            if (schemaClass.isa(ReactomeJavaConstants.Regulation))
+                return generateRegulationName(instance, "regulates"); // Should not happen
+            
             if (clsName.equals("Figure"))
                 return generateFigureName(instance);
             if (clsName.equals("Summation"))
