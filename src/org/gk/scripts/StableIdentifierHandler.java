@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +86,45 @@ public class StableIdentifierHandler {
 				ReactomeJavaConstants.Regulation
 		};
 		return names;
+	}
+	
+	/**
+	 * Compare stables ids in two databases: e.g. a slicing database and gk_central.
+	 * @throws Exception
+	 */
+	@Test
+	public void compareStableIds() throws Exception {
+	    MySQLAdaptor gkcentral = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+	                                         "gk_central",
+	                                         "authortool",
+	                                         "T001test");
+	    MySQLAdaptor slice = new MySQLAdaptor("reactomerelease.oicr.on.ca",
+	                                          "test_slice_58a",
+	                                          "{CHANGE_ME}",
+	                                          "{CHANGE_ME}");
+	    Collection<GKInstance> releasedStidsInGkcentral = gkcentral.fetchInstanceByAttribute(ReactomeJavaConstants.StableIdentifier,
+	                                                                                     ReactomeJavaConstants.released,
+	                                                                                     "=",
+	                                                                                     "true");
+	    
+	    System.out.println("Total StableIds in gk_central having released = TRUE: " + releasedStidsInGkcentral.size());
+	    Collection<GKInstance> stidsInSlice = slice.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
+	    System.out.println("Total StableIds in slice: " + stidsInSlice.size());
+	    Set<Long> stidDBIds = new HashSet<Long>();
+	    for (GKInstance stid : stidsInSlice) 
+	        stidDBIds.add(stid.getDBID());
+	    int index = 1;
+	    for (Iterator<GKInstance> it = releasedStidsInGkcentral.iterator(); it.hasNext();) {
+	        GKInstance stid = it.next();
+	        if (stidDBIds.contains(stid.getDBID()))
+	            continue;
+	        Collection<GKInstance> referred = stid.getReferers(ReactomeJavaConstants.stableIdentifier);
+	        GKInstance inst = null;
+	        if (referred != null)
+	            inst = referred.iterator().next();
+	        System.out.println(index++ + "\t" + stid + "\t" +
+	                           (inst == null ? "null" : inst));
+	    }
 	}
 	
 	/**
