@@ -1,3 +1,10 @@
+Build 83 notes (September 26, 2016)
+
+Two bug fixes:
+
+1). Update the feature for auto-fetching pubmed entries by using https because of the change in NCBI
+2). Update the method to generate _displayName for instances in two gene regulation classes.
+
 Build 82 notes (August 1, 2016)
 
 This release is for an important bug fix: The auto-generated StableIdentifiers are not assigned to their corresponding instances.
