@@ -28,7 +28,7 @@ import org.junit.Test;
  */
 public class PMIDXMLInfoFetcher2 {
     // http://www.ncbi.nlm.nih.gov/pubmed/18276894?report=XML&format=text
-    private final String URL1 = "http://www.ncbi.nlm.nih.gov/pubmed/";
+    private final String URL1 = "https://www.ncbi.nlm.nih.gov/pubmed/";
     private final String URL2 = "?report=XML&format=text";
     // Used to parse XML elements
     
