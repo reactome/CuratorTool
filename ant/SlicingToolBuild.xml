@@ -30,6 +30,7 @@
 				<include name="org/gk/schema/**" />
 				<include name="org/gk/persistence/**" />
 				<include name="org/gk/model/**" />
+				<include name="org/gk/database/**" />
 				<include name="org/gk/database/util/**" />
 				<include name="org/gk/slicing/**" />
 				<include name="org/gk/render/**" />

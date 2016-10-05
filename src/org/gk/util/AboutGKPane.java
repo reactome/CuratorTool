@@ -12,15 +12,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JEditorPane;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JViewport;
+import javax.swing.*;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
@@ -206,14 +198,15 @@ public class AboutGKPane extends JPanel {
 		return textPane;
 	}
 	
-	class ImagePanel extends JPanel {
+	class ImagePanel extends JComponent {
 		Image image = null;
 		
 		public ImagePanel(Image image) {
 			this.image = image;
 		}
 		
-		public void paint(Graphics g) {
+		@Override
+        protected void paintComponent(Graphics g) {
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setPaint(Color.white);
 			g2.fill(new Rectangle(0, 0, getWidth(), getHeight()));

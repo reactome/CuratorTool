@@ -18,7 +18,7 @@
                    
      wugm                                                                
      ====================================================================== -->
-<project name="CuratorTool" default="createInstaller" basedir="..">
+<project name="CuratorTool" default="createInstaller" basedir=".." xmlns:fx="javafx:com.sun.javafx.tools.ant">
     <description>
     	Copy all files needed to build the Reactome author tool by InstallAnywhere.
     </description>
@@ -76,10 +76,10 @@
 		<!-- Exectutive files for Windows and Linux -->
 		<copy file="${basedir}/shell/ReactomeCuratorTool.exe" todir="${targetDir}" />
 		<copy file="${basedir}/shell/ReactomeCuratorTool.sh" todir="${targetDir}" />
-		<copy todir="${targetDir}/ReactomeCuratorTool.app">
-			<fileset dir="${basedir}/ReactomeCuratorTool.app">
-			</fileset>
-		</copy>
+		<!-- copy todir="${targetDir}/ReactomeCuratorTool.app" -->
+			<!-- fileset dir="${basedir}/ReactomeCuratorTool.app" -->
+			<!-- /fileset -->
+		<!-- /copy -->
 	</target>
 	<!-- the whole process -->
 	<target name="build" depends="copy, createUpdateFile">
@@ -139,7 +139,32 @@
 				<include name="jsonpath/**.jar" />
 				<include name="uniprotjapi/commons*.jar" />
 			</zipgroupfileset>
+			<manifest>
+				<attribute name="Main-Class" value="launcher.Launcher" />
+				<attribute name="Class-Path" value="ReactomeCuratorTool.jar" />
+			</manifest>
 		</jar>
+	</target>
+	
+	<!-- New way to create Mac app based on Oracle appbundler. Copied from  http://stackoverflow.com/questions/14806709/application-is-using-java-6-from-apple-instead-of-java-7-from-oracle-on-mac-os-x--> 
+	<!-- October 4, 2016 -->
+	<property environment="env" />
+	<taskdef 
+	    name="bundleapp" 
+	    classname="com.oracle.appbundler.AppBundlerTask" 
+	    classpath="lib/appbundler-1.0.jar" />
+
+	<target name="bundle">
+	    <bundleapp 
+	        outputdirectory="macApp" 
+	        name="ReactomeCuratorTool" 
+	        displayname="Reactome Curator Tool" 
+	        identifier="org.reactome.curatorTool" 
+	        shortversion="3.1"
+	        applicationCategory="public.app-category.curator-tools"
+	        mainclassname="launcher.Launcher">
+	        <classpath file="macApp/ReactomeCuratorTool.jar" />
+	    </bundleapp>
 	</target>
 	
 	<!-- The following tasks are for MacOS X related work -->
@@ -194,7 +219,9 @@
 	</target>
 	<!-- Create a zip file -->
 	<!-- Run this task as the third step to build installer -->
-	<target name="createInstaller" depends="createMacApp">
+	<!-- The following target is used to create installers for Windows and Linux -->
+	<!-- To create the native Intaller for mac, use another ant script: JavaBuildPackaging.xml" -->
+	<target name="createInstaller" depends="build">
 		<mkdir dir="${targetDir}/InstData" />
 		<delete dir="${targetDir}/InstData/win_linux"></delete>
 		<mkdir dir="${targetDir}/InstData/win_linux" />
@@ -209,6 +236,7 @@
 			</fileset>
 		</copy>
 		<copy file="${basedir}/resources/CuratorToolInstall.html" tofile="${targetDir}/install.htm"></copy>
+		<ant antfile="ant/JavaBuildPackaging.xml"> </ant>
 		<!-- Using Jar or zip cannot work -->
 		<!-- jar destfile="${targetDir}/mac/install.zip" basedir="${targetDir}" includes="ReactomeCuratorTool.app/**">
 		</jar -->
@@ -226,10 +254,12 @@
 			</zipfileset>
 		</zip -->
 		<!-- To create an install file, follow these procedures
-			1). Use jar -Mcvf install.zip ReactomeCuratorTool.app to create an installer for mac
-			2). Try to delete any hidden files from MacOS (.DS_Store or similar)
-			3). Use jar -Mcvf to generate install.zip file by including necessary file (8 files/directories).
-			4). Move these two install.zip files to reactomedev.oicr.on.ca.
+			The following two steps for mac is not used any more. Use another ant script: JavaBuildPackaging.xml
+			for mac installer.
+			//1). Use jar -Mcvf install.zip ReactomeCuratorTool.app to create an installer for mac
+			//2). Try to delete any hidden files from MacOS (.DS_Store or similar)
+			1). Use jar -Mcvf to generate install.zip file by including necessary file (8 files/directories).
+			2). Move these two install.zip files to reactomedev.oicr.on.ca.
 		-->
 	</target>
 	

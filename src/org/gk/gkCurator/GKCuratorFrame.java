@@ -70,7 +70,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.1";
-	public static final int BUILD_NUMBER = 83;
+	public static final int BUILD_NUMBER = 84;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -101,6 +101,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	private boolean entityViewVisible = true;
     // For autosaving
     private AutoSaveThread autoSaveThread;
+    
+    private JWindow window;
 	
 	public GKCuratorFrame() {
 		GKApplicationUtilities.enableMacFullScreen(this);
@@ -108,6 +110,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	}
 
 	private void init() {
+	    showSplash();
 		String osName = System.getProperty("os.name").toLowerCase();
 		if (osName.indexOf("mac") > -1) {
 			isMac = true;
@@ -122,17 +125,17 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		}
 		GKApplicationUtilities.setLookAndFeel(lfName);
 		// Display a launch window
-		AboutGKPane aboutPane = new AboutGKPane(true, true);
-		aboutPane.setStatus("Initializing...");
-		aboutPane.setApplicationTitle(CURATOR_TOOL_NAME);
-		aboutPane.setVersion(VERSION);
-		aboutPane.setBuildNumber(BUILD_NUMBER);
-		aboutPane.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, Color.lightGray, Color.black));
-		JWindow window = new JWindow();
-		window.getContentPane().add(aboutPane, BorderLayout.CENTER);
-		window.setSize(378, 320);
-		GKApplicationUtilities.center(window);
-		window.setVisible(true);
+//		JWindow window = new JWindow();
+//		AboutGKPane aboutPane = new AboutGKPane(true, true);
+//		aboutPane.setStatus("Initializing...");
+//		aboutPane.setApplicationTitle(CURATOR_TOOL_NAME);
+//		aboutPane.setVersion(VERSION);
+//		aboutPane.setBuildNumber(BUILD_NUMBER);
+//		aboutPane.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, Color.lightGray, Color.black));
+//		window.getContentPane().add(aboutPane, BorderLayout.CENTER);
+//		window.setSize(378, 320);
+//		GKApplicationUtilities.center(window);
+//		window.setVisible(true);
 		// Start actual initialization
 		actionCollection = new CuratorActionCollection(this);
 		initMenuBar();
@@ -222,32 +225,57 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		// Install listeners
 		installListeners();
 		loadMetaProperties();
-		init1(window); // Continue initialization
+		init1(); // Continue initialization
+	}
+	
+	private void showSplash() {
+	    Thread t = new Thread() {
+	        public void run() {
+	            try {
+	                Thread.sleep(1000); // Wait for three seconds
+	                if (GKCuratorFrame.this.isVisible())
+	                    return;
+	                window = new JWindow();
+	                AboutGKPane aboutPane = new AboutGKPane(true, true);
+	                aboutPane.setStatus("Initializing...");
+	                aboutPane.setApplicationTitle(CURATOR_TOOL_NAME);
+	                aboutPane.setVersion(VERSION);
+	                aboutPane.setBuildNumber(BUILD_NUMBER);
+	                aboutPane.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, Color.lightGray, Color.black));
+	                window.getContentPane().add(aboutPane, BorderLayout.CENTER);
+	                window.setSize(378, 320);
+	                GKApplicationUtilities.center(window);
+	                window.setVisible(true);
+	            }
+	            catch(InterruptedException e) {}
+	        }
+	    };
+	    t.start();
 	}
 
 	/**
 	 * A refactored method. Continue the initialization after the property "defaultProj"
 	 * is specified.
 	 */
-	void init1(JWindow window) {
-		String selectedSpecies = prop.getProperty("projectSpecies");
-		if (selectedSpecies != null)
-			eventView.setSelectedSpecies(selectedSpecies);
-		// Set the database connecting info
-		PersistenceManager.getManager().setDBConnectInfo(prop);
-		initFileAdaptor();
-		// Have to call after file adaptor is set up
-		// since XMLFileAdaptor should be cached in QA actions.
-		initQAActions();
-		// Default Person
-		String defaultPerson = prop.getProperty("defaultPerson");
-		if (defaultPerson != null)
-			SynchronizationManager.getManager().setDefaultPerson(new Long(defaultPerson));
+	void init1() {
+	    String selectedSpecies = prop.getProperty("projectSpecies");
+	    if (selectedSpecies != null)
+	        eventView.setSelectedSpecies(selectedSpecies);
+	    // Set the database connecting info
+	    PersistenceManager.getManager().setDBConnectInfo(prop);
+	    initFileAdaptor();
+	    // Have to call after file adaptor is set up
+	    // since XMLFileAdaptor should be cached in QA actions.
+	    initQAActions();
+	    // Default Person
+	    String defaultPerson = prop.getProperty("defaultPerson");
+	    if (defaultPerson != null)
+	        SynchronizationManager.getManager().setDefaultPerson(new Long(defaultPerson));
 	    // This is a harsh way to provide a parent component that can be used in
-		// SynchronizationManager object. This parent component might not be appropriate
-		// For example, if the parent dialog is actual a synchronization dialog.
-		SynchronizationManager.getManager().setParentComponent(this);
-		String lastProject = prop.getProperty("lastProject");
+	    // SynchronizationManager object. This parent component might not be appropriate
+	    // For example, if the parent dialog is actual a synchronization dialog.
+	    SynchronizationManager.getManager().setParentComponent(this);
+	    String lastProject = prop.getProperty("lastProject");
 	    boolean isLastProjectOpened = false;
 	    if (lastProject != null) {
 	        // Check if the last project file is still there
@@ -257,29 +285,36 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	        }
 	    }
 	    // No new project is opened, create a new project
-        window.setVisible(false);
-        window.dispose();
-        if (!isLastProjectOpened) {
-        	createNewProject();
-        }
-		String selectedView = prop.getProperty("selectedView");
-		if (selectedView != null) {
-			for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-				String tabTitle = tabbedPane.getTitleAt(i);
-				if (tabTitle.equals(selectedView)) {
-					tabbedPane.setSelectedIndex(i);
-					break;
-				}
-			}
-		}
-		// Initialize the actions' status
-		actionCollection.initializeActionStatus();
-		setVisible(true);
-		loadBookmarks();
-        // For autosaving
-        autoSaveThread = new AutoSaveThread();
-        autoSaveThread.setPriority(autoSaveThread.getPriority() - 2);
-        autoSaveChanged();
+	    //        window.setVisible(false);
+	    //        window.dispose();
+	    if (!isLastProjectOpened) {
+	        createNewProject();
+	    }
+	    String selectedView = prop.getProperty("selectedView");
+	    if (selectedView != null) {
+	        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+	            String tabTitle = tabbedPane.getTitleAt(i);
+	            if (tabTitle.equals(selectedView)) {
+	                tabbedPane.setSelectedIndex(i);
+	                break;
+	            }
+	        }
+	    }
+	    // Initialize the actions' status
+	    actionCollection.initializeActionStatus();
+	    //		setVisible(true);
+	    loadBookmarks();
+	    // For autosaving
+	    autoSaveThread = new AutoSaveThread();
+	    autoSaveThread.setPriority(autoSaveThread.getPriority() - 2);
+	    autoSaveChanged();
+	    
+	    if (window != null && window.isVisible()) {
+	        window.setVisible(false);
+	        window.dispose();
+	    }
+	    setVisible(true);
+	    
 	}
 	
 	private void initFileAdaptor() {

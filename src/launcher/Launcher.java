@@ -25,6 +25,7 @@ import java.util.zip.ZipEntry;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -98,7 +99,15 @@ public class Launcher {
 			clsName = args[0];
 		else
 			clsName = "org.gk.gkCurator.GKCuratorFrame";
-		getLauncher().launch(clsName);
+		final String tmp = clsName;
+//		SwingUtilities.invokeLater(new Runnable() {
+//            
+//            @Override
+//            public void run() {
+                getLauncher().launch(tmp);
+//            }
+//        });
+//		
 	}
 	
 	/**
