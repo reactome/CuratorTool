@@ -135,15 +135,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		prop.setProperty("user", username);
 		prop.setProperty("password", password);
 		prop.setProperty("autoReconnect", "true");
-		// The following two lines have been commented out so that
-		// the default charset between server and client can be used.
-		// Right now latin1 is used in both server and gk_central database.
-		// If there is any non-latin1 characters are used in the application,
-		// they should be converted to latin1 automatically (not tested).
-		//prop.setProperty("useUnicode", "true");
-		//prop.setProperty("characterEncoding", "UTF-8");
-		prop.setProperty("useOldUTF8Behavior", "true");
-		// Some dataTime values are 0000-00-00. This should be convert to null.
+		// We have cleaned up the databases to use proper Unicode characters.
+		// The databases should now use utf8 character set and collation.
+		prop.setProperty("useUnicode", "true");
+		prop.setProperty("characterEncoding", "UTF-8");
 		prop.setProperty("zeroDateTimeBehavior", "convertToNull");
 		// Please see http://dev.mysql.com/doc/refman/5.0/en/connector-j-reference-configuration-properties.html
 		// for new version of JDBC driver: 5.1.7. This is very important, esp. in the slicing tool. Otherwise,
@@ -1802,7 +1797,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 					}
 				}
 			}
-			PreparedStatement ps = getConnection().prepareStatement(statement.toString());
+			PreparedStatement ps = getConnection().prepareStatement(statement.toString(), PreparedStatement.RETURN_GENERATED_KEYS);
 			for (int i = 0; i < values.size(); i++) {
 				Object value = values.get(i);
 				
