@@ -632,6 +632,7 @@ public class GKBReader implements RenderablePropertyNames {
             r = createRenderableFromType(elmName);
         }
         r.setID(Integer.parseInt(id));
+        RenderableRegistry.getRegistry().suggestNextId(Integer.parseInt(id));
         String reactomeId = elm.getAttributeValue("reactomeId");
         if (reactomeId != null && reactomeId.length() > 0)
             r.setReactomeId(Long.parseLong(reactomeId));
