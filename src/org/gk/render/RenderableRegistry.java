@@ -46,8 +46,14 @@ public class RenderableRegistry {
     public void resetNextId(int id) {
         nextId = id;
     }
-    
-    public void open(RenderablePathway container) {
+
+	public void suggestNextId(int id) {
+		if(id>nextId) {
+			nextId = id;
+		}
+	}
+
+	public void open(RenderablePathway container) {
         clear();
         registerAll(container);
         resetNextIdFromPathway(container);
