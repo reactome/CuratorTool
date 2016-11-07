@@ -1345,6 +1345,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         if (pdInstToDiagram == null || pdInstToDiagram.size() == 0)
             return;
         DiagramGKBWriter writer = new DiagramGKBWriter();
+        writer.setPersistenceAdaptor(this);
         for (RenderablePathway diagram : pdInstToDiagram.values()) {
             org.jdom.Element projectElm = writer.createRootElement(diagram);
             root.addContent(projectElm);

@@ -31,7 +31,9 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathwaylayout.PathwayDiagramXMLGenerator;
 import org.gk.pathwaylayout.PredictedPathwayDiagramGeneratorFromDB;
 import org.gk.persistence.DiagramGKBReader;
+import org.gk.persistence.DiagramGKBWriter;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderablePathway;
@@ -239,6 +241,31 @@ public class PathwayDiagramScripts {
                 }
             }
         }
+    }
+    
+    @Test
+    public void fixRenderableTypes() throws Exception {
+        String dirName = "/Users/gwu/Documents/gkteam/Peter/";
+        String srcFileName = dirName + "L_aminoacid_cleanup_diagram_fix.rtpj";
+        String fixedFileName = dirName + "L_aminoacid_cleanup_diagram_fixed.rtpj";
+        
+        XMLFileAdaptor adaptor = new XMLFileAdaptor();
+        adaptor.setSource(srcFileName);
+        
+        Collection<GKInstance> pdInstances = adaptor.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
+        for (GKInstance pd : pdInstances)
+            System.out.println(pd);
+        // There is only one pathway diagram
+        GKInstance pd = pdInstances.iterator().next();
+        
+        RenderablePathway diagram = new DiagramGKBReader().openDiagram(pd);
+        DiagramGKBWriter writer = new DiagramGKBWriter();
+        writer.setPersistenceAdaptor(adaptor);
+        String xml = writer.generateXMLString(diagram);
+        System.out.println(xml);
+        pd.setAttributeValue(ReactomeJavaConstants.storedATXML,
+                             xml);
+        adaptor.save(fixedFileName);
     }
     
     /**

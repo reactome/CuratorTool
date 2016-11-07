@@ -96,6 +96,19 @@ public class DiagramGKBWriter extends GKBWriter {
                 if (inst != null) {
                     elm.setAttribute(RenderablePropertyNames.SCHEMA_CLASS, 
                                      inst.getSchemClass().getName());
+                    
+                    // We may need the following code to remap Renderable type for 
+                    // GKInstance. Right now, this is used for one time fix
+//                    if (r instanceof Node && !(inst.getSchemClass().isa(ReactomeJavaConstants.EntityCompartment))) {
+//                        SearchDBTypeHelper helper = new SearchDBTypeHelper();
+//                        Class<?> type = helper.guessNodeType(inst);
+//                        if (!elm.getName().equals(type.getName())) {
+//                            System.out.println("Wrong renderable type: " + inst + " -> " + r.getClass().getName());
+//                            System.out.println("Should be: " + type.getName());
+//                            elm.setName(type.getName());
+//                        }
+//                    }
+                    
                     // Do a modification for old PathwayDiagrams
                     if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
                         elm.setName(RenderableEntitySet.class.getName());
