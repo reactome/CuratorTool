@@ -48,83 +48,103 @@ public class ReleaseDateFixer
 	 * <code>[DB_ID],[release_date]</code> <br/>
 	 * for example:<br/> 123456543,2016-11-07 <br/>
 	 * The command-line arguments are taken in this sequence: <ol>
+	 * <li>The name of the input file. </li>
 	 * <li>The ID of the Person to associate these updates with </li>
-	 * <li>the database host </li>
-	 * <li>the name of the database </li>
-	 * <li>the database username</li>
-	 * <li>the password for the database</li>
-	 * <li>the port number for the database connection.</li>
+	 * <li>The database host </li>
+	 * <li>The name of the database </li>
+	 * <li>The database username</li>
+	 * <li>The password for the database</li>
+	 * <li>The port number for the database connection.</li>
 	 * </ol>
 	 * @param args
 	 */
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
-		Long personID = Long.valueOf(args[0]);
-		String dbHost = args[1];
-		String dbName = args[2];
-		String dbUser = args[3];
-		String dbPassword = args[4];
-		int dbPort = Integer.valueOf(args[5]);
+		String inputFileName = args[0];
+		Long personID = Long.valueOf(args[1]);
+		String dbHost = args[2];
+		String dbName = args[3];
+		String dbUser = args[4];
+		String dbPassword = args[5];
+		int dbPort = Integer.valueOf(args[6]);
 
-		try
+		MySQLAdaptor adapter = new MySQLAdaptor(dbHost, dbName, dbUser, dbPassword, dbPort);
+		// The entire script will run inside a single transaction.
+		adapter.startTransaction();
+		//adapter.debug = true;
+		
+		// The object that will process lines from the input file.
+		Consumer<String> processLine = line ->
 		{
-			MySQLAdaptor adapter = new MySQLAdaptor(dbHost, dbName, dbUser, dbPassword, dbPort);
-			//adapter.debug = true;
-			Consumer<String> processLine = line ->
+			
+			String parts[] = line.split(",");
+			Long dbID = Long.valueOf(parts[0]);
+			String releaseDate = parts[1];
+			System.out.println("Preparing to work on object: "+dbID);
+			try
 			{
-				
-				String parts[] = line.split(",");
-				Long dbID = Long.valueOf(parts[0]);
-				String releaseDate = parts[1];
-				System.out.println("Preparing to work on object: "+dbID);
+
+				GKInstance mainInstance = adapter.fetchInstance(dbID);
+				if (mainInstance != null)
+				{
+					GKInstance instanceEdit = createDefaultIE(adapter, personID, true);
+					//adapter.loadInstanceAttributeValues(mainInstance);
+					// Do a check to see if it is there already just in case
+//						String preexistingReleaseDate = (String) mainInstance.getAttributeValue(mainInstance.getSchemClass().getAttribute(ReactomeJavaConstants.releaseDate));
+//						if (preexistingReleaseDate != null)
+//						{
+//							System.out.println("A Pre-existing release date was found, with a value of: " + preexistingReleaseDate);
+//						}
+
+					// Set/add the attributes for releaseDAte and modified
+					mainInstance.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
+					mainInstance.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
+					
+					System.out.println("  Updating event with ID: " + dbID + " to have releaseDate: " + releaseDate);
+					
+					// Update the attributes. 
+					adapter.updateInstanceAttribute(mainInstance, ReactomeJavaConstants.releaseDate);
+					adapter.updateInstanceAttribute(mainInstance, ReactomeJavaConstants.modified);
+				}
+				else
+				{
+					// This could happen if something is in the Release databases, but has since been deleted from Curator (gk_central)
+					System.out.println("  Could not retrieve an object for DB_ID: "+dbID);
+				}
+			}
+			catch (Exception e)
+			{
 				try
 				{
-
-					GKInstance mainInstance = adapter.fetchInstance(dbID);
-					if (mainInstance != null)
-					{
-						GKInstance instanceEdit = createDefaultIE(adapter, personID, true);
-						adapter.loadInstanceAttributeValues(instanceEdit);
-						mainInstance.setAttributeValue(mainInstance.getSchemClass().getAttribute(ReactomeJavaConstants.releaseDate), releaseDate);
-						SchemaAttribute editedAttribute = mainInstance.getSchemClass().getAttribute(ReactomeJavaConstants.edited);
-						mainInstance.addAttributeValue(editedAttribute, instanceEdit);
-						
-						System.out.println("  Updating event with ID: " + dbID + " to have releaseDate: " + releaseDate);
-						if (adapter.supportsTransactions())
-						{
-							adapter.txUpdateInstance(mainInstance);
-						}
-						else
-						{
-							adapter.updateInstance(mainInstance);
-						}
-					}
-					else
-					{
-						System.out.println("  Could not retrieve an object for DB_ID: "+dbID);
-					}
+					// *Try* to roll back if anything went wrong.
+					adapter.rollback();
+				}
+				catch (SQLException e1)
+				{
+					System.out.println("Had trouble rolling back: " + e.getMessage());
+					throw new RuntimeException(e1);
+				}
+				e.printStackTrace();
+				throw new RuntimeException(e);
+			}
+			finally
+			{
+				try
+				{
+					adapter.cleanUp();
 				}
 				catch (Exception e)
 				{
-					e.printStackTrace();
+					System.out.println("Had trouble cleaning up: " + e.getMessage());
 					throw new RuntimeException(e);
 				}
-			};
-			// TODO: Parameterize the name/path of the input file.
-			Files.readAllLines(Paths.get("simple_list.txt")).stream().forEach(line -> processLine.accept(line));
-			adapter.cleanUp();
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+			}
+		};
+
+		Files.readAllLines(Paths.get(inputFileName)).stream().forEach(line -> processLine.accept(line));
+		
+		// Commit the whole transaction: all of the new InstanceEdits and all of the updated attributes and events will be in the same transaction.
+		adapter.commit();
+		adapter.cleanUp();
 	}
 }
