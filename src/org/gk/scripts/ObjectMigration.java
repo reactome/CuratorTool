@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.gk.model.GKInstance;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.TransactionsNotSupportedException;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 
@@ -20,7 +21,7 @@ import org.gk.schema.SchemaAttribute;
  */
 public class ObjectMigration {
 
-	public static void main(String args[]) throws SQLException, IOException
+	public static void main(String args[]) throws SQLException, IOException, TransactionsNotSupportedException, Exception
 	{
 		String srcHost = args[0];
 		String srcDatabase = args[1];
@@ -40,7 +41,7 @@ public class ObjectMigration {
 		String fileName = args[10];
 
 		System.out.println("Copying Objects from " + srcHost +": " + srcDatabase + " to "+ targHost +": " + targDatabase );
-		
+		targetAdapter.startTransaction();
 		Files.readAllLines(Paths.get(fileName)).stream().forEach(line -> {
 			long dbID = Long.valueOf(line);
 			
@@ -58,27 +59,39 @@ public class ObjectMigration {
 				{
 					System.out.println("Object " + dbID + " was not in the target database so it will be inserted.");
 					// srcObject.setDbAdaptor(targetAdapter);
-					//targetAdapter.storeInstance(srcObject);
+					targetAdapter.storeInstance(srcObject);
 				}
 				else
 				{
-					targetAdapter.startTransaction();
+					
 					targetAdapter.loadInstanceAttributeValues(targObject);
 					// It would be nice to maybe hightlight some differences before clobbering the data in the target database.
 					printObjectDiffs(srcObject, targObject);
 					//System.out.println("Updating object "+dbID+" into targetDatabase");
-					// srcObject.setDbAdaptor(targetAdapter);
-					//targetAdapter.storeInstance(srcObject, true);
-					//targetAdapter.updateInstance(srcObject);
-					targetAdapter.rollback();
+					//   srcObject.setDbAdaptor(targetAdapter);
+					//   targetAdapter.storeInstance(srcObject, true);
+					targetAdapter.updateInstance(srcObject);
 				}
 				
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
+			} 
+			catch (Exception e)
+			{
+				try
+				{
+					targetAdapter.rollback();
+				}
+				catch (SQLException e1)
+				{
+					throw new RuntimeException(e1);
+				}
 				e.printStackTrace();
 				throw new RuntimeException(e);
 			}
 		});
+		System.out.println(targetAdapter.isInTransaction());
+		targetAdapter.commit();
+		targetAdapter.cleanUp();
+		srcAdapter.cleanUp();
 	}
 	
 	private static void printObjectDiffs(GKInstance object1, GKInstance object2) throws Exception
