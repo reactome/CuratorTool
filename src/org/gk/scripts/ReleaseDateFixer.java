@@ -1,6 +1,5 @@
 package org.gk.scripts;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -87,14 +86,8 @@ public class ReleaseDateFixer
 				GKInstance mainInstance = adapter.fetchInstance(dbID);
 				if (mainInstance != null)
 				{
+					//Create a new InstanceEdit for each Instance that will be touched by this script.
 					GKInstance instanceEdit = createDefaultIE(adapter, personID, true);
-					//adapter.loadInstanceAttributeValues(mainInstance);
-					// Do a check to see if it is there already just in case
-//						String preexistingReleaseDate = (String) mainInstance.getAttributeValue(mainInstance.getSchemClass().getAttribute(ReactomeJavaConstants.releaseDate));
-//						if (preexistingReleaseDate != null)
-//						{
-//							System.out.println("A Pre-existing release date was found, with a value of: " + preexistingReleaseDate);
-//						}
 
 					// Set/add the attributes for releaseDAte and modified
 					mainInstance.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
@@ -141,6 +134,7 @@ public class ReleaseDateFixer
 			}
 		};
 
+		// Process each line in the input file.
 		Files.readAllLines(Paths.get(inputFileName)).stream().forEach(line -> processLine.accept(line));
 		
 		// Commit the whole transaction: all of the new InstanceEdits and all of the updated attributes and events will be in the same transaction.
