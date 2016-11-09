@@ -72,6 +72,8 @@ public class ReleaseDateFixer
 		adapter.startTransaction();
 		//adapter.debug = true;
 		
+		//Create an instance edit that all changes will be associated with.
+		GKInstance instanceEdit = createDefaultIE(adapter, personID, true);
 		// The object that will process lines from the input file.
 		Consumer<String> processLine = line ->
 		{
@@ -80,16 +82,14 @@ public class ReleaseDateFixer
 			Long dbID = Long.valueOf(parts[0]);
 			String releaseDate = parts[1];
 			System.out.println("Preparing to work on object: "+dbID);
+			
 			try
 			{
 
 				GKInstance mainInstance = adapter.fetchInstance(dbID);
 				if (mainInstance != null)
 				{
-					//Create a new InstanceEdit for each Instance that will be touched by this script.
-					GKInstance instanceEdit = createDefaultIE(adapter, personID, true);
-
-					// Set/add the attributes for releaseDAte and modified
+					// Set/add the attributes for releaseDate and modified
 					mainInstance.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
 					mainInstance.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
 					
