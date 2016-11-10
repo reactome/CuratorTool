@@ -10,6 +10,7 @@ import java.util.List;
 import org.gk.model.GKInstance;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.TransactionsNotSupportedException;
+import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 
@@ -71,6 +72,10 @@ public class ObjectMigration {
 					//   srcObject.setDbAdaptor(targetAdapter);
 					//   targetAdapter.storeInstance(srcObject, true);
 					targetAdapter.updateInstance(srcObject);
+					
+					
+					//Also: need to update things that refer to the object being copied. If Object A is being copied, and Object B refers to Object A in src but not target,
+					//then that reference relationship  must be synced in target. Hmm...
 				}
 				
 			} 
@@ -93,6 +98,22 @@ public class ObjectMigration {
 		targetAdapter.cleanUp();
 		srcAdapter.cleanUp();
 	}
+	
+	private static void copyAttributeToObject(GKInstance srcObject, GKInstance targObject, String attributeName) throws InvalidAttributeException, Exception
+	{
+		List<Object> values = srcObject.getAttributeValuesList(attributeName);
+		if (targObject.getAttributeValue(attributeName) != null)
+		{
+			targObject.setAttributeValue(attributeName, values);
+		}
+		else
+		{
+			//Looking a little into the code, it seems there is a difference between addAttribute and setAttribute
+			targObject.addAttributeValue(attributeName, values);
+		}
+	}
+	
+	
 	
 	private static void printObjectDiffs(GKInstance object1, GKInstance object2) throws Exception
 	{
