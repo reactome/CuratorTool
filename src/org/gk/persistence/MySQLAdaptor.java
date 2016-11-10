@@ -1712,7 +1712,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
         Statement stat = getConnection().createStatement();
         for (Iterator it = localInstances.iterator(); it.hasNext();) {
             GKInstance instance = (GKInstance) it.next();
-            stat.executeUpdate(insert);
+            stat.executeUpdate(insert, Statement.RETURN_GENERATED_KEYS);
             ResultSet rs = stat.getGeneratedKeys();
             if (rs.next()) {
                 Long dbID = new Long(rs.getLong(1));
