@@ -89,6 +89,49 @@ public class StableIdentifierHandler {
 	}
 	
 	/**
+	 * Validate the implementation based on Joel's method on Nov 10, 2016 by comparing
+	 * would-be results with Joel's Perl output.
+	 * @throws Exception
+	 */
+	@Test
+	public void validateNewApproach() throws Exception {
+	    MySQLAdaptor gkcentral = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+	                                              "gk_central",
+	                                              "authortool",
+	                                              "T001test");
+	    String fileName = "/Users/gwu/Documents/wgm/work/reactome/StableIds/stable_ids_gk_central.txt";
+	    FileUtilities fu = new FileUtilities();
+	    fu.setInput(fileName);
+	    String line = fu.readLine();
+	    StableIdentifierGenerator generator = new StableIdentifierGenerator();
+	    int correctCases = 0;
+	    int incorrectCases = 0;
+	    while ((line = fu.readLine()) != null) {
+	        if (line.trim().length() == 0)
+	            continue;
+	        String[] tokens = line.split("\t");
+	        GKInstance inst = gkcentral.fetchInstance(new Long(tokens[0]));
+	        // An instance may be deleted
+	        if (inst == null)
+	            continue;
+	        String stableId = generator.generateIdentifier(inst);
+	        // The results from Joel's script should be like this:
+	        String supposedId = "R-" + tokens[4] + "-" + inst.getDBID();
+	        if (stableId.equals(supposedId)) {
+//	            System.out.println("Correct: " + inst);
+	            correctCases ++;
+	        }
+	        else {
+	            System.out.println(inst + "\t" + supposedId + "\t" + stableId);
+	            incorrectCases ++;
+	        }
+	    }
+	    fu.close();
+	    System.out.println("Total correct cases: " + correctCases);
+	    System.out.println("Total incorrect cases: " + incorrectCases);
+	}
+	
+	/**
 	 * Compare stables ids in two databases: e.g. a slicing database and gk_central.
 	 * @throws Exception
 	 */

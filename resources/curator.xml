@@ -199,13 +199,14 @@
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
 	<species_stid>
 		<!-- The following is a list of hard-coded abbreviations for species, copied from Sheldon's Perl code -->
-		<species name="Hepatitis C virus genotype 2a" abbreviation="HEP" />
-    	<species name="Human herpesvirus 8" abbreviation="HER" />
-    	<species name="Molluscum contagiosum virus subtype 1" abbreviation="MCV" />
-    	<species name="Mycobacterium tuberculosis H37Rv" abbreviation="MTU" />
-    	<species name="Neisseria meningitidis serogroup B" abbreviation="NME" />
+		<species name="Hepatitis C virus" abbreviation="HPC" />
+        <species name="Hepatitis B virus" abbreviation="HPB" />
+    	<species name="Human herpesvirus" abbreviation="HER" />
+    	<species name="Molluscum contagiosum virus" abbreviation="MCV" />
+    	<species name="Mycobacterium tuberculosis" abbreviation="MTU" />
+    	<species name="Neisseria meningitidis" abbreviation="NME" />
     	<species name="Influenza A virus" abbreviation="FLU" />
-    	<species name="Human immunodeficiency virus 1" abbreviation="HIV" />
+    	<species name="Human immunodeficiency virus" abbreviation="HIV" />
     	<species name="Bacteria" abbreviation="BAC" />
     	<species name="Virus" abbreviation="VIR" />
 	</species_stid>

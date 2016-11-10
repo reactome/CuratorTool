@@ -1,3 +1,11 @@
+Build 85 notes (November 10, 2016)
+
+Build specically for Lisa to do new Stable id QA check with the implementation of Joel's new simplified approach to get species name.
+
+Build 84 notes
+
+Created specicially for Mac OS because of update of Java in mac os invlidated the old packaging tool. 
+
 Build 83 notes (September 26, 2016)
 
 Two bug fixes:

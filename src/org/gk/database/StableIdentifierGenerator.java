@@ -25,7 +25,26 @@ import org.jdom.xpath.XPath;
 import org.junit.Test;
 
 /**
- * Methods handling stable identifiers are collected here.
+ * Methods handling stable identifiers are collected here. This class implements the following approach based on Joel's
+ * document in http://devwiki.reactome.org/index.php/Development_Teleconferences#Minutes_and_Agendas:
+ * If instance is a physical entity:
+      If one species instance is attached, use it to get the prefix
+      If more than one species instance is attached, the prefix is ‘NUL’
+      If no species instances are attached:
+            Get all species instances recursively from the physical entity
+            (i.e. components from complexes, members/candidates from sets, repeated unit from polymers)
+                If one species instance is attached, use it to get the prefix
+                If more than one species instance is attached, the prefix is ‘NUL’
+                If no species instance is attached, the prefix is ‘ALL’
+  If instance is an event:
+      If one species instance is attached, use it to get the prefix
+      If no or more than one species is attached, the prefix is ‘NUL’
+  If instance is a regulation:
+      If the regulated entity is an event, follow the rules for when the instance is an event
+      If the regulated entity is a catalyst activity:
+           If the catalyst activity has a physical entity, follow the rules for when the instance is a physical entity
+           If the catalyst activity doesn’t have a physical entity, the prefix is ‘NUL’
+      If the regulated entity doesn’t exist or is not a catalyst activity or an event, the prefix is ‘NUL’
  * @author Gwu
  */
 @SuppressWarnings("unchecked")
@@ -119,55 +138,30 @@ public class StableIdentifierGenerator {
 	
 	private String getSpeciesForSTID(GKInstance inst) throws Exception {
 		String species = NUL_SPECIES;
-		if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.isChimeric)) {
-		    Boolean isChimeric = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.isChimeric);
-		    if (isChimeric != null && isChimeric)
-		        return species; // Pre-assumptive for null for all isChimeric instances
-		}
+//		if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.isChimeric)) {
+//		    Boolean isChimeric = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.isChimeric);
+//		    if (isChimeric != null && isChimeric)
+//		        return species; // Pre-assumptive for null for all isChimeric instances
+//		}
 		if (inst.getSchemClass().isa(ReactomeJavaConstants.Regulation))
 			species = getSpeciesAbbrFromRegulation(inst);
 		else if (inst.getSchemClass().isa(ReactomeJavaConstants.Event))
 			species = getSpeciesFromEvent(inst);
-		else if (inst.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity))
-			species = getSpeciesFromSimpleEntity(inst);
-		else if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-			species = getSpeciesFromEntitySet(inst);
-		else if (inst.getSchemClass().isa(ReactomeJavaConstants.Polymer))
-		    species = getSpeciesFromPolymer(inst);
-		else if (inst.getSchemClass().isa(ReactomeJavaConstants.OtherEntity))
-		    species = ALL_SPECIES; // Species is not a valid attribute for OtherEntity
 		else if (inst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
 			species = getSpeciesFromPhysicalEntity(inst);
 		return species;
 	}
 	
-	private String getSpeciesFromEntitySet(GKInstance entitySet) throws Exception {
-		GKInstance species = getSpeciesFromPE(entitySet);
-		if (species != null)
-			return getSpeciesAbbreviation(species);
-		// If the passed entitySet is a set of SimpleEntity, we should use ALL.
-		// Otherwise, we use NUL.
-		Set<GKInstance> members = InstanceUtilities.getContainedInstances(entitySet,
-																		  ReactomeJavaConstants.hasMember);
-		// Check what kind of members based on their schema classes
-		Set<String> speciesNames = new HashSet<String>();
-		for (GKInstance member : members) {
-			// Don't count EntitySet itself
-			if (member.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-				continue;
-			String memberSpecies = getSpeciesForSTID(member);
-			speciesNames.add(memberSpecies);
-		}
-		if (speciesNames.size() == 1)
-		    return speciesNames.iterator().next();
-		return NUL_SPECIES; // Too complicated
-	}
-	
 	private String getSpeciesFromPhysicalEntity(GKInstance physicalEntity) throws Exception {
-		GKInstance species = getSpeciesFromPE(physicalEntity);
-		if (species == null)
-			return NUL_SPECIES;
-		return getSpeciesAbbreviation(species);
+	    Set<GKInstance> speciesSet = grepAllSpeciesInPE(physicalEntity, true);
+	    if (speciesSet.size() == 0)
+	        return ALL_SPECIES;
+	    else if (speciesSet.size() > 1)
+	        return NUL_SPECIES;
+	    else {
+	        GKInstance species = speciesSet.iterator().next();
+	        return getSpeciesAbbreviation(species);
+	    }
 	}
 	
 	/**
@@ -184,14 +178,7 @@ public class StableIdentifierGenerator {
 			return NUL_SPECIES;
 		// There are only two cases below
 		if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.Event)) {
-			// Species is required for all Events. Is we cannot see species for an Event,
-			// We will assign null
-			GKInstance species = (GKInstance) regulatedEntity.getAttributeValue(ReactomeJavaConstants.species);
-			if (species == null) 
-				return NUL_SPECIES;
-			else {
-				return getSpeciesAbbreviation(species);
-			}
+			return getSpeciesFromEvent(regulatedEntity);
 		}
 		else if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.CatalystActivity)) {
 			GKInstance catalyst = (GKInstance) regulatedEntity.getAttributeValue(ReactomeJavaConstants.physicalEntity);
@@ -199,17 +186,10 @@ public class StableIdentifierGenerator {
 				return NUL_SPECIES;
 			}
 			else {
-				GKInstance species = getSpeciesFromPE(catalyst);
-				if (species != null) {
-					return getSpeciesAbbreviation(species);
-				}
-				else if (catalyst.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity) ||
-				    catalyst.getSchemClass().isa(ReactomeJavaConstants.OtherEntity))
-					return ALL_SPECIES;
-				else 
-					return NUL_SPECIES;
+				return getSpeciesFromPhysicalEntity(catalyst);
 			}
 		}
+		// Default: We should not get to here.
 		return NUL_SPECIES;
 	}
 	
@@ -219,33 +199,11 @@ public class StableIdentifierGenerator {
 	 * @throws Exception
 	 */
 	private String getSpeciesFromEvent(GKInstance event) throws Exception {
-		GKInstance species = (GKInstance) event.getAttributeValue(ReactomeJavaConstants.species);
-		if (species == null)
-			return NUL_SPECIES;
-		return getSpeciesAbbreviation(species);
-	}
-	
-	/**
-	 * Species is an optional value. If no species is specified, the returned value
-	 * should be ALL, which means this SimpleEntity is universal.
-	 * @param simpleEntity
-	 * @throws Exception
-	 */
-	private String getSpeciesFromSimpleEntity(GKInstance simpleEntity) throws Exception {
-		GKInstance species = (GKInstance) simpleEntity.getAttributeValue(ReactomeJavaConstants.species);
-		if (species == null)
-			return ALL_SPECIES;
-		return getSpeciesAbbreviation(species);
-	}
-	
-	private String getSpeciesFromPolymer(GKInstance polymer) throws Exception {
-	    GKInstance species = (GKInstance) polymer.getAttributeValue(ReactomeJavaConstants.species);
-	    if (species != null)
-	        return getSpeciesAbbreviation(species);
-	    GKInstance repeatedUnit = (GKInstance) polymer.getAttributeValue(ReactomeJavaConstants.repeatedUnit);
-	    if (repeatedUnit == null)
+	    List<GKInstance> speciesSet = event.getAttributeValuesList(ReactomeJavaConstants.species);
+	    if (speciesSet == null || speciesSet.size() == 0 || speciesSet.size() > 1)
 	        return NUL_SPECIES;
-	    return getSpeciesForSTID(repeatedUnit); // Use repeatedUnit's species
+		GKInstance species = speciesSet.get(0);
+		return getSpeciesAbbreviation(species);
 	}
 	
 	public GKInstance getSpeciesFromPE(GKInstance pe) throws Exception {
@@ -262,6 +220,33 @@ public class StableIdentifierGenerator {
 		if (pe.getSchemClass().isa(ReactomeJavaConstants.Polymer))
 			return getWrappedSpecies(pe, ReactomeJavaConstants.repeatedUnit);
 		return null;
+	}
+	
+	private Set<GKInstance> grepAllSpeciesInPE(GKInstance pe,
+	                                           boolean needRecursion) throws Exception {
+	    Set<GKInstance> speciesSet = new HashSet<>();
+	    if (pe.getSchemClass().isValidAttribute(ReactomeJavaConstants.species)) {
+	        List<GKInstance> speciesList = pe.getAttributeValuesList(ReactomeJavaConstants.species);
+	        if (speciesList != null && speciesList.size() > 0) {
+	            speciesSet.addAll(speciesList);
+	        }
+	    }
+	    if (speciesSet.size() == 0 && needRecursion) {
+	        grepAllSpeciesInPE(pe, speciesSet);
+	    }
+	    return speciesSet;
+	}
+	
+	private void grepAllSpeciesInPE(GKInstance pe, Set<GKInstance> speciesSet) throws Exception {
+	    Set<GKInstance> wrappedPEs = InstanceUtilities.getContainedInstances(pe,
+	                                                                         ReactomeJavaConstants.hasComponent,
+	                                                                         ReactomeJavaConstants.hasCandidate,
+	                                                                         ReactomeJavaConstants.hasMember,
+	                                                                         ReactomeJavaConstants.repeatedUnit);
+	    for (GKInstance wrappedPE : wrappedPEs) {
+	        Set<GKInstance> wrappedSpecies = grepAllSpeciesInPE(wrappedPE, false);
+	        speciesSet.addAll(wrappedSpecies);
+	    }
 	}
 	
 	private GKInstance getWrappedSpecies(GKInstance pe,
@@ -302,6 +287,15 @@ public class StableIdentifierGenerator {
 		String abbreviation = speciesToAbbreviation.get(speciesName);
 		if (abbreviation != null)
 			return abbreviation;
+		// Try to match based on starting characters
+		for (String key : speciesToAbbreviation.keySet()) {
+		    if (speciesName.startsWith(key)) {
+		        abbreviation = speciesToAbbreviation.get(key);
+		        break;
+		    }
+		}
+		if (abbreviation != null)
+		    return abbreviation;
 		int index = speciesName.indexOf(" ");
 		// First letter in the first part and first two letters in the second part
 		// All upper case
