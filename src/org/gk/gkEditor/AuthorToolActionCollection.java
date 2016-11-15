@@ -104,6 +104,7 @@ public class AuthorToolActionCollection {
     private Action showCompartmentInNameAction;
     // To control if events with _doNotRelease should be shown
     private Action doNotReleaseAction;
+    private Action searchByIdAction;
     // The parent frame
     GKEditorFrame editorFrame;
     // Refactored class to defer actions related to popup
@@ -819,6 +820,19 @@ public class AuthorToolActionCollection {
                 ((PropertyEditorView)toolPane.getDisplayedView()).repaintOverview();
         }
         enableSave();
+    }
+    
+    public Action getSearchByIdAction() {
+        if (searchByIdAction == null) {
+            searchByIdAction = new AbstractAction("Search by ID") {
+                
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    pathwayEditor.searchById();
+                }
+            };
+        }
+        return searchByIdAction;
     }
 
     public Action getLayoutAction() {

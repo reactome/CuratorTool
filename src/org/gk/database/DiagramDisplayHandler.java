@@ -186,23 +186,7 @@ public class DiagramDisplayHandler {
             
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Ask the user to enter a DB_ID
-                String input = JOptionPane.showInputDialog(editor,
-                        "Please enter a DB_ID to search the diagram",
-                        "DB_ID Search", 
-                        JOptionPane.QUESTION_MESSAGE);
-                if (input == null || input.trim().length() == 0)
-                    return; // Nothing can be done
-                if (input.matches("\\d+")) { // Make sure they are digits
-                    Long dbId = new Long(input);
-                    editor.searchById(dbId);
-                }
-                else {
-                    JOptionPane.showMessageDialog(editor,
-                            "The entered value should be an integer. Please try again.",
-                            "Error Value",
-                            JOptionPane.ERROR_MESSAGE);
-                }
+                editor.searchById();
             }
         });
         popup.add(searchById);

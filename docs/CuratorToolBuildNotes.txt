@@ -2,7 +2,9 @@ Build 85 notes (November 10, 2016)
 
 Build specically for Lisa to do new Stable id QA check with the implementation of Joel's new simplified approach to get species name.
 
-Build 84 notes
+One more feature: enable "Search by ID" for local "Entity Level View".
+
+Build 84 notes (October 5, 2016)
 
 Created specicially for Mac OS because of update of Java in mac os invlidated the old packaging tool. 
 

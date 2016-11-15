@@ -171,6 +171,8 @@ public class PopupMenuManager {
                                         final Point p) {
         JPopupMenu menu = new JPopupMenu();
         if (editor.getSelection().size() == 0) {
+            menu.add(actionCollection.getSearchByIdAction());
+            menu.addSeparator();
             // For auto layout
             menu.add(actionCollection.getLayoutAction());
             if (isForElv) {

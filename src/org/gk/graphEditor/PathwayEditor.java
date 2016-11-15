@@ -948,6 +948,26 @@ public class PathwayEditor extends GraphEditorPane {
         return null;
     }
     
+    public void searchById() {
+        // Ask the user to enter a DB_ID
+        String input = JOptionPane.showInputDialog(this,
+                                                   "Please enter a DB_ID to search the diagram",
+                                                   "DB_ID Search", 
+                                                   JOptionPane.QUESTION_MESSAGE);
+        if (input == null || input.trim().length() == 0)
+            return; // Nothing can be done
+        if (input.matches("\\d+")) { // Make sure they are digits
+            Long dbId = new Long(input);
+            searchById(dbId);
+        }
+        else {
+            JOptionPane.showMessageDialog(this,
+                                          "The entered value should be an integer. Please try again.",
+                                          "Error Value",
+                                          JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     public void searchById(Long dbId) {
     	List<?> list = getDisplayedObjects();
     	List<Renderable> found = new ArrayList<Renderable>();
