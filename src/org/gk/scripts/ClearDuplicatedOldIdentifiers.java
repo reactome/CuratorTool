@@ -173,6 +173,8 @@ public class ClearDuplicatedOldIdentifiers
 			throws InvalidAttributeException, InvalidAttributeValueException, Exception
 	{
 		inst.setAttributeValue(OLD_IDENTIFIER, oldIdentifierToUse);
+		//Load them into memory first, so the "addAttributeValue" call doens't wipe out history.
+		inst.getAttributeValuesList(ReactomeJavaConstants.modified);
 		inst.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
 		adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER);
 		adapter.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
