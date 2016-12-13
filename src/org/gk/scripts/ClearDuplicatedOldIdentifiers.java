@@ -86,7 +86,6 @@ public class ClearDuplicatedOldIdentifiers
 			throw new Error(e);
 		}
 		
-		
 		String queryString = "select StableIdentifier.* "
 							+ " from StableIdentifier "
 							+" inner join ( "
@@ -107,11 +106,6 @@ public class ClearDuplicatedOldIdentifiers
 				System.out.println("StableIdentifier db_id: " + db_id + " identifier: " + results.getString("identifier") + " oldIdentifier: " + results.getString(OLD_IDENTIFIER));
 				// clear the value in the oldIdentifier field. I wonder why oldIdentifier isn't in ReactomeJavaConstants?				
 				setOldIdentifier(adapter, instanceEdit, db_id, null, stableIdentifierInstance);
-				
-//				stableIdentifier.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
-//				stableIdentifier.setAttributeValue(OLD_IDENTIFIER, null);
-//				adapter.updateInstanceAttribute(stableIdentifier, ReactomeJavaConstants.modified);
-//				adapter.updateInstanceAttribute(stableIdentifier, OLD_IDENTIFIER);
 			}
 			catch (NumberFormatException e)
 			{
@@ -164,6 +158,17 @@ public class ClearDuplicatedOldIdentifiers
 		System.out.println("FINISHED!");
 	}
 
+	/**
+	 * set the value of the oldIdentifier attribute.
+	 * @param adapter - the DB Adapter to use.
+	 * @param instanceEdit - The InstanceEdit to associate this modification with.
+	 * @param db_id - The DB_ID of the instance to modify (this is really only used for logging).
+	 * @param oldIdentifierToUse - The value to set on oldIdentifier.
+	 * @param inst - The instance.
+	 * @throws InvalidAttributeException
+	 * @throws InvalidAttributeValueException
+	 * @throws Exception
+	 */
 	private static void setOldIdentifier(MySQLAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, GKInstance inst)
 			throws InvalidAttributeException, InvalidAttributeValueException, Exception
 	{
