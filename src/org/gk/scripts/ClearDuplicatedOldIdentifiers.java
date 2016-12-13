@@ -11,13 +11,27 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.util.GKApplicationUtilities;
 
+/**
+ * This tool will find all StableIdentifiers such that there is more than 1 record with the same oldIdentifier. <br/>
+ * It will then set the oldIdentifier to NULL for each of these records.<br/>
+ * An InstanceEdit will be created with the node "oldIdentifier de-duplication", all of these changes
+ * will be associated with this InstanceEdit.<br/>
+ * NOTE: There are three StableIdentifiers which will not be left as NULL but will actually be corrected:
+ * <ul>
+ * <li>6781524 will have oldIdentifier = REACT_267785</li>
+ * <li>6781535 will have oldIdentifier = REACT_267790</li>
+ * <li>6781519 will have oldIdentifier = REACT_267875</li>
+ * </ul>
+ * @author sshorser
+ *
+ */
 public class ClearDuplicatedOldIdentifiers
 {
 	private static final String OLD_IDENTIFIER = "oldIdentifier";
 
 	public static void main(String[] args) throws SQLException
 	{
-		
+		System.out.println("de-duplicating oldIdentifiers...");
 		String host = args[0];
 		String database = args[1];
 		String username = args[2];
@@ -147,6 +161,7 @@ public class ClearDuplicatedOldIdentifiers
 			e.printStackTrace();
 			throw new Error(e);
 		}
+		System.out.println("FINISHED!");
 	}
 
 	private static void setOldIdentifier(MySQLAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, GKInstance inst)
