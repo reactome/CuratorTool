@@ -5,6 +5,7 @@ import java.sql.SQLException;
 
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -28,6 +29,7 @@ import org.gk.util.GKApplicationUtilities;
 public class ClearDuplicatedOldIdentifiers
 {
 	private static final String OLD_IDENTIFIER = "oldIdentifier";
+	private static final String OLD_IDENTIFIER_VERSION = "oldIdentifierVersion";
 
 	public static void main(String[] args) throws SQLException
 	{
@@ -45,7 +47,7 @@ public class ClearDuplicatedOldIdentifiers
 		ResultSet personResults = adapter.executeQuery("select * from Person where Person.firstname = '"+firstName+"' and Person.surname = '"+lastName+"';", null);
 		GKInstance person = null;
 		
-		// There should only ever be one record, but resultSet is still something that needs to be iterated over....
+		// There should only ever be one record, but resultSet is still something that needs to be iterated over...
 		while (personResults.next())
 		{
 			try
@@ -54,7 +56,6 @@ public class ClearDuplicatedOldIdentifiers
 			}
 			catch (Exception e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -68,6 +69,8 @@ public class ClearDuplicatedOldIdentifiers
 		{
 			instanceEdit.setAttributeValue(ReactomeJavaConstants.note, "oldIdentifier de-duplication");
 			instanceEdit.addAttributeValue(ReactomeJavaConstants.dateTime, GKApplicationUtilities.getDateTime());
+			String displayName = InstanceDisplayNameGenerator.generateDisplayName(instanceEdit);
+			instanceEdit.setAttributeValue(ReactomeJavaConstants._displayName, displayName);
 			adapter.storeInstance(instanceEdit);
 		}
 		catch (InvalidAttributeException e1)
@@ -158,13 +161,14 @@ public class ClearDuplicatedOldIdentifiers
 		System.out.println("FINISHED!");
 	}
 
+
 	/**
-	 * set the value of the oldIdentifier attribute.
-	 * @param adapter - the DB Adapter to use.
-	 * @param instanceEdit - The InstanceEdit to associate this modification with.
-	 * @param db_id - The DB_ID of the instance to modify (this is really only used for logging).
-	 * @param oldIdentifierToUse - The value to set on oldIdentifier.
-	 * @param inst - The instance.
+	 * Overload that sets oldIdentifierVersion to NULL.
+	 * @param adapter
+	 * @param instanceEdit
+	 * @param db_id
+	 * @param oldIdentifierToUse
+	 * @param inst
 	 * @throws InvalidAttributeException
 	 * @throws InvalidAttributeValueException
 	 * @throws Exception
@@ -172,10 +176,31 @@ public class ClearDuplicatedOldIdentifiers
 	private static void setOldIdentifier(MySQLAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, GKInstance inst)
 			throws InvalidAttributeException, InvalidAttributeValueException, Exception
 	{
+		setOldIdentifier(adapter, instanceEdit, db_id, oldIdentifierToUse, null, inst);
+	}
+	/**
+	 * set the value of the oldIdentifier attribute.
+	 * @param adapter - the DB Adapter to use.
+	 * @param instanceEdit - The InstanceEdit to associate this modification with.
+	 * @param db_id - The DB_ID of the instance to modify (this is really only used for logging).
+	 * @param oldIdentifierToUse - The value to set on oldIdentifier.
+	 * @param oldIdentifierVersionToUse - The value to set on oldIdentifierVersion
+	 * @param inst - The instance.
+	 * @throws InvalidAttributeException
+	 * @throws InvalidAttributeValueException
+	 * @throws Exception
+	 */
+	private static void setOldIdentifier(MySQLAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, String oldIdentifierVersionToUse, GKInstance inst)
+			throws InvalidAttributeException, InvalidAttributeValueException, Exception
+	{
+		//Set the oldIdentifier and oldIdentifierVersion
+		inst.setAttributeValue(OLD_IDENTIFIER_VERSION, oldIdentifierVersionToUse);
 		inst.setAttributeValue(OLD_IDENTIFIER, oldIdentifierToUse);
-		//Load them into memory first, so the "addAttributeValue" call doens't wipe out history.
+		//Load instance edit history into memory first, so the "addAttributeValue" call doens't wipe out history.
 		inst.getAttributeValuesList(ReactomeJavaConstants.modified);
 		inst.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
+
+		adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER_VERSION);
 		adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER);
 		adapter.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
 		System.out.println("updated "+db_id);
