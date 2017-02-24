@@ -1,3 +1,7 @@
+Build 86 notes (February 23, 2016)
+
+Bug fix: during pathway diagram validation, stoichiometry check for displayed reactions and original reaction instances is not correct.
+
 Build 85 notes (November 10, 2016)
 
 Build specically for Lisa to do new Stable id QA check with the implementation of Joel's new simplified approach to get species name.
@@ -6,7 +10,7 @@ One more feature: enable "Search by ID" for local "Entity Level View".
 
 Build 84 notes (October 5, 2016)
 
-Created specicially for Mac OS because of update of Java in mac os invlidated the old packaging tool. 
+Created specicially for Mac OS because of update of Java in mac os invalidated the old packaging tool. 
 
 Build 83 notes (September 26, 2016)
 
