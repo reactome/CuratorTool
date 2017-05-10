@@ -1117,6 +1117,8 @@ public class HyperEdge extends Renderable {
      * @return
      */
     public boolean canBePicked(Point p) {
+        if (!isVisible)
+            return false;
         Point p1;
         double distSq;
         // Check backbone points
