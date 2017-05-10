@@ -996,6 +996,8 @@ public class HyperEdge extends Renderable {
     }
     
     public boolean isPicked(Point p) {
+        if (!isVisible) // Block it if it is not visible
+            return false;
         double distSq;
         // Check all points
         Point p1;
