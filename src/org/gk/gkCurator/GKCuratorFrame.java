@@ -1229,10 +1229,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		}
         // Add actions for GO related request
         toolMenu.addSeparator();
-        JMenu requestGOTermMenu = new JMenu("Request GO Term");
-        toolMenu.add(requestGOTermMenu);
-        requestGOTermMenu.add(actionCollection.getRequestNewGOTermAction());
-        requestGOTermMenu.add(actionCollection.getTrackGORequestAction());
+        // As of June 4, this action has been removed.
+//        JMenu requestGOTermMenu = new JMenu("Request GO Term");
+//        toolMenu.add(requestGOTermMenu);
+//        requestGOTermMenu.add(actionCollection.getRequestNewGOTermAction());
+//        requestGOTermMenu.add(actionCollection.getTrackGORequestAction());
         // To launch PSI-MOD go browser
         toolMenu.add(actionCollection.getLaunchPsiModBrowserAction());
         toolMenu.add(actionCollection.getLaunchDiseaseBrowserAction());

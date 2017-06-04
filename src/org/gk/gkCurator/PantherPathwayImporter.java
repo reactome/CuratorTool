@@ -92,7 +92,7 @@ public class PantherPathwayImporter {
             dbAdaptor.getConnection().close();
         }
         catch(Exception e) {
-            System.err.println("PantherPathwayImport.doImport(): " + e);
+            e.printStackTrace(System.err);
             JOptionPane.showMessageDialog(parentComp,
                                           "Error in importing: " + e.getMessage(),
                                           "Error",
@@ -385,7 +385,7 @@ public class PantherPathwayImporter {
             else {
                 JOptionPane.showMessageDialog(comp, 
                                               "To import panther pathways, please enter the user name and password\n" +
-                                              "for the database gk_central@brie8.cshl.edu.",
+                                              "for the database " + dbName + "@" + dbHost,
                                               "Database Info",
                                               JOptionPane.INFORMATION_MESSAGE);
                 Properties prop = new Properties();
