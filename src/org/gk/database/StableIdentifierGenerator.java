@@ -13,6 +13,7 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
@@ -134,6 +135,19 @@ public class StableIdentifierGenerator {
         String species = getSpeciesForSTID(instance);
 	    String id = "R-" + species + "-" + instance.getDBID();
         return id;
+    }
+    
+    @Test
+    public void testGenerateIdentifier() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_052417",
+                                            "root",
+                                            "macmysql01");
+        Long dbId = 8982440L;
+//        dbId = 68419L;
+        GKInstance inst = dba.fetchInstance(dbId);
+        String id = generateIdentifier(inst);
+        System.out.println(inst + " -> " + id);
     }
 	
 	private String getSpeciesForSTID(GKInstance inst) throws Exception {
@@ -297,6 +311,8 @@ public class StableIdentifierGenerator {
 		if (abbreviation != null)
 		    return abbreviation;
 		int index = speciesName.indexOf(" ");
+		if (index < 0)
+		    throw new IllegalStateException("Cannot find an abbrevitation for species " + speciesName + "!");
 		// First letter in the first part and first two letters in the second part
 		// All upper case
 		abbreviation = speciesName.substring(0, 1).toUpperCase() + speciesName.substring(index + 1,
