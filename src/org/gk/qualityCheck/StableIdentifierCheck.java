@@ -340,10 +340,13 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             GKInstance inst = it.next();
             GKInstance ie = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.created);
             // Some old instances may not have values for created
-            if (ie == null) {
-                it.remove(); // Ignore it
+//            if (ie == null) {
+//                it.remove(); // Ignore it
+//                continue;
+//            }
+            // As of June 8, 2017, if there is no value, check it anyway
+            if (ie == null)
                 continue;
-            }
             String dateTime = (String) ie.getAttributeValue(ReactomeJavaConstants.dateTime);
             if (dateTime == null) {
                 it.remove(); // ignore it
