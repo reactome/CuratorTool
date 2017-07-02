@@ -29,6 +29,34 @@ public class ComplexCompartmentChecker {
     }
     
     @Test
+    public void checkComplexes() throws Exception {
+        MySQLAdaptor srcDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca", 
+                                               "gk_central",
+                                               "authortool",
+                                               "T001test");
+        Collection<GKInstance> c = srcDBA.fetchInstancesByClass(ReactomeJavaConstants.Complex);
+        srcDBA.loadInstanceAttributeValues(c, new String[]{
+                ReactomeJavaConstants.isChimeric,
+                ReactomeJavaConstants.species
+        });
+        int count = 0;
+        for (GKInstance complex : c) {
+            List<GKInstance> species = complex.getAttributeValuesList(ReactomeJavaConstants.species);
+            if (species.size() > 1) {
+                Boolean isChimeric = (Boolean) complex.getAttributeValue(ReactomeJavaConstants.isChimeric);
+                if (isChimeric == null || !isChimeric) {
+                    Collection<?> referrers = complex.getReferers(ReactomeJavaConstants.inferredFrom);
+//                    if (referrers != null && referrers.size() > 0) {
+//                        System.out.println(complex);
+//                        count ++;
+//                    }
+                }
+            }
+        }
+        System.out.println(count);
+    }
+    
+    @Test
     @SuppressWarnings("unchecked")
     public void compareComplexes() throws Exception {
         MySQLAdaptor srcDBA = new MySQLAdaptor("localhost", 

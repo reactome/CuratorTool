@@ -236,6 +236,8 @@
 			</fileset>
 		</copy>
 		<copy file="${basedir}/resources/CuratorToolInstall.html" tofile="${targetDir}/install.htm"></copy>
+		<!-- Note: The dmg file generated may be opened automatically. The .app can be zipped as usualy and then
+		    deployed as install.zip -->
 		<ant antfile="ant/JavaBuildPackaging.xml"> </ant>
 		<!-- Using Jar or zip cannot work -->
 		<!-- jar destfile="${targetDir}/mac/install.zip" basedir="${targetDir}" includes="ReactomeCuratorTool.app/**">

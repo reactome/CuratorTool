@@ -4,6 +4,7 @@
  */
 package org.gk.scripts;
 
+import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderablePathway;
@@ -173,6 +175,39 @@ public class PathwayDiagramScripts {
         }
         fu.close();
         return rtn;
+    }
+    
+    @Test
+    public void checkNodeBounds() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "test_slice_59",
+                                            "root",
+                                            "macmysql01");
+        Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
+        DiagramGKBReader reader = new DiagramGKBReader();
+        int totalChecked = 0;
+        int problem = 0;
+        for (GKInstance pd : pds) {
+            RenderablePathway diagram = reader.openDiagram(pd);
+            totalChecked ++;
+            boolean isProblem = false;
+            for (Object r : diagram.getComponents()) {
+                if (r instanceof Node) {
+                    Node node = (Node) r;
+                    Rectangle bounds = node.getBounds();
+                    if (bounds == null) {
+                        isProblem = true;
+                        System.out.println(node.getDisplayName() + ", " + node.getReactomeId());
+                    }
+                }
+            }
+            if (isProblem) {
+                problem ++;
+                System.out.println("In " + pd);
+            }
+        }
+        System.out.println("Total checked: " + totalChecked);
+        System.out.println("Problem: " + problem);
     }
     
     @Test
