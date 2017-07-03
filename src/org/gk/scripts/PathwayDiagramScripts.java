@@ -4,7 +4,6 @@
  */
 package org.gk.scripts;
 
-import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -175,39 +174,6 @@ public class PathwayDiagramScripts {
         }
         fu.close();
         return rtn;
-    }
-    
-    @Test
-    public void checkNodeBounds() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "test_slice_59",
-                                            "root",
-                                            "macmysql01");
-        Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
-        DiagramGKBReader reader = new DiagramGKBReader();
-        int totalChecked = 0;
-        int problem = 0;
-        for (GKInstance pd : pds) {
-            RenderablePathway diagram = reader.openDiagram(pd);
-            totalChecked ++;
-            boolean isProblem = false;
-            for (Object r : diagram.getComponents()) {
-                if (r instanceof Node) {
-                    Node node = (Node) r;
-                    Rectangle bounds = node.getBounds();
-                    if (bounds == null) {
-                        isProblem = true;
-                        System.out.println(node.getDisplayName() + ", " + node.getReactomeId());
-                    }
-                }
-            }
-            if (isProblem) {
-                problem ++;
-                System.out.println("In " + pd);
-            }
-        }
-        System.out.println("Total checked: " + totalChecked);
-        System.out.println("Problem: " + problem);
     }
     
     @Test
@@ -428,6 +394,52 @@ public class PathwayDiagramScripts {
             is.close();
             System.out.println(builder.toString());
         }
+    }
+    
+    /**
+     * Check if a pathway diagram has no-process nodes.
+     * @throws Exception
+     */
+    @Test
+    public void checkDiagramContents() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca", 
+    									    "gk_central",
+    									    "authortool",
+    										"T001test");
+    	FileUtilities fu = new FileUtilities();
+    	String fileName = "/Users/Gwu/Desktop/LisaList.txt";
+    	fu.setInput(fileName);
+    	String line = null;
+    	DiagramGKBReader reader = new DiagramGKBReader();
+    	while ((line = fu.readLine()) != null) {
+    		GKInstance pathway = dba.fetchInstance(new Long(line));
+    		Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.representedPathway);
+    		if (referrers.size() == 0) {
+    			System.out.println(line + " doesn't have a diagram!");
+    			continue;
+    		}
+    		RenderablePathway diagram = reader.openDiagram(referrers.iterator().next());
+    		boolean hasEntity = false;
+    		for (Object r : diagram.getComponents()) {
+    			if (r instanceof Node) {
+    				Long reactomeId = ((Node)r).getReactomeId();
+    				if (reactomeId == null)
+    					continue;
+    				GKInstance entity = dba.fetchInstance(reactomeId);
+    				if (entity == null) {
+    					System.out.println(diagram + " has a deleted entity!");
+    					continue;
+    				}
+    				if (entity.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
+    					hasEntity = true;
+    					break;
+    				}
+    			}
+    		}
+    		System.out.println(line + "\t" + pathway.getDisplayName() + "\t" + hasEntity);
+//    		break;
+    	}
+    	fu.close();
     }
     
     /**
