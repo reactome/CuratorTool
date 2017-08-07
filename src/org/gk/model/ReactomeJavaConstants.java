@@ -303,4 +303,11 @@ public class ReactomeJavaConstants {
     public static final String FailedReaction = "FailedReaction";
     
     public static final String isChimeric = "isChimeric";
+    // New attributes for Drug
+    public static final String ReferenceTherapeutic = "ReferenceTherapeutic";
+    public static final String abbreviation = "abbreviation";
+    public static final String inn = "inn";
+    public static final String type = "type";
+    public static final String approved = "approved";
+    public static final String approvalSource = "approvalSource";
 }

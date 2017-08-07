@@ -58,7 +58,8 @@ public class InstanceDisplayNameGenerator {
                 return generateDatabaseIdentifierName(instance);
             if (clsName.equals("ReferenceGroup"))
                 return generateReferenceGroupName(instance);
-            if (clsName.equals("ReferenceMolecule"))
+            if (clsName.equals("ReferenceMolecule") || 
+                clsName.equals(ReactomeJavaConstants.ReferenceTherapeutic))
                 return generateReferenceMoleculeName(instance);
             if (schemaClass.isa("ReferenceSequence")) {
                 return generateReferenceSequenceName(instance);
