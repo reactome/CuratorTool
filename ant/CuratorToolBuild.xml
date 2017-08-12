@@ -236,8 +236,6 @@
 			</fileset>
 		</copy>
 		<copy file="${basedir}/resources/CuratorToolInstall.html" tofile="${targetDir}/install.htm"></copy>
-		<!-- Note: The dmg file generated may be opened automatically. The .app can be zipped as usualy and then
-		    deployed as install.zip -->
 		<ant antfile="ant/JavaBuildPackaging.xml"> </ant>
 		<!-- Using Jar or zip cannot work -->
 		<!-- jar destfile="${targetDir}/mac/install.zip" basedir="${targetDir}" includes="ReactomeCuratorTool.app/**">
@@ -260,8 +258,9 @@
 			for mac installer.
 			//1). Use jar -Mcvf install.zip ReactomeCuratorTool.app to create an installer for mac
 			//2). Try to delete any hidden files from MacOS (.DS_Store or similar)
-			1). Use jar -Mcvf to generate install.zip file by including necessary file (8 files/directories).
-			2). Move these two install.zip files to reactomedev.oicr.on.ca.
+			1). Use jar -Mcvf to generate install.zip file by including necessary file (7 files/directories).
+			2). Manually open the dmg file in the builder folder and copy ReactomeCurator.app file into the default folder, and then jar it.
+			3). Move these two install.zip files to reactomedev.oicr.on.ca.
 		-->
 	</target>
 	
