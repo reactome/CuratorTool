@@ -304,6 +304,10 @@ public class ReactomeJavaConstants {
     
     public static final String isChimeric = "isChimeric";
     // New attributes for Drug
+    public static final String Drug = "Drug";
+    public static final String ChemicalDrug = "ChemicalDrug";
+    public static final String ProteinDrug = "ProteinDrug";
+    public static final String RNADrug = "RNADrug";
     public static final String ReferenceTherapeutic = "ReferenceTherapeutic";
     public static final String abbreviation = "abbreviation";
     public static final String inn = "inn";
