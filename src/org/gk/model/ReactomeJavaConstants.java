@@ -305,5 +305,5 @@ public class ReactomeJavaConstants {
     public static final String isChimeric = "isChimeric";
     
     // Species stable id prefix 
-	public static final String abbreviation = "abbreviation";
+    public static final String abbreviation = "abbreviation";
 }
