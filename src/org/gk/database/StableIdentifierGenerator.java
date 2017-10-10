@@ -1,9 +1,7 @@
 package org.gk.database;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
@@ -45,7 +43,6 @@ import org.junit.Test;
 public class StableIdentifierGenerator {
 	private final String NUL_SPECIES = "NUL";
 	private final String ALL_SPECIES = "ALL";
-	private Map<String, String> speciesToAbbreviation;
 	private Set<String> stidClasses;
 	
 	public StableIdentifierGenerator() {
@@ -274,25 +271,16 @@ public class StableIdentifierGenerator {
 	}
 	
 	private String getSpeciesAbbreviation(GKInstance species) throws Exception {
-		if (speciesToAbbreviation == null) {
-			speciesToAbbreviation = new HashMap<String, String>();
-		}
-
-		String abbreviation = speciesToAbbreviation.get(species.getDisplayName());
-		if (abbreviation != null)
-			return abbreviation;
-
-		if (!species.getSchemClass().getName().equals("Species")) {
+		if (!species.getSchemClass().getName().equals(ReactomeJavaConstants.species)) {
 			throw new IllegalStateException("Instance " + species.getDBID() + " is not a species instance");
 		}
 		
-		abbreviation = (String) species.getAttributeValue(ReactomeJavaConstants.abbreviation);
+		String abbreviation = (String) species.getAttributeValue(ReactomeJavaConstants.abbreviation);
 		if (abbreviation == null || abbreviation.isEmpty()) {
 			return null;
 			//throw new IllegalStateException(species.getDisplayName() + " has no abbreviation");
 		}
 		
-		speciesToAbbreviation.put(species.getDisplayName(), abbreviation);
 		return abbreviation;
 	}
 }
