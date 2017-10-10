@@ -109,7 +109,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                 return false;
             Integer oldStoi = oldIMap.get(old);
             Integer newStoi = iMap.get(old);
-            if (oldStoi != newStoi)
+            if (!oldStoi.equals(newStoi))
                 return false;
         }
         // Since oldIMap and iMap have the same size, the above comparison

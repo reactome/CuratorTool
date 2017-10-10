@@ -126,6 +126,19 @@ public class StableIdentifierGenerator {
 	    String id = "R-" + species + "-" + instance.getDBID();
         return id;
     }
+    
+    @Test
+    public void testGenerateIdentifier() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_052417",
+                                            "root",
+                                            "macmysql01");
+        Long dbId = 8982440L;
+//        dbId = 68419L;
+        GKInstance inst = dba.fetchInstance(dbId);
+        String id = generateIdentifier(inst);
+        System.out.println(inst + " -> " + id);
+    }
 	
 	private String getSpeciesForSTID(GKInstance inst) throws Exception {
 		String species = NUL_SPECIES;
@@ -280,7 +293,7 @@ public class StableIdentifierGenerator {
 			return null;
 			//throw new IllegalStateException(species.getDisplayName() + " has no abbreviation");
 		}
-		
+
 		return abbreviation;
 	}
 }

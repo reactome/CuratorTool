@@ -28,7 +28,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JToolBar;
+import javax.swing.JTree;
+import javax.swing.JWindow;
+import javax.swing.KeyStroke;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -39,7 +56,16 @@ import javax.swing.event.TreeSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.gk.database.*;
+import org.gk.database.AttributeEditConfig;
+import org.gk.database.AttributeEditEvent;
+import org.gk.database.AttributeEditListener;
+import org.gk.database.AttributeEditManager;
+import org.gk.database.EventCentricViewPane;
+import org.gk.database.EventPanePopupManager;
+import org.gk.database.FrameManager;
+import org.gk.database.SchemaViewPane;
+import org.gk.database.StableIdentifierUpdater;
+import org.gk.database.SynchronizationManager;
 import org.gk.graphEditor.EntityLevelView;
 import org.gk.graphEditor.GraphEditorActionEvent;
 import org.gk.graphEditor.GraphEditorActionListener;
@@ -70,7 +96,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.1";
-	public static final int BUILD_NUMBER = 85;
+	public static final int BUILD_NUMBER = 87;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -1229,10 +1255,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		}
         // Add actions for GO related request
         toolMenu.addSeparator();
-        JMenu requestGOTermMenu = new JMenu("Request GO Term");
-        toolMenu.add(requestGOTermMenu);
-        requestGOTermMenu.add(actionCollection.getRequestNewGOTermAction());
-        requestGOTermMenu.add(actionCollection.getTrackGORequestAction());
+        // As of June 4, this action has been removed.
+//        JMenu requestGOTermMenu = new JMenu("Request GO Term");
+//        toolMenu.add(requestGOTermMenu);
+//        requestGOTermMenu.add(actionCollection.getRequestNewGOTermAction());
+//        requestGOTermMenu.add(actionCollection.getTrackGORequestAction());
         // To launch PSI-MOD go browser
         toolMenu.add(actionCollection.getLaunchPsiModBrowserAction());
         toolMenu.add(actionCollection.getLaunchDiseaseBrowserAction());

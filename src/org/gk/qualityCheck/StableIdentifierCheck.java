@@ -24,6 +24,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 
 import org.gk.database.DefaultInstanceEditHelper;
@@ -42,8 +43,6 @@ import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
-
-import sun.swing.table.DefaultTableCellHeaderRenderer;
 
 /**
  * This class is used to check StableIdentifiers generated for newly created instances after last release.
@@ -341,10 +340,13 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             GKInstance inst = it.next();
             GKInstance ie = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.created);
             // Some old instances may not have values for created
-            if (ie == null) {
-                it.remove(); // Ignore it
+//            if (ie == null) {
+//                it.remove(); // Ignore it
+//                continue;
+//            }
+            // As of June 8, 2017, if there is no value, check it anyway
+            if (ie == null)
                 continue;
-            }
             String dateTime = (String) ie.getAttributeValue(ReactomeJavaConstants.dateTime);
             if (dateTime == null) {
                 it.remove(); // ignore it
@@ -596,7 +598,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             StableIdCheckResultTableModel model = new StableIdCheckResultTableModel();
             resultTable.setModel(model);
             resultTable.setAutoCreateRowSorter(true);
-            TableCellRenderer renderer = new DefaultTableCellHeaderRenderer() {
+            TableCellRenderer renderer = new DefaultTableCellRenderer() {
                 Icon instanceIcon = GKApplicationUtilities.createImageIcon(getClass(), "Instance.gif");
                 
                 @Override

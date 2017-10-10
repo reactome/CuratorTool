@@ -78,16 +78,17 @@
         <autoFiller target="Disease.identifier" class="org.gk.database.util.DiseaseAttributeAutoFiller"/>
         <autoFiller target="SequenceOntology.identifier" class="org.gk.database.util.SOAttributeAutoFiller" />
         <autoFiller target="CellType.identifier" class="org.gk.database.util.CellTypeAttributeAutoFiller" />
+        <autoFiller target="ReferenceTherapeutic.identifier" class="org.gk.database.util.ReferenceTherapeuticAutoFiller" />
     </attributeAutoFillers>
 	<deletedInstances>
 		<controlledVocabulary instanceClass="DeletedControlledVocabulary" />
 	</deletedInstances>
     <importedPathwayDb>
-        <dataSource dbId="210689" name="Panther Pathways" />
-        <dataSource dbId="424025" name="NCI-Nature PID" />
-        <dataSource dbId="229095" name="Cancer Cell Map" />
-        <dbHost>brie8.cshl.edu</dbHost>
-        <dbName>test_reactome_plus_i_v2</dbName>
+        <dataSource dbId="9055298" name="Panther Pathways" />
+        <dataSource dbId="8981351" name="NCI-Nature PID" />
+<!--         <dataSource dbId="229095" name="Cancer Cell Map" /> -->
+        <dbHost>reactomecurator.oicr.on.ca</dbHost>
+        <dbName>test_reactome_59_plus_i</dbName>
     </importedPathwayDb>
     <!-- These URLs for UniProt since they are not stable so an external config is used -->
     <uniprot>

@@ -256,6 +256,25 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
         while (preSize < eventMap.size()); // More events have been added
     }
     
+    /**
+     * Used for test
+     * @param eventMap
+     * @throws Exception
+     */
+    private void checkSpecies(Map<Long, GKInstance> eventMap,
+    		                  Long speciesId) throws Exception {
+    	eventMap.values().stream().forEach(inst -> {
+    		try {
+    			GKInstance species = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.species);
+    			if (species != null && species.getDBID().equals(speciesId))
+    				System.out.println("Found species: " + inst);
+    		}
+    		catch(Exception e) {
+    			logger.error(e.getMessage(), e);
+    		}
+    	});
+    }
+    
     private void extractEvents(Collection events,
                                          Collection regulations,
                                          Map<Long, GKInstance> eventMap,

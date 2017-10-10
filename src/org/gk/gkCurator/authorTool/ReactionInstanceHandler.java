@@ -38,8 +38,12 @@ public class ReactionInstanceHandler extends InstanceHandler {
            // Use types based on instance class
            RenderableReaction reaction = (RenderableReaction) r;
            SchemaClass cls = instance.getSchemClass();
-           if (cls.isa(ReactomeJavaConstants.BlackBoxEvent))
-               reaction.setReactionType(ReactionType.OMITTED_PROCESS);
+           if (cls.isa(ReactomeJavaConstants.BlackBoxEvent)) {
+//               reaction.setReactionType(ReactionType.OMITTED_PROCESS);
+               // As of May 25, 2017, per suggestion from Steve, change
+               // the default type to uncertain
+               reaction.setReactionType(ReactionType.UNCERTAIN_PROCESS);
+           }
            else if (cls.isa(ReactomeJavaConstants.Polymerisation))
                reaction.setReactionType(ReactionType.ASSOCIATION);
            else if (cls.isa(ReactomeJavaConstants.Depolymerisation))
