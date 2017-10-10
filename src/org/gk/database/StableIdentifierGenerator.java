@@ -271,7 +271,7 @@ public class StableIdentifierGenerator {
 	}
 	
 	private String getSpeciesAbbreviation(GKInstance species) throws Exception {
-		if (!species.getSchemClass().getName().equals(ReactomeJavaConstants.species)) {
+		if (!species.getSchemClass().getName().equals(ReactomeJavaConstants.Species)) {
 			throw new IllegalStateException("Instance " + species.getDBID() + " is not a species instance");
 		}
 		
