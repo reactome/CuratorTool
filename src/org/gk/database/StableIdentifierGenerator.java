@@ -1,11 +1,7 @@
 package org.gk.database;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
@@ -14,15 +10,10 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
-import org.gk.util.GKApplicationUtilities;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.xpath.XPath;
 import org.junit.Test;
 
 /**
@@ -52,7 +43,6 @@ import org.junit.Test;
 public class StableIdentifierGenerator {
 	private final String NUL_SPECIES = "NUL";
 	private final String ALL_SPECIES = "ALL";
-	private Map<String, String> speciesToAbbreviation;
 	private Set<String> stidClasses;
 	
 	public StableIdentifierGenerator() {
@@ -283,58 +273,27 @@ public class StableIdentifierGenerator {
 	}
 	
 	@Test
-	public void testLoadManualSpeciesMap() throws Exception {
-		Map<String, String> speciesToAbb = loadManualSpeciesMap();
-		for (String species : speciesToAbb.keySet()) {
-			String abb = speciesToAbb.get(species);
-			System.out.println(species + ": " + abb);
+	public void testSpeciesAbbreviation() throws Exception {
+		PersistenceManager persistenceManager = new PersistenceManager();
+		MySQLAdaptor dbAdaptor = persistenceManager.getPreConfiguedDBAdaptor();
+		Set<GKInstance> speciesInstances = (Set<GKInstance>) dbAdaptor.fetchInstancesByClass("Species");
+		for (GKInstance speciesInstance : speciesInstances) {
+			System.out.println("Species: " + speciesInstance.getDisplayName() + 
+					"\tAbbreviation: " + getSpeciesAbbreviation(speciesInstance));
 		}
 	}
 	
 	private String getSpeciesAbbreviation(GKInstance species) throws Exception {
-		if (speciesToAbbreviation == null) {
-			speciesToAbbreviation = new HashMap<String, String>();
-			Map<String, String> manualMap = loadManualSpeciesMap();
-			speciesToAbbreviation.putAll(manualMap);
+		if (!species.getSchemClass().getName().equals(ReactomeJavaConstants.Species)) {
+			throw new IllegalStateException("Instance " + species.getDBID() + " is not a species instance");
 		}
-		String speciesName = species.getDisplayName();
-		String abbreviation = speciesToAbbreviation.get(speciesName);
-		if (abbreviation != null)
-			return abbreviation;
-		// Try to match based on starting characters
-		for (String key : speciesToAbbreviation.keySet()) {
-		    if (speciesName.startsWith(key)) {
-		        abbreviation = speciesToAbbreviation.get(key);
-		        break;
-		    }
+		
+		String abbreviation = (String) species.getAttributeValue(ReactomeJavaConstants.abbreviation);
+		if (abbreviation == null || abbreviation.isEmpty()) {
+			return null;
+			//throw new IllegalStateException(species.getDisplayName() + " has no abbreviation");
 		}
-		if (abbreviation != null)
-		    return abbreviation;
-		int index = speciesName.indexOf(" ");
-		if (index < 0)
-		    throw new IllegalStateException("Cannot find an abbrevitation for species " + speciesName + "!");
-		// First letter in the first part and first two letters in the second part
-		// All upper case
-		abbreviation = speciesName.substring(0, 1).toUpperCase() + speciesName.substring(index + 1,
-																					     index + 3).toUpperCase();
-		speciesToAbbreviation.put(speciesName, abbreviation);
+
 		return abbreviation;
 	}
-	
-	private Map<String, String> loadManualSpeciesMap() throws IOException, JDOMException {
-        InputStream is = GKApplicationUtilities.getConfig("curator.xml");
-        SAXBuilder builder = new SAXBuilder();
-        Document document = builder.build(is);
-        Element elm = (Element) XPath.selectSingleNode(document.getRootElement(), 
-                                                       "species_stid");
-        Map<String, String> speciesToAbbr = new HashMap<String, String>();
-        List<Element> list = elm.getChildren();
-        for (Element speciesElm : list) {
-            String species = speciesElm.getAttributeValue("name");
-            String abbreviation = speciesElm.getAttributeValue("abbreviation");
-            speciesToAbbr.put(species, abbreviation);
-        }
-        return speciesToAbbr;
-	}
-
 }

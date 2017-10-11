@@ -303,6 +303,10 @@ public class ReactomeJavaConstants {
     public static final String FailedReaction = "FailedReaction";
     
     public static final String isChimeric = "isChimeric";
+
+    // Species stable id prefix 
+    public static final String abbreviation = "abbreviation";
+
     // New attributes for Drug
     public static final String Drug = "Drug";
     public static final String ChemicalDrug = "ChemicalDrug";
