@@ -313,7 +313,7 @@ public class ReactomeJavaConstants {
     public static final String ProteinDrug = "ProteinDrug";
     public static final String RNADrug = "RNADrug";
     public static final String ReferenceTherapeutic = "ReferenceTherapeutic";
-    public static final String abbreviation = "abbreviation";
+    //public static final String abbreviation = "abbreviation"; // Already defined on line 308!
     public static final String inn = "inn";
     public static final String type = "type";
     public static final String approved = "approved";
