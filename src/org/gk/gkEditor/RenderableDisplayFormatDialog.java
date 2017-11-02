@@ -5,7 +5,6 @@
 package org.gk.gkEditor;
 
 import java.awt.BorderLayout;
-import java.awt.Checkbox;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -44,7 +43,7 @@ import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderableGene;
 import org.gk.render.SourceOrSink;
 
-class RenderableDisplayFormatDialog extends JDialog {
+public class RenderableDisplayFormatDialog extends JDialog {
     // GUIs
     private JPanel bgPanel;
     private JPanel fgPanel;
@@ -77,7 +76,7 @@ class RenderableDisplayFormatDialog extends JDialog {
     // To control if a private note is support
     private boolean supportPrivateNote = false;
 
-    RenderableDisplayFormatDialog(Frame parentFrame) {
+    public RenderableDisplayFormatDialog(Frame parentFrame) {
         super(parentFrame);
         init();
     }

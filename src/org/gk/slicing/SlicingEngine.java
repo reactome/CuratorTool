@@ -4,7 +4,16 @@
  */
 package org.gk.slicing;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -15,8 +24,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
+import org.apache.axis.utils.XMLUtils.ParserErrorHandler;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.database.DefaultInstanceEditHelper;
@@ -1002,7 +1021,7 @@ public class SlicingEngine {
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
         if(!runAlterTables())
-        	return false;
+            return false;
         return true;
     }
     
@@ -1024,8 +1043,18 @@ public class SlicingEngine {
         pipe(input, output);
         String errorMessage = getErrorMessage(process);
         process.destroy();
-        if (errorMessage.length() == 0)
+        return checkErrorMessage(errorMessage);
+    }
+    
+    private boolean checkErrorMessage(String error) {
+        if (error == null || error.length() == 0)
             return true;
+        // If the output is Warning, it should be fine
+        if (error.contains(": [Warning]")) { // Something for mysqldump: [Warning] or mysqladmin: [Warning]
+            logger.warn(error);
+            return true;
+        }
+        logger.error(error);
         return false;
     }
     
@@ -1080,9 +1109,7 @@ public class SlicingEngine {
         String message = getErrorMessage(process);
         process.waitFor();
         process.destroy();
-        if (message.length() > 0)
-            return false;
-        return true;
+        return checkErrorMessage(message);
     }
     
     private void pipe(InputStream input, OutputStream output) throws Exception {
@@ -1105,17 +1132,17 @@ public class SlicingEngine {
     
     
     private boolean runAlterTables() throws Exception {
-    	targetDBA = new MySQLAdaptor(targetDbHost,
-    			targetDbName, 
-    			targetDbUser, 
-    			targetDbPwd, 
-    			targetDbPort);
-    	Connection targetDBAConnection = targetDBA.getConnection();
-    
-    	@SuppressWarnings("rawtypes")
-		java.util.List tables = getTables(targetDBAConnection);
-    	changeToMyISAM(tables,targetDBAConnection);
-    	return true;
+        targetDBA = new MySQLAdaptor(targetDbHost,
+                targetDbName, 
+                targetDbUser, 
+                targetDbPwd, 
+                targetDbPort);
+        Connection targetDBAConnection = targetDBA.getConnection();
+
+        @SuppressWarnings("rawtypes")
+        java.util.List tables = getTables(targetDBAConnection);
+        changeToMyISAM(tables,targetDBAConnection);
+        return true;
     }
     
 	@SuppressWarnings("rawtypes")
@@ -1138,26 +1165,16 @@ public class SlicingEngine {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void changeToMyISAM(java.util.List tables, Connection conn) {
-		try {
-			Statement statement = conn.createStatement();
-			for (Iterator it = tables.iterator(); it.hasNext();) {
-				String table = it.next().toString();
-				System.err.println("Alter Table to MyISAM: " + table);
-				try {			
-					statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
-				}
-				catch(SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			statement.close();
-		}
-		catch(SQLException e) {
-			e.printStackTrace();
-		}
+	private void changeToMyISAM(java.util.List tables,
+	                            Connection conn) throws SQLException {
+	    Statement statement = conn.createStatement();
+	    for (Iterator it = tables.iterator(); it.hasNext();) {
+	        String table = it.next().toString();
+	        System.err.println("Alter Table to MyISAM: " + table);
+	        statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
+	    }
+	    statement.close();
 	}
-	
      
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
@@ -1184,9 +1201,7 @@ public class SlicingEngine {
         pipe(input, output);
         String error = getErrorMessage(process);
         process.destroy();
-        if (error.length() > 0)
-            return false;
-        
+        return checkErrorMessage(error);
         // For the schema file, change the DBEngine to MyISAM
 //        if (!dumpFileName.equals("slicingOntology.sql")) {
 //        	Charset charset = StandardCharsets.UTF_8;
@@ -1200,9 +1215,6 @@ public class SlicingEngine {
 //        		throw new RuntimeException("Error changing innodb to MyISAM", e);
 //        	}
 //        }
-
-        
-        return true;
     }
 
     public static void main(String[] args) {
