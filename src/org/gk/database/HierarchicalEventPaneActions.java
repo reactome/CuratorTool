@@ -120,7 +120,7 @@ public class HierarchicalEventPaneActions {
         if (showInferredFromPopup && propagator.changedAttributeTarget(ReactomeJavaConstants.inferredFrom)) {
             JCheckBox checkbox = new JCheckBox(AttributeEditConfig.HIDE_POPUP_MSG);
             Object[] params = {INFERRED_FROM_MSG, checkbox};
-            JOptionPane.showMessageDialog(eventPane, params, null, JOptionPane.INFORMATION_MESSAGE, null);
+            JOptionPane.showMessageDialog(eventPane, params, null, JOptionPane.PLAIN_MESSAGE, null);
             showInferredFromPopup = !checkbox.isSelected();
          }
 	}
