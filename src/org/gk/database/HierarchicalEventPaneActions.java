@@ -9,10 +9,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Iterator;
-
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -32,7 +33,11 @@ import org.gk.util.TreeUtilities;
  * @author wugm
  */
 public class HierarchicalEventPaneActions {
-	// The owner pane.
+    static final String INFERRED_FROM_MSG = "The release flag setting was propagated to inferredFrom events.";
+
+    private static boolean showInferredFromPopup = true;
+    
+    // The owner pane.
 	private HierarchicalEventPane eventPane;
 	private JTree wrappedTree;
 	// A list of actions
@@ -110,11 +115,14 @@ public class HierarchicalEventPaneActions {
 	                                                                               ReactomeJavaConstants._doRelease);
 	    if (!needPropagate)
 	        return; 
-	    //Make all contained events have the same _doNotRelease values
-	    for (int i = 0; i < treeNode.getChildCount(); i++) {
-	        DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) treeNode.getChildAt(i);
-	        toggleDR(childNode, treeModel, newValue);
-	    }
+        EventAttributePropagator propagator = new EventAttributePropagator(event, ReactomeJavaConstants._doRelease);
+        propagator.propagate();
+        if (showInferredFromPopup && propagator.changedAttributeTarget(ReactomeJavaConstants.inferredFrom)) {
+            JCheckBox checkbox = new JCheckBox(AttributeEditConfig.HIDE_POPUP_MSG);
+            Object[] params = {INFERRED_FROM_MSG, checkbox};
+            JOptionPane.showMessageDialog(eventPane, params, null, JOptionPane.INFORMATION_MESSAGE, null);
+            showInferredFromPopup = !checkbox.isSelected();
+         }
 	}
 	
 	private void setDR(GKInstance event, 
@@ -126,24 +134,6 @@ public class HierarchicalEventPaneActions {
 	    AttributeEditManager.getManager().attributeEdit(event, 
 	                                                    ReactomeJavaConstants._doRelease);
 	    treeModel.nodeChanged(treeNode);	    
-	}
-	
-	private void toggleDR(DefaultMutableTreeNode treeNode, 
-                          DefaultTreeModel model, 
-                          Boolean newValue) throws Exception {
-	    GKInstance event = (GKInstance) treeNode.getUserObject();
-	    if (event.isShell())
-	        return; // A shell instance is not editable.
-	    Boolean dr = (Boolean) event.getAttributeValue(ReactomeJavaConstants._doRelease);
-	    if (dr == null && !newValue.booleanValue())
-	        return;
-	    if (newValue.equals(dr))
-	        return; 
-	    setDR(event, newValue, treeNode, model);
-	    for (int i = 0; i < treeNode.getChildCount(); i++) {
-	        DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) treeNode.getChildAt(i);
-	        toggleDR(childNode, model, newValue);
-	    }
 	}
 	
 	public Action getViewAction() {

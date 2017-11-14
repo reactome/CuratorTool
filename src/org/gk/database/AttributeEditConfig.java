@@ -65,6 +65,7 @@ public class AttributeEditConfig {
     // For pathway diagram deployment
     private String pdURL;
     private String devWebELV;
+    public static final String HIDE_POPUP_MSG = "Do not show this message again";
 	
 	/**
 	 * To avoid instantiatiation be other classes, keep this constructor as private.

@@ -15,12 +15,10 @@ import javax.swing.JOptionPane;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 
 /**
@@ -35,7 +33,7 @@ import org.gk.schema.SchemaClass;
  *
  */
 public class AttributeEditPropagater {
-	// Name of attributes
+    // Name of attributes
     private final String TAXON_ATT_NAME = ReactomeJavaConstants.species;
     private final String COMPARTMENT_ATT_NAME = ReactomeJavaConstants.compartment;
     private final String REFERENCE_ENTITY_ATT_NAME = ReactomeJavaConstants.referenceEntity;
@@ -43,7 +41,7 @@ public class AttributeEditPropagater {
     private Component parentComp;
     
     public AttributeEditPropagater(AttributePaneController controller) {  
-    	parentComp = controller.getAttributePane();
+        parentComp = controller.getAttributePane();
     }
     
     public void propagate(GKSchemaAttribute att,
@@ -103,30 +101,33 @@ public class AttributeEditPropagater {
         // If one event has taxon assigned already, stop there even though 
         // that value is different to this new value taxon. However, this is 
         // a choice should ask the actual user.
-        List components = complex.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+        @SuppressWarnings("unchecked")
+        List<GKInstance> components = complex.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
         if (components == null || components.size() == 0)
             return;
-        Set current = new HashSet(components);
-        Set next = new HashSet();
+        Set<GKInstance> current = new HashSet<GKInstance>(components);
+        Set<GKInstance> next = new HashSet<GKInstance>();
         GKInstance component = null;
         // Do a width first search to get all assignable PhysicalEntities
         // Need to check the contained PhysicalEntities to determine if
         // species value should be assigned.
-        List descendentEntities = new ArrayList(); // Use this list as stack
+        List<GKInstance> descendentEntities = new ArrayList<GKInstance>(); // Use this list as stack
         while (current.size() > 0) {
-            for (Iterator it = current.iterator(); it.hasNext();) {
+            for (Iterator<GKInstance> it = current.iterator(); it.hasNext();) {
                 component = (GKInstance) it.next();
                 if (!descendentEntities.contains(component))
                     descendentEntities.add(component);
                 // Check if this component is a Reaction
                 if (component.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasComponent)) {
-                    List tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+                    @SuppressWarnings("unchecked")
+                    List<GKInstance> tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
                     if (tmp != null)
                         next.addAll(tmp);
                 }
                 else if (component.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasMember)){
                     // Contained Complex
-                    List tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+                    @SuppressWarnings("unchecked")
+                    List<GKInstance> tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasMember);
                     if (tmp != null)
                         next.addAll(tmp);
                 }
@@ -137,9 +138,9 @@ public class AttributeEditPropagater {
         }
         // Check each PhysicalEntity to see if a species value can be assigned
         // This set is used to hold entities that cannot be assigned species.
-        Set unassignableEntitiyIds = getSpeciesUnassignableEntities(descendentEntities);
+        Set<Long> unassignableEntitiyIds = getSpeciesUnassignableEntities(descendentEntities);
         // Now the species value can be assigned based on these two Collections.
-        for (Iterator it = descendentEntities.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = descendentEntities.iterator(); it.hasNext();) {
             component = (GKInstance) it.next();
             if (unassignableEntitiyIds.contains(component.getDBID()))
                 continue;
@@ -162,9 +163,9 @@ public class AttributeEditPropagater {
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    private Set getSpeciesUnassignableEntities(List descendentEntities) throws InvalidAttributeException, Exception {
+    private Set<Long> getSpeciesUnassignableEntities(List<GKInstance> descendentEntities) throws InvalidAttributeException, Exception {
         GKInstance component;
-        Set unassignableEntityIDs = new HashSet();
+        Set<Long> unassignableEntityIDs = new HashSet<Long>();
         boolean shouldAssign = false;
         for (int i = descendentEntities.size() - 1; i >= 0; i--) {
             component = (GKInstance) descendentEntities.get(i);
@@ -173,11 +174,12 @@ public class AttributeEditPropagater {
             }
             else if (component.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
                 // A complex containing only unassignable entities should not be assigned a species
-                List tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+                @SuppressWarnings("unchecked")
+                List<GKInstance> tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
                 shouldAssign = true; // Default should be assignable
                 if (tmp != null && tmp.size() > 0) {
                     shouldAssign = false; // Components make it unassignable
-                    for (Iterator it = tmp.iterator(); it.hasNext();) {
+                    for (Iterator<GKInstance> it = tmp.iterator(); it.hasNext();) {
                         GKInstance tmpComp = (GKInstance) it.next();
                         if (!unassignableEntityIDs.contains(tmpComp.getDBID())) {
                             shouldAssign = true;
@@ -190,11 +192,12 @@ public class AttributeEditPropagater {
             }
             else if (component.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
                 // A EntitySet containing only unassignable entities should not be assigned a species
-                List tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+                @SuppressWarnings("unchecked")
+                List<GKInstance> tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasMember);
                 shouldAssign = true; // Defaultshould be assignable
                 if (tmp != null && tmp.size() > 0) {
                     shouldAssign = false; // Components make it unassignable
-                    for (Iterator it = tmp.iterator(); it.hasNext();) {
+                    for (Iterator<GKInstance> it = tmp.iterator(); it.hasNext();) {
                         GKInstance tmpMember = (GKInstance) it.next();
                         if (!unassignableEntityIDs.contains(tmpMember.getDBID())) {
                             shouldAssign = true;
@@ -256,118 +259,30 @@ public class AttributeEditPropagater {
         }
     }
     
-    /**
-     * Grep all event instances contained by the specified event instance by "hasComponent"
-     * and "hasInstance" roles.
-     * @param event
-     * @return a set of event GKInstances.
-     * @throws Excetion
-     */
-    private Set grepAllDescendentInstances(GKInstance event) throws Exception {
-        Set rtn = new HashSet();
-        // Propagate this settings to all contained events
-        Set current = grepEventChildren(event);
-        Set next = new HashSet();
-        GKInstance tmpEvent = null;
-        Boolean tmpDNR = null;
-        List tmpValues = null;
-        while (current.size() > 0) {
-            for (Iterator it = current.iterator(); it.hasNext();) {
-                tmpEvent = (GKInstance) it.next();
-                rtn.add(tmpEvent);
-                next.addAll(grepEventChildren(tmpEvent));
-            }
-            current.clear();
-            current.addAll(next);
-            next.clear();
-        }
-        return rtn;
-    }
-    
-    private Set grepEventChildren(GKInstance event) throws Exception {
-        Set children = new HashSet();
-        if (event.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasEvent)) {
-            List values = event.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-            if (values != null)
-                children.addAll(values);
-        }
-        if (event.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasMember)) {
-            List values = event.getAttributeValuesList(ReactomeJavaConstants.hasMember);
-            if (values != null)
-                children.addAll(values);
-        }
-        if (event.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasSpecialisedForm)) {
-            List values = event.getAttributeValuesList(ReactomeJavaConstants.hasSpecialisedForm);
-            if (values != null)
-                children.addAll(values);
-        }
-        return children;
-    }
-    
     private void propagateEventAttribute(GKInstance event, String attName) throws Exception {
         if (!event.getSchemClass().isa("Event"))
             return;
-        // Propagate this settings to all contained events
-        Set descendents = grepAllDescendentInstances(event);
-        if (descendents.size() == 0)
+        EventAttributePropagator propagator = new EventAttributePropagator(event, attName);
+        if (!propagator.willProgagate()) {
             return; // Nothing needs to do!
-        String message = "The " + attName + " setting in event instance can be propagated to " +
-                "its contained events.\n" + 
+        }
+        String targetEventsMsg;
+        if (EventAttributePropagator.RELEASE_CHANGE_ATT_NAMES.contains(attName)) {
+            targetEventsMsg = "contains or is inferred from";
+        } else {
+            targetEventsMsg = "contains";
+        }
+        String message = "The " + attName + " setting in the event instance can be propagated" +
+                " to events which it " + targetEventsMsg + ".\n" + 
                 "Do you want to propagate this setting?";
         int reply = JOptionPane.showConfirmDialog(parentComp,
                 message,
                 "Propagate Setting",
                 JOptionPane.YES_NO_OPTION);
-        if (reply != JOptionPane.YES_OPTION)
+        if (reply != JOptionPane.YES_OPTION) {
             return;
-        GKInstance tmpEvent = null;
-        SchemaAttribute att = event.getSchemClass().getAttribute(attName);
-        if (att.isMultiple()) {
-            List attValues = event.getAttributeValuesList(attName);
-            List oldValues = null;
-            for (Iterator it = descendents.iterator(); it.hasNext();) {
-                tmpEvent = (GKInstance) it.next();
-                att = tmpEvent.getSchemClass().getAttribute(attName);
-                oldValues = tmpEvent.getAttributeValuesList(attName);
-                if (!InstanceUtilities.compareAttValues(attValues, oldValues, att)) {
-                    tmpEvent.setAttributeValueNoCheck(att, attValues);
-                    fireAttributeEdit(tmpEvent, attName);
-                }
-            }
         }
-        else {
-            Object attValue = event.getAttributeValue(attName);
-            Object oldValue = null;
-            for (Iterator it = descendents.iterator(); it.hasNext();) {
-                tmpEvent = (GKInstance) it.next();
-                oldValue = tmpEvent.getAttributeValue(attName);
-                if (attValue != oldValue) {
-                    tmpEvent.setAttributeValue(attName, attValue);
-                    fireAttributeEdit(tmpEvent, attName);
-                }
-            }
-        }
-    }
-    
-    /**
-     * A helper to compare if two dnr has the same value
-     * @param dnr1
-     * @param dnr2
-     * @return
-     */
-    private boolean dnrEqual(Boolean dnr1, 
-                             Boolean dnr2,
-                             String attName) {
-        boolean value1, value2;
-        if (attName.equals(ReactomeJavaConstants._doRelease)) {
-            value1 = (dnr1 == null ? false : dnr1.booleanValue());
-            value2 = (dnr2 == null ? false : dnr2.booleanValue());
-        }
-        else {
-            value1 = (dnr1 == null ? true : dnr1.booleanValue());
-            value2 = (dnr2 == null ? true : dnr2.booleanValue());
-        }
-        return value1 == value2;
+        propagator.propagate();
     }
     
     private void propagateAttributeInComplex(String attName, 
@@ -388,12 +303,13 @@ public class AttributeEditPropagater {
             if (reply != JOptionPane.YES_OPTION)
                 return;
         }
-        List components = instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+        @SuppressWarnings("unchecked")
+        List<GKInstance> components = instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
         if (components == null || components.size() == 0)
             return;
         GKInstance entity = null;
         GKSchemaAttribute att = null;
-        for (Iterator it = components.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = components.iterator(); it.hasNext();) {
             entity = (GKInstance) it.next();
             if (!entity.getSchemClass().isValidAttribute(attName))
                 continue;
@@ -418,6 +334,7 @@ public class AttributeEditPropagater {
         }
     }
     
+    @SuppressWarnings("unchecked")
     private void propagateAttributeInReaction(String attName,
                                               GKInstance instance,
 											  boolean needConfirm) throws Exception {
@@ -436,16 +353,16 @@ public class AttributeEditPropagater {
         	if (reply != JOptionPane.YES_OPTION)
         		return;
         }
-        List inputs = instance.getAttributeValuesList("input");
-        List entities = new ArrayList();
+        List<GKInstance> inputs = instance.getAttributeValuesList("input");
+        List<GKInstance> entities = new ArrayList<GKInstance>();
         if (inputs != null)
             entities.addAll(inputs);
-        List outputs = instance.getAttributeValuesList("output");
+        List<GKInstance> outputs = instance.getAttributeValuesList("output");
         if (outputs != null)
             entities.addAll(outputs);
         GKInstance entity = null;
         GKSchemaAttribute att = null;
-        for (Iterator it = entities.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = entities.iterator(); it.hasNext();) {
             entity = (GKInstance) it.next();
             if (!entity.getSchemClass().isValidAttribute(attName))
                 continue;
@@ -462,6 +379,7 @@ public class AttributeEditPropagater {
         }
     }
     
+    @SuppressWarnings("unchecked")
     private void propagateTaxonSettingInPathway(GKInstance instance) throws Exception {
         // Get the taxon value
         GKInstance taxon = (GKInstance) instance.getAttributeValue(TAXON_ATT_NAME);
@@ -479,14 +397,14 @@ public class AttributeEditPropagater {
         // If one event has taxon assigned already, stop there even though 
         // that value is different to this new value taxon. However, this is 
         // a choice should ask the actual user.
-        List components = instance.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+        List<GKInstance> components = instance.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
         if (components == null || components.size() == 0)
             return;
-        Set current = new HashSet(components);
-        Set next = new HashSet();
+        Set<GKInstance> current = new HashSet<GKInstance>(components);
+        Set<GKInstance> next = new HashSet<GKInstance>();
         GKInstance component = null;
         while (current.size() > 0) {
-            for (Iterator it = current.iterator(); it.hasNext();) {
+            for (Iterator<GKInstance> it = current.iterator(); it.hasNext();) {
                 component = (GKInstance) it.next();
                 if (component.getAttributeValue(TAXON_ATT_NAME) != null)
                     continue;
@@ -496,7 +414,7 @@ public class AttributeEditPropagater {
                 if (component.getSchemClass().isa("Reaction"))
                     propagateAttributeInReaction(TAXON_ATT_NAME, component, false);
                 else if (component.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasEvent)){ // Should be a Pathway
-                    List tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+                    List<GKInstance> tmp = component.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
                     if (tmp != null)
                         next.addAll(tmp);
                 }
