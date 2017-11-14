@@ -1145,7 +1145,7 @@ public class AttributePaneController {
 	    String attName = e.getAttributeName();
 	    try {
             GKSchemaAttribute att = (GKSchemaAttribute) cls.getAttribute(attName);
-            AttributeEditPropagater propagater = new AttributeEditPropagater(this);
+            AttributeEditPropagator propagater = new AttributeEditPropagator(this);
             propagater.propagate(att, instance);
         }
         catch (Exception e1) {

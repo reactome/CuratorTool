@@ -32,7 +32,7 @@ import org.gk.schema.SchemaClass;
  * @author wgm
  *
  */
-public class AttributeEditPropagater {
+public class AttributeEditPropagator {
     // Name of attributes
     private final String TAXON_ATT_NAME = ReactomeJavaConstants.species;
     private final String COMPARTMENT_ATT_NAME = ReactomeJavaConstants.compartment;
@@ -40,7 +40,7 @@ public class AttributeEditPropagater {
     // For popup warning
     private Component parentComp;
     
-    public AttributeEditPropagater(AttributePaneController controller) {  
+    public AttributeEditPropagator(AttributePaneController controller) {  
         parentComp = controller.getAttributePane();
     }
     
