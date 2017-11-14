@@ -10,6 +10,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.Icon;
+import javax.swing.UIManager;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -68,11 +71,11 @@ public class EventAttributePropagator {
         String[] roleAtts = getPropagationRoleAttributes(valueAttName);
         for (String role: roleAtts) {
             @SuppressWarnings("unchecked")
-                List<GKInstance> values = (List<GKInstance>)root.getAttributeValuesList(role);
-                if (!values.isEmpty()) {
-                    return true;
-                }
+            List<GKInstance> values = (List<GKInstance>)root.getAttributeValuesList(role);
+            if (!values.isEmpty()) {
+                return true;
             }
+        }
         return false;
     }
     
