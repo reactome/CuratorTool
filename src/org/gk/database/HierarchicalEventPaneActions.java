@@ -9,6 +9,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Iterator;
+import java.util.Properties;
+
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JCheckBox;
@@ -35,8 +37,6 @@ import org.gk.util.TreeUtilities;
 public class HierarchicalEventPaneActions {
     static final String INFERRED_FROM_MSG = "The release flag setting was propagated to inferredFrom events.";
 
-    private static boolean showInferredFromPopup = true;
-    
     // The owner pane.
 	private HierarchicalEventPane eventPane;
 	private JTree wrappedTree;
@@ -115,15 +115,26 @@ public class HierarchicalEventPaneActions {
 	                                                                               ReactomeJavaConstants._doRelease);
 	    if (!needPropagate)
 	        return; 
-        EventAttributePropagator propagator = new EventAttributePropagator(event, ReactomeJavaConstants._doRelease);
+        propagateDR(event);
+	}
+
+    private void propagateDR(GKInstance event) throws Exception {
+        EventAttributePropagator propagator =
+                new EventAttributePropagator(event, ReactomeJavaConstants._doRelease);
         propagator.propagate();
+        Properties props = GKApplicationUtilities.getApplicationProperties();
+        String value = props.getProperty("showInferredFromPopup", "true");
+        boolean showInferredFromPopup = Boolean.parseBoolean(value);
         if (showInferredFromPopup && propagator.changedAttributeTarget(ReactomeJavaConstants.inferredFrom)) {
             JCheckBox checkbox = new JCheckBox(AttributeEditConfig.HIDE_POPUP_MSG);
             Object[] params = {INFERRED_FROM_MSG, checkbox};
-            JOptionPane.showMessageDialog(eventPane, params, null, JOptionPane.PLAIN_MESSAGE, null);
-            showInferredFromPopup = !checkbox.isSelected();
-         }
-	}
+            JOptionPane.showMessageDialog(eventPane, params, "inferredFrom Propagation",
+                                          JOptionPane.INFORMATION_MESSAGE);
+            if (checkbox.isSelected()) {
+                props.setProperty("showInferredFromPopup", "false");
+            }
+        }
+    }
 	
 	private void setDR(GKInstance event, 
 	                    Boolean newValue,
