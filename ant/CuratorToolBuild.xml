@@ -13,7 +13,7 @@
 		ii.	JarBundler is used to create mac app file
 		iii.	A simple bash script is used for linux.
 	d.	Copy two zip files onto reactomedev.oicr.on.ca
-	e.	Copy all files in the update folder to reactomedev.oicr.on.ca.
+	e.	Copy all files in the update folder to www.reactome.org.
 	f. 	Update index.html in the download directory for both dev and production server. 
                    
      wugm                                                                
@@ -115,7 +115,7 @@
 		     classpath="${basedir}/classes">
 	</taskdef>
 	<target name="createUpdateFile" depends="updateJar">
-		<updateFile dir="${updateTargetDir}" uri="http://reactomedev.oicr.on.ca/download/tools/curatorTool/update">
+		<updateFile dir="${updateTargetDir}" uri="https://www.reactome.org/download/tools/curatorTool/update">
 			<!-- Just a mark. Curators have to manually update the installed curator tool. -->
 			<resource name="resources.jar" deleteDir="false" />
 		</updateFile>
