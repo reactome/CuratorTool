@@ -13,7 +13,7 @@
 		ii.	JarBundler is used to create mac app file
 		iii.	A simple bash script is used for linux.
 	d.	Copy two zip files onto reactomedev.oicr.on.ca
-	e.	Copy all files in the update folder to reactomedev.oicr.on.ca.
+	e.	Copy all files in the update folder to www.reactome.org.
 	f. 	Update index.html in the download directory for both dev and production server. 
                    
      wugm                                                                
@@ -115,7 +115,7 @@
 		     classpath="${basedir}/classes">
 	</taskdef>
 	<target name="createUpdateFile" depends="updateJar">
-		<updateFile dir="${updateTargetDir}" uri="http://reactomedev.oicr.on.ca/download/tools/curatorTool/update">
+		<updateFile dir="${updateTargetDir}" uri="https://www.reactome.org/download/tools/curatorTool/update">
 			<!-- Just a mark. Curators have to manually update the installed curator tool. -->
 			<resource name="resources.jar" deleteDir="false" />
 		</updateFile>
@@ -258,8 +258,9 @@
 			for mac installer.
 			//1). Use jar -Mcvf install.zip ReactomeCuratorTool.app to create an installer for mac
 			//2). Try to delete any hidden files from MacOS (.DS_Store or similar)
-			1). Use jar -Mcvf to generate install.zip file by including necessary file (8 files/directories).
-			2). Move these two install.zip files to reactomedev.oicr.on.ca.
+			1). Use jar -Mcvf to generate install.zip file by including necessary file (7 files/directories).
+			2). Manually open the dmg file in the builder folder and copy ReactomeCurator.app file into the default folder, and then jar it.
+			3). Move these two install.zip files to reactomedev.oicr.on.ca.
 		-->
 	</target>
 	

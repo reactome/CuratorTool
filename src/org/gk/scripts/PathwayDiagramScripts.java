@@ -34,6 +34,7 @@ import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderablePathway;
@@ -393,6 +394,52 @@ public class PathwayDiagramScripts {
             is.close();
             System.out.println(builder.toString());
         }
+    }
+    
+    /**
+     * Check if a pathway diagram has no-process nodes.
+     * @throws Exception
+     */
+    @Test
+    public void checkDiagramContents() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca", 
+    									    "gk_central",
+    									    "authortool",
+    										"T001test");
+    	FileUtilities fu = new FileUtilities();
+    	String fileName = "/Users/Gwu/Desktop/LisaList.txt";
+    	fu.setInput(fileName);
+    	String line = null;
+    	DiagramGKBReader reader = new DiagramGKBReader();
+    	while ((line = fu.readLine()) != null) {
+    		GKInstance pathway = dba.fetchInstance(new Long(line));
+    		Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.representedPathway);
+    		if (referrers.size() == 0) {
+    			System.out.println(line + " doesn't have a diagram!");
+    			continue;
+    		}
+    		RenderablePathway diagram = reader.openDiagram(referrers.iterator().next());
+    		boolean hasEntity = false;
+    		for (Object r : diagram.getComponents()) {
+    			if (r instanceof Node) {
+    				Long reactomeId = ((Node)r).getReactomeId();
+    				if (reactomeId == null)
+    					continue;
+    				GKInstance entity = dba.fetchInstance(reactomeId);
+    				if (entity == null) {
+    					System.out.println(diagram + " has a deleted entity!");
+    					continue;
+    				}
+    				if (entity.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
+    					hasEntity = true;
+    					break;
+    				}
+    			}
+    		}
+    		System.out.println(line + "\t" + pathway.getDisplayName() + "\t" + hasEntity);
+//    		break;
+    	}
+    	fu.close();
     }
     
     /**

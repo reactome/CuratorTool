@@ -78,16 +78,17 @@
         <autoFiller target="Disease.identifier" class="org.gk.database.util.DiseaseAttributeAutoFiller"/>
         <autoFiller target="SequenceOntology.identifier" class="org.gk.database.util.SOAttributeAutoFiller" />
         <autoFiller target="CellType.identifier" class="org.gk.database.util.CellTypeAttributeAutoFiller" />
+        <autoFiller target="ReferenceTherapeutic.identifier" class="org.gk.database.util.ReferenceTherapeuticAutoFiller" />
     </attributeAutoFillers>
 	<deletedInstances>
 		<controlledVocabulary instanceClass="DeletedControlledVocabulary" />
 	</deletedInstances>
     <importedPathwayDb>
-        <dataSource dbId="210689" name="Panther Pathways" />
-        <dataSource dbId="424025" name="NCI-Nature PID" />
-        <dataSource dbId="229095" name="Cancer Cell Map" />
-        <dbHost>brie8.cshl.edu</dbHost>
-        <dbName>test_reactome_plus_i_v2</dbName>
+        <dataSource dbId="9055298" name="Panther Pathways" />
+        <dataSource dbId="8981351" name="NCI-Nature PID" />
+<!--         <dataSource dbId="229095" name="Cancer Cell Map" /> -->
+        <dbHost>reactomecurator.oicr.on.ca</dbHost>
+        <dbName>test_reactome_59_plus_i</dbName>
     </importedPathwayDb>
     <!-- These URLs for UniProt since they are not stable so an external config is used -->
     <uniprot>
@@ -200,14 +201,16 @@
 	<species_stid>
 		<!-- The following is a list of hard-coded abbreviations for species, copied from Sheldon's Perl code -->
 		<species name="Hepatitis C virus" abbreviation="HPC" />
+        <species name="Hepatitis C Virus" abbreviation="HPC" />
         <species name="Hepatitis B virus" abbreviation="HPB" />
-    	<species name="Human herpesvirus" abbreviation="HER" />
-    	<species name="Molluscum contagiosum virus" abbreviation="MCV" />
-    	<species name="Mycobacterium tuberculosis" abbreviation="MTU" />
-    	<species name="Neisseria meningitidis" abbreviation="NME" />
-    	<species name="Influenza A virus" abbreviation="FLU" />
-    	<species name="Human immunodeficiency virus" abbreviation="HIV" />
-    	<species name="Bacteria" abbreviation="BAC" />
-    	<species name="Virus" abbreviation="VIR" />
+    		<species name="Human herpesvirus" abbreviation="HER" />
+    		<species name="Molluscum contagiosum virus" abbreviation="MCV" />
+    		<species name="Mycobacterium tuberculosis" abbreviation="MTU" />
+    		<species name="Neisseria meningitidis" abbreviation="NME" />
+    		<species name="Influenza A virus" abbreviation="FLU" />
+    		<species name="Human immunodeficiency virus" abbreviation="HIV" />
+    		<species name="Bacteria" abbreviation="BAC" />
+    		<species name="Virus" abbreviation="VIR" />
+    		<species name="Rotavirus" abbreviation="ROT" />
 	</species_stid>
 </curator>

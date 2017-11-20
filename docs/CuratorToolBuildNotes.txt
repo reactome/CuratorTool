@@ -1,4 +1,8 @@
-Build 86 notes (February 23, 2016)
+Build 87 notes (August 11, 2017)
+
+Added a new feature to auto-fetch required information from IUPHAR for ReferenceTherapeutic instance after a drug id is provided.
+
+Build 86 notes (February 23, 2017)
 
 Bug fix: during pathway diagram validation, stoichiometry check for displayed reactions and original reaction instances is not correct.
 
