@@ -1,3 +1,11 @@
+Build 88 notes (November 27, 2017)
+
+Two new features have been added:
+
+1). Propagate _doRelease to inferredFrom events (https://reactome.atlassian.net/browse/DEV-1622).
+2). Use the new abbreviation slot in Species for generating StableIdentifier instances in the curator tool.
+
+
 Build 87 notes (August 11, 2017)
 
 Added a new feature to auto-fetch required information from IUPHAR for ReferenceTherapeutic instance after a drug id is provided.

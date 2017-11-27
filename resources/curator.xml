@@ -198,19 +198,4 @@
 <!--     <pdURL value="http://reactomerelease.oicr.on.ca:8080/ELVWebApp/ElvService" /> -->
     <devWebELV value="http://reactomecurator.oicr.on.ca/entitylevelview/PathwayBrowser.html" />
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
-	<species_stid>
-		<!-- The following is a list of hard-coded abbreviations for species, copied from Sheldon's Perl code -->
-		<species name="Hepatitis C virus" abbreviation="HPC" />
-        <species name="Hepatitis C Virus" abbreviation="HPC" />
-        <species name="Hepatitis B virus" abbreviation="HPB" />
-    		<species name="Human herpesvirus" abbreviation="HER" />
-    		<species name="Molluscum contagiosum virus" abbreviation="MCV" />
-    		<species name="Mycobacterium tuberculosis" abbreviation="MTU" />
-    		<species name="Neisseria meningitidis" abbreviation="NME" />
-    		<species name="Influenza A virus" abbreviation="FLU" />
-    		<species name="Human immunodeficiency virus" abbreviation="HIV" />
-    		<species name="Bacteria" abbreviation="BAC" />
-    		<species name="Virus" abbreviation="VIR" />
-    		<species name="Rotavirus" abbreviation="ROT" />
-	</species_stid>
 </curator>

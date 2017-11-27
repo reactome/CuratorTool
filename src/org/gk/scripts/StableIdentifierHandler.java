@@ -1,12 +1,10 @@
 package org.gk.scripts;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,12 +14,6 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
-import org.gk.util.GKApplicationUtilities;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.xpath.XPath;
 import org.junit.Test;
 
 /**
@@ -95,10 +87,10 @@ public class StableIdentifierHandler {
 	 */
 	@Test
 	public void validateNewApproach() throws Exception {
-	    MySQLAdaptor gkcentral = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-	                                              "gk_central",
-	                                              "authortool",
-	                                              "T001test");
+	    MySQLAdaptor gkcentral = new MySQLAdaptor("",
+	                                              "",
+	                                              "",
+	                                              "");
 	    String fileName = "/Users/gwu/Documents/wgm/work/reactome/StableIds/stable_ids_gk_central.txt";
 	    FileUtilities fu = new FileUtilities();
 	    fu.setInput(fileName);
@@ -402,31 +394,6 @@ public class StableIdentifierHandler {
 			}
 		}
 		System.out.println("Total instances having no stable ids: " + instancesNoStableIds.size());
-	}
-	
-	@Test
-	public void testLoadManualSpeciesMap() throws Exception {
-		Map<String, String> speciesToAbb = loadManualSpeciesMap();
-		for (String species : speciesToAbb.keySet()) {
-			String abb = speciesToAbb.get(species);
-			System.out.println(species + ": " + abb);
-		}
-	}
-	
-	private Map<String, String> loadManualSpeciesMap() throws IOException, JDOMException {
-        InputStream is = GKApplicationUtilities.getConfig("curator.xml");
-        SAXBuilder builder = new SAXBuilder();
-        Document document = builder.build(is);
-        Element elm = (Element) XPath.selectSingleNode(document.getRootElement(), 
-                                                       "species_stid");
-        Map<String, String> speciesToAbbr = new HashMap<String, String>();
-        List<Element> list = elm.getChildren();
-        for (Element speciesElm : list) {
-            String species = speciesElm.getAttributeValue("name");
-            String abbreviation = speciesElm.getAttributeValue("abbreviation");
-            speciesToAbbr.put(species, abbreviation);
-        }
-        return speciesToAbbr;
 	}
 
 }
