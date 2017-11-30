@@ -26,7 +26,18 @@ import org.gk.persistence.DiagramGKBWriter;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
-import org.gk.render.*;
+import org.gk.render.HyperEdge;
+import org.gk.render.Node;
+import org.gk.render.Note;
+import org.gk.render.ProcessNode;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableChemical;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableInteraction;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderableReaction;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
@@ -785,10 +796,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     
     @Test
     public void testGeneratePredictedDiagram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
-                                            "gk_current_ver40", 
-                                            "root", 
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("test.oicr.on.ca", 
+                                            "test", 
+                                            "test", 
+                                            "test");
         setMySQLAdaptor(dba);
         setDefaultPersonId(140537L); // For myself
         // Cell cycle checkpoints
@@ -801,8 +812,8 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
 //        Long srcDbId = 74160L;
 //        Long targetDbId = 1184067L;
         // Test inferredFrom value
-        Long srcDbId = 166520L;
-        Long targetDbId = 2295155L;
+        Long srcDbId = 1268020L;
+        Long targetDbId = 9072242L;
         GKInstance srcPathway = dba.fetchInstance(srcDbId);
         Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
                                                     ReactomeJavaConstants.representedPathway,
@@ -816,13 +827,13 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                                                                srcDiagram);
         long time2 = System.currentTimeMillis();
         System.out.println("Time to predict: " + (time2 - time1));
-        File tmpDir = new File("tmp");
-        createImageFiles(predictedDiagram, targetPathway, tmpDir);
+//        File tmpDir = new File("tmp");
+//        createImageFiles(predictedDiagram, targetPathway, tmpDir);
 //        generateELVInstancesAndFiles(targetPathway,
 //                                     predictedDiagram, 
 //                                     tmpDir);
-        long time3 = System.currentTimeMillis();
-        System.out.println("Time for output: " + (time3 - time2));
+//        long time3 = System.currentTimeMillis();
+//        System.out.println("Time for output: " + (time3 - time2));
     }
     
     @Test

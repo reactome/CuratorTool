@@ -4,8 +4,6 @@
 package org.gk.persistence;
 
 import java.awt.Component;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -41,7 +39,7 @@ public class PersistenceManager {
 	//DB connecting info
 	private Properties dbConnectInfo;
 	
-	public PersistenceManager() {
+	protected PersistenceManager() {
 		adaptorMap = new HashMap();
 	}
 	
@@ -65,26 +63,6 @@ public class PersistenceManager {
 	
 	public Properties getDBConnectInfo() {
 		return this.dbConnectInfo;
-	}
-	
-	/**
-	 * Get a preconfigured MySQLAdaptor from a configuration file in
-	 * resources/DBInfo.txt. The client should use this method to get
-	 * a MySQLAdaptor. 
-	 * Note: The DBInfo.txt has not been checked into the git repository
-	 * to avoid exposing DB connecting information to the outside world.
-	 * @return
-	 * @throws Exception
-	 */
-	public MySQLAdaptor getPreConfiguedDBAdaptor() throws Exception {
-	    Properties prop = new Properties();
-	    File file = new File("resources/DBInfo.txt");
-	    prop.load(new FileInputStream(file));
-	    MySQLAdaptor dba = new MySQLAdaptor(prop.getProperty("dbHost"),
-	                                        prop.getProperty("dbName"),
-	                                        prop.getProperty("dbUser"),
-	                                        prop.getProperty("dbPwd"));
-	    return dba;
 	}
 	
 	/**

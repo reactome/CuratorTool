@@ -1181,6 +1181,7 @@ public class SynchronizationManager {
 	                                           XMLFileAdaptor fileAdaptor,
 	                                           Window parentDialog) {
 	    StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
+	    stidGenerator.setParentComponent(parentDialog);
 	    // Keep this map for rollback
 	    Map<GKInstance, GKInstance> instToStableId = new HashMap<GKInstance, GKInstance>();
 	    // For DB_ID updates after commiting to the database
@@ -1210,10 +1211,13 @@ public class SynchronizationManager {
 	        System.err.println("SynchronizationManager.generateStableIds(): " + e);
             e.printStackTrace();
             JOptionPane.showMessageDialog(parentDialog, 
-                                          "Error in creating StableIdentifier instances: " + e, 
+                                          "Error in creating StableIdentifier instances: " + e + "\n" + 
+                                          "Note: Your edits are committed into the database still.", 
                                           "Error in StableIdentifier Creation",
                                           JOptionPane.ERROR_MESSAGE);
 	    }
+	    if (instToStableId.size() == 0)
+	        return null; // Do nothing if no stable ids can be generated
 	    // Commit into the database
 	    boolean needTransaction = true;
 	    try {

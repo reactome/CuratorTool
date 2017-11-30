@@ -1,7 +1,9 @@
 package org.gk.database;
 
+import java.awt.Component;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
@@ -44,11 +46,21 @@ public class StableIdentifierGenerator {
 	private final String NUL_SPECIES = "NUL";
 	private final String ALL_SPECIES = "ALL";
 	private Set<String> stidClasses;
+	// Used to get active MySQLAdaptor
+	private Component parentComponent;
 	
 	public StableIdentifierGenerator() {
 	}
-	
-	/**
+
+    public Component getParentComponent() {
+        return parentComponent;
+    }
+
+    public void setParentComponent(Component parentComponent) {
+        this.parentComponent = parentComponent;
+    }
+
+    /**
 	 * Check if a GKInstance needs to have a stable id.
 	 * @param instance
 	 * @return
@@ -274,26 +286,36 @@ public class StableIdentifierGenerator {
 	
 	@Test
 	public void testSpeciesAbbreviation() throws Exception {
-		PersistenceManager persistenceManager = new PersistenceManager();
-		MySQLAdaptor dbAdaptor = persistenceManager.getPreConfiguedDBAdaptor();
-		Set<GKInstance> speciesInstances = (Set<GKInstance>) dbAdaptor.fetchInstancesByClass("Species");
+		PersistenceManager persistenceManager = PersistenceManager.getManager();
+		// To avoid null exception
+		persistenceManager.setDBConnectInfo(new Properties());
+		MySQLAdaptor dbAdaptor = persistenceManager.getActiveMySQLAdaptor(null);
+		Set<GKInstance> speciesInstances = (Set<GKInstance>) dbAdaptor.fetchInstancesByClass(ReactomeJavaConstants.Species);
+		System.out.println("Species\tAbbrevitaion");
 		for (GKInstance speciesInstance : speciesInstances) {
-			System.out.println("Species: " + speciesInstance.getDisplayName() + 
-					"\tAbbreviation: " + getSpeciesAbbreviation(speciesInstance));
+		    String abbreviation = getSpeciesAbbreviation(speciesInstance);
+			System.out.println(speciesInstance.getDisplayName() + "\t" + abbreviation);
 		}
 	}
 	
 	private String getSpeciesAbbreviation(GKInstance species) throws Exception {
-		if (!species.getSchemClass().getName().equals(ReactomeJavaConstants.Species)) {
-			throw new IllegalStateException("Instance " + species.getDBID() + " is not a species instance");
+		if (!species.getSchemClass().isa(ReactomeJavaConstants.Species)) {
+			throw new IllegalArgumentException("Instance " + species.getDBID() + " is not a species instance");
 		}
-		
+		if (species.isShell()) {
+		    // We need to query the database to get the abbreviation
+		    MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComponent);
+		    // Want to replace species with the db copy
+		    species = dba.fetchInstance(species.getDBID());
+		    if (species == null)
+		        throw new IllegalArgumentException("Cannot find species in the database: " + species);
+		}
+		// If species is shell, it should be replaced by a db copy already. However,
+		// the db copy is not checked out for easy management.
 		String abbreviation = (String) species.getAttributeValue(ReactomeJavaConstants.abbreviation);
 		if (abbreviation == null || abbreviation.isEmpty()) {
-			return null;
-			//throw new IllegalStateException(species.getDisplayName() + " has no abbreviation");
+			throw new IllegalArgumentException(species.getDisplayName() + " has no abbreviation");
 		}
-
 		return abbreviation;
 	}
 }

@@ -1,3 +1,7 @@
+Build 89 notes (November 30, 2017)
+
+This build is created to fix a bug related to generating stable ids when the curator commits new instances into gk_central: If the referred species instances are shell instances, null will be used in stable ids. In this fix, gk_central will be queries to get species abbreviation. If there is no species abbreviation in the database, no stable ids will be generated. 
+
 Build 88 notes (November 27, 2017)
 
 Two new features have been added:

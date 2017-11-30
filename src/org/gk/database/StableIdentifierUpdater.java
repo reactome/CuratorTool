@@ -13,7 +13,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.Collections;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
@@ -25,7 +24,6 @@ import javax.swing.SwingUtilities;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
@@ -61,6 +59,8 @@ public class StableIdentifierUpdater implements AttributeEditListener {
                 return; // Since we want to update stable id.
             // Update needs for these cases
             String attName = e.getAttributeName();
+            if (attName == null) // Most likely this is an update from db action
+                return;
             if (instance.getSchemClass().isa(ReactomeJavaConstants.Regulation) &&
                 attName.equals(ReactomeJavaConstants.regulatedEntity)) {
                 updateStableId(instance);
@@ -69,6 +69,10 @@ public class StableIdentifierUpdater implements AttributeEditListener {
                 updateStableId(instance);
         }
         catch(Exception e1) {
+            JOptionPane.showMessageDialog(parentComp,
+                                          "Warn in updating stable Ids: " + e1.getMessage(),
+                                          "Warn in Attribute Edit",
+                                          JOptionPane.WARNING_MESSAGE);
             e1.printStackTrace(); // If we cannot update stable id, just ignore it and let QA handles it.
         }
     }
@@ -94,6 +98,7 @@ public class StableIdentifierUpdater implements AttributeEditListener {
                                                                  parentComp);
         }
         StableIdentifierGenerator idGenerator = new StableIdentifierGenerator();
+        idGenerator.setParentComponent(parentComp);
         String newIdentifier = idGenerator.generateIdentifier(instance);
         String oldIdentifier = (String) stid.getAttributeValue(ReactomeJavaConstants.identifier);
         if (newIdentifier.equals(oldIdentifier))

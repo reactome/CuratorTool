@@ -40,7 +40,7 @@ public class DisplayNameScripts {
     private MySQLAdaptor getDba() throws Exception {
         if (dba != null)
             return dba;
-        dba = PersistenceManager.getManager().getPreConfiguedDBAdaptor();
+        dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
         return dba;
     }
     
