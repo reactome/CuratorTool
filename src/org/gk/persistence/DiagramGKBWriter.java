@@ -115,6 +115,7 @@ public class DiagramGKBWriter extends GKBWriter {
                 }
             }
             catch (Exception e) {
+                System.err.println("Cannot find instance in the database for DB_ID: " + r.getReactomeId());
                 // Just do nothing if there is an exception thrown!
 //                e.printStackTrace();
             }
