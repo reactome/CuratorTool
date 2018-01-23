@@ -1050,7 +1050,7 @@ public class SlicingEngine {
         if (error == null || error.length() == 0)
             return true;
         // If the output is Warning, it should be fine
-        if (error.contains(": [Warning]")) { // Something for mysqldump: [Warning] or mysqladmin: [Warning]
+        if (error.contains(": [Warning]") || error.contains("Warning: ")) { // Something for mysqldump: [Warning] or mysqladmin: [Warning]
             logger.warn(error);
             return true;
         }
