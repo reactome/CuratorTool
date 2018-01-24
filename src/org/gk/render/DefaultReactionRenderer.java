@@ -25,19 +25,19 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
     protected final int CIRCLE_SIZE = 5;
     // Rendering info
     protected HyperEdge reaction;
-    
+
     /** Creates a new instance of DefaultReactionRenderer */
     public DefaultReactionRenderer() {
     }
-    
+
     protected boolean shouldRender() {
         if (reaction == null || 
-            (!reaction.isVisible() && !reaction.isSelected()))
+                (!reaction.isVisible() && !reaction.isSelected()))
             return false;
         return true;
     }
-    
-    
+
+
     /** 
      * Rendering method.
      */
@@ -51,9 +51,9 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         else if (reaction.isHighlighted())
             g2.setPaint(HIGHLIGHTED_COLOR);
         else if (reaction.lineColor != null)
-        	g2.setPaint(reaction.lineColor);
+            g2.setPaint(reaction.lineColor);
         else
-        	g2.setPaint(DEFAULT_FOREGROUND);
+            g2.setPaint(DEFAULT_FOREGROUND);
         Stroke oldStroke = g2.getStroke();
         if (reaction.isSelected || reaction.isHighlighted()) {
             g2.setStroke(DEFAULT_LINE_SELECTION_STROKE);
@@ -96,38 +96,38 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         // Draw the helper branches
         if (reaction.getHelperPoints() != null) {
             drawCatalystBranches(reaction.getHelperPoints(),
-        	                    reaction.getPosition(),
-        	                    g2);
+                    reaction.getPosition(),
+                    g2);
         }
         // Draw inhibitor branches
-		if (reaction.getInhibitorPoints() != null && 
-		    reaction.getInhibitorPoints().size() > 0) {
-			drawInhibitorBranches(reaction.getInhibitorPoints(), 
-			                     reaction.getPosition(),
-			                     g2);
-		}
-		// Draw activator branches
-		if (reaction.getActivatorPoints() != null &&
-		    reaction.getActivatorPoints().size() > 0) {
-				drawActivatorBranches(reaction.getActivatorPoints(), 
-				                      reaction.getPosition(),
-				                      g2);			
-		}
-		Point typePos = null;
-		// Draw types
-		if (reaction instanceof RenderableReaction)
-		    typePos = drawReactionType(g2);
+        if (reaction.getInhibitorPoints() != null && 
+                reaction.getInhibitorPoints().size() > 0) {
+            drawInhibitorBranches(reaction.getInhibitorPoints(), 
+                    reaction.getPosition(),
+                    g2);
+        }
+        // Draw activator branches
+        if (reaction.getActivatorPoints() != null &&
+                reaction.getActivatorPoints().size() > 0) {
+            drawActivatorBranches(reaction.getActivatorPoints(), 
+                    reaction.getPosition(),
+                    g2);			
+        }
+        Point typePos = null;
+        // Draw types
+        if (reaction instanceof RenderableReaction)
+            typePos = drawReactionType(g2);
         // Draw selection widgets
         if (reaction.isSelected()) {
             drawSelectionWidgets(g2);
         }
         drawStoichiometries(g2,
-                            typePos);
+                typePos);
         g2.setStroke(oldStroke);
     }
-    
+
     private void drawStoichiometries(Graphics2D g2,
-                                     Point typePos) {
+            Point typePos) {
         ConnectInfo info = reaction.getConnectInfo();
         List widgets = info.getConnectWidgets();
         if (widgets == null || widgets.size() == 0)
@@ -140,13 +140,13 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             Point p1 = widget.getPoint();
             Point p2 = widget.getControlPoint();
             drawStoichiometry(stoi,
-                              p1,
-                              p2, 
-                              typePos,
-                              g2);
+                    p1,
+                    p2, 
+                    typePos,
+                    g2);
         }
     }
-    
+
     /**
      * This method is used to draw a catalyst symbols as in SBGN.
      * @param helperPoints
@@ -154,8 +154,8 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
      * @param g2
      */
     private void drawCatalystBranches(List helperPoints,
-                                      Point position,
-                                      Graphics2D g2) {
+            Point position,
+            Graphics2D g2) {
         // Draw a circled - in the branches
         int x, y;
         List branch = null;
@@ -169,12 +169,12 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             if (branch == null || branch.size() == 0)
                 continue; // In case it is wrong -- a defensive way
             Point anchor = anchorPositionInBranch(branch,
-                                                  position,
-                                                  dist);
+                    position,
+                    dist);
             // Draw line
             drawBranchLine(branch, 
-                           anchor, 
-                           g2);
+                    anchor, 
+                    g2);
             // Draw symbol
             x = anchor.x;
             y = anchor.y;
@@ -182,21 +182,21 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             y -= EDGE_MODULATION_WIDGET_WIDTH /2;
             g2.setPaint(g2.getBackground());
             g2.fillOval(x, 
-                        y, 
-                        EDGE_MODULATION_WIDGET_WIDTH, 
-                        EDGE_MODULATION_WIDGET_WIDTH);
+                    y, 
+                    EDGE_MODULATION_WIDGET_WIDTH, 
+                    EDGE_MODULATION_WIDGET_WIDTH);
             //g2.setPaint(DEFAULT_FOREGROUND);
             g2.setPaint(current); // Use any paint used currently
             g2.drawOval(x, 
-                        y, 
-                        EDGE_MODULATION_WIDGET_WIDTH, 
-                        EDGE_MODULATION_WIDGET_WIDTH);
+                    y, 
+                    EDGE_MODULATION_WIDGET_WIDTH, 
+                    EDGE_MODULATION_WIDGET_WIDTH);
         }   
     }
-    
+
     private Point anchorPositionInBranch(List branch,
-                                         Point position,
-                                         double dist) {
+            Point position,
+            double dist) {
         Point p = (Point) branch.get(branch.size() - 1);
         // Remember: the y axis is contrary to the ordinary coordinate system
         double tan = (double) (p.y - position.y) / (p.x - position.x);
@@ -207,37 +207,37 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         int y = (int)(position.y + dist * Math.sin(theta));
         return new Point(x, y);
     }
-    
+
     private void drawAssociationType(RenderableReaction rxt,
-                                     int x,
-                                     int y,
-                                     Graphics2D g2) {
+            int x,
+            int y,
+            Graphics2D g2) {
         if (rxt.getReactionType() == ReactionType.ASSOCIATION) {
             g2.fillOval(x, 
-                        y, 
-                        EDGE_TYPE_WIDGET_WIDTH, 
-                        EDGE_TYPE_WIDGET_WIDTH);
+                    y, 
+                    EDGE_TYPE_WIDGET_WIDTH, 
+                    EDGE_TYPE_WIDGET_WIDTH);
         }
         else if (rxt.getReactionType() == ReactionType.DISSOCIATION) {
             // Clear the backbround
             Paint oldPaint = g2.getPaint();
             g2.setPaint(g2.getBackground());
             g2.fillOval(x, 
-                        y,
-                        EDGE_TYPE_WIDGET_WIDTH, 
-                        EDGE_TYPE_WIDGET_WIDTH);
+                    y,
+                    EDGE_TYPE_WIDGET_WIDTH, 
+                    EDGE_TYPE_WIDGET_WIDTH);
             g2.setPaint(oldPaint);
             g2.drawOval(x, 
-                        y,
-                        EDGE_TYPE_WIDGET_WIDTH, 
-                        EDGE_TYPE_WIDGET_WIDTH);
+                    y,
+                    EDGE_TYPE_WIDGET_WIDTH, 
+                    EDGE_TYPE_WIDGET_WIDTH);
             g2.drawOval(x + 2, 
-                        y + 2,
-                        EDGE_TYPE_WIDGET_WIDTH - 4, 
-                        EDGE_TYPE_WIDGET_WIDTH - 4);
+                    y + 2,
+                    EDGE_TYPE_WIDGET_WIDTH - 4, 
+                    EDGE_TYPE_WIDGET_WIDTH - 4);
         }
     }
-    
+
     private Point getReactionTypePosition() {
         Point pos = reaction.getPosition();
         // Make it looking nicer
@@ -257,11 +257,11 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             // The end point is used as the position
             // pos should be the middle point of two end points
             pos = new Point((p1.x + p2.x) / 2,
-                            (p1.y +  p2.y) / 2);
+                    (p1.y +  p2.y) / 2);
         }
         return pos;
     }
-    
+
     private Point drawReactionType(Graphics2D g2) {
         Point pos = reaction.getPosition();
         // Make it looking nicer
@@ -281,7 +281,7 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             // The end point is used as the position
             // pos should be the middle point of two end points
             pos = new Point((p1.x + p2.x) / 2,
-                            (p1.y +  p2.y) / 2);
+                    (p1.y +  p2.y) / 2);
         }
         int x = pos.x - EDGE_TYPE_WIDGET_WIDTH / 2;
         int y = pos.y - EDGE_TYPE_WIDGET_WIDTH / 2;
@@ -293,7 +293,7 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         }
         RenderableReaction rxt = (RenderableReaction) reaction;
         if (rxt.getReactionType() == ReactionType.ASSOCIATION ||
-            rxt.getReactionType() == ReactionType.DISSOCIATION) {
+                rxt.getReactionType() == ReactionType.DISSOCIATION) {
             drawAssociationType(rxt, x, y, g2);
         }
         else {
@@ -311,13 +311,13 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             }
             g2.rotate(theta, pos.x, pos.y);
             g2.clearRect(x, 
-                         y, 
-                         EDGE_TYPE_WIDGET_WIDTH, 
-                         EDGE_TYPE_WIDGET_WIDTH);
+                    y, 
+                    EDGE_TYPE_WIDGET_WIDTH, 
+                    EDGE_TYPE_WIDGET_WIDTH);
             g2.drawRect(x, 
-                        y, 
-                        EDGE_TYPE_WIDGET_WIDTH, 
-                        EDGE_TYPE_WIDGET_WIDTH);
+                    y, 
+                    EDGE_TYPE_WIDGET_WIDTH, 
+                    EDGE_TYPE_WIDGET_WIDTH);
             if (rxt.getReactionType() == ReactionType.OMITTED_PROCESS) {
                 int pad = 3;
                 int x1 = x + pad;
@@ -346,12 +346,12 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         }
         return pos;
     }
-    
+
     private void drawStoichiometry(Integer value,
-                               Point p1,
-                               Point p2,
-                               Point typePos,
-                               Graphics2D g2) {
+            Point p1,
+            Point p2,
+            Point typePos,
+            Graphics2D g2) {
         double tan = (double) (p2.y - p1.y) / (p2.x - p1.x);
         double theta = Math.atan(tan);
         int x0 = (p1.x + p2.x) / 2;
@@ -359,7 +359,7 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         if (typePos != null) {
             // A special case check: one input, one output, two points of backbone
             if (Math.abs(x0 - typePos.x) < EDGE_TYPE_WIDGET_WIDTH &&
-                Math.abs(y0 - typePos.y) < EDGE_TYPE_WIDGET_WIDTH) {
+                    Math.abs(y0 - typePos.y) < EDGE_TYPE_WIDGET_WIDTH) {
                 // P1 should be the point on the Node.
                 x0 = (p1.x + typePos.x) / 2;
                 y0 = (p1.y + typePos.y) / 2;
@@ -369,13 +369,13 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         int x = x0 - EDGE_TYPE_WIDGET_WIDTH / 2;
         int y = y0 - EDGE_TYPE_WIDGET_WIDTH / 2;
         g2.clearRect(x, 
-                     y, 
-                     EDGE_TYPE_WIDGET_WIDTH, 
-                     EDGE_TYPE_WIDGET_WIDTH);
+                y, 
+                EDGE_TYPE_WIDGET_WIDTH, 
+                EDGE_TYPE_WIDGET_WIDTH);
         g2.drawRect(x, 
-                    y, 
-                    EDGE_TYPE_WIDGET_WIDTH, 
-                    EDGE_TYPE_WIDGET_WIDTH);
+                y, 
+                EDGE_TYPE_WIDGET_WIDTH, 
+                EDGE_TYPE_WIDGET_WIDTH);
         // Draw a question mark
         Font oldFont = g2.getFont();
         g2.setFont(WIDGET_FONT);
@@ -383,62 +383,62 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         //int y1 = y + EDGE_TYPE_WIDGET_WIDTH - 3;
         //g2.drawString(value.toString(), x1, y1);
         DrawUtilities.drawString(value.toString(), 
-                                 x,
-                                 y,
-                                 EDGE_TYPE_WIDGET_WIDTH,
-                                 EDGE_TYPE_WIDGET_WIDTH,
-                                 g2);
+                x,
+                y,
+                EDGE_TYPE_WIDGET_WIDTH,
+                EDGE_TYPE_WIDGET_WIDTH,
+                g2);
         g2.setFont(oldFont);
         g2.rotate(-theta, x0, y0);
     }
-    
+
     private void drawActivatorBranches(java.util.List branches, 
-                                       Point hub, 
-                                       Graphics2D g2) {
-		// Draw a circled - in the branches
-		int x, y;
-		java.util.List branch = null;
-		Point p;
-		double ratio = 0.4;
-		double dist = EDGE_TYPE_WIDGET_WIDTH * 0.75;
-		for (Iterator it = branches.iterator(); it.hasNext();) {
-			branch = (java.util.List) it.next();
-			if (branch == null || branch.size() == 0)
-				continue; // In case it is wrong -- a defensive way
-			p = (Point) branch.get(branch.size() - 1);
-			Point anchor = anchorPositionInBranch(branch, 
-			                                      hub, 
-			                                      dist);
-			drawBranchLine(branch, 
-			               anchor, 
-			               g2);
-			DrawUtilities.drawHollowArrow(anchor,
-			                              p,
-			                              g2);
-		}	
-    }
-    
-    private void drawInhibitorBranches(java.util.List branches,
-                                       Point hub, 
-                                       Graphics2D g2) {
-    	// Draw a circled - in the branches
-    	int x, y;
-    	java.util.List branch = null;
-    	Point p;
-    	double ratio = 0.4;
-    	double dist = EDGE_TYPE_WIDGET_WIDTH * 0.75;
-    	for (Iterator it = branches.iterator(); it.hasNext();) {
-    		branch = (java.util.List) it.next();
-    		if (branch == null || branch.size() == 0)
-    			continue; // In case it is wrong -- a defensive way
-    		p = (Point) branch.get(branch.size() - 1);
-    		Point anchor = anchorPositionInBranch(branch, 
-                                                  hub,
-                                                  dist);
+            Point hub, 
+            Graphics2D g2) {
+        // Draw a circled - in the branches
+        int x, y;
+        java.util.List branch = null;
+        Point p;
+        double ratio = 0.4;
+        double dist = EDGE_TYPE_WIDGET_WIDTH * 0.75;
+        for (Iterator it = branches.iterator(); it.hasNext();) {
+            branch = (java.util.List) it.next();
+            if (branch == null || branch.size() == 0)
+                continue; // In case it is wrong -- a defensive way
+            p = (Point) branch.get(branch.size() - 1);
+            Point anchor = anchorPositionInBranch(branch, 
+                    hub, 
+                    dist);
             drawBranchLine(branch, 
-                           anchor, 
-                           g2);
-    		// The the angle of the line segment
+                    anchor, 
+                    g2);
+            DrawUtilities.drawHollowArrow(anchor,
+                    p,
+                    g2);
+        }	
+    }
+
+    private void drawInhibitorBranches(java.util.List branches,
+            Point hub, 
+            Graphics2D g2) {
+        // Draw a circled - in the branches
+        int x, y;
+        java.util.List branch = null;
+        Point p;
+        double ratio = 0.4;
+        double dist = EDGE_TYPE_WIDGET_WIDTH * 0.75;
+        for (Iterator it = branches.iterator(); it.hasNext();) {
+            branch = (java.util.List) it.next();
+            if (branch == null || branch.size() == 0)
+                continue; // In case it is wrong -- a defensive way
+            p = (Point) branch.get(branch.size() - 1);
+            Point anchor = anchorPositionInBranch(branch, 
+                    hub,
+                    dist);
+            drawBranchLine(branch, 
+                    anchor, 
+                    g2);
+            // The the angle of the line segment
             double alpha = Math.atan((double)(anchor.y - p.y) / (anchor.x - p.x));
             if (p.x > anchor.x)
                 alpha += Math.PI;
@@ -449,26 +449,26 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
             float x2 = (float)(anchor.x - EDGE_INHIBITION_WIDGET_WIDTH / 2.0 * Math.cos(angle));
             float y2 = (float)(anchor.y - EDGE_INHIBITION_WIDGET_WIDTH / 2.0 * Math.sin(angle));
             g2.drawLine((int)x1, (int)y1, 
-                        (int)x2, (int)y2);
-    	}	
+                    (int)x2, (int)y2);
+        }	
     }
-    
+
     private void drawBranches(List branches, 
-                              Point hub, 
-                              Graphics2D g2) {
+            Point hub, 
+            Graphics2D g2) {
         List branch = null;
         Point prevP, nextP;
         for (Iterator it = branches.iterator(); it.hasNext();) {
             branch = (java.util.List) it.next();
             drawBranchLine(branch, 
-                           hub, 
-                           g2);
+                    hub, 
+                    g2);
         }
     }
-    
+
     private void drawBranchLine(List branch,
-                                Point hub,
-                                Graphics2D g2) {
+            Point hub,
+            Graphics2D g2) {
         if (branch == null || branch.size() == 0)
             return;
         Point prevP = (Point) branch.get(0);
@@ -480,7 +480,7 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         }
         g2.drawLine(prevP.x, prevP.y, hub.x, hub.y);
     }
-    
+
     private void drawArrows(java.util.List branches, Point hub, Graphics2D g2) {
         java.util.List branch = null;
         for (Iterator it = branches.iterator(); it.hasNext();) {
@@ -500,19 +500,19 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         int widgetWidth = DefaultRenderConstants.EDGE_SELECTION_WIDGET_WIDTH;
         int offset = widgetWidth / 2;
         // Draw the selected Point only
-//        if (reaction.getSelectedPoint() != null) {
-//            p = reaction.getSelectedPoint();
-//            g2.fillRect(p.x - offset, p.y - offset, widgetWidth, widgetWidth);
-//        }
-//        else {
+        //        if (reaction.getSelectedPoint() != null) {
+        //            p = reaction.getSelectedPoint();
+        //            g2.fillRect(p.x - offset, p.y - offset, widgetWidth, widgetWidth);
+        //        }
+        //        else {
         // as of Jan 13, 2010, always draw all points to avoid accidental delinks.
-            for (Iterator it = reaction.getAllPoints().iterator(); it.hasNext();) {
-                p = (Point) it.next();
-                g2.fillRect(p.x - offset, p.y - offset, widgetWidth, widgetWidth);
-//            }
+        for (Iterator it = reaction.getAllPoints().iterator(); it.hasNext();) {
+            p = (Point) it.next();
+            g2.fillRect(p.x - offset, p.y - offset, widgetWidth, widgetWidth);
+            //            }
         }
     }
-    
+
     public void setRenderable(Renderable r) {
         this.reaction = (HyperEdge) r;
     }

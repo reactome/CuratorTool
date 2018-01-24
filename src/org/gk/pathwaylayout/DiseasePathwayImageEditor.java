@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.gk.gkCurator.authorTool.InstanceHandler;
+import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -335,7 +337,11 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                     }
                 }
             }
-            diseaseNode = normalNode.getClass().newInstance();
+            // diseaseEntity may have different instance type from its mapped
+            // normal counterpart. Therefore, we need to determine its own type
+            InstanceHandler handler = InstanceHandlerFactory.getFactory().getHandler(diseaseEntity);
+            diseaseNode = (Node) handler.simpleConvertToRenderable(diseaseEntity);
+//            diseaseNode = normalNode.getClass().newInstance();
             RenderUtility.copyRenderInfo(normalNode, diseaseNode);
             // The following should NOT be called since NodeAttachment is
             // related to disease entity only.
@@ -345,7 +351,10 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             diseaseNode.setDisplayName(diseaseEntity.getDisplayName());
             diseaseNode.setReactomeId(diseaseEntity.getDBID());
             diseaseNode.invalidateBounds();
-            diseaseNode.setRenderer(normalNode.getRenderer());
+            // Since diseaseNode type may be different from normalNode,
+            // we will try to get the original possible renderer
+            diseaseNode.setRenderer(RendererFactory.getFactory().getRenderer(diseaseNode));
+//            diseaseNode.setRenderer(normalNode.getRenderer());
             diseaseNode.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_BACKGROUND);
             diseaseNode.setNeedDashedBorder(needDashedBorder);
             RenderUtility.hideCompartmentInNodeName(diseaseNode);

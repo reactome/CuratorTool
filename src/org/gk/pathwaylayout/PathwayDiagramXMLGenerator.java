@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -197,21 +198,35 @@ public class PathwayDiagramXMLGenerator {
            return generateXMLForPathwayDiagram(pd);
     }
     
+    private GKInstance fetchPathwayDiagram(GKInstance pathway) throws Exception {
+        Collection<GKInstance> c = pathway.getDbAdaptor().fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
+                ReactomeJavaConstants.representedPathway,
+                "=",
+                pathway);
+        if (c.size() == 0)
+            throw new IllegalStateException("Cannot find a PathwayDiagram for" + pathway);
+        if (c.size() > 1)
+            throw new IllegalStateException("Find more than one PathwayDigram for" + pathway);
+        return c.stream().findAny().get();
+    }
+    
     @Test
     public void testGenerateXMLForPathwayDigram() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_071712",
+                                            "gk_central_012218",
                                             "root",
                                             "macmysql01");
         // EGFR Pathway diagram
-        Long pdDbId = 507988L;
         Long pathwayId = 177929L;
         // PIP3 signaling
-        pdDbId = 1273430L;
         pathwayId = 2219528L;
+        // Synthesis of DNA
+        pathwayId = 69239L;
         
-        GKInstance pdInst = dba.fetchInstance(pdDbId);
+        pathwayId = 6802955L;
+        
         GKInstance pathway = dba.fetchInstance(pathwayId);
+        GKInstance pdInst = fetchPathwayDiagram(pathway);
         String xmlText = generateXMLForPathwayDiagram(pdInst, pathway);
         System.out.println(xmlText);
     }
