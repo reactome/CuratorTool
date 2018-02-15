@@ -29,7 +29,22 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.render.*;
+import org.gk.render.ConnectInfo;
+import org.gk.render.ConnectWidget;
+import org.gk.render.DefaultRenderConstants;
+import org.gk.render.EntitySetAndEntitySetLink;
+import org.gk.render.EntitySetAndMemberLink;
+import org.gk.render.FlowLine;
+import org.gk.render.HyperEdge;
+import org.gk.render.Node;
+import org.gk.render.Note;
+import org.gk.render.ProcessNode;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RendererFactory;
 import org.gk.schema.InvalidAttributeException;
 
 /**
@@ -53,8 +68,8 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     // List of loss_of_function nodes that should be drawn specially
     private List<Node> lofNodes;
     // Keep track mapping from normal node to disease node so that
-    // only one copy disease node is needed to create
-    private Map<Node, Node> normalToDiseaseNode;
+    // only one copy disease node is needed to create per DB_ID
+    private Map<Node, Map<Long,Node>> normalToDBIDToDiseaseNode;
     
     public DiseasePathwayImageEditor() {
     }
@@ -214,7 +229,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                            r);
         }
         try {
-            normalToDiseaseNode = new HashMap<Node, Node>();
+            normalToDBIDToDiseaseNode = new HashMap<>();
             for (Long diseaseId : diseaseIds) {
                 if (idToObject.containsKey(diseaseId))
                     continue;
@@ -314,13 +329,24 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 overlaidObjects.add(node);
         }
     }
+    
+    private void cacheDiseaseNode(GKInstance diseaseEntity,
+                                  Node diseaseNode, 
+                                  Node normalNode) {
+        Map<Long, Node> dbIdToDiseaseNode = normalToDBIDToDiseaseNode.get(normalNode);
+        if (dbIdToDiseaseNode == null) {
+            dbIdToDiseaseNode = new HashMap<>();
+            normalToDBIDToDiseaseNode.put(normalNode, dbIdToDiseaseNode);
+        }
+        dbIdToDiseaseNode.put(diseaseEntity.getDBID(), diseaseNode);
+    }
 
     private Node replaceNormalNode(Node normalNode,
                                    GKInstance diseaseEntity,
                                    Boolean needDashedBorder) {
-        Node diseaseNode = normalToDiseaseNode.get(normalNode);
-        if (diseaseNode != null)
-            return diseaseNode;
+        Map<Long, Node> dbIdToDiseaseNode = normalToDBIDToDiseaseNode.get(normalNode);
+        if (dbIdToDiseaseNode != null && dbIdToDiseaseNode.containsKey(diseaseEntity.getDBID()))
+            return dbIdToDiseaseNode.get(diseaseEntity.getDBID());
         try {
             // If a node exists already, it should use
             for (Renderable r : diseaseComps) {
@@ -331,7 +357,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                     int dy = Math.abs(r.getPosition().y - normalNode.getPosition().y);
                     if (dx < 10 && dy < 10) {
                         // We don't need to create a new Node if it exists already
-                        normalToDiseaseNode.put(normalNode, (Node)r);
+                        cacheDiseaseNode(diseaseEntity, (Node)r, normalNode);
                         overlaidObjects.add(r); // Add it to overlaid object to cover edges
                         return (Node)r;
                     }
@@ -340,7 +366,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             // diseaseEntity may have different instance type from its mapped
             // normal counterpart. Therefore, we need to determine its own type
             InstanceHandler handler = InstanceHandlerFactory.getFactory().getHandler(diseaseEntity);
-            diseaseNode = (Node) handler.simpleConvertToRenderable(diseaseEntity);
+            Node diseaseNode = (Node) handler.simpleConvertToRenderable(diseaseEntity);
 //            diseaseNode = normalNode.getClass().newInstance();
             RenderUtility.copyRenderInfo(normalNode, diseaseNode);
             // The following should NOT be called since NodeAttachment is
@@ -360,7 +386,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             RenderUtility.hideCompartmentInNodeName(diseaseNode);
             overlaidObjects.add(diseaseNode);
             displayedObject.addComponent(diseaseNode);
-            normalToDiseaseNode.put(normalNode, diseaseNode);
+            cacheDiseaseNode(diseaseEntity, diseaseNode, normalNode);
             return diseaseNode;
         }
         catch(Exception e) {

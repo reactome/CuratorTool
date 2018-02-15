@@ -10,6 +10,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -2468,7 +2469,8 @@ public class HyperEdge extends Renderable {
             copy.needOutputArrow = needOutputArrow;
             copy.lineWidth = lineWidth;
             copy.position = position;
-            copy.attributes = attributes;
+            if (attributes != null)
+                copy.attributes = new HashMap<>(attributes); // Need to copy this to avoid any clash (e.g. display name)
             copy.foregroundColor = foregroundColor;
             copy.backgroundColor = backgroundColor;
             copy.lineColor = lineColor;
