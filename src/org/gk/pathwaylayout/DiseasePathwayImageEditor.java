@@ -394,6 +394,28 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         }
         return null;
     }
+    
+    private Node findBestPossibleMatch(List<Node> nodes, Set<GKInstance> refEntities) throws Exception {
+        Node bestNode = null;
+        int bestExtra = Integer.MAX_VALUE;
+        for (Node node : nodes) {
+            GKInstance nodeInst = adaptor.fetchInstance(node.getReactomeId());
+            Set<GKInstance> nodeRefEntities = getReferenceEntity(nodeInst);
+            Set<GKInstance> copy = new HashSet<>(nodeRefEntities);
+            retainAll(nodeRefEntities, refEntities);
+            if (nodeRefEntities.size() > 0) {
+                // First have to make sure there is something similar
+                // Then we want to see if there is something extra
+                copy.removeAll(nodeRefEntities);
+                int extra = copy.size();
+                if (bestNode == null || extra < bestExtra) {
+                    bestNode = node;
+                    bestExtra = extra;
+                }
+            }
+        }
+        return bestNode;
+    }
 
     /**
      * Map mutated nodes in a disease reaction to displayed nodes in a normal reaction. The mapping
@@ -418,19 +440,11 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             if (pe != null) {
                 Set<GKInstance> refEntities = getReferenceEntity(pe);
                 // want to find the matched node
-                for (Node node : nodes) {
-                    if (node.getReactomeId() == null)
-                        continue;
-                    GKInstance nodeInst = adaptor.fetchInstance(node.getReactomeId());
-                    Set<GKInstance> nodeRefEntities = getReferenceEntity(nodeInst);
-                    retainAll(nodeRefEntities, refEntities);
-                    if (nodeRefEntities.size() > 0) {
-                        normalToDiseaseEntity.put(node, pe);
-                        if (isLOFEntity(ef)) {
-                            lofInstances.add(pe);
-                        }
-                        break;
-                    }
+                Node matchedNode = findBestPossibleMatch(nodes, refEntities);
+                if (matchedNode != null) {
+                    normalToDiseaseEntity.put(matchedNode, pe);
+                    if (isLOFEntity(ef))
+                        lofInstances.add(pe);
                 }
             }
         }
@@ -496,10 +510,10 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return normalToDiseaseEntity;
     }
 
-    public void randomlyMapDiseaseNodesToNormalNodes(Map<Node, GKInstance> normalToDiseaseEntity,
+    private void randomlyMapDiseaseNodesToNormalNodes(Map<Node, GKInstance> normalToDiseaseEntity,
                                                      Collection<GKInstance> mapped,
                                                      List<GKInstance> diseaseInputs,
-                                                     List<Node> normalNodes) {
+                                                     List<Node> normalNodes) throws Exception {
         if (diseaseInputs != null && diseaseInputs.size() > 0) {
             normalNodes.removeAll(normalToDiseaseEntity.keySet());
             if (normalNodes.size() > 0) {
@@ -515,9 +529,15 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                             break;
                         }
                     }
-                    if (matched == null)
+                    if (matched == null) {
+                        // Check possible match
+                        Set<GKInstance> refEntities = getReferenceEntity(input);
+                        matched = findBestPossibleMatch(normalNodes, refEntities);
+                    }
+                    if (matched == null) {
                         // Just pick up the first node
                         matched = normalNodes.get(0);
+                    }
                     normalToDiseaseEntity.put(matched, input);
                     normalNodes.remove(matched);
                     if (normalNodes.size() == 0)
