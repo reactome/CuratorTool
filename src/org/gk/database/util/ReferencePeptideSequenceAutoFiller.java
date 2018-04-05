@@ -384,7 +384,7 @@ public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFil
         if (index > 0)
             speciesName = speciesName.substring(0, index).trim();
         // Use _displayName since it might be a shell instance.
-        Collection list = adaptor.fetchInstanceByAttribute("Species", "_displayName", "=", speciesName);
+        Collection<?> list = adaptor.fetchInstanceByAttribute("Species", "_displayName", "=", speciesName);
         GKInstance species = null;
         if (list.size() > 0)
             species = (GKInstance) list.iterator().next();

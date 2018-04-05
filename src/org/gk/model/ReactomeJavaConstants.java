@@ -318,4 +318,7 @@ public class ReactomeJavaConstants {
     public static final String type = "type";
     public static final String approved = "approved";
     public static final String approvalSource = "approvalSource";
+    
+    public static final String containedInPathway = "containedInPathway";
+    public static final String regulatedBy = "regulatedBy";
 }

@@ -18,6 +18,7 @@ import org.gk.model.Reference;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
+import org.jdom.output.XMLOutputter;
 import org.junit.Test;
 
 /**
@@ -54,7 +55,9 @@ public class PMIDXMLInfoFetcher2 {
         isr.close();
         is.close();
         String text = builder.toString();
+        System.out.println(text);
         text = StringEscapeUtils.unescapeXml(text);
+        System.out.println(text);
         StringReader sr = new StringReader(text);
         SAXBuilder saxBuilder = new SAXBuilder();
         Document document = saxBuilder.build(sr);
@@ -114,6 +117,17 @@ public class PMIDXMLInfoFetcher2 {
         return reference;
     }
     
+    private String parseTitle(Element titleElm) {
+        // Need to handle case like this (PMID: 29146722):
+        // <ArticleTitle>The<i>NOTCH4</i>-<i>HEY1</i>Pathway Induces Epithelial-Mesenchymal Transition in Head and Neck Squamous Cell Carcinoma.</ArticleTitle>
+        String text = new XMLOutputter().outputString(titleElm);
+        // Get rid of the element tag
+        int index1 = text.indexOf(">");
+        int index2 = text.lastIndexOf("<");
+        text = text.substring(index1 + 1, index2).trim();
+        return text;
+    }
+    
     private Reference parseArticle(Element elm) {
         Reference reference = new Reference();
         List<?> list = elm.getChildren();
@@ -124,7 +138,8 @@ public class PMIDXMLInfoFetcher2 {
                 parseJournal(childElm, reference);
             }
             else if (name.equals("ArticleTitle")) {
-                String text = childElm.getTextNormalize();
+//                String text = childElm.getTextNormalize();
+                String text = parseTitle(childElm);
                 if (text != null) {
                     if (text.endsWith("."))
                         text = text.substring(0, text.length() - 1); // Get rid the last dot
@@ -218,6 +233,7 @@ public class PMIDXMLInfoFetcher2 {
     @Test
     public void testFetchInfo() throws Exception {
         Long pmid = 18276894L;
+//        pmid = 29146722L; // A title has "<i>" in
         Reference reference = fetchInfo(pmid);
         System.out.println("\"" + reference.getTitle() + "\" in \"" + reference.getJournal() + "\"");
     }
