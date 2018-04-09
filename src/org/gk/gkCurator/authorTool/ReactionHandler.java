@@ -146,8 +146,15 @@ public class ReactionHandler extends PathwayHandler {
             GKInstance pe = (GKInstance) it.next();
             GKInstance regulation = fileAdaptor.createNewInstance(type);
             regulation.setAttributeValue(ReactomeJavaConstants.regulator, pe);
-            regulation.setAttributeValue(ReactomeJavaConstants.regulatedEntity,
-                                         iReaction);
+            if (iReaction.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+                // After Regulation is moved to ReactionLikeEvent
+                iReaction.addAttributeValue(ReactomeJavaConstants.regulatedBy, regulation);
+            }
+            else {
+                // Before Regulation is moved
+                regulation.setAttributeValue(ReactomeJavaConstants.regulatedEntity,
+                                             iReaction);
+            }
             InstanceDisplayNameGenerator.setDisplayName(regulation);
         }   
     }

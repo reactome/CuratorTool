@@ -460,7 +460,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         // Check Activators and Inhibitors
         List<GKInstance> activiators = new ArrayList<GKInstance>();
         List<GKInstance> inhibitors = new ArrayList<GKInstance>();
-        Collection<?> regulations = targetReaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+        Collection<?> regulations = InstanceUtilities.getRegulations(targetReaction);
         if (regulations != null && regulations.size() > 0) {
             for (Iterator<?> it = regulations.iterator(); it.hasNext();) {
                 GKInstance regulation = (GKInstance) it.next();

@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.axis.utils.XMLUtils.ParserErrorHandler;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.database.DefaultInstanceEditHelper;
@@ -854,14 +853,16 @@ public class SlicingEngine {
      * should be in the slice.
      */
     protected void extractRegulations() throws Exception {
-        SchemaClass cls = sourceDBA.getSchema().getClassByName("Regulation");
-        Collection regulations = sourceDBA.fetchInstancesByClass("Regulation");
-        sourceDBA.loadInstanceAttributeValues(regulations, cls.getAttribute("regulatedEntity"));
+        SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
+        if (!cls.isValidAttribute(ReactomeJavaConstants.regulatedEntity))
+            return;
+        Collection regulations = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        sourceDBA.loadInstanceAttributeValues(regulations, cls.getAttribute(ReactomeJavaConstants.regulatedEntity));
         GKInstance regulation = null;
         GKInstance regulatedEntity = null;
         for (Iterator it = regulations.iterator(); it.hasNext();) {
             regulation = (GKInstance) it.next();
-            regulatedEntity = (GKInstance) regulation.getAttributeValue("regulatedEntity");
+            regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
             if (regulatedEntity == null)
                 continue;
             if (sliceMap.containsKey(regulatedEntity.getDBID())) {
@@ -983,7 +984,7 @@ public class SlicingEngine {
         File file = new File(processFileName);
         if (!file.exists()) {
             throw new IllegalStateException("SlicingEngine.getReleasedProcesses(): " +
-            		                        "specified file for releasing processes doesn't exist!");
+            		                        "Specified file, " + file.getAbsolutePath() + ", for releasing processes doesn't exist!");
         }
         return extractIDsFromFile(file);
     }

@@ -67,7 +67,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     public void check(GKSchemaClass cls) {
         validateDataSource();
         StableIdentifierGenerator helper = new StableIdentifierGenerator();
-        if (!helper.needStid(cls)) {
+        if (!helper.needStid(cls, dataSource)) {
             JOptionPane.showMessageDialog(parentComp, 
                                           cls.getName() + " doesn't need stableIdentifier.",
                                           "No StableIdentifier",
@@ -156,7 +156,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
     
     private List<GKInstance> grepAllInstances(StableIdentifierGenerator stidGenerator) throws Exception {
-        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds();
+        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds(dataSource);
         Schema schema = dataSource.getSchema();
         List<GKInstance> allInstances = new ArrayList<GKInstance>();
         for (String clsName : stidClassNames) {
@@ -179,7 +179,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             public void run() {
                 try {
                     StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
-                    Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds();
+                    Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds(dataSource);
                     // Get the Reaction class
                     initProgressPane("Check StableIdentifiers");
                     List<GKInstance> allInstances = null;
@@ -205,7 +205,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                         hideProgressPane();
                         return;
                     }
-                    loadStableIdAttributes(allInstances);
+                    loadStableIdAttributes(allInstances, stidGenerator);
                     if (progressPane.isCancelled()) {
                         hideProgressPane();
                         return;
@@ -263,7 +263,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         }
     }
     
-    private void loadStableIdAttributes(List<GKInstance> instances) throws Exception {
+    private void loadStableIdAttributes(List<GKInstance> instances,
+                                        StableIdentifierGenerator stIdGenerator) throws Exception {
         if (!(dataSource instanceof MySQLAdaptor))
             return;
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
@@ -310,11 +311,13 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                               list,
                               ReactomeJavaConstants.Complex,
                               ReactomeJavaConstants.hasComponent);
-        loadStableIdAttribute(instances, 
-                              dba, 
-                              list,
-                              ReactomeJavaConstants.Regulation,
-                              ReactomeJavaConstants.regulatedEntity);
+        if (stIdGenerator.getClassNamesWithStableIds(dataSource).contains(ReactomeJavaConstants.Regulation)) {
+            loadStableIdAttribute(instances, 
+                                  dba, 
+                                  list,
+                                  ReactomeJavaConstants.Regulation,
+                                  ReactomeJavaConstants.regulatedEntity);
+        }
         loadStableIdAttribute(instances, dba, list, ReactomeJavaConstants.Complex, ReactomeJavaConstants.isChimeric);
         loadStableIdAttribute(instances, dba, list, ReactomeJavaConstants.ReactionlikeEvent, ReactomeJavaConstants.isChimeric);
     }

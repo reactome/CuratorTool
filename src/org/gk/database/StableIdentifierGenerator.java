@@ -66,7 +66,7 @@ public class StableIdentifierGenerator {
 	 * @return
 	 */
 	public boolean needStid(GKInstance instance) {
-	    Set<String> classNames = getClassNamesWithStableIds();
+	    Set<String> classNames = getClassNamesWithStableIds(instance.getDbAdaptor());
 	    for (String className : classNames) {
 	        if (instance.getSchemClass().isa(className))
 	            return true;
@@ -74,8 +74,8 @@ public class StableIdentifierGenerator {
 	    return false;
 	}
 	
-	public boolean needStid(GKSchemaClass cls) {
-	    Set<String> clsNames = getClassNamesWithStableIds();
+	public boolean needStid(GKSchemaClass cls, PersistenceAdaptor adaptor) {
+	    Set<String> clsNames = getClassNamesWithStableIds(adaptor);
 	    for (String clsName : clsNames) {
 	        if (cls.isa(clsName))
 	            return true;
@@ -83,16 +83,15 @@ public class StableIdentifierGenerator {
 	    return false;
 	}
 	
-	public Set<String> getClassNamesWithStableIds() {
+	public Set<String> getClassNamesWithStableIds(PersistenceAdaptor adaptor) {
 	    if (stidClasses == null) {
 	        stidClasses = new HashSet<String>();
-	        String[] names = new String[] {
-	                ReactomeJavaConstants.PhysicalEntity,
-	                ReactomeJavaConstants.Event,
-	                ReactomeJavaConstants.Regulation
-	        };
-	        for (String name : names)
-	            stidClasses.add(name);
+	        stidClasses.add(ReactomeJavaConstants.PhysicalEntity);
+	        stidClasses.add(ReactomeJavaConstants.Event);
+	        if (!adaptor.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent).isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+	            // Before Regulation is migrated to RLE, we will generate stable id for Reguliation
+	            stidClasses.add(ReactomeJavaConstants.Regulation);
+	        }
 	    }
 	    return stidClasses;
 	}
@@ -187,6 +186,9 @@ public class StableIdentifierGenerator {
 	 * @throws Exception
 	 */
 	private String getSpeciesAbbrFromRegulation(GKInstance regulation) throws Exception {
+	    if (!regulation.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
+	        throw new IllegalArgumentException("Regulation will not be assigned stable identifier!");
+	    }
 		GKInstance regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
 		// This is a mandatory value. If nothing specified, most likely the regulation
 		// should not be released.

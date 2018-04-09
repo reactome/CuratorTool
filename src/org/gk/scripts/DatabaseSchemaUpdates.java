@@ -9,6 +9,7 @@ import java.util.Collection;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.SchemaClass;
 import org.junit.Test;
 
 /**
@@ -18,9 +19,50 @@ import org.junit.Test;
  */
 public class DatabaseSchemaUpdates {
     
-    public DatabaseSchemaUpdates() {
-        
+    public static void main(String[] args) throws Exception {
+        if (args.length != 3) {
+            System.err.print("Provide three arguments: dbName, dbUser, and dbPwd!");
+            return;
+        }
+        DatabaseSchemaUpdates updater = new DatabaseSchemaUpdates();
+        updater.changeEntityCompartmentToCompartment(args[0],
+                                                     args[1],
+                                                     args[2]);
     }
+    
+    public DatabaseSchemaUpdates() {
+    }
+    
+    /**
+     * We want to delete the Compartment class and then change EntityCompartment class name
+     * to Compartment. However, in order to do this, we need to change all EntityCompartment
+     * instances to Compartment and then delete EntityCompartment class.
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void changeEntityCompartmentToCompartment(String dbName,
+                                                     String dbUser,
+                                                     String dbPwd) throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost", dbName, dbUser, dbPwd);
+        Collection<GKInstance> ecInstances = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityCompartment);
+        System.out.println("Total EntityCompartment: " + ecInstances.size());
+        SchemaClass compartment = dba.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
+        dba.startTransaction();
+        for (GKInstance inst : ecInstances) {
+            System.out.println("Handling " + inst);
+            dba.fastLoadInstanceAttributeValues(inst); // Load all attribute values
+            inst.setSchemaClass(compartment);
+            dba.updateInstance(inst);
+        }
+        try {
+            dba.commit();
+        }
+        catch(Exception e) {
+            dba.rollback();
+        }
+    }
+    
     
     @Test
     public void copyAccessionToIdentifierForSO() throws Exception {

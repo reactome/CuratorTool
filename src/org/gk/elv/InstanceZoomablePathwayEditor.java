@@ -387,8 +387,9 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                 }
             }
         }
-        // This is a apecial case since Regulation is attached to a Reaction
-        if (instance.getSchemClass().isa(ReactomeJavaConstants.Regulation)) {
+        // This is a special case since Regulation is attached to a Reaction
+        if (instance.getSchemClass().isa(ReactomeJavaConstants.Regulation) &&
+            instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
             try {
                 GKInstance reaction = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
                 if (reaction != null && reaction.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {

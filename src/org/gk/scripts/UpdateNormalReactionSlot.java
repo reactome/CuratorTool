@@ -36,10 +36,10 @@ public class UpdateNormalReactionSlot {
     }
     
     public MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_012218",
-                                            "root",
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
+                                            "test_slice_64",
+                                            "wgm",
+                                            "zhe10jiang23");
         return dba;
     }
     
@@ -58,6 +58,8 @@ public class UpdateNormalReactionSlot {
         }
         System.out.println("Total reactions to be checked out: " + dbInsts.size());
         dbInsts.forEach(System.out::println);
+        if (true)
+            return;
         // We also need to have pathways referring these reactions
         Set<GKInstance> pathways = new HashSet<>();
         for (GKInstance inst : dbInsts) {

@@ -28,7 +28,6 @@ import org.gk.persistence.MySQLAdaptor;
  *
  */
 public class ComplexCompartmentCheck extends CompartmentCheck {
-    protected final String NEIGHBOR_FILE_NAME = "AdjacentCompartments.txt";
     
     public ComplexCompartmentCheck() {
         checkClsName = ReactomeJavaConstants.Complex;

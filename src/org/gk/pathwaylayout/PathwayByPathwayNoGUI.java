@@ -22,6 +22,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -234,7 +235,7 @@ public class PathwayByPathwayNoGUI extends PathwayByPathway {
 			DefaultEdge edge = createCatalystEdge(enode,rnode);
 			toBeInserted.add(edge);
 		}
-		Collection regulations = reaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+		Collection regulations = InstanceUtilities.getRegulations(reaction);
 		if (regulations != null) {
 			for (Iterator it = regulations.iterator(); it.hasNext();) {
 				GKInstance regulation = (GKInstance)it.next();

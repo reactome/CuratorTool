@@ -216,7 +216,7 @@ public class EventCheckOutHandler {
                 }
             }
         }
-        // CAs should be in the list. It is catalyts we need!
+        // CAs should be in the list. It is catalysts we need!
         // For performance reason to load all attributes for the touchedMap
         Map<SchemaClass, Set<GKInstance>> touchedClsMap = new HashMap<SchemaClass, Set<GKInstance>>();
         for (GKInstance inst : touchedMap.values())
@@ -316,7 +316,8 @@ public class EventCheckOutHandler {
                                                                  Set<GKInstance> events) throws Exception  {
         Map<SchemaClass, Set<GKInstance>> regulationMap = new HashMap<SchemaClass, Set<GKInstance>>();
         for (GKInstance event : events) {
-            Collection regulations = event.getReferers(ReactomeJavaConstants.regulatedEntity);
+//            Collection regulations = event.getReferers(ReactomeJavaConstants.regulatedEntity);
+            Collection regulations = InstanceUtilities.getRegulations(event);
             if (regulations == null || regulations.size() == 0)
                 continue;
             for (Iterator it = regulations.iterator(); it.hasNext();) {

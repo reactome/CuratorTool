@@ -6,7 +6,17 @@
  */
 package org.gk.model;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaAttribute;
@@ -19,9 +29,8 @@ import org.gk.schema.SchemaClass;
 /**
  * @author vastrik
  *
- * To change the template for this generated type comment go to
- * Window>Preferences>Java>Code Generation>Code and Comments
  */
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class InstanceUtilities {
 	// These constants are used for comparing two instances
 	/**
@@ -333,6 +342,43 @@ public class InstanceUtilities {
 		});
 	}
 	
+	public static Collection<GKInstance> getRegulations(GKInstance instance) throws Exception {
+	    Collection<GKInstance> rtn = new HashSet<>();
+	    if (instance == null)
+	        return rtn;
+	    // After migrating Regulation to ReactionlikeEvent
+	    if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+	        List<GKInstance> list = instance.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+	        if (list != null)
+	            rtn.addAll(list);
+	    }
+	    // Before the migration
+	    else {
+	        Collection<GKInstance> referrers = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+	        if (referrers != null && referrers.size() > 0)
+	            rtn.addAll(referrers);
+	    }
+	    return rtn;
+	}
+	
+	public static GKInstance getRegulatedInstance(GKInstance regulation) throws Exception {
+	    GKInstance regulated = null;
+        // Check if the regulated slot has been added
+	    SchemaClass rle = regulation.getDbAdaptor().getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent);
+	    if (rle.isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+	        Collection<GKInstance> c = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
+	        if (c != null && c.size() > 0)
+	            regulated = c.iterator().next();
+	    }
+	    if (regulated != null)
+	        return regulated;
+	    // Do another check
+	    if (regulation.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
+	        regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+	    }
+	    return regulated;
+	}
+	
 	public static void sortInstances(java.util.List instances) {
 		Collections.sort(instances, new Comparator() {
 			public int compare(Object obj1, Object obj2) {
@@ -528,7 +574,7 @@ public class InstanceUtilities {
 				instance1 = (GKInstance) it.next();
 				for (Iterator it1 = list2Copy.iterator(); it1.hasNext();) {
 					instance2 = (GKInstance) it1.next();
-					if (instance2.getDbAdaptor().equals(instance1.getDBID())) {
+					if (instance2.getDBID().equals(instance1.getDBID())) {
 						it1.remove();
 						it.remove();
 						break;
@@ -885,7 +931,6 @@ public class InstanceUtilities {
      * @return
      * @throws Exception
      */
-    @SuppressWarnings("unchecked")
     public static Set<GKInstance> grepPathwayParticipants(GKInstance pathway) throws Exception {
         // First load all PhysicalEntities involved in Reactions
         Set<GKInstance> participants = new HashSet<GKInstance>();
@@ -974,7 +1019,7 @@ public class InstanceUtilities {
                     set.add(catalyst);
             }
         }
-        Collection regulations = reaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+        Collection regulations = InstanceUtilities.getRegulations(reaction);
         if (regulations != null && regulations.size() > 0) {
             for (Iterator it = regulations.iterator(); it.hasNext();) {
                 GKInstance regulation = (GKInstance) it.next();

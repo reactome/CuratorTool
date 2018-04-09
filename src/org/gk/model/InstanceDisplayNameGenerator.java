@@ -17,10 +17,11 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
 
 /**
- * A utitlity class to generate the display name for the GKInstance object. This class 
+ * A utility class to generate the display name for the GKInstance object. This class 
  * is base on Imre's perl module GKB::NamedInstance.
  * @author wugm
  */
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class InstanceDisplayNameGenerator {
     
     /**
@@ -321,7 +322,7 @@ public class InstanceDisplayNameGenerator {
 	
 	private static String generateRegulationName(GKInstance instance, String action) throws Exception {
 		StringBuffer buffer = new StringBuffer();
-		java.util.List values = instance.getAttributeValuesList("regulator");
+		java.util.List values = instance.getAttributeValuesList(ReactomeJavaConstants.regulator);
 		if (values == null || values.size() == 0) {
 			buffer.append("\'UNKNOWN ENITTY\'");
 		}
@@ -330,12 +331,11 @@ public class InstanceDisplayNameGenerator {
 			buffer.append("\'" + regulator.getDisplayName() + "\'");
 		}
 		buffer.append(" " + action + " ");
-		values = instance.getAttributeValuesList("regulatedEntity");
-		if (values == null || values.size() == 0) {
+		GKInstance regulatedEntity = InstanceUtilities.getRegulatedInstance(instance);
+		if (regulatedEntity == null) {
 			buffer.append("\'UNKNOWN ENTITY\'");
 		}
 		else {
-			GKInstance regulatedEntity = (GKInstance) values.get(0);
 			buffer.append("\'" + regulatedEntity.getDisplayName() + "\'");
 		}
         if (buffer.length() > 0)

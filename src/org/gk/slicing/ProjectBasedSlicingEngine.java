@@ -15,6 +15,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -194,8 +195,10 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
         sourceDBA.loadInstanceAttributeValues(events, cls.getAttribute(ReactomeJavaConstants.hasEvent));
         Collection regulations = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
-        sourceDBA.loadInstanceAttributeValues(regulations, 
-                                              cls.getAttribute(ReactomeJavaConstants.regulatedEntity));
+        if (cls.isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
+            sourceDBA.loadInstanceAttributeValues(regulations, 
+                                                  cls.getAttribute(ReactomeJavaConstants.regulatedEntity));
+        }
         sourceDBA.loadInstanceAttributeValues(regulations,
                                               cls.getAttribute(ReactomeJavaConstants.regulator));
         // We don't want to do a batch loading for regulatedEvent since the software will do a reverse
@@ -276,9 +279,9 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
     }
     
     private void extractEvents(Collection events,
-                                         Collection regulations,
-                                         Map<Long, GKInstance> eventMap,
-                                         boolean needContainer) throws Exception {
+                               Collection regulations,
+                               Map<Long, GKInstance> eventMap,
+                               boolean needContainer) throws Exception {
         extractFollowingEvents(events, eventMap);
         if (needContainer)
             extractContainers(events, eventMap);
@@ -295,7 +298,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
             for (Iterator it = regulations.iterator(); it.hasNext();) {
                 GKInstance regulation = (GKInstance) it.next();
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
-                GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+                GKInstance regulated = InstanceUtilities.getRegulatedInstance(regulation);
                 if (regulated == null || regulator == null)
                     continue;
                 if (eventMap.containsKey(regulated.getDBID())) {

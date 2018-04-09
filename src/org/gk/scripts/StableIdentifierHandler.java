@@ -273,7 +273,7 @@ public class StableIdentifierHandler {
 	    Map<GKInstance, GKInstance> instToStid = new HashMap<GKInstance, GKInstance>();
 	    StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
 	    SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.stableIdentifier);
-	    for (String clsName : stidGenerator.getClassNamesWithStableIds()) {
+	    for (String clsName : stidGenerator.getClassNamesWithStableIds(dba)) {
 	        Collection<GKInstance> insts = dba.fetchInstancesByClass(clsName);
 	        dba.loadInstanceAttributeValues(insts, att);
 	        for (GKInstance inst : insts) {

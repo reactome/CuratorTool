@@ -40,6 +40,7 @@ import org.gk.graphEditor.LinkWidgetAction;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.graphEditor.ReactionNodeGraphEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.property.SearchDBTypeHelper;
 import org.gk.render.*;
@@ -1067,7 +1068,8 @@ public class GraphEditorController {
 				}
 			}
 		}
-		Collection regulation = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+//		Collection regulation = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+		Collection regulation = InstanceUtilities.getRegulations(instance);
 		if (regulation != null && regulation.size() > 0) {
 		    java.util.List inhibitors = new ArrayList();
 		    java.util.List activators = new ArrayList();

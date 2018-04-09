@@ -15,7 +15,6 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaAttribute;
@@ -44,17 +43,25 @@ public class ReactionQACheckHelper {
 
     public void loadRegulations(MySQLAdaptor dba,
                                 ProgressPane progressPane) throws Exception {
-        String[] attNames = new String[] {
-                ReactomeJavaConstants.regulator,
-                ReactomeJavaConstants.regulatedEntity
-        };
+        String[] attNames = null;
+        if (dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation).isValidAttribute(ReactomeJavaConstants.regulatedEntity) ) {
+            attNames = new String[] {
+                    ReactomeJavaConstants.regulator,
+                    ReactomeJavaConstants.regulatedEntity
+            };
+        }
+        else {
+            attNames = new String[] {
+                    ReactomeJavaConstants.regulator,
+            };
+        }
         regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
         loadAttributes(regulations,
-                       cls,
-                       attNames,
-                       dba, 
-                       progressPane);
+                cls,
+                attNames,
+                dba, 
+                progressPane);
     }
     
     protected void loadAttributes(Collection instances,
@@ -70,6 +77,7 @@ public class ReactionQACheckHelper {
                 return;
         }
     }
+    
     protected Set<GKInstance> getAllContainedEntities(GKInstance reaction) throws Exception {
         Map<String, List<GKInstance>> roleToEntities = getReactionParticipants(reaction);
         Set<GKInstance> entities = new HashSet<GKInstance>();
@@ -110,25 +118,18 @@ public class ReactionQACheckHelper {
                 roleToEntities.put("catalyst",
                                    catalysts);
         }
-        // Need to check regulation. To avoid database access, we do a reverse lookup here.
-        List<GKInstance> regulators = new ArrayList<GKInstance>();
-        if (regulations == null) { // Avoid repeating database query.
-            PersistenceAdaptor dataSource = reaction.getDbAdaptor();
-            SchemaClass cls = dataSource.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
-            regulations = dataSource.fetchInstancesByClass(cls);
-        }
-        for (Iterator it = regulations.iterator(); it.hasNext();) {
-            GKInstance regulation = (GKInstance) it.next();
-            GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
-            if (regulated == reaction) {
+        Collection<GKInstance> regulations = InstanceUtilities.getRegulations(reaction);
+        if (regulations != null && regulations.size() > 0) {
+            List<GKInstance> regulators = new ArrayList<GKInstance>();
+            for (GKInstance regulation : regulations) {
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
                 if (regulator.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
                     regulators.add(regulator);
             }
+            if (regulators.size() >0)
+                roleToEntities.put("regulator",
+                                   regulators);
         }
-        if (regulators.size() >0)
-            roleToEntities.put("regulator",
-                               regulators);
         return roleToEntities;
     }
     

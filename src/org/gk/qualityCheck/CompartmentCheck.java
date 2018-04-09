@@ -21,6 +21,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.util.GKApplicationUtilities;
 
 public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
+    private final String NEIGHBOR_FILE_NAME = "AdjacentCompartments.txt";
 
     protected final List<GKInstance> EMPTY_LIST = new ArrayList<GKInstance>();
     protected Map<Long, List<Long>> neighbors = null;
@@ -53,7 +54,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
     protected Map<Long, List<Long>> loadNeighbors() {
         Map<Long, List<Long>> map = new HashMap<Long, List<Long>>();
         try {
-            InputStream input = GKApplicationUtilities.getConfig("AdjacentCompartments.txt");
+            InputStream input = GKApplicationUtilities.getConfig(NEIGHBOR_FILE_NAME);
             InputStreamReader ris = new InputStreamReader(input);
             BufferedReader bufferedReader = new BufferedReader(ris);
             String line = null;

@@ -477,7 +477,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                                                  normalNodes);
         }
         // Check activators
-        Collection<GKInstance> regulations = diseaseReaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+        Collection<GKInstance> regulations = InstanceUtilities.getRegulations(diseaseReaction);
         if (regulations != null) {
             List<GKInstance> posRegulators = new ArrayList<GKInstance>();
             List<GKInstance> negRegulators = new ArrayList<GKInstance>();

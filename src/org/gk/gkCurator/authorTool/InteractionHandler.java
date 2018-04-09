@@ -17,6 +17,9 @@ import org.gk.render.RenderablePathway;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 
+//Note: Most likely some of methods in this class cannot work after migrating Regulation to
+// RLE. However, since this class is not used any more. So no update has been done since this
+// migration.
 public class InteractionHandler extends PathwayHandler {
     
     protected GKInstance convertChanged(Renderable r) throws Exception {

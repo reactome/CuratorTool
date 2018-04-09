@@ -49,7 +49,7 @@ public class AttributeEditPropagator {
         SchemaClass cls = instance.getSchemClass();
         String attName = att.getName();
         // This is not configurable for the time being (8/29/05). It should be changed soon. -- WGM
-        // It seems that there is no need to configure this propgation (1/27/06). -- Guanming Wu
+        // It seems that there is no need to configure this propagation (1/27/06). -- Guanming Wu
         if (attName.equals(REFERENCE_ENTITY_ATT_NAME) &&
             cls.isa(ReactomeJavaConstants.GenomeEncodedEntity)) {
             propagateSpeciesInGEE(instance);

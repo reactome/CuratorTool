@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaClass;
@@ -157,7 +158,8 @@ public class GraphvizDotGenerator {
                 generateNodes(catalysts, entityToNameMap, nameToEntityMap, buffer);
             }
             List regulators = new ArrayList();
-            Collection regulations = reaction.getReferers(ReactomeJavaConstants.regulatedEntity);
+            Collection regulations = InstanceUtilities.getRegulations(reaction);
+//            Collection regulations = reaction.getReferers(ReactomeJavaConstants.regulatedEntity);
             if (regulations != null && regulations.size() > 0) {
                 for (Iterator it1 = regulations.iterator(); it1.hasNext();) {
                     GKInstance regulation = (GKInstance) it1.next();

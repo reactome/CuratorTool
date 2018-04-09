@@ -150,18 +150,20 @@ public class PantherPathwayImporter {
                                                              dataSource);
         if (collection != null) {
             SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
-            dba.loadInstanceAttributeValues(collection, cls.getAttributes());
-            clsMap.clear();
-            for (Iterator it = collection.iterator(); it.hasNext();) {
-                GKInstance regulation = (GKInstance) it.next();
-                GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
-                if (regulated == null)
-                    continue;
-                if (touchedMap.containsKey(regulated.getDBID())) {
-                    addToClsMap(regulation, clsMap);
+            if (cls.isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
+                dba.loadInstanceAttributeValues(collection, cls.getAttributes());
+                clsMap.clear();
+                for (Iterator it = collection.iterator(); it.hasNext();) {
+                    GKInstance regulation = (GKInstance) it.next();
+                    GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+                    if (regulated == null)
+                        continue;
+                    if (touchedMap.containsKey(regulated.getDBID())) {
+                        addToClsMap(regulation, clsMap);
+                    }
                 }
+                pullOutInstances(dba, clsMap, touchedMap);
             }
-            pullOutInstances(dba, clsMap, touchedMap);
         }
         if (progressDialog.isCancelClicked())
             return;

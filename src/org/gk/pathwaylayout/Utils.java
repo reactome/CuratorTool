@@ -10,7 +10,17 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.gk.model.ClassAttributeFollowingInstruction;
 import org.gk.model.GKInstance;
@@ -146,74 +156,6 @@ public class Utils {
 		return out;
 	}
 	
-	public static Set<GKInstance> getFollowingEventsConnectedOverRequirement(GKInstance reaction, GKInstance entity) throws Exception {
-		Collection followingEvents = reaction.getReferers(ReactomeJavaConstants.precedingEvent);
-		List instructions1 = new ArrayList();
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.ReactionlikeEvent, new String[]{ReactomeJavaConstants.catalystActivity}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.CatalystActivity, new String[]{}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.Requirement, new String[]{ReactomeJavaConstants.regulator}, new String[]{}));
-		String[] outClasses = new String[]{ReactomeJavaConstants.PhysicalEntity};
-		Set<GKInstance> out = new HashSet<GKInstance>();
-		if (followingEvents != null) {
-			for (Iterator it = followingEvents.iterator(); it.hasNext();) {
-				GKInstance followingEvent = (GKInstance)it.next();
-				if (!followingEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-					continue;
-				Set s = InstanceUtilities.followInstanceAttributes(followingEvent, instructions1, outClasses);
-				if (s.contains(entity)) {
-					out.add(followingEvent);
-					continue;
-				}					
-			}
-		}
-		return out;
-	}
-	
-	public static Set<GKInstance> getFollowingEventsConnectedOverNegativeRegulation(GKInstance reaction, GKInstance entity) throws Exception {
-		Collection followingEvents = reaction.getReferers(ReactomeJavaConstants.precedingEvent);
-		List instructions1 = new ArrayList();
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.ReactionlikeEvent, new String[]{ReactomeJavaConstants.catalystActivity}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.CatalystActivity, new String[]{}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.NegativeRegulation, new String[]{ReactomeJavaConstants.regulator}, new String[]{}));
-		String[] outClasses = new String[]{ReactomeJavaConstants.PhysicalEntity};
-		Set<GKInstance> out = new HashSet<GKInstance>();
-		if (followingEvents != null) {
-			for (Iterator it = followingEvents.iterator(); it.hasNext();) {
-				GKInstance followingEvent = (GKInstance)it.next();
-				if (!followingEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-					continue;
-				Set s = InstanceUtilities.followInstanceAttributes(followingEvent, instructions1, outClasses);
-				if (s.contains(entity)) {
-					out.add(followingEvent);
-					continue;
-				}					
-			}
-		}
-		return out;
-	}
-
-	public static Set<GKInstance> getFollowingEventsConnectedOverPositiveRegulation(GKInstance reaction, GKInstance entity) throws Exception {
-		Collection followingEvents = reaction.getReferers(ReactomeJavaConstants.precedingEvent);
-		List instructions1 = new ArrayList();
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.ReactionlikeEvent, new String[]{ReactomeJavaConstants.catalystActivity}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.CatalystActivity, new String[]{}, new String[]{ReactomeJavaConstants.regulatedEntity}));
-		instructions1.add(new ClassAttributeFollowingInstruction(ReactomeJavaConstants.PositiveRegulation, new String[]{ReactomeJavaConstants.regulator}, new String[]{}));
-		String[] outClasses = new String[]{ReactomeJavaConstants.PhysicalEntity};
-		Set<GKInstance> out = new HashSet<GKInstance>();
-		if (followingEvents != null) {
-			for (Iterator it = followingEvents.iterator(); it.hasNext();) {
-				GKInstance followingEvent = (GKInstance)it.next();
-				if (!followingEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-					continue;
-				Set s = InstanceUtilities.followInstanceAttributesStrictly(followingEvent, instructions1, outClasses);
-				if (s.contains(entity)) {
-					out.add(followingEvent);
-					continue;
-				}					
-			}
-		}
-		return out;
-	}
 	
 	public static String findShortestName(GKInstance entity) throws Exception {
 		if (entity.getSchemClass().isValidAttribute(ReactomeJavaConstants.shortName)) {
@@ -228,7 +170,6 @@ public class Utils {
 		}
 		return shortest;
 	}
-	
 	
 	public static GKInstance grepCollectionForSetMemberOrContainingSets (Collection<GKInstance> entityCollection, GKInstance entity) throws Exception {
 		List<ClassAttributeFollowingInstruction> instructions = new ArrayList<ClassAttributeFollowingInstruction>();

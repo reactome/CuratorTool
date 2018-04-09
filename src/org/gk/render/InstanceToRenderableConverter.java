@@ -14,6 +14,7 @@ import java.util.Map;
 
 import org.gk.model.DatabaseIdentifier;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.Modification;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.model.Reference;
@@ -136,41 +137,41 @@ public class InstanceToRenderableConverter {
         //if (instance.getSchemClass().isValidAttribute("regulation")) {
         //  List regulation = instance.getAttributeValuesList("regulation");
         // Use referrers to get the regulated entity.
-        Collection regulation = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
-            if (regulation != null && regulation.size() > 0) {
-                java.util.List inhibitors = new ArrayList();
-                java.util.List activators = new ArrayList();
-                for (Iterator it = regulation.iterator(); it.hasNext();) {
-                    GKInstance instance1 = (GKInstance)it.next();
-                    GKInstance regulator = (GKInstance)instance1.getAttributeValue("regulator");
-                    if (regulator == null || !regulator.getSchemClass().isa("PhysicalEntity"))
-                        continue;
-                    Renderable modulator = convertToNode(regulator, needProp, convertedMap);
-                    if (instance1.getSchemClass().isa("NegativeRegulation")) { // Inhibitor
-                        inhibitors.add(modulator);
-                    }
-                    else if (instance1.getSchemClass().isa("PositiveRegulation")) { // Activator
-                        activators.add(modulator);
-                    }
+        Collection regulation = InstanceUtilities.getRegulations(instance);
+        if (regulation != null && regulation.size() > 0) {
+            java.util.List inhibitors = new ArrayList();
+            java.util.List activators = new ArrayList();
+            for (Iterator it = regulation.iterator(); it.hasNext();) {
+                GKInstance instance1 = (GKInstance)it.next();
+                GKInstance regulator = (GKInstance)instance1.getAttributeValue("regulator");
+                if (regulator == null || !regulator.getSchemClass().isa("PhysicalEntity"))
+                    continue;
+                Renderable modulator = convertToNode(regulator, needProp, convertedMap);
+                if (instance1.getSchemClass().isa("NegativeRegulation")) { // Inhibitor
+                    inhibitors.add(modulator);
                 }
-                // Add to reaction
-                if (inhibitors.size() > 0) {
-                    for (Iterator it = inhibitors.iterator(); it.hasNext();) {
-                        Node inhibitor = (Node)it.next();
-                        reaction.addInhibitor(inhibitor);
-                        node.addComponent(inhibitor);
-                        inhibitor.setContainer(node);
-                    }
-                }
-                if (activators.size() > 0) {
-                    for (Iterator it = activators.iterator(); it.hasNext();) {
-                        Node activator = (Node)it.next();
-                        reaction.addActivator(activator);
-                        node.addComponent(activator);
-                        activator.setContainer(node);
-                    }
+                else if (instance1.getSchemClass().isa("PositiveRegulation")) { // Activator
+                    activators.add(modulator);
                 }
             }
+            // Add to reaction
+            if (inhibitors.size() > 0) {
+                for (Iterator it = inhibitors.iterator(); it.hasNext();) {
+                    Node inhibitor = (Node)it.next();
+                    reaction.addInhibitor(inhibitor);
+                    node.addComponent(inhibitor);
+                    inhibitor.setContainer(node);
+                }
+            }
+            if (activators.size() > 0) {
+                for (Iterator it = activators.iterator(); it.hasNext();) {
+                    Node activator = (Node)it.next();
+                    reaction.addActivator(activator);
+                    node.addComponent(activator);
+                    activator.setContainer(node);
+                }
+            }
+        }
         //}
         // The point is set arbitrarily
         reaction.layout(new Point(250, 200));

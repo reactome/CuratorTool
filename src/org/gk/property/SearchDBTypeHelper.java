@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.*;
 import org.gk.schema.SchemaClass;
@@ -123,7 +124,7 @@ public class SearchDBTypeHelper {
                 }
             }
             // Inhibitors
-            Collection regulations = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+            Collection regulations = InstanceUtilities.getRegulations(instance);
             if (regulations != null && regulations.size() > 0) {
                 for (Iterator it = regulations.iterator(); it.hasNext();) {
                     GKInstance regulation = (GKInstance) it.next();

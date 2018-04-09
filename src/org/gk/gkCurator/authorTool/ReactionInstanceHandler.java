@@ -112,7 +112,7 @@ public class ReactionInstanceHandler extends InstanceHandler {
                 reaction.addHelper(catalystNode);
             }
         }
-        Collection regulations = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+        Collection<GKInstance> regulations = InstanceUtilities.getRegulations(instance);
         if (regulations != null) {
             for (Iterator it = regulations.iterator(); it.hasNext();) {
                 GKInstance regulation = (GKInstance) it.next();

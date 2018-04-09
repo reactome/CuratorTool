@@ -212,10 +212,10 @@ public class PathwayDiagramXMLGenerator {
     
     @Test
     public void testGenerateXMLForPathwayDigram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_012218",
-                                            "root",
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
+                                            "test_slice_64",
+                                            "",
+                                            "");
         // EGFR Pathway diagram
         Long pathwayId = 177929L;
         // PIP3 signaling
@@ -224,6 +224,12 @@ public class PathwayDiagramXMLGenerator {
         pathwayId = 69239L;
         
         pathwayId = 6802955L;
+        
+        pathwayId = 5619099L;
+        
+        pathwayId = 2453864L;
+        
+        pathwayId = 376176L;
         
         GKInstance pathway = dba.fetchInstance(pathwayId);
         GKInstance pdInst = fetchPathwayDiagram(pathway);

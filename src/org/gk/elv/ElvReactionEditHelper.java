@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.JOptionPane;
 
@@ -23,6 +24,7 @@ import org.gk.gkCurator.authorTool.ReactionInstanceHandler;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -54,13 +56,17 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             validateDisplayedInputs(reaction, instance);
             validateDisplayedOutputs(reaction, instance);
             validateDisplayedCatalysts(reaction, instance);
-            validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.PositiveRegulation);
-            validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.NegativeRegulation);
+            validateDisplayedRegulations(reaction, instance);
         }
         catch(Exception e) {
-            System.err.println("ElvReactionEditHelper.validte(): " + e);
+            System.err.println("ElvReactionEditHelper.validate(): " + e);
             e.printStackTrace();
         }
+    }
+
+    protected void validateDisplayedRegulations(RenderableReaction reaction, GKInstance instance) throws Exception {
+        validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.PositiveRegulation);
+        validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.NegativeRegulation);
     }
     
     private void validateDisplayedInputs(RenderableReaction reaction,
@@ -275,15 +281,10 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
     
     private List<GKInstance> getRegulation(GKInstance reaction,
                                            String clsName) throws Exception {
-        List<GKInstance> list = new ArrayList<GKInstance>();
-        Collection instances = zoomableEditor.getXMLFileAdaptor().fetchInstancesByClass(clsName);
-        for (Iterator it = instances.iterator(); it.hasNext();) {
-            GKInstance regulation = (GKInstance) it.next();
-            GKInstance regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
-            if (regulatedEntity == reaction)
-                list.add(regulation);
-        }
-        return list;
+        Collection<GKInstance> regulations = InstanceUtilities.getRegulations(reaction);
+        if (regulations == null || regulations.size() == 0)
+            return new ArrayList<>();
+        return regulations.stream().filter(r -> r.getSchemClass().isa(clsName)).collect(Collectors.toList());
     }
     
     private void validateRegulations(RenderableReaction reaction,
@@ -642,7 +643,16 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                 validateDisplayedCatalysts(reaction, instance);
             }
             catch(Exception e) {
-                System.err.println("ElvReactionEditHelper.validateDisplayedLinkedNodes(): " + e);
+                System.err.println("ElvReactionEditHelper.validateDisplayedLinkedNodes() 1: " + e);
+                e.printStackTrace();
+            }
+            return;
+        }
+        if (attName.equals(ReactomeJavaConstants.regulatedBy)) {
+            try {
+                validateDisplayedRegulations(reaction, instance);
+            } catch (Exception e) {
+                System.err.println("ElvReactionEditHelper.validateDisplayedLinkedNodes() 2: " + e);
                 e.printStackTrace();
             }
             return;

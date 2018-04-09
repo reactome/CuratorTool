@@ -154,7 +154,7 @@ public class SlicingQualityAssay {
     public void validateStableIds(PrintStream output) throws Exception {
         logger.info("validateStableIds()...");
         StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
-        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds();
+        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds(sourceDBA);
         output.println("StableIdentifier checking...");
         int count = 0;
         for (Long dbId : sliceMap.keySet()) {

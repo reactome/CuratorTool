@@ -233,17 +233,24 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         List cases = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
         if (cases != null)
             checkOutInstances.addAll(cases);
-        if (qaHelper.getCachedRegulations() == null) {
-            SchemaClass regulationCls = dataSource.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
-            Collection regulations = dataSource.fetchInstancesByClass(regulationCls);
-            qaHelper.setCachedRegulations(regulations);
+        if (reaction.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+            List<GKInstance> regulatedBy = reaction.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+            if (regulatedBy != null)
+                checkOutInstances.addAll(regulatedBy);
         }
-        // Check if any regulations should be checked out
-        for (Iterator it = qaHelper.getCachedRegulations().iterator(); it.hasNext();) {
-            GKInstance regulation = (GKInstance) it.next();
-            GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
-            if (regulated == reaction)
-                checkOutInstances.add(regulation);
+        else {
+            if (qaHelper.getCachedRegulations() == null) {
+                SchemaClass regulationCls = dataSource.getSchema().getClassByName(ReactomeJavaConstants.Regulation);
+                Collection regulations = dataSource.fetchInstancesByClass(regulationCls);
+                qaHelper.setCachedRegulations(regulations);
+            }
+            // Check if any regulations should be checked out
+            for (Iterator it = qaHelper.getCachedRegulations().iterator(); it.hasNext();) {
+                GKInstance regulation = (GKInstance) it.next();
+                GKInstance regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+                if (regulated == reaction)
+                    checkOutInstances.add(regulation);
+            }
         }
     }
     
