@@ -257,7 +257,14 @@ public class InstanceUtilities {
 	 */
 	public static Map<SchemaClass, List<GKInstance>> listDownloadableInstances(GKInstance instance) throws Exception {
 	    Map<SchemaClass, List<GKInstance>> rtn = new HashMap<SchemaClass, List<GKInstance>>();
-	    SchemaClass cls = instance.getSchemClass();
+	    listDownloadableInstances(instance, rtn);
+	    return rtn;
+	}
+
+
+    private static void listDownloadableInstances(GKInstance instance, Map<SchemaClass, List<GKInstance>> rtn)
+            throws Exception {
+        SchemaClass cls = instance.getSchemClass();
 	    addToSchemaMap(instance, rtn);
 	    for (Iterator it = cls.getAttributes().iterator(); it.hasNext();) {
 	        SchemaAttribute att = (SchemaAttribute) it.next();
@@ -269,13 +276,17 @@ public class InstanceUtilities {
 	            continue;
 	        for (Iterator it1 = values.iterator(); it1.hasNext();) {
 	            GKInstance value = (GKInstance) it1.next();
+	            // For updating _displayName of Regulations
+	            if (att.getName().equals(ReactomeJavaConstants.regulatedBy)) {
+	                listDownloadableInstances(value, rtn);
+	                continue;
+	            }
 	            // All values will be checked out as shell instances
 	            value.setIsShell(true);
 	            addToSchemaMap(value, rtn);
 	        }
 	    }
-	    return rtn;
-	}
+    }
 	
 	private static void addToSchemaMap(GKInstance instance,
 	                            Map<SchemaClass, List<GKInstance>> schemaMap) {
@@ -369,11 +380,8 @@ public class InstanceUtilities {
 	        Collection<GKInstance> c = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
 	        if (c != null && c.size() > 0)
 	            regulated = c.iterator().next();
-	    }
-	    if (regulated != null)
-	        return regulated;
-	    // Do another check
-	    if (regulation.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
+	    } // For the model prior to the migration 
+	    else if (regulation.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedEntity)) {
 	        regulated = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
 	    }
 	    return regulated;
