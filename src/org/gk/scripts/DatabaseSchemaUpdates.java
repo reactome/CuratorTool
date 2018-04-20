@@ -21,7 +21,7 @@ public class DatabaseSchemaUpdates {
     
     public static void main(String[] args) throws Exception {
         if (args.length != 3) {
-            System.err.print("Provide three arguments: dbName, dbUser, and dbPwd!");
+            System.err.println("Provide three arguments: dbName, dbUser, and dbPwd!");
             return;
         }
         DatabaseSchemaUpdates updater = new DatabaseSchemaUpdates();
