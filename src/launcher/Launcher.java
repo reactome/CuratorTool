@@ -25,7 +25,6 @@ import java.util.zip.ZipEntry;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -231,7 +230,7 @@ public class Launcher {
 	public void update(Component parentComp) {
 	    // Just use a very simple approach
 	    try {
-            BrowserLauncher.displayURL("http://reactomedev.oicr.on.ca/download/tools/curatorTool/install.htm",
+            BrowserLauncher.displayURL("https://www.reactome.org/download/tools/curatorTool/install.htm",
                                        parentComp);
         }
         catch (IOException e) {
