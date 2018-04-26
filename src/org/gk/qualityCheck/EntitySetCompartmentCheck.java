@@ -5,6 +5,7 @@
 package org.gk.qualityCheck;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -29,12 +30,44 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
         };
     }
     
+    @Override
+    protected String getIssueTitle() {
+        return "ExtraCompartmentsInEntitySetOrMembers";
+    }
+    
+    @Override
+    protected String getIssue(GKInstance container) throws Exception {
+        Set<GKInstance> contained = getAllContainedEntities(container);
+        Set<GKInstance> containedCompartments = getContainedCompartments(contained);
+        if (containedCompartments.size() > 2)
+            return "More than two compartments in members";
+        List<GKInstance> containerCompartments = container.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        Set<GKInstance> shared = new HashSet<GKInstance>(containedCompartments);
+        shared.retainAll(containerCompartments);
+        containedCompartments.removeAll(shared);
+        containerCompartments.removeAll(shared);
+        StringBuilder builder = new StringBuilder();
+        if (containerCompartments.size() > 0) {
+            builder.append("EntitySet:");
+            containerCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        if (containedCompartments.size() > 0) {
+            if (builder.length() > 0)
+                builder.append("; ");
+            builder.append("Members:");
+            containedCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        return builder.toString();
+    }
+    
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         // Need to load all complexes in case some complexes are used by complexes for checking
         Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
-        
-        progressPane.setText("Load PhysicalEntity compartment...");
+        if (progressPane != null)
+            progressPane.setText("Load PhysicalEntity compartment...");
         loadAttributes(toBeLoaded,
                        ReactomeJavaConstants.PhysicalEntity, 
                        ReactomeJavaConstants.compartment,
@@ -71,7 +104,7 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
     }
     
     protected void grepCheckOutInstances(GKInstance complex,
-                                              Set checkOutInstances) throws Exception {
+                                         Set checkOutInstances) throws Exception {
         Set components = getAllContainedEntities(complex);
         checkOutInstances.addAll(components);
     }

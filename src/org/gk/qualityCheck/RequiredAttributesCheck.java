@@ -7,6 +7,7 @@ package org.gk.qualityCheck;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -68,7 +69,6 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         this.checkedTypeLabel = label;
     }
     
-    
     public void checkProject(final GKInstance event) {
         validateDataSource();
         Thread t = new Thread() {
@@ -94,6 +94,38 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         t.start();
     }
     
+    @Override
+    @SuppressWarnings("unchecked")
+    public QAReport checkInCommand() throws Exception {
+        QAReport report = super.checkInCommand();
+        if (report == null)
+            return null; 
+        MySQLAdaptor dba = (MySQLAdaptor) dataSource; // This should be enforced in the super method.
+        // The following statements are basically modified from check() by removing
+        // all GUIs related stuff.
+        Schema schema = dba.getSchema();
+        GKSchemaClass rootCls = (GKSchemaClass) ((GKSchema)schema).getRootClass();
+        Collection<GKSchemaClass> classes = rootCls.getSubClasses();
+        for (SchemaClass cls : classes) {
+            Collection<GKInstance> instances = dba.fetchInstancesByClass(cls);
+            escapeInstancesWithNumber(instances);
+            loadAttributes(instances, dba);
+            for (GKInstance instance : instances) {
+                String output = checkRequiredAttsInText(instance);
+                if (output == null)
+                    continue;
+                GKInstance lastIE = InstanceUtilities.getLatestIEFromInstance(instance);
+                report.addLine(instance.getDBID().toString(),
+                               instance.getDisplayName(),
+                               instance.getSchemClass().getName(),
+                               output,
+                               lastIE == null ? "" : lastIE.getDisplayName());
+            }
+        }
+        report.setColumnHeaders("DB_ID", "DisplayName", "SchemaClass", "NullAttributes", "LastAuthor");
+        return report; 
+    }
+
     public void check() {
         validateDataSource();
         if (!checkIsNeedEscape())
@@ -306,6 +338,27 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
             }
         }
         return true;
+    }
+    
+    private String checkRequiredAttsInText(GKInstance instance) throws Exception {
+        if (instance.isShell())
+            return null;
+        StringBuilder builder = null;
+        for (Object obj : instance.getSchemaAttributes()) {
+            SchemaAttribute att = (SchemaAttribute) obj;
+            if (att.getCategory() == checkedType) {
+                if (instance.getAttributeValue(att) != null)
+                    continue;
+                if (builder == null)
+                    builder = new StringBuilder();
+                else
+                    builder.append("|");
+                builder.append(att.getName());
+            }
+        }
+        if (builder == null)
+            return null;
+        return builder.toString();
     }
     
     public void check(GKInstance instance) {

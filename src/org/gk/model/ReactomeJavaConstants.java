@@ -111,6 +111,7 @@ public class ReactomeJavaConstants {
     public static final String inferredTo = "inferredTo";
     public static final String catalystActivity = "catalystActivity";
     public static final String species = "species";
+    public static final String relatedSpecies = "relatedSpecies";
     public static final String concurrentEvents = "concurrentEvents";
     public static final String hasDomain = "hasDomain";
     public static final String changedInstanceDB_ID = "changedInstanceDB_ID";

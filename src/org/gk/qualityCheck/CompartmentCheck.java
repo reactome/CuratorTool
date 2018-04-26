@@ -41,6 +41,11 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
         return checkCompartment(instance);
     }
 
+    @Override
+    protected String getIssue(GKInstance instance) throws Exception {
+        return null;
+    }
+
     /**
      * The class specific way to check compartment values.
      * @param containedCompartments
@@ -102,6 +107,15 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
             return true;
         // Get the compartment setting: compartments should be a list since
         // it is used as a multiple value attribute.
+        Set containedCompartments = getContainedCompartments(contained);
+        List containerCompartments = container.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        // To make compare easier
+        if (containerCompartments == null)
+            containerCompartments = EMPTY_LIST;
+        return compareCompartments(containedCompartments, containerCompartments);
+    }
+    
+    protected Set<GKInstance> getContainedCompartments(Set<GKInstance> contained) throws Exception {
         Set containedCompartments = new HashSet();
         for (Iterator it = contained.iterator(); it.hasNext();) {
             GKInstance comp = (GKInstance) it.next();
@@ -109,11 +123,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
             if (compartments != null)
                 containedCompartments.addAll(compartments);
         }
-        List containerCompartments = container.getAttributeValuesList(ReactomeJavaConstants.compartment);
-        // To make compare easier
-        if (containerCompartments == null)
-            containerCompartments = EMPTY_LIST;
-        return compareCompartments(containedCompartments, containerCompartments);
+        return containedCompartments;
     }
     
 }

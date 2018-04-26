@@ -166,20 +166,24 @@ public class QAEscapeHelper {
      * @param file
      * @throws IOException
      */
-    private void openEscapeList(File file) throws IOException {
+    public void openEscapeList(File file) throws IOException {
         FileUtilities fu = new FileUtilities();
         fu.setInput(file.getAbsolutePath());
         String line = null;
         escapedDbIds = new HashSet<Long>();
         while ((line = fu.readLine()) != null) {
+            if (line.startsWith("#"))
+                continue; // Escape comment line
             String[] tokens = line.split("\t");
-            escapedDbIds.add(new Long(tokens[0]));
+            // Make sure only number will be got
+            if (tokens[0].matches("\\d+"))
+                escapedDbIds.add(new Long(tokens[0]));
         }
         fu.close();
     }
     
     public boolean shouldEscape(GKInstance inst) {
-        if (!needEscapePermissioin)
+        if (!needEscape)
             return false;
         if (needEscape && escapedDbIds.contains(inst.getDBID())) {
             if (cutoffDate != null) {

@@ -14,6 +14,8 @@ import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 
 /**
+ * Usually an EntitySet should have members having the same type of class (e.g. Complex
+ * or EWAS). But in rare case, it may have different types.
  * @author gwu
  *
  */
@@ -25,9 +27,24 @@ public class EntitySetTypeCheck extends SingleAttributeClassBasedCheck {
         this.followAttributes = new String[]{ReactomeJavaConstants.hasMember,
                                              ReactomeJavaConstants.hasCandidate};
     }
-
+    
+    @Override
+    protected String getIssue(GKInstance instance) throws Exception {
+        Set<GKInstance> contained = getAllContainedEntities(instance);
+        StringBuilder builder = new StringBuilder();
+        contained.forEach(i -> builder.append(i.getDBID()).append(":").append(i.getSchemClass().getName()).append("|"));
+        builder.deleteCharAt(builder.length() - 1);
+        return builder.toString();
+    }
+    
+    @Override
+    protected String getIssueTitle() {
+        return "TypesOfMembers";
+    }
+    
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
+        //TODO: For this check, we may need one layer of members
         Set<GKInstance> contained = getAllContainedEntities(instance);
         // Skip checking for shell instances
         if (containShellInstances(contained))

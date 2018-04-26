@@ -28,14 +28,20 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
         checkAttribute = ""; // For progress pane to avoid null 
     }
     
-    
+    @Override
+    public String getDisplayName() {
+        return "DeletedObjectsInDiagrams";
+    }
 
     @Override
     protected Set<GKInstance> getAllContainedEntities(GKInstance container) throws Exception {
         return new HashSet<GKInstance>();
     }
 
-
+    @Override
+    protected String getIssue(GKInstance instance) throws Exception {
+        return "Deleted Instance in Diagram";
+    }
 
     @Override
     protected void checkOutSelectedInstances(JFrame frame) {
@@ -109,7 +115,8 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         // Need to load all complexes in case some complexes are used by complexes for checking
-        progressPane.setText("Load PathwayDiagram attributes ...");
+        if (progressPane != null)
+            progressPane.setText("Load PathwayDiagram attributes ...");
         loadAttributes(ReactomeJavaConstants.PathwayDiagram, 
                        ReactomeJavaConstants.storedATXML, 
                        dba);

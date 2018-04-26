@@ -36,7 +36,8 @@ public class EntitySetSpeciesCheck extends SpeciesCheck {
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
-        progressPane.setText("Load species...");
+        if (progressPane != null)
+            progressPane.setText("Load species...");
         loadSpeciesAttributeVAlues(toBeLoaded, dba);
     }
     

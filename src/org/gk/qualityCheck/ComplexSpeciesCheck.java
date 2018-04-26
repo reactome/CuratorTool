@@ -43,7 +43,8 @@ public class ComplexSpeciesCheck extends SpeciesCheck {
             return; 
         // No need to load EntitySet's member information. They should be handled
         // by EntitySet species checking.
-        progressPane.setText("Load species...");
+        if (progressPane != null)
+            progressPane.setText("Load species...");
         loadSpeciesAttributeVAlues(toBeLoaded, dba);
     }
     

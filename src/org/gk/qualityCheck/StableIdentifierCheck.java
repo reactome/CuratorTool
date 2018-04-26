@@ -10,9 +10,21 @@ import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.FileInputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -63,6 +75,51 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     public StableIdentifierCheck() {
     }
     
+    @Override
+    public QAReport checkInCommand() throws Exception {
+        QAReport report = super.checkInCommand();
+        if (report == null)
+            return null;
+        // Load cutoff date if any
+        File file = new File("QA_SkipList/StableIdentifierCheck.txt");
+        if (file.exists()) {
+            Properties prop = new Properties();
+            prop.load(new FileInputStream(file));
+            String cutoffDate = prop.getProperty("cutoffDate");
+            if (cutoffDate != null) {
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                escapeHelper.setCutoffDate(df.parse(cutoffDate));
+                escapeHelper.setNeedEscape(true);
+            }
+        }
+        // Perform StableIdentifier check
+        StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
+        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds(dataSource);
+        List<GKInstance> allInstances = grepAllInstances(stidGenerator);
+        loadCreatedAttribute(allInstances);
+        checkCreatedAttribute(allInstances);
+        if (allInstances.size() == 0) {
+            return report;
+        }
+        loadStableIdAttributes(allInstances, stidGenerator);
+        Map<GKInstance, String> instToValidStid = checkStableIds(stidGenerator,
+                                                                 allInstances);
+        // Generate report
+        report.setColumnHeaders("DB_ID", "DisplayName", "Class", "StableIdentifier", "Correct Identifier");
+        List<GKInstance> sortedList = new ArrayList<>(instToValidStid.keySet());
+        InstanceUtilities.sortInstances(sortedList);
+        for (GKInstance inst : sortedList) {
+            String validId = instToValidStid.get(inst);
+            GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            report.addLine(inst.getDBID().toString(),
+                           inst.getDisplayName(),
+                           inst.getSchemClass().getName(),
+                           stableId == null ? "Null" : stableId.getDisplayName(),
+                           validId);
+        }
+        return report;
+    }
+
     @Override
     public void check(GKSchemaClass cls) {
         validateDataSource();
@@ -161,10 +218,11 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         List<GKInstance> allInstances = new ArrayList<GKInstance>();
         for (String clsName : stidClassNames) {
             SchemaClass cls = schema.getClassByName(clsName);
-            progressPane.setText("Loading instances in " + clsName);
+            if (progressPane != null)
+                progressPane.setText("Loading instances in " + clsName);
             Collection<GKInstance> instances = dataSource.fetchInstancesByClass(cls);
             allInstances.addAll(instances);
-            if (progressPane.isCancelled())
+            if (progressPane != null && progressPane.isCancelled())
                 break;
         }
         return allInstances;
@@ -245,7 +303,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         // Load created slot
         if (dataSource instanceof MySQLAdaptor) {
             MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-            progressPane.setText("Loading the created attribute...");
+            if (progressPane != null)
+                progressPane.setText("Loading the created attribute...");
             // Try to use attributes. It seems that there is a problem using String: the value
             // is not loaded actually, or loaded but not registered.
             SchemaAttribute created = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.created);
@@ -268,7 +327,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         if (!(dataSource instanceof MySQLAdaptor))
             return;
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        progressPane.setText("Loading related attributes...");
+        if (progressPane != null)
+            progressPane.setText("Loading related attributes...");
         // Load Stable ids
         // Using SchemaAttribute. Attribute name cannot work
         SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.stableIdentifier);
@@ -336,7 +396,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
 
     private void checkCreatedAttribute(List<GKInstance> allInstances) throws Exception {
-        progressPane.setText("Checking the created attribute...");
+        if (progressPane != null)
+            progressPane.setText("Checking the created attribute...");
         Map<GKInstance, String> instToValidId = new HashMap<GKInstance, String>();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
         for (Iterator<GKInstance> it = allInstances.iterator(); it.hasNext();) {
@@ -359,21 +420,24 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             Date ieDate = df.parse(dateTime);
             if (ieDate.before(escapeHelper.getCutoffDate())) // If this instance was created before the previous release, no need to check its stableIdentifier.
                 it.remove(); // Old instance. Ignore it
-            if (progressPane.isCancelled())
+            if (progressPane != null && progressPane.isCancelled())
                 break;
         }
     }
 
     private Map<GKInstance, String> checkStableIds(StableIdentifierGenerator stidGenerator,
                                                    List<GKInstance> allInstances) throws Exception {
-        progressPane.setText("Checking StableIdentifiers...");
-        progressPane.setIndeterminate(false);
-        progressPane.setMaximum(allInstances.size());
-        progressPane.setValue(0);
+        if (progressPane != null) {
+            progressPane.setText("Checking StableIdentifiers...");
+            progressPane.setIndeterminate(false);
+            progressPane.setMaximum(allInstances.size());
+            progressPane.setValue(0);
+        }
         int count = 0;
         Map<GKInstance, String> instToValidStid = new HashMap<GKInstance, String>();
         for (GKInstance inst : allInstances) {
-            progressPane.setValue(++count);
+            if (progressPane != null)
+                progressPane.setValue(++count);
             String newIdentifier = stidGenerator.generateIdentifier(inst);
             GKInstance stableId = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
             if (stableId == null) {
@@ -385,7 +449,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
             if (newIdentifier.equals(oldIdentifier))
                 continue;
             instToValidStid.put(inst, newIdentifier);
-            if (progressPane.isCancelled())
+            if (progressPane != null && progressPane.isCancelled())
                 break;
         }
         return instToValidStid;

@@ -12,7 +12,16 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -65,6 +74,42 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
     public ImbalanceChecker() {     
     }
     
+    @Override
+    @SuppressWarnings("unchecked")
+    public QAReport checkInCommand() throws Exception {
+        QAReport report = super.checkInCommand();
+        if (report == null)
+            return report;
+        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.Reaction);
+        escapeInstances(reactions);
+        loadAttributes(reactions, reactions.iterator().next());
+        for (GKInstance reaction : reactions) {
+            List<GKInstance> inputEWASes= getEWASFromReaction(reaction, ReactomeJavaConstants.input);
+            List<GKInstance> outputEWASes = getEWASFromReaction(reaction, ReactomeJavaConstants.output);
+            // Need to convert ewas to RefPepSeqes
+            List<GKInstance> inputRefPeps = grepReferenceEntities(inputEWASes);
+            List<GKInstance> outputRefPeps = grepReferenceEntities(outputEWASes);
+            if (!inputRefPeps.equals(outputRefPeps)) {
+                // Check if this reaction is a cleavage one
+                if (checkCleavage(reaction)) {
+                    report.addLine(reaction.getDBID().toString(),
+                            reaction.getDisplayName(),
+                            "Cleavage",
+                            InstanceUtilities.getLatestIEFromInstance(reaction).getDisplayName());
+                }
+                else {
+                    report.addLine(reaction.getDBID().toString(),
+                            reaction.getDisplayName(),
+                            "Imbalance",
+                            InstanceUtilities.getLatestIEFromInstance(reaction).getDisplayName());
+                }
+            }
+        }
+        report.setColumnHeaders("DB_ID", "DisplayName", "ImbalanceOrCleavage", "LastAuthor");
+        return report;
+    }
+
     public void check() {
         validateDataSource();
         if (!checkIsNeedEscape())
@@ -142,22 +187,25 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
         MySQLAdaptor dba = (MySQLAdaptor) reaction.getDbAdaptor();
         Schema schema = dba.getSchema();
         SchemaClass cls = reaction.getSchemClass();
-        progressPane.setText("Load inputs/outputs for Reactions...");
+        if (progressPane != null)
+            progressPane.setText("Load inputs/outputs for Reactions...");
         SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.input);
         dba.loadInstanceAttributeValues(reactions, att);
         att = cls.getAttribute(ReactomeJavaConstants.output);
         dba.loadInstanceAttributeValues(reactions, att);
         // To speed up the performance, here all instances are loaded. In the future,
         // if the database becomes bigger, a server-side application should be used.
-        if (progressPane.isCancelled())
+        if ((progressPane != null) && progressPane.isCancelled())
             return;
-        progressPane.setText("Load attribtues for Complexes...");
+        if (progressPane != null)
+            progressPane.setText("Load attribtues for Complexes...");
         loadAttributes(ReactomeJavaConstants.Complex, 
                        ReactomeJavaConstants.hasComponent, 
                        dba);
-        if (progressPane.isCancelled())
+        if ((progressPane != null) && progressPane.isCancelled())
             return;
-        progressPane.setText("Load attribtues for EntitiSets...");
+        if (progressPane != null)
+            progressPane.setText("Load attribtues for EntitiSets...");
         loadAttributes(ReactomeJavaConstants.EntitySet, 
                        ReactomeJavaConstants.hasMember, 
                        dba);
@@ -178,9 +226,10 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
         }
         cls = schema.getClassByName(ReactomeJavaConstants.EntityWithAccessionedSequence);
         att = cls.getAttribute(ReactomeJavaConstants.referenceEntity);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
-        progressPane.setText("Load attribtues for EWAS...");
+        if (progressPane != null)
+            progressPane.setText("Load attribtues for EWAS...");
         dba.loadInstanceAttributeValues(ewases, att);
         att = cls.getAttribute(ReactomeJavaConstants.hasModifiedResidue);
         dba.loadInstanceAttributeValues(ewases,

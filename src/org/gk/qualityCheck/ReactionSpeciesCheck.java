@@ -55,27 +55,31 @@ public class ReactionSpeciesCheck extends SpeciesCheck {
                                 attNames,
                                 dba,
                                 progressPane);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return ;
-        progressPane.setText("Load CatalystActivity...");
+        if (progressPane != null)
+            progressPane.setText("Load CatalystActivity...");
         loadAttributes(ReactomeJavaConstants.CatalystActivity,
                        ReactomeJavaConstants.physicalEntity,
                        dba);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
         qaHelper.loadRegulations(dba, 
                                  progressPane);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
-        progressPane.setText("Load GenomeEncodedEntity species...");
+        if (progressPane != null)
+            progressPane.setText("Load GenomeEncodedEntity species...");
         loadAttributes(ReactomeJavaConstants.GenomeEncodedEntity, 
                        ReactomeJavaConstants.species, 
                        dba);
-        progressPane.setText("Load Complex species...");
+        if (progressPane != null)
+            progressPane.setText("Load Complex species...");
         loadAttributes(ReactomeJavaConstants.Complex, 
                        ReactomeJavaConstants.species, 
                        dba);
-        progressPane.setText("Load EntitySet species...");
+        if (progressPane != null)
+            progressPane.setText("Load EntitySet species...");
         loadAttributes(ReactomeJavaConstants.EntitySet, 
                        ReactomeJavaConstants.species, 
                        dba);

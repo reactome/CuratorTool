@@ -37,7 +37,16 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
-import org.gk.database.*;
+import org.gk.database.AttributeEditEvent;
+import org.gk.database.AttributeEditListener;
+import org.gk.database.AttributeEditManager;
+import org.gk.database.AttributePane;
+import org.gk.database.EventCentricViewPane;
+import org.gk.database.EventCheckOutHandler;
+import org.gk.database.FrameManager;
+import org.gk.database.InstanceListPane;
+import org.gk.database.SchemaViewPane;
+import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
@@ -81,6 +90,32 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     
     protected AbstractQualityCheck() {
         escapeHelper = new QAEscapeHelper();
+    }
+    
+    @Override
+    public String getDisplayName() {
+        return getClass().getSimpleName();
+    }
+    
+    @Override
+    public QAReport checkInCommand() throws Exception {
+        if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
+            return null; // This check will be run for a database only.
+        // Load escape if any
+        File file = new File("QA_SkipList" + File.separator + getClass().getSimpleName() + ".txt");
+        loadSkipList(file);
+        QAReport report = new QAReport();
+        return report; 
+    }
+    
+    protected void loadSkipList(File file) throws IOException {
+        if (!file.exists())
+            return; // Nothing to load
+        escapeHelper.openEscapeList(file);
+        Set<Long> dbIds = escapeHelper.getEscapedDbIds();
+        if (dbIds != null && dbIds.size() > 0) {
+            escapeHelper.setNeedEscape(true);
+        }
     }
     
     public abstract void check();
@@ -495,7 +530,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     protected boolean loadAttributesForQAEscape(Collection<GKInstance> instances) throws Exception {
         if (escapeHelper.isNeedEscape() && dataSource instanceof MySQLAdaptor) {
             // Load instances attribute
-            progressPane.setText("Load created and modified values...");
+            if (progressPane != null)
+                progressPane.setText("Load created and modified values...");
             MySQLAdaptor dba = (MySQLAdaptor) dataSource;
             SchemaClass dbcls = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject);
             dba.loadInstanceAttributeValues(instances, 
@@ -514,6 +550,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
             }
             dbcls = dba.getSchema().getClassByName(ReactomeJavaConstants.InstanceEdit);
             dba.loadInstanceAttributeValues(ies, dbcls.getAttribute(ReactomeJavaConstants.dateTime));
+            if (progressPane == null)
+                return true;
             return !progressPane.isCancelled(); // Return false if it is canceled
         }
         return true;
@@ -534,7 +572,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
             }
         }
         // Show a message
-        if (escaped > 0) {
+        if (escaped > 0 && parentComp != null) {
             String message;
             if (instances.size() == 0)
                 message = "All instances are in the escaped list. No instance will be checked.";

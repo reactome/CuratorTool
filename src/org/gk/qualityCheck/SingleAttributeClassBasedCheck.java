@@ -139,6 +139,45 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
 
     protected abstract boolean checkInstance(GKInstance instance) throws Exception;
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public QAReport checkInCommand() throws Exception {
+        QAReport report = super.checkInCommand();
+        if (report == null)
+            return report;
+        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Collection<GKInstance> instances = dba.fetchInstancesByClass(checkClsName);
+        // Do an escape
+        escapeInstances(instances);
+        if (instances.size() == 0) // Check instances after escape QAs
+            return report;  
+        if (instances.size() > SIZE_TO_LOAD_ATTS) 
+            loadAttributes(instances);
+        for (GKInstance instance : instances) {
+            if (checkInstance(instance)) 
+                continue;
+            report.addLine(instance.getDBID().toString(),
+                    instance.getDisplayName(),
+                    InstanceUtilities.getLatestIEFromInstance(instance).getDisplayName(),
+                    getIssue(instance));
+        }
+        report.setColumnHeaders("DB_ID",
+                "DisplayName",
+                "LastAuthor",
+                getIssueTitle());
+        return report;
+    }
+    
+    /**
+     * Get a String describing the issue of the offended instance.
+     * @return
+     */
+    protected abstract String getIssue(GKInstance instance) throws Exception; 
+    
+    protected String getIssueTitle() {
+        return "Issue";
+    }
+    
     public void check() {
         if (!checkIsNeedEscape())
             return;
@@ -434,11 +473,12 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     protected Set<GKInstance> loadComplexHasComponent(Collection<GKInstance> instances,
                                                       MySQLAdaptor dba) throws Exception {
         // Need to load all complexes in case some complexes are used by complexes for checking
-        progressPane.setText("Load Complex hasComponent...");
+        if (progressPane != null)
+            progressPane.setText("Load Complex hasComponent...");
         loadAttributes(ReactomeJavaConstants.Complex,
                        ReactomeJavaConstants.hasComponent,
                        dba);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return null;
         // Try to do a smart loading by for the selected instances and their contained instances only
         Set<GKInstance> toBeLoaded = new HashSet<GKInstance>();
@@ -456,7 +496,8 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     protected Set<GKInstance> loadEntitySetMembers(Collection<GKInstance> instances,
                                                    MySQLAdaptor dba) throws Exception {
         // Need to load all complexes in case some complexes are used by complexes for checking
-        progressPane.setText("Load EntitySet attribute...");
+        if (progressPane != null)
+            progressPane.setText("Load EntitySet attribute...");
         loadAttributes(instances,
                        ReactomeJavaConstants.EntitySet, 
                        ReactomeJavaConstants.hasMember, 

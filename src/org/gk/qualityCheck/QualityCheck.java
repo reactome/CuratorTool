@@ -18,6 +18,19 @@ import org.gk.schema.GKSchemaClass;
  *
  */
 public interface QualityCheck {
+    
+    /**
+     * Check the whole database and generate a report. This method is designed so that
+     * a QualityCheck can be run in a command line without GUIs.
+     * @return
+     */
+    public QAReport checkInCommand() throws Exception;
+    
+    /**
+     * Show a short description about the goal of this QualityCheck.
+     * @return
+     */
+    public String getDisplayName();
 
     /**
      * Check the data in the specify data source. The output should be handled

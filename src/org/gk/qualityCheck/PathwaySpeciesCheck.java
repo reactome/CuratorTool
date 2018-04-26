@@ -48,7 +48,8 @@ public class PathwaySpeciesCheck extends SpeciesCheck {
             throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         // Need to load all complexes in case some complexes are used by complexes for checking
-        progressPane.setText("Load Pathway attribute...");
+        if (progressPane != null)
+            progressPane.setText("Load Pathway attribute...");
         loadAttributes(ReactomeJavaConstants.Pathway, 
                        ReactomeJavaConstants.hasEvent, 
                        dba);
@@ -61,7 +62,8 @@ public class PathwaySpeciesCheck extends SpeciesCheck {
             Set<GKInstance> contained = InstanceUtilities.getContainedEvents(pathway);
             toBeLoaded.addAll(contained);
         }
-        progressPane.setText("Load Event species...");
+        if (progressPane != null)
+            progressPane.setText("Load Event species...");
         loadAttributes(toBeLoaded,
                        ReactomeJavaConstants.Event,
                        ReactomeJavaConstants.species,

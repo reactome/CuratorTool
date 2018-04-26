@@ -71,9 +71,10 @@ public class ReactionQACheckHelper {
                                   ProgressPane progressPane) throws Exception {
         for (int i = 0; i < attNames.length; i++) {
             SchemaAttribute att = cls.getAttribute(attNames[i]);
-            progressPane.setText("Load " + cls.getName() + " " + attNames[i] + "...");
+            if (progressPane != null)
+                progressPane.setText("Load " + cls.getName() + " " + attNames[i] + "...");
             dba.loadInstanceAttributeValues(instances, att);
-            if (progressPane.isCancelled())
+            if (progressPane != null && progressPane.isCancelled())
                 return;
         }
     }

@@ -52,6 +52,11 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         qaHelper = new ReactionQACheckHelper();
     }
     
+    @Override
+    protected String getIssueTitle() {
+        return "CompartmentUsageIssue";
+    }
+    
     protected List getAllowedRxtEntityCompartments() throws IOException {
         if (allowedRxtEntityCompartments == null) {
             // Need to load
@@ -80,6 +85,77 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
     protected Set<GKInstance> filterInstancesForProject(Set<GKInstance> instances) {
         return filterInstancesForProject(instances, ReactomeJavaConstants.Reaction);
     }
+    
+    /**
+     * The code in this method is modified from compareCompartments(Set, List).
+     */
+    @Override
+    protected String getIssue(GKInstance reaction) throws Exception {
+        Set<GKInstance> contained = getAllContainedEntities(reaction);
+        Set<GKInstance> containedCompartments = getContainedCompartments(contained);
+        if (containedCompartments.size() > 2)
+            return "More than 2 compartments in participants";
+        List<GKInstance> reactionCompartments = reaction.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        if (reactionCompartments.size() == 0)
+            return "No reaction compartment";
+        if (reactionCompartments.size() > 2)
+            return "More than 2 compartments in reaction";
+        if (containedCompartments.size() == 2) {
+            // Check if these two compartments are adjacent
+            if (!isAdjacent(containedCompartments))
+                return "Participants' two compartments are not adjacent";
+            Iterator<GKInstance> it = containedCompartments.iterator();
+            GKInstance compartment1 = it.next();
+            GKInstance compartment2 = it.next();
+            if (reactionCompartments.size() == 1) {
+                GKInstance reactionCompartment = (GKInstance) reactionCompartments.get(0);
+                // Need to check if reactionCompartemnt is a container of compartment1 and compartment2
+                Set containers1 = getAllContainers(compartment1);
+                Set containers2 = getAllContainers(compartment2);
+                if (!containers1.contains(reactionCompartment) ||
+                    !containers2.contains(reactionCompartment))
+                    return "Reaction's compartment doesn't contain participants' compartments";
+            }
+            else if (reactionCompartments.size() == 2) {
+                GKInstance rxtCompt1 = (GKInstance) reactionCompartments.get(0);
+                GKInstance rxtCompt2 = (GKInstance) reactionCompartments.get(1);
+                if (!checkTwoReactionAndTwoEntityCompartments(compartment1, 
+                        compartment2, 
+                        rxtCompt1,
+                        rxtCompt2))
+                    return "Reaction's compartments don't contain participants' compartments";
+            }
+        }
+        else if (containedCompartments.size() == 1) {
+            GKInstance entityCompt = (GKInstance) containedCompartments.iterator().next();
+            if (reactionCompartments.size() != 1)
+                return "One participant compartment but more than one reaction compartment";
+            GKInstance rxtCompt = (GKInstance) reactionCompartments.get(0);
+            Set containers = getAllContainers(entityCompt);
+            containers.add(entityCompt); // These two compartments can be the same.
+            if (!containers.contains(rxtCompt)) {
+                // Some specical cases are allowed
+                List allowedCases = getAllowedRxtEntityCompartments();
+                String key = rxtCompt.getDBID() + "," + entityCompt.getDBID();
+                if (!allowedCases.contains(key))
+                    return "Reaction's compartment doesn't contain participants' compartment";
+            }
+        }
+        return "";
+    }
+    
+    private boolean isAdjacent(Collection<GKInstance> compartments) {
+        // Check if these two compartments are adjacent
+        Iterator<GKInstance> it = compartments.iterator();
+        GKInstance compartment1 = it.next();
+        GKInstance compartment2 = it.next();
+        Map<Long, List<Long>> neighborMap = getNeighbors();
+        List<Long> neighbor = neighborMap.get(compartment1.getDBID());
+        if (neighbor == null ||
+            !neighbor.contains(compartment2.getDBID()))
+            return false; // These two compartments are not adjacent. A wrong case!
+        return true;
+    }
 
     protected boolean compareCompartments(Set containedCompartments,
                                           List containerCompartments) throws Exception {
@@ -87,18 +163,14 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
             containerCompartments.size() > 2)
             return false;
         if (containedCompartments.size() == 2) {
-            // Check if these two compartments are adjacent
-            Iterator it = containedCompartments.iterator();
-            GKInstance compartment1 = (GKInstance) it.next();
-            GKInstance compartment2 = (GKInstance) it.next();
-            Map neighborMap = getNeighbors();
-            List neighbor = (List) neighborMap.get(compartment1.getDBID());
-            if (neighbor == null ||
-                !neighbor.contains(compartment2.getDBID()))
+            if (!isAdjacent(containedCompartments))
                 return false; // These two compartments are not adjacent. A wrong case!
             // Check how many compartments in the reaction
             if (containerCompartments.size() == 0)
                 return false; // Nothing is assigned
+            Iterator<GKInstance> it = containedCompartments.iterator();
+            GKInstance compartment1 = it.next();
+            GKInstance compartment2 = it.next();
             if (containerCompartments.size() == 1) {
                 GKInstance reactionCompartment = (GKInstance) containerCompartments.get(0);
                 // Need to check if reactionComartemnt is a container of compartment1 and compartment2
@@ -193,28 +265,31 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
                                 attNames,
                                 dba,
                                 progressPane);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return ;
-        progressPane.setText("Load CatalystActivity...");
+        if (progressPane != null)
+            progressPane.setText("Load CatalystActivity...");
         loadAttributes(ReactomeJavaConstants.CatalystActivity,
                        ReactomeJavaConstants.physicalEntity,
                        dba);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
         qaHelper.loadRegulations(dba, 
                                  progressPane);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
         // Need componentOf information
-        progressPane.setText("Load Compartment componentOf...");
+        if (progressPane != null)
+            progressPane.setText("Load Compartment componentOf...");
         loadAttributes(ReactomeJavaConstants.Compartment,
                        ReactomeJavaConstants.componentOf,
                        dba);
-        if (progressPane.isCancelled())
+        if (progressPane != null && progressPane.isCancelled())
             return;
         // No need to load EntitySet's component information. They should be handled
         // by EntitySet compartment checking.
-        progressPane.setText("Load PhysicalEntity compartment...");
+        if (progressPane != null)
+            progressPane.setText("Load PhysicalEntity compartment...");
         loadAttributes(ReactomeJavaConstants.PhysicalEntity, 
                        ReactomeJavaConstants.compartment, 
                        dba);

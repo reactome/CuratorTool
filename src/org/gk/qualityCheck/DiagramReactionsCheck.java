@@ -54,6 +54,26 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
         Set<Long> missingRxtIds = getMissingReactionIds(diagram, pathway);
         System.out.println("Total missing ids: " + missingRxtIds.size());
     }
+    
+    @Override
+    public String getDisplayName() {
+        return "MissingReactionsInDiagrams";
+    }
+    
+    @Override
+    protected String getIssue(GKInstance instance) throws Exception {
+        GKInstance pathway = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
+        Set<Long> missingRxtIds = getMissingReactionIds(instance, pathway);
+        StringBuilder builder = new StringBuilder();
+        missingRxtIds.forEach(id -> builder.append(","));
+        builder.deleteCharAt(builder.length() - 1);
+        return builder.toString();
+    }
+    
+    @Override
+    protected String getIssueTitle() {
+        return "IDsOfReactionsMissingInDiagrams";
+    }
 
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
@@ -122,7 +142,8 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
         SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.representedPathway);
         dba.loadInstanceAttributeValues(instances, att);
-        progressPane.setText("Load Events and their attributes...");
+        if (progressPane != null)
+            progressPane.setText("Load Events and their attributes...");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.Pathway);
         cls = dba.getSchema().getClassByName(ReactomeJavaConstants.Pathway);
         att = cls.getAttribute(ReactomeJavaConstants.hasEvent);
