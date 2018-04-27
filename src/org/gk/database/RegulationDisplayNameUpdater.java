@@ -30,7 +30,7 @@ public class RegulationDisplayNameUpdater implements AttributeEditListener {
     
     @Override
     public void attributeEdit(AttributeEditEvent e) {
-        if (!e.getAttributeName().equals(ReactomeJavaConstants.regulatedBy))
+        if (!ReactomeJavaConstants.regulatedBy.equals(e.getAttributeName()))
             return;
         // Get the effected RGKInstance        
         List<GKInstance> regulations = null;

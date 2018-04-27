@@ -63,7 +63,6 @@ import org.gk.database.AttributeEditManager;
 import org.gk.database.EventCentricViewPane;
 import org.gk.database.EventPanePopupManager;
 import org.gk.database.FrameManager;
-import org.gk.database.RegulationDisplayNameUpdater;
 import org.gk.database.SchemaViewPane;
 import org.gk.database.StableIdentifierUpdater;
 import org.gk.database.SynchronizationManager;
@@ -97,7 +96,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.2";
-	public static final int BUILD_NUMBER = 90;
+	public static final int BUILD_NUMBER = 91;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -522,9 +521,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		StableIdentifierUpdater stidUpdated = new StableIdentifierUpdater();
 		stidUpdated.setParentComp(this);
 		AttributeEditManager.getManager().addAttributeEditListener(stidUpdated);
-		RegulationDisplayNameUpdater regulationUpdater = new RegulationDisplayNameUpdater();
-		regulationUpdater.setParentComponent(this);
-		AttributeEditManager.getManager().addAttributeEditListener(regulationUpdater);
+		
+//		RegulationDisplayNameUpdater regulationUpdater = new RegulationDisplayNameUpdater();
+//		regulationUpdater.setParentComponent(this);
+//		AttributeEditManager.getManager().addAttributeEditListener(regulationUpdater);
+		
 		// Add actions for converting to the authoring tool.
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getOpenInAuthoringToolAction());
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getExportToAuthoringToolAction());

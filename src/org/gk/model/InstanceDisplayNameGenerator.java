@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
+import org.gk.schema.SchemaClass;
 
 /**
  * A utility class to generate the display name for the GKInstance object. This class 
@@ -71,14 +72,8 @@ public class InstanceDisplayNameGenerator {
                 return generateLiteratureReferenceName(instance);
             
             // The following is for Regulation
-            if (schemaClass.isa(ReactomeJavaConstants.Requirement))
-                return generateRegulationName(instance, "is required for");
-            if (schemaClass.isa(ReactomeJavaConstants.PositiveRegulation))
-                return generateRegulationName(instance, "positively regulates");
-            if (schemaClass.isa(ReactomeJavaConstants.NegativeRegulation))
-                return generateRegulationName(instance, "negatively regulates");
             if (schemaClass.isa(ReactomeJavaConstants.Regulation))
-                return generateRegulationName(instance, "regulates"); // Should not happen
+                return generateRegulationName(instance);
             
             if (clsName.equals("Figure"))
                 return generateFigureName(instance);
@@ -320,6 +315,38 @@ public class InstanceDisplayNameGenerator {
 		return values.get(0).toString();
 	} 
 	
+	/**
+	 * As of April 27, 2018, use this new way to generate _displayName for Regulation,
+	 * which encourage to reuse Regulation for different ReactionlikeEvent if possible.
+	 * @param regulation
+	 * @return
+	 * @throws Exception
+	 */
+	private static String generateRegulationName(GKInstance regulation) throws Exception {
+	    StringBuilder builder = new StringBuilder();
+	    SchemaClass cls = regulation.getSchemClass();
+	    if (cls.isa(ReactomeJavaConstants.NegativeGeneExpressionRegulation))
+	        builder.append("Negative gene expression regulation");
+	    else if (cls.isa(ReactomeJavaConstants.NegativeRegulation))
+	        builder.append("Negative regulation");
+	    else if (cls.isa(ReactomeJavaConstants.PositiveGeneExpressionRegulation))
+	        builder.append("Positive gene expression regulation");
+	    else if (cls.isa(ReactomeJavaConstants.Requirement))
+	        builder.append("Requirement");
+	    else if (cls.isa(ReactomeJavaConstants.PositiveRegulation))
+	        builder.append("Positive regulation");
+	    else
+	        builder.append("Regulation");
+	    builder.append(" by ");
+	    GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+	    if (regulator == null)
+	        builder.append("unknown");
+	    else
+	        builder.append(regulator.getDisplayName());
+	    return builder.toString();
+	}
+	
+	// Leave this method for the time being for debugging though it is not used any more.
 	private static String generateRegulationName(GKInstance instance, String action) throws Exception {
 		StringBuffer buffer = new StringBuffer();
 		java.util.List values = instance.getAttributeValuesList(ReactomeJavaConstants.regulator);
