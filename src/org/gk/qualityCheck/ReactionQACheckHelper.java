@@ -124,6 +124,8 @@ public class ReactionQACheckHelper {
             List<GKInstance> regulators = new ArrayList<GKInstance>();
             for (GKInstance regulation : regulations) {
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+                if (regulator != null)
+                    continue;
                 if (regulator.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
                     regulators.add(regulator);
             }
