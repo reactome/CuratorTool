@@ -33,6 +33,7 @@ import org.gk.model.Bookmark;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.InstanceCache;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PathwayDiagramInstance;
 import org.gk.model.PersistenceAdaptor;
@@ -696,6 +697,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
             instance.setIsInflated(true);
             instance.setIsDirty(true);
             addToClasssMap(instance);
+            // Since different class has different way to generate _displayName,
+            // We need to re-generate _displayName
+            InstanceDisplayNameGenerator.setDisplayName(instance);
             isDirty = true;
             propertyChangeSupport.firePropertyChange("switchType", oldCls, instance);
         }
