@@ -1,3 +1,10 @@
+Build 91 (Version 3.2) notes (April 30, 2018)
+
+Two changes have been done in this release:
+
+1). Bug fix related to null exception for updating an instance from the database.
+2). The way to generate _displayName for Regulation has been changed: Only regulator is used to generated _displayName for Regulation.
+
 Build 90 (Version 3.2) notes (April 18, 2018)
 
 This build mainly is used for the migration of Regulation to ReactionlikeEvent via the new regulatedBy slot. Also in this new build, a bug is fixed related to parse the paper title from auto-fetched PubMed XML.

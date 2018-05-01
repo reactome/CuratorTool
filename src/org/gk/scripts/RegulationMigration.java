@@ -25,7 +25,7 @@ public class RegulationMigration {
     
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
-            System.err.println("Provide four parameters: dbHost, dbName, dbUser, dbPwd, and operation (one of CheckErrors, CheckWarnings, and Migration)");
+            System.err.println("Provide four parameters: dbHost, dbName, dbUser, dbPwd, and operation (one of CheckErrors, CheckWarnings, Migration, UpdateDisplayNames, and DeleteNotReleasedStableIds)");
             System.exit(1);
         }
         MySQLAdaptor dba = new MySQLAdaptor(args[0], args[1], args[2], args[3]);
@@ -43,6 +43,84 @@ public class RegulationMigration {
             // Since they are warnings, the migration can still go ahead
             regulationMigration.checkWarnings(regulations);
             regulationMigration.migrate(dba, regulations);    
+        }
+        else if (args[4].equals("UpdateDisplayNames")) {
+            regulationMigration.updateDisplayNames(regulations, dba);
+        }
+        else if (args[4].equals("DeleteNotReleasedStableIds")) {
+            regulationMigration.deleteNotReleasedStableIds(regulations, dba);
+        }
+    }
+    
+    /**
+     * Delete StableIdentifiers that are used for Regulations but not released.
+     * @param regulations
+     * @param dba
+     * @throws Exception
+     */
+    public void deleteNotReleasedStableIds(Collection<GKInstance> regulations,
+                                           MySQLAdaptor dba) throws Exception {
+        try {
+            dba.startTransaction();
+            int c = 0;
+            // Don't forget to add IE
+            System.out.println("Starting updating Regulations...");
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            for (GKInstance regulation : regulations) {
+                System.out.println("Checking " + regulation + "...");
+                GKInstance stableId = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+                if (stableId == null)
+                    continue;
+                Boolean released = (Boolean) stableId.getAttributeValue(ReactomeJavaConstants.released);
+                if (released != null && released)
+                    continue;
+                System.out.println("Deleting " + stableId);
+                // Delete stable ids
+                regulation.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.stableIdentifier);
+                dba.deleteInstance(stableId);
+                // Update modified
+                regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
+                regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                c ++;
+            }
+            dba.commit();
+            System.out.println("Total deletions: " + c);
+        }
+        catch(Exception e) {
+            System.err.println(e);
+            dba.rollback();
+        }
+    }
+    
+    /**
+     * Update the display names for all Regulations based on regulators only.
+     * @throws Exception
+     */
+    public void updateDisplayNames(Collection<GKInstance> regulations,
+                                   MySQLAdaptor dba) throws Exception {
+        try {
+            dba.startTransaction();
+            // Don't forget to add IE
+            System.out.println("Starting updating Regulations...");
+            int c = 0;
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            for (GKInstance regulation : regulations) {
+                System.out.println("Updating " + regulation + "...");
+                InstanceDisplayNameGenerator.setDisplayName(regulation);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName);
+                regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
+                regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                c ++;
+            }
+            dba.commit();
+            System.out.println("Total updated: " + c);
+        }
+        catch(Exception e) {
+            System.err.println(e);
+            dba.rollback();
         }
     }
     

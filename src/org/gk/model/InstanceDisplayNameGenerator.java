@@ -340,9 +340,9 @@ public class InstanceDisplayNameGenerator {
 	    builder.append(" by ");
 	    GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
 	    if (regulator == null)
-	        builder.append("unknown");
+	        builder.append("\'UNKNOWN\'");
 	    else
-	        builder.append(regulator.getDisplayName());
+	        builder.append("\'" + regulator.getDisplayName() + "\'");
 	    return builder.toString();
 	}
 	
