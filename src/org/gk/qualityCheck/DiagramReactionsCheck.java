@@ -101,7 +101,7 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
         GKInstance event = null;
         for (Long dbId : dbIds) {
             event = dataSource.fetchInstance(dbId);
-            if (event == null) {
+            if (event == null && parentComp != null) {
                 JOptionPane.showMessageDialog(parentComp,
                                               "Instance with DB_ID displayed in " + diagram + "\ncannot be found: " + dbId,
                                               "Null Instance",

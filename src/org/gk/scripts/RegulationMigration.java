@@ -75,7 +75,7 @@ public class RegulationMigration {
                 if (released != null && released)
                     continue;
                 System.out.println("Deleting " + stableId);
-                // Delete stable ids
+                // Delete stable id
                 regulation.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
                 dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.stableIdentifier);
                 dba.deleteInstance(stableId);
@@ -107,6 +107,10 @@ public class RegulationMigration {
             int c = 0;
             GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
             for (GKInstance regulation : regulations) {
+                String displayName = regulation.getDisplayName();
+                String newName = InstanceDisplayNameGenerator.generateDisplayName(regulation);
+                if (displayName.equals(newName))
+                    continue;
                 System.out.println("Updating " + regulation + "...");
                 InstanceDisplayNameGenerator.setDisplayName(regulation);
                 dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName);
