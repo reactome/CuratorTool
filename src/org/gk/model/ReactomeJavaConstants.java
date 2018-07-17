@@ -322,4 +322,11 @@ public class ReactomeJavaConstants {
     
     public static final String containedInPathway = "containedInPathway";
     public static final String regulatedBy = "regulatedBy";
+
+    public static final String checksum = "checksum";
+    public static final String chain = "chain";
+    public static final String hasPart = "hasPart";
+    public static final String regulate = "regulate";
+    public static final String positivelyRegulate = "positivelyRegulate";
+    public static final String negativelyRegulate = "negativelyRegulate";
 }
