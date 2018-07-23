@@ -16,6 +16,8 @@ import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
 
+import org.gk.util.DrawUtilities;
+
 public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderConstants {
     protected Node node;
     protected transient java.util.List textLayouts;
@@ -49,6 +51,45 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     }
 
     protected abstract void renderShapes(Graphics g);
+    
+    protected void renderDrug(Graphics g) {
+        // Want to use a smaller font
+        Font font = g.getFont();
+        Font oldFond = font;
+        font = font.deriveFont(Font.ITALIC + Font.BOLD, font.getSize() - 2);
+        Graphics2D g2 = (Graphics2D) g;
+        Rectangle2D textBounds = font.getStringBounds(DRUG_SYMBOL, g2.getFontRenderContext());
+        // Make sure it is drawn at the bottom right corner
+        Rectangle bounds = node.getBounds();
+        int w = (int)(textBounds.getWidth() + boundsBuffer);
+        int h = (int)(textBounds.getHeight() + boundsBuffer);
+        int x = (int) (bounds.getMaxX() - w);
+        int y = (int) (bounds.getMaxY() - h);
+        
+        // Some shapes for the labeling
+        if (background == null) { 
+            g2.setPaint(DEFAULT_BACKGROUND);
+        }
+        else {
+            g2.setPaint(background);
+        }
+        g2.fillRect(x, y, w, h);
+        setDrawPaintAndStroke(g2);
+        g2.drawRect(x, y, w, h);
+        
+        // Draw the drug label
+        g2.setFont(font);
+        Color oldColor = g2.getColor();
+        g2.setColor(node.getForegroundColor());
+        DrawUtilities.drawString(DRUG_SYMBOL,
+                x,
+                y,
+                w,
+                h,
+                g2);
+        g2.setFont(oldFond);
+        g2.setColor(oldColor);
+    }
     
     protected void setDrawPaintAndStroke(Graphics2D g2) {
         // Set line color first

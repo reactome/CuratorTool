@@ -38,7 +38,7 @@ import org.jdom.xpath.XPath;
  */
 public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFiller {
     // XML download site in the uniprot web site
-    private static String UNIPROT_DOWNLOAD_URL = "http://www.uniprot.org/uniprot/";
+    private static String UNIPROT_DOWNLOAD_URL = "https://www.uniprot.org/uniprot/";
     private static String UNIPROT_XML_FORMAT = ".xml";
     private static String UNIPROT_FLAT_FORMAT = ".txt";
     // This instance handled by this object

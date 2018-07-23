@@ -178,11 +178,15 @@ public class SearchDBTypeHelper {
         SchemaClass cls = entity.getSchemClass();
         if (cls.isa(ReactomeJavaConstants.Complex))
             return RenderableComplex.class;
-        else if (cls.isa(ReactomeJavaConstants.SimpleEntity) || cls.isa(ReactomeJavaConstants.ChemicalDrug))
+        else if (cls.isa(ReactomeJavaConstants.SimpleEntity))
             return RenderableChemical.class;
-        else if (cls.isa(ReactomeJavaConstants.EntityWithAccessionedSequence) ||
-                 cls.isa(ReactomeJavaConstants.ProteinDrug) ||
-                 cls.isa(ReactomeJavaConstants.RNADrug)) {
+        else if (cls.isa(ReactomeJavaConstants.ChemicalDrug))
+            return RenderableChemicalDrug.class;
+        else if (cls.isa(ReactomeJavaConstants.ProteinDrug))
+            return RenderableProteinDrug.class;
+        else if (cls.isa(ReactomeJavaConstants.RNADrug))
+            return RenderableRNADrug.class;
+        else if (cls.isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
             // Have to check reference entity
             GKInstance referenceEntity = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.referenceEntity);
             if (referenceEntity != null) {

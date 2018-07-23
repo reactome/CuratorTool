@@ -92,7 +92,7 @@
     </importedPathwayDb>
     <!-- These URLs for UniProt since they are not stable so an external config is used -->
     <uniprot>
-        <UNIPROT_DOWNLOAD_URL>http://www.uniprot.org/uniprot/</UNIPROT_DOWNLOAD_URL>
+        <UNIPROT_DOWNLOAD_URL>https://www.uniprot.org/uniprot/</UNIPROT_DOWNLOAD_URL>
         <UNIPROT_XML_FORMAT>.xml</UNIPROT_XML_FORMAT>
         <UNIPROT_FLAT_FORMAT>.txt</UNIPROT_FLAT_FORMAT>
     </uniprot>

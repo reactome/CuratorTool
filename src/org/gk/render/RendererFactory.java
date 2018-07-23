@@ -69,6 +69,8 @@ public class RendererFactory {
         Renderer proteinRenderer = new DefaultProteinRenderer();
         clsToRenderer.put(RenderableProtein.class,
                           proteinRenderer);
+        clsToRenderer.put(RenderableProteinDrug.class, 
+                          new DefaultProteinDrugRenderer());
         Renderer entitySetRenderer = new DefaultEntitySetRenderer();
         clsToRenderer.put(RenderableEntitySet.class,
                           entitySetRenderer);
@@ -78,6 +80,8 @@ public class RendererFactory {
         renderer = new DefaultRNARenderer();
         clsToRenderer.put(RenderableRNA.class,
                           renderer);
+        clsToRenderer.put(RenderableRNADrug.class,
+                new DefaultRNADrugRenderer());
         renderer = new DefaultCompartmentRenderer();
         clsToRenderer.put(RenderableCompartment.class,
                           renderer);
@@ -90,6 +94,8 @@ public class RendererFactory {
         renderer = new DefaultProcessNodeRenderer();
         clsToRenderer.put(ProcessNode.class,
                           renderer);
+        renderer = new DefaultChemicalDrugRenderer();
+        clsToRenderer.put(RenderableChemicalDrug.class, renderer);
         nodeEditor = new DefaultNodeEditor();
     }
     

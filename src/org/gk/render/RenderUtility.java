@@ -24,7 +24,7 @@ import org.gk.util.DrawUtilities;
  * @author wgm
  */
 public class RenderUtility {
-    
+
     public static void hideCompartmentInNodeName(RenderablePathway diagram) {
         List<Renderable> components = diagram.getComponents();
         if (components == null || components.size() == 0)

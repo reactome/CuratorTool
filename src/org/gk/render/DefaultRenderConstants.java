@@ -15,6 +15,8 @@ import java.awt.Stroke;
  * @author  wgm
  */
 public interface DefaultRenderConstants {
+    public final String DRUG_SYMBOL = "Rx";
+    
     // For drawing selection widgets
     public static final int SELECTION_WIDGET_WIDTH = 4;
     
