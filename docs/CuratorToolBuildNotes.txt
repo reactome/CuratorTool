@@ -1,3 +1,7 @@
+Build 92 (Version 3.2) notes (July 24, 2018)
+
+Added support for drug rendering in pathway diagrams for all three types: ChemicalDrug, ProteinDrug and RNADrug. 
+
 Build 91 (Version 3.2) notes (April 30, 2018)
 
 Two changes have been done in this release:
