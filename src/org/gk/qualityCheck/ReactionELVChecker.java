@@ -143,7 +143,7 @@ public class ReactionELVChecker extends AbstractQualityCheck {
         // First line should be header
         report.setColumnHeaders(lines[0]);
         for (int i = 1; i < lines.length; i++)
-            report.addLine(lines[1]);
+            report.addLine(lines[i]);
     }
     
     /**
