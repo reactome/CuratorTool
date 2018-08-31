@@ -48,6 +48,7 @@
 				<include name="org/gk/biosystems/**" />
 				<include name="org/gk/qualityCheck/**" />
 				<include name="org/gk/scripts/**" />
+				<include name="org/gk/gkCurator/authorTool/**" />
 			</fileset>
 			<manifest>
 				<!-- attribute name="Main-Class" value="org.gk.pathwaylayout.DiagramGeneratorFromDB" / -->

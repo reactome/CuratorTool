@@ -18,8 +18,24 @@ import org.gk.model.DatabaseIdentifier;
 import org.gk.model.Modification;
 import org.gk.model.Reference;
 import org.gk.model.Summation;
-import org.gk.render.*;
+import org.gk.render.ConnectWidget;
+import org.gk.render.ContainerNode;
+import org.gk.render.HyperEdge;
+import org.gk.render.InteractionType;
+import org.gk.render.Node;
+import org.gk.render.NodeAttachment;
+import org.gk.render.Note;
+import org.gk.render.ReactionType;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFeature;
 import org.gk.render.RenderableFeature.FeatureType;
+import org.gk.render.RenderableInteraction;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderablePropertyNames;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
 import org.xml.sax.InputSource;
@@ -182,6 +198,11 @@ public class GKBReader implements RenderablePropertyNames {
                 compartment.setInsets(insetBounds);
             }
         }
+        // This attribute is not saved in the database.
+//        // This is used only for debugging purpose
+//        String schemaClass = nodeElm.getAttributeValue(SCHEMA_CLASS);
+//        if (schemaClass != null && schemaClass.length() > 0)
+//            node.setAttributeValue(SCHEMA_CLASS, schemaClass);
     }
 
     private Rectangle parseBoundsInfo(String boundsStr) {
