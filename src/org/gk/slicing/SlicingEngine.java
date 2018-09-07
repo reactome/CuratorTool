@@ -1228,6 +1228,22 @@ public class SlicingEngine {
         try {
             long time1 = System.currentTimeMillis();
             Properties properties = loadProperties();
+            
+            // The command line arguments take precedence.
+            Map<String, String> cmdLineProps = new HashMap<String, String>();
+            String option = null;
+            for (String arg: args) {
+                if (arg.startsWith("--")) {
+                    option = arg.substring(2);
+                } else if (option == null) {
+                        throw new IllegalArgumentException("Missing option for " + arg);
+                } else {
+                    cmdLineProps.put(option, arg);
+                    option = null;
+                }
+            }
+            properties.putAll(cmdLineProps);
+            
             // Check if it is in development mode
             String isInDev = properties.getProperty("isInDev");
             if (isInDev != null && isInDev.equals("true"))
