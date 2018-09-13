@@ -5,6 +5,8 @@
 package org.gk.scripts;
 
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import org.gk.database.DefaultInstanceEditHelper;
@@ -53,6 +55,11 @@ public class ScriptUtilities {
             dba.rollback();
             throw e;
         }
+    }
+    
+    public static String getDate() {
+        String now = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        return now;
     }
     
     public static void addIEToModified(GKInstance inst,
