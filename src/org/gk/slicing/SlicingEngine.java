@@ -1234,14 +1234,24 @@ public class SlicingEngine {
             String option = null;
             for (String arg: args) {
                 if (arg.startsWith("--")) {
+                    // An option without an argument has value true.
+                    if (option != null) {
+                        cmdLineProps.put(option, Boolean.TRUE.toString());
+                    }
                     option = arg.substring(2);
                 } else if (option == null) {
-                        throw new IllegalArgumentException("Missing option for " + arg);
+                        String msg = "Unrecognized argument: " + arg;
+                        throw new IllegalArgumentException(msg);
                 } else {
                     cmdLineProps.put(option, arg);
                     option = null;
                 }
             }
+            // A final option without an argument has value true.
+            if (option != null) {
+                cmdLineProps.put(option, Boolean.TRUE.toString());
+            }
+            // Augment or override the auth.properties values.
             properties.putAll(cmdLineProps);
             
             // Check if it is in development mode
