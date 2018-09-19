@@ -1229,28 +1229,7 @@ public class SlicingEngine {
             long time1 = System.currentTimeMillis();
             Properties properties = loadProperties();
             
-            // The command line arguments take precedence.
-            Map<String, String> cmdLineProps = new HashMap<String, String>();
-            String option = null;
-            for (String arg: args) {
-                if (arg.startsWith("--")) {
-                    // An option without an argument has value true.
-                    if (option != null) {
-                        cmdLineProps.put(option, Boolean.TRUE.toString());
-                    }
-                    option = arg.substring(2);
-                } else if (option == null) {
-                        String msg = "Unrecognized argument: " + arg;
-                        throw new IllegalArgumentException(msg);
-                } else {
-                    cmdLineProps.put(option, arg);
-                    option = null;
-                }
-            }
-            // A final option without an argument has value true.
-            if (option != null) {
-                cmdLineProps.put(option, Boolean.TRUE.toString());
-            }
+            Map<String, String> cmdLineProps = parsePropertiesInArgs(args);
             // Augment or override the auth.properties values.
             properties.putAll(cmdLineProps);
             
@@ -1362,6 +1341,41 @@ public class SlicingEngine {
         catch (Exception e) {
             logger.error("SlicingEnginee.main(): " + e, e);
         }
+    }
+
+    private static Map<String, String> parsePropertiesInArgs(String[] args) {
+        // The command line arguments take precedence.
+        Map<String, String> cmdLineProps = new HashMap<>();
+        if (args == null || args.length == 0)
+            return cmdLineProps; // There is nothing to be parsed
+        String option = null;
+        for (String arg: args) {
+            if (arg.startsWith("--")) {
+                // An option without an argument has value true.
+                if (option != null) { // Consume the previous option
+                    cmdLineProps.put(option, Boolean.TRUE.toString());
+                }
+                option = arg.substring(2); // We still need to get the current option
+            } else if (option == null) { // We should not see this since a value should be preceded by an option name
+                String msg = "Unrecognized argument: " + arg;
+                throw new IllegalArgumentException(msg);
+            } else {
+                cmdLineProps.put(option, arg);
+                option = null;
+            }
+        }
+        // A final option without an argument has value true.
+        if (option != null) {
+            cmdLineProps.put(option, Boolean.TRUE.toString());
+        }
+        return cmdLineProps;
+    }
+    
+    @Test
+    public void testParsePropertiesInArgs() {
+        String args = "--db db --inDev --pwd pwd --useLog";
+        Map<String, String> cmdLineProps = parsePropertiesInArgs(args.split("( )+"));
+        cmdLineProps.forEach((key, value) -> System.out.println(key + " -> " + value));
     }
     
     private static Properties loadProperties() throws IOException {
