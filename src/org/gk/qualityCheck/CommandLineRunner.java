@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -29,6 +31,32 @@ public class CommandLineRunner {
         File file = getAuthFile();
         Properties properties = new Properties();
         properties.load(new FileInputStream(file));
+
+        // The command line arguments take precedence.
+        Map<String, String> cmdLineProps = new HashMap<String, String>();
+        String option = null;
+        for (String arg: args) {
+            if (arg.startsWith("--")) {
+                // An option without an argument has value true.
+                if (option != null) {
+                    cmdLineProps.put(option, Boolean.TRUE.toString());
+                }
+                option = arg.substring(2);
+            } else if (option == null) {
+                    String msg = "Unrecognized argument: " + arg;
+                    throw new IllegalArgumentException(msg);
+            } else {
+                cmdLineProps.put(option, arg);
+                option = null;
+            }
+        }
+        // A final option without an argument has value true.
+        if (option != null) {
+            cmdLineProps.put(option, Boolean.TRUE.toString());
+        }
+        // Augment or override the auth file values.
+        properties.putAll(cmdLineProps);
+
         MySQLAdaptor dba = new MySQLAdaptor(properties.getProperty("dbHost"),
                 properties.getProperty("dbName"),
                 properties.getProperty("dbUser"),
