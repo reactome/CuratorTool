@@ -108,7 +108,7 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
                                               JOptionPane.ERROR_MESSAGE);
                 continue;
             }
-            if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+            if (event != null && event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
                 Set<GKInstance> reactions1 = InstanceUtilities.grepPathwayEventComponents(event);
                 reactions.removeAll(reactions1);
             }
