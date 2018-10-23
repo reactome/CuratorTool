@@ -17,6 +17,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.sql.Date;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -78,6 +82,8 @@ import org.jdom.xpath.XPath;
 public abstract class AbstractQualityCheck implements QualityCheck {
     // The data source to be checked
     protected PersistenceAdaptor dataSource;
+    // Common QA properties.
+    protected Properties qaProps;
     protected Component parentComp;
     protected ProgressPane progressPane;
     // Cached the original JFrame behavior
@@ -137,7 +143,15 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     public void setDatasource(PersistenceAdaptor dataSource) {
         this.dataSource = dataSource;
     }
-    
+
+    @Override
+    public void setCutoffDate(LocalDate cutoffDate) {
+        // The idiom for converting a Java 8 LocalDate to an
+        // old-fashioned Java Date.
+        Instant instant = cutoffDate.atStartOfDay().toInstant(ZoneOffset.UTC);
+        this.escapeHelper.setCutoffDate(Date.from(instant));
+    }
+
     public void setParentComponent(Component comp) {
         this.parentComp = comp;
     }

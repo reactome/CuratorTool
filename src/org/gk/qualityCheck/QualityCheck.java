@@ -5,6 +5,7 @@
 package org.gk.qualityCheck;
 
 import java.awt.Component;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Properties;
 
@@ -76,7 +77,17 @@ public interface QualityCheck {
      * @return
      */
     public PersistenceAdaptor getDatasource();
-    
+
+    /**
+     * Sets the QA escape cut-off date.
+     * If a QA-specific skip list specifies the DB id of instance,
+     * then that instance will be skipped if and only if the instance
+     * was modified before the cut-off date specified below.
+     * 
+     * @param cutoffDate
+     */
+    public void setCutoffDate(LocalDate cutoffDate);
+   
     /**
      * For result output purpose. This specified Component can be used for some GUIs
      * as owner component.

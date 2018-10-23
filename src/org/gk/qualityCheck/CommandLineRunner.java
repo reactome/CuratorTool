@@ -5,6 +5,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,9 +32,18 @@ public class CommandLineRunner {
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
         
-        File file = getAuthFile();
-        Properties properties = new Properties();
-        properties.load(new FileInputStream(file));
+        File authFile = getAuthFile();
+        Properties authProps = new Properties();
+        authProps.load(new FileInputStream(authFile));
+        
+        File qaPropsFile = getQAPropertiesFile();
+        Properties qaProps = new Properties();
+        qaProps.load(new FileInputStream(qaPropsFile));
+        String cutoffDateStr = qaProps.getProperty("cutoffDate");
+        LocalDate cutoffDate = null;
+        if (cutoffDateStr != null) {
+            cutoffDate = LocalDate.parse(cutoffDateStr, DateTimeFormatter.ISO_DATE);
+        }
 
         // The command line arguments take precedence.
         Map<String, String> cmdLineProps = new HashMap<String, String>();
@@ -55,17 +68,18 @@ public class CommandLineRunner {
             cmdLineProps.put(option, Boolean.TRUE.toString());
         }
         // Augment or override the auth file values.
-        properties.putAll(cmdLineProps);
+        authProps.putAll(cmdLineProps);
 
-        MySQLAdaptor dba = new MySQLAdaptor(properties.getProperty("dbHost"),
-                properties.getProperty("dbName"),
-                properties.getProperty("dbUser"),
-                properties.getProperty("dbPwd"));
-       
+        MySQLAdaptor dba = new MySQLAdaptor(authProps.getProperty("dbHost"),
+                authProps.getProperty("dbName"),
+                authProps.getProperty("dbUser"),
+                authProps.getProperty("dbPwd"));
+        
         List<QualityCheck> qaes = getAllQAes();
         File dir = getOutputDir();
         for (QualityCheck qa : qaes) {
             qa.setDatasource(dba);
+            qa.setCutoffDate(cutoffDate);
             logger.info("Run " + qa.getClass().getName() + "...");
             QAReport report = qa.checkInCommand();
             if (report == null) {
@@ -114,7 +128,14 @@ public class CommandLineRunner {
         File file = new File("resources/auth.properties");
         if (file.exists())
             return file;
-        throw new IllegalStateException("Make sure resourcs/auth.properties exists, which provides database connection information");
+        throw new IllegalStateException("Make sure resources/auth.properties exists, which provides database connection information");
+    }
+    
+    private static File getQAPropertiesFile() {
+        File file = new File("resources/qa.properties");
+        if (file.exists())
+            return file;
+        throw new IllegalStateException("Make sure resources/qa.properties exists, which provides common QA settings");
     }
     
 }
