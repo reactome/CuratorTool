@@ -100,7 +100,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     
     @Override
     public String getDisplayName() {
-        return getClass().getSimpleName();
+        return getClass().getSimpleName().replace("Check(er)?$", "");
     }
     
     @Override
