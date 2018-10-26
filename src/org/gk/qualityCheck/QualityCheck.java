@@ -6,6 +6,7 @@ package org.gk.qualityCheck;
 
 import java.awt.Component;
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -86,7 +87,7 @@ public interface QualityCheck {
      * 
      * @param cutoffDate
      */
-    public void setCutoffDate(LocalDate cutoffDate);
+    public void setCutoffDate(Date cutoffDate);
    
     /**
      * For result output purpose. This specified Component can be used for some GUIs

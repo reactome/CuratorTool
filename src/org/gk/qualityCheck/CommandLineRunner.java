@@ -5,11 +5,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +42,10 @@ public class CommandLineRunner {
         Properties qaProps = new Properties();
         qaProps.load(new FileInputStream(qaPropsFile));
         String cutoffDateStr = qaProps.getProperty("cutoffDate");
-        LocalDate cutoffDate = null;
+        Date cutoffDate = null;
         if (cutoffDateStr != null) {
-            cutoffDate = LocalDate.parse(cutoffDateStr, DateTimeFormatter.ISO_DATE);
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+            cutoffDate = df.parse(cutoffDateStr);
         }
 
         // The command line arguments take precedence.
