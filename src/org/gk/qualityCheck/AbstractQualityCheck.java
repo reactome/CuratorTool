@@ -17,12 +17,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -108,7 +108,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
             return null; // This check will be run for a database only.
         // Load escape if any
-        File file = new File("QA_SkipList" + File.separator + getClass().getSimpleName() + ".txt");
+        File file = new File("QA_SkipList" + File.separator + getDisplayName() + ".txt");
         loadSkipList(file);
         QAReport report = new QAReport();
         return report; 
@@ -145,11 +145,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     }
 
     @Override
-    public void setCutoffDate(LocalDate cutoffDate) {
-        // The idiom for converting a Java 8 LocalDate to an
-        // old-fashioned Java Date.
-        Instant instant = cutoffDate.atStartOfDay().toInstant(ZoneOffset.UTC);
-        this.escapeHelper.setCutoffDate(Date.from(instant));
+    public void setCutoffDate(Date cutoffDate) {
+        this.escapeHelper.setCutoffDate(cutoffDate);
     }
 
     public void setParentComponent(Component comp) {
