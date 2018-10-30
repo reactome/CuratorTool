@@ -30,7 +30,7 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
     
     @Override
     public String getDisplayName() {
-        return "DeletedObjectsInDiagrams";
+        return "Deleted_Objects_In_Diagram";
     }
 
     @Override

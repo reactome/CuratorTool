@@ -57,7 +57,7 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
     
     @Override
     public String getDisplayName() {
-        return "MissingReactionsInDiagrams";
+        return "Diagram_Missing_Reactions";
     }
     
     @Override

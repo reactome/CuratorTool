@@ -80,8 +80,12 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null;
-        // Load cutoff date if any
-        File file = new File("QA_SkipList/StableIdentifierCheck.txt");
+        // Load cutoff date if any.
+        File file = new File("QA_SkipList/Stable_Identifier_Invalid.txt");
+        // The old form for compatibility.
+        if (!file.exists()) {
+            file = new File("QA_SkipList/StableIdentifierCheck.txt");
+        }
         if (file.exists()) {
             Properties prop = new Properties();
             prop.load(new FileInputStream(file));

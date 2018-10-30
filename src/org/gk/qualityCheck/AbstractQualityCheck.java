@@ -99,8 +99,53 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     }
     
     @Override
+    /**
+     * The default display name is the simple class name with
+     * capitalized words delimited by underscore.
+     */
     public String getDisplayName() {
-        return getClass().getSimpleName().replace("Check(er)?$", "");
+        String baseName = getClass().getSimpleName().replace("Check(er)?$", "");
+        List<String> words = splitCamelCase(baseName);
+        return String.join("_", words);
+    }
+    
+    /**
+     * Converts a camelCase string into capitalized words, e.g.
+     * <code>AbCDEfG</code> is converted to
+     * <code>[Ab, CD, Ef, G]</code>.
+     * 
+     * Note: this method is duplicated, with a unit test,
+     * in release-qa and is a candidate for removal when
+     * the QA checks are refactored.
+     *
+     * @param s the input camelCase string
+     * @return the word array
+     */
+    private static List<String> splitCamelCase(String s) {
+        String[] caps = s.split("(?=\\p{Upper})");
+        // Combine single-letter splits.
+        List<String> words = new ArrayList<String>();
+        StringBuffer allCaps = new StringBuffer();
+        for (String cap: caps) {
+            if (cap.length() == 1) {
+                // Build up the all caps word.
+                allCaps.append(cap);
+            } else {
+                // Flush the concatenated all caps word to the list.
+                if (allCaps.length() > 0) {
+                    words.add(allCaps.toString());
+                    allCaps.setLength(0);
+                }
+                // Add the current word.
+                words.add(cap);
+            }
+        }
+        // Check for a final all caps word.
+        if (allCaps.length() > 0) {
+            words.add(allCaps.toString());
+        }
+
+        return words;
     }
     
     @Override
