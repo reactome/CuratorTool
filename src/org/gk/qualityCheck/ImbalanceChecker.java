@@ -75,6 +75,11 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
     }
     
     @Override
+    public String getDisplayName() {
+        return "Reaction_Input_Output_Imbalance";
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public QAReport checkInCommand() throws Exception {
         QAReport report = super.checkInCommand();
@@ -91,22 +96,15 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
             List<GKInstance> inputRefPeps = grepReferenceEntities(inputEWASes);
             List<GKInstance> outputRefPeps = grepReferenceEntities(outputEWASes);
             if (!inputRefPeps.equals(outputRefPeps)) {
-                // Check if this reaction is a cleavage one
-                if (checkCleavage(reaction)) {
+                // Don't report cleavage reactions.
+                if (!checkCleavage(reaction)) {
                     report.addLine(reaction.getDBID().toString(),
                             reaction.getDisplayName(),
-                            "Cleavage",
-                            InstanceUtilities.getLatestIEFromInstance(reaction).getDisplayName());
-                }
-                else {
-                    report.addLine(reaction.getDBID().toString(),
-                            reaction.getDisplayName(),
-                            "Imbalance",
                             InstanceUtilities.getLatestIEFromInstance(reaction).getDisplayName());
                 }
             }
         }
-        report.setColumnHeaders("DB_ID", "DisplayName", "ImbalanceOrCleavage", "LastAuthor");
+        report.setColumnHeaders("DB_ID", "DisplayName", "LastAuthor");
         return report;
     }
 
