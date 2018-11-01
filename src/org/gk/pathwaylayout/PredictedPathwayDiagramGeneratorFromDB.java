@@ -913,23 +913,24 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                                                           defaultPerson,
                                                           48887L);
             }
-            if (args.length > 7 && args[7].equalsIgnoreCase("true")) {
-                generator.setImageBaseDir(args[8]);
-                logger.info("Image base dir: " + generator.getImageBaseDir());
-                generator.setNeedInfo(false); // Don't need information stored.
-                List<Long> dbIds = generator.getPathwayIDsForDiagrams(dba);
-                logger.info("Starting generate images...");
-                logger.info("Total pathway ids used for generating images: " + dbIds.size());
-                for (Long dbId : dbIds) {
-                    generator.generateImages(dbId);
-                }
-            }
-            else { // Vertex instances are used by SBGN export. So have to create them.
-                List<Long> dbIds = generator.getPathwayIDsForDiagrams(dba);
-                logger.info("Starting generate Vertex instances...");
-                for (Long dbId : dbIds)
-                    generator.handleVertex(dbId);
-            }
+            // As of November 1, 2018, the following generation has been turned off.
+//            if (args.length > 7 && args[7].equalsIgnoreCase("true")) {
+//                generator.setImageBaseDir(args[8]);
+//                logger.info("Image base dir: " + generator.getImageBaseDir());
+//                generator.setNeedInfo(false); // Don't need information stored.
+//                List<Long> dbIds = generator.getPathwayIDsForDiagrams(dba);
+//                logger.info("Starting generate images...");
+//                logger.info("Total pathway ids used for generating images: " + dbIds.size());
+//                for (Long dbId : dbIds) {
+//                    generator.generateImages(dbId);
+//                }
+//            }
+//            else { // Vertex instances are used by SBGN export. So have to create them.
+//                List<Long> dbIds = generator.getPathwayIDsForDiagrams(dba);
+//                logger.info("Starting generate Vertex instances...");
+//                for (Long dbId : dbIds)
+//                    generator.handleVertex(dbId);
+//            }
             logger.info("Finish the whole process!");
         }
         catch(Exception e) {

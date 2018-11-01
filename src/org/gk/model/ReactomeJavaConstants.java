@@ -314,6 +314,9 @@ public class ReactomeJavaConstants {
     public static final String ProteinDrug = "ProteinDrug";
     public static final String RNADrug = "RNADrug";
     public static final String ReferenceTherapeutic = "ReferenceTherapeutic";
+    public static final String referenceTherapeutic = "referenceTherapeutic";
+    public static final String DrugType = "DrugType";
+    public static final String drugType = "drugType";
     //Drugs need "abbreviation" though it is already defiend under "Species stable id prefix", line 308 (2017-10-19)
     public static final String inn = "inn";
     public static final String type = "type";

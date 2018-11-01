@@ -23,6 +23,12 @@ import org.gk.util.GKApplicationUtilities;
 public class ScriptUtilities {
     public static final Long GUANMING_WU_DB_ID = 140537L; // For Guanming Wu at CSHL
     
+    public static GKInstance getHomoSapiens(MySQLAdaptor dba) throws Exception {
+        Long dbId = 48887L;
+        GKInstance inst = dba.fetchInstance(dbId);
+        return inst;
+    }
+    
     /**
      * A method to update instance name, _displayName, and adding an IE
      * to the updated instance's modified slot.
