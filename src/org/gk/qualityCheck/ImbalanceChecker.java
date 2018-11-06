@@ -227,7 +227,7 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
         if (progressPane != null && progressPane.isCancelled())
             return;
         if (progressPane != null)
-            progressPane.setText("Load attribtues for EWAS...");
+            progressPane.setText("Load attributes for EWAS...");
         dba.loadInstanceAttributeValues(ewases, att);
         att = cls.getAttribute(ReactomeJavaConstants.hasModifiedResidue);
         dba.loadInstanceAttributeValues(ewases,
