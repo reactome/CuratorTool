@@ -17,6 +17,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -59,6 +61,7 @@ import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
+import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
 import org.jdom.Document;
@@ -93,6 +96,10 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     private Properties properties;
     // Used to check if escape if needed
     protected QAEscapeHelper escapeHelper;
+
+    private Set<Long> escDbIds;
+
+    private Date cutoffDate;
     
     protected AbstractQualityCheck() {
         escapeHelper = new QAEscapeHelper();
@@ -167,6 +174,79 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         if (dbIds != null && dbIds.size() > 0) {
             escapeHelper.setNeedEscape(true);
         }
+    }
+
+    /**
+     * Determines whether the given instance should not be reported.
+     * Returns true if both of the following conditions hold:
+     * <ul>
+     * <li>the instance DB id is in the escape list</li>
+     * <li>there is no cut-off date or there is no instance most
+     *     recent modification date or the cut-off date precedes
+     *     the modification date</li>
+     * </ul>
+     * Otherwise, this method returns false.
+     * 
+     * @param instance the instance to check
+     * @return whether to escape the instance
+     * @throws Exception
+     */
+    protected boolean isEscapedInCommand(GKInstance instance) throws Exception {
+        // Load the skip list on demand.
+        if (escDbIds == null) {
+            escDbIds = loadEscapedCommandDbIds();
+        }
+        // First check: DB id is in the escape list.
+        if (!escDbIds.contains(instance.getDBID())) {
+            return false;
+        }
+        // Second check: if there is a cut-off date, then the instance
+        // was most recently modified on or before the cut-off date.
+        if (cutoffDate == null) {
+            return true;
+        }
+        GKInstance ie = InstanceUtilities.getLatestIEFromInstance(instance);
+        if (ie == null) {
+            // Probably an error, but the error should be detected
+            // elsewhere and the most reasonable interpretation here
+            // is that the instance should not be escaped.
+            return true;
+        }
+        String ieDateValue = (String) ie.getAttributeValue(ReactomeJavaConstants.dateTime);
+        if (ieDateValue == null) {
+            return true;
+        }
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+        Date ieDate = df.parse(ieDateValue);
+        return !ieDate.after(cutoffDate);
+    }
+   
+    /**
+     * Opens the file consisting of escaped instance DB ids.
+     * @param class the QA class
+     * @throws IOException
+     */
+    private Set<Long> loadEscapedCommandDbIds() throws IOException {
+        File file = new File("QA_SkipList" + File.separator + getDisplayName() + ".txt");
+        HashSet<Long> escapedDbIds = new HashSet<Long>();
+        if (file.exists()) {
+            FileUtilities fu = new FileUtilities();
+            fu.setInput(file.getAbsolutePath());
+            String line = null;
+            while ((line = fu.readLine()) != null) {
+                if (line.startsWith("#"))
+                    continue; // Escape comment line
+                String[] tokens = line.split("\t");
+                // Make sure only number will be got
+                if (tokens[0].matches("\\d+")) {
+                    Long dbId = new Long(tokens[0]);
+                    escapedDbIds.add(dbId);
+                }
+            }
+            fu.close();
+        }
+        
+        return escapedDbIds;
     }
     
     public abstract void check();
