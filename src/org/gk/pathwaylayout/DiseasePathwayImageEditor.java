@@ -301,7 +301,6 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         Set<GKInstance> lofInstances = new HashSet<GKInstance>();
         Map<Node, GKInstance> normalToDiseaseEntity = mapMutatedToNormalNodes(diseaseReaction, 
                                                                               normalReaction,
-                                                                              nodes,
                                                                               lofInstances);
         for (Node node : nodes) {
             if (!diseaseIds.contains(node.getReactomeId())) {
@@ -428,13 +427,19 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      */
     private Map<Node, GKInstance> mapMutatedToNormalNodes(GKInstance diseaseReaction,
                                                           HyperEdge normalReaction,
-                                                          List<Node> nodes,
                                                           Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
         List<GKInstance> efs = diseaseReaction.getAttributeValuesList(ReactomeJavaConstants.entityFunctionalStatus);
         // Map mutated entities to normal entities via ReferenceGeneProduct
         Map<Node, GKInstance> normalToDiseaseEntity = new HashMap<Node, GKInstance>();
         if (efs == null)
             return normalToDiseaseEntity;
+        List<Node> nodes = new ArrayList<Node>();
+        nodes.addAll(normalReaction.getInputNodes());
+        // PEs in EFSes should never been mapped to outputs
+        nodes.addAll(normalReaction.getHelperNodes());
+        // Want to handle regulators too as of July 23, 2015.
+        nodes.addAll(normalReaction.getInhibitorNodes());
+        nodes.addAll(normalReaction.getActivatorNodes());
         for (GKInstance ef : efs) {
             GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
             if (pe != null) {

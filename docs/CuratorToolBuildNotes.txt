@@ -1,3 +1,10 @@
+Build 93 (Version 3.3) notes (November 5, 2018)
+
+Two changes:
+
+1). Used the new drugType slot in the consolidated Drug class for drug rendering.
+2). Embedded the new gk_central schema.
+
 Build 92 (Version 3.2) notes (July 24, 2018)
 
 Added support for drug rendering in pathway diagrams for all three types: ChemicalDrug, ProteinDrug and RNADrug. 
