@@ -55,6 +55,7 @@ import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
+import org.junit.Test;
 
 /**
  * This class is used to check StableIdentifiers generated for newly created instances after last release.
@@ -76,12 +77,17 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
     
     @Override
+    public String getDisplayName() {
+        return "Entities_Without_StableIdentifier";
+    }
+
+    @Override
     public QAReport checkInCommand() throws Exception {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null;
         // Load cutoff date if any.
-        File file = new File("QA_SkipList/Stable_Identifier_Invalid.txt");
+        File file = new File("resources/qa.properties");
         // The old form for compatibility.
         if (!file.exists()) {
             file = new File("QA_SkipList/StableIdentifierCheck.txt");
