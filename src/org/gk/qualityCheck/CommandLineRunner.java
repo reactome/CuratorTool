@@ -93,8 +93,10 @@ public class CommandLineRunner {
                 logger.info("Nothing to report!");
                 continue;
             }
-            report.output(qa.getClass().getSimpleName() + ".txt", dir.getAbsolutePath());
-            logger.info("Output to " + dir.getName() + File.separator + qa.getClass().getSimpleName() + ".txt");
+            String baseName = qa.getDisplayName() + ".txt";
+            File file = new File(dir, baseName);
+            report.output(baseName, dir.getAbsolutePath());
+            logger.info("Output to " + file.getPath());
         }
     }
     
