@@ -22,6 +22,11 @@ public class EntitySetSpeciesCheck extends SpeciesCheck {
     }
 
     @Override
+    public String getDisplayName() {
+        return "EntitySet_Members_Species_Mismatch";
+    }
+
+    @Override
     protected ResultTableModel getResultTableModel() throws Exception {
         ResultTableModel model = new ComponentTableModel();
         model.setColNames(new String[]{"Member", "Species"});

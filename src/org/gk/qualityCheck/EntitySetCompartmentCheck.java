@@ -31,6 +31,11 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
     }
     
     @Override
+    public String getDisplayName() {
+        return "Extra_Compartments_In_Entity_Set_Or_Members";
+    }
+    
+    @Override
     protected String getIssueTitle() {
         return "ExtraCompartmentsInEntitySetOrMembers";
     }

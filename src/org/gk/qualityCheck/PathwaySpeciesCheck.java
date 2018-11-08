@@ -26,7 +26,12 @@ public class PathwaySpeciesCheck extends SpeciesCheck {
                 ReactomeJavaConstants.hasEvent
         };
     }
-    
+
+    @Override
+    public String getDisplayName() {
+        return "PathwayEvents_Species_Mismatch";
+    }
+   
     @Override
     protected ResultTableModel getResultTableModel() throws Exception {
         ResultTableModel model = new ComponentTableModel();

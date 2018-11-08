@@ -78,7 +78,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     
     @Override
     public String getDisplayName() {
-        return "Entities_Without_StableIdentifier";
+        return "Instances_Without_StableIdentifier";
     }
 
     @Override
