@@ -83,7 +83,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
             input.close();
         }
         catch(IOException e) {
-            System.err.println("CompartmentChecker.loadNeighbors(): " + e);
+            System.err.println("CompartmentCheck.loadNeighbors(): " + e);
             e.printStackTrace();
         }
         return map;

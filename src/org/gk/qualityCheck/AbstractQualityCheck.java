@@ -17,8 +17,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -55,6 +61,7 @@ import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
+import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
 import org.jdom.Document;
@@ -78,6 +85,8 @@ import org.jdom.xpath.XPath;
 public abstract class AbstractQualityCheck implements QualityCheck {
     // The data source to be checked
     protected PersistenceAdaptor dataSource;
+    // Common QA properties.
+    protected Properties qaProps;
     protected Component parentComp;
     protected ProgressPane progressPane;
     // Cached the original JFrame behavior
@@ -87,14 +96,63 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     private Properties properties;
     // Used to check if escape if needed
     protected QAEscapeHelper escapeHelper;
+
+    private Set<Long> escDbIds;
+
+    private Date cutoffDate;
     
     protected AbstractQualityCheck() {
         escapeHelper = new QAEscapeHelper();
     }
     
     @Override
+    /**
+     * The default display name is the simple class name with
+     * capitalized words delimited by underscore.
+     */
     public String getDisplayName() {
-        return getClass().getSimpleName();
+        String baseName = getClass().getSimpleName().replace("Check(er)?$", "");
+        List<String> words = splitCamelCase(baseName);
+        return String.join("_", words);
+    }
+    
+    /**
+     * Converts a camelCase string into capitalized words, e.g.
+     * <code>AbCDEfG</code> is converted to
+     * <code>[Ab, CD, Ef, G]</code>.
+     * 
+     * Note: this method is duplicated, with a unit test,
+     * in release-qa and is a candidate for removal when
+     * the QA checks are refactored.
+     *
+     * @param s the input camelCase string
+     * @return the word array
+     */
+    private static List<String> splitCamelCase(String s) {
+        String[] caps = s.split("(?=\\p{Upper})");
+        // Combine single-letter splits.
+        List<String> words = new ArrayList<String>();
+        StringBuffer allCaps = new StringBuffer();
+        for (String cap: caps) {
+            if (cap.length() == 1) {
+                // Build up the all caps word.
+                allCaps.append(cap);
+            } else {
+                // Flush the concatenated all caps word to the list.
+                if (allCaps.length() > 0) {
+                    words.add(allCaps.toString());
+                    allCaps.setLength(0);
+                }
+                // Add the current word.
+                words.add(cap);
+            }
+        }
+        // Check for a final all caps word.
+        if (allCaps.length() > 0) {
+            words.add(allCaps.toString());
+        }
+
+        return words;
     }
     
     @Override
@@ -102,7 +160,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
             return null; // This check will be run for a database only.
         // Load escape if any
-        File file = new File("QA_SkipList" + File.separator + getClass().getSimpleName() + ".txt");
+        File file = new File("QA_SkipList" + File.separator + getDisplayName() + ".txt");
         loadSkipList(file);
         QAReport report = new QAReport();
         return report; 
@@ -137,7 +195,12 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     public void setDatasource(PersistenceAdaptor dataSource) {
         this.dataSource = dataSource;
     }
-    
+
+    @Override
+    public void setCutoffDate(Date cutoffDate) {
+        this.escapeHelper.setCutoffDate(cutoffDate);
+    }
+
     public void setParentComponent(Component comp) {
         this.parentComp = comp;
     }

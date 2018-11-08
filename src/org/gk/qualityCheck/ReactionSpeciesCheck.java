@@ -19,7 +19,12 @@ public class ReactionSpeciesCheck extends SpeciesCheck {
         checkClsName = ReactomeJavaConstants.ReactionlikeEvent;
         qaHelper = new ReactionQACheckHelper();
     }
-    
+
+    @Override
+    public String getDisplayName() {
+        return "Reaction_Participants_Species_Mismatch";
+    }
+
     @Override
     protected Set<GKInstance> getAllContainedEntities(GKInstance container)
             throws Exception {

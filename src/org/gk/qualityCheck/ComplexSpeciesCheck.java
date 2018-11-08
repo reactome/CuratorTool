@@ -21,6 +21,11 @@ public class ComplexSpeciesCheck extends SpeciesCheck {
     }
 
     @Override
+    public String getDisplayName() {
+        return "Complex_Components_Species_Mismatch";
+    }
+
+    @Override
     protected ResultTableModel getResultTableModel() throws Exception {
         ResultTableModel model = new ComponentTableModel();
         String[] colNames = new String[] {
