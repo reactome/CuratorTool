@@ -239,9 +239,11 @@ public class EventTreeBuildHelper {
         }
         SchemaClass bbeCls = schema.getClassByName(ReactomeJavaConstants.BlackBoxEvent);
         if (bbeCls != null) {
-            SchemaAttribute hasEventAtt = bbeCls.getAttribute(ReactomeJavaConstants.hasEvent);
-            if (hasEventAtt != null)
-                qr.add(dba.createReverseAttributeQueryRequest(eventCls, hasEventAtt, "IS NULL", null));
+            if (bbeCls.isValidAttribute(ReactomeJavaConstants.hasEvent)) {
+                SchemaAttribute hasEventAtt = bbeCls.getAttribute(ReactomeJavaConstants.hasEvent);
+                if (hasEventAtt != null)
+                    qr.add(dba.createReverseAttributeQueryRequest(eventCls, hasEventAtt, "IS NULL", null));
+            }
         }
 		Collection topLevelPathways = dba.fetchInstance(qr);
         // Filter out Interactions in case they are in the databases. Interactions are used
@@ -317,7 +319,8 @@ public class EventTreeBuildHelper {
         // in BlackBoxEvent cannot be loaded. So just split the events list to pathways and BlackBoxEvents
 		if (blackBoxEvents.size() > 0) {
 		    cls = dba.getSchema().getClassByName(ReactomeJavaConstants.BlackBoxEvent);
-		    dba.loadInstanceAttributeValues(blackBoxEvents, cls.getAttribute(ReactomeJavaConstants.hasEvent));
+		    if (cls.isValidAttribute(ReactomeJavaConstants.hasEvent))
+		        dba.loadInstanceAttributeValues(blackBoxEvents, cls.getAttribute(ReactomeJavaConstants.hasEvent));
 		}
 		cls = dba.getSchema().getClassByName("Event");
 		if (cls.isValidAttribute("taxon"))

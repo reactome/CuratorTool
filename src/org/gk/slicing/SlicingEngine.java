@@ -544,6 +544,10 @@ public class SlicingEngine {
     
     private void extractConcurrentEventSets() throws Exception {
         SchemaClass cls = sourceDBA.getSchema().getClassByName("ConcurrentEventSet");
+        // As of November, 2018, this class has been deleted
+        // For backward compatibility
+        if (cls == null)
+            return;
         Collection ccEventSets = sourceDBA.fetchInstancesByClass(cls);
         sourceDBA.loadInstanceAttributeValues(ccEventSets, cls.getAttribute("concurrentEvents"));
         List ccEvents = null;
