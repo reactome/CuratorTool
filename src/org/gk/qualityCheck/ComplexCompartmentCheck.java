@@ -44,7 +44,8 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
             return;
         // No need to load EntitySet's component information. They should be handled
         // by EntitySet compartment checking.
-        progressPane.setText("Load PhysicalEntity compartment...");
+        if (progressPane != null)
+            progressPane.setText("Load PhysicalEntity compartment...");
         loadAttributes(toBeLoaded,
                        ReactomeJavaConstants.PhysicalEntity,
                        ReactomeJavaConstants.compartment,
