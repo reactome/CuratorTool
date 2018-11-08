@@ -805,6 +805,8 @@ public class SlicingEngine {
      */
     private void extractReactionCoordinates() throws Exception {
         SchemaClass cls = sourceDBA.getSchema().getClassByName("ReactionCoordinates");
+        if (cls == null)
+            return;
         Collection reactionCoordinates = sourceDBA.fetchInstancesByClass("ReactionCoordinates");
         sourceDBA.loadInstanceAttributeValues(reactionCoordinates, cls.getAttribute("locatedEvent"));
         GKInstance reactionCoordinate = null;
