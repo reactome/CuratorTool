@@ -160,7 +160,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
             return null; // This check will be run for a database only.
         // Load escape if any
-        File file = new File("QA_SkipList" + File.separator + getDisplayName() + ".txt");
+        File file = new File("QA_SkipList" + File.separator + getFileName());
         loadSkipList(file);
         QAReport report = new QAReport();
         return report; 
