@@ -1345,7 +1345,8 @@ public class SlicingEngine {
             logger.info("Total time for slicing: " + (time2 - time1) / (1000 * 60.0d) + " minutes");
         }
         catch (Exception e) {
-            logger.error("SlicingEnginee.main(): " + e, e);
+            logger.error("SlicingEngine.main(): " + e, e);
+            System.exit(1);
         }
     }
 
