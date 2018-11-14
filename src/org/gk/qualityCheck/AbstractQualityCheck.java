@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -83,6 +85,9 @@ import org.jdom.xpath.XPath;
  *
  */
 public abstract class AbstractQualityCheck implements QualityCheck {
+
+    private static final Pattern CHECK_SUFFIX_PAT = Pattern.compile("Check(er)?$");
+
     // The data source to be checked
     protected PersistenceAdaptor dataSource;
     // Common QA properties.
@@ -111,7 +116,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
      * capitalized words delimited by underscore.
      */
     public String getDisplayName() {
-        String baseName = getClass().getSimpleName().replace("Check(er)?$", "");
+        Matcher match = CHECK_SUFFIX_PAT.matcher(getClass().getSimpleName());
+        String baseName = match.replaceAll("");
         List<String> words = splitCamelCase(baseName);
         return String.join("_", words);
     }
@@ -488,7 +494,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     }
     
     public void setIsInstancesEscapeNeeded(boolean isNeeded) {
-        escapeHelper.setNeedEscapePermissioin(isNeeded);
+        escapeHelper.setNeedEscapePermission(isNeeded);
     }
     
     protected List<GKInstance> getDisplayedInstances() {

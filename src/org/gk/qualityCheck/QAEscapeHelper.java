@@ -32,7 +32,7 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class QAEscapeHelper {
     // Check if a dialog should be displayed to ask if escape is needed
-    private boolean needEscapePermissioin;
+    private boolean needEscapePermission;
     // A flag to check if escape is needed
     private boolean needEscape;
     // A list of DB_IDs of instances that should be escaped QA checking
@@ -43,14 +43,14 @@ public class QAEscapeHelper {
     public QAEscapeHelper() {
     }
     
-    public boolean isNeedEscapePermissioin() {
-        return needEscapePermissioin;
+    public boolean isNeedEscapePermission() {
+        return needEscapePermission;
     }
 
-    public void setNeedEscapePermissioin(boolean needEscapePermissioin) {
-        this.needEscapePermissioin = needEscapePermissioin;
+    public void setNeedEscapePermission(boolean needEscapePermission) {
+        this.needEscapePermission = needEscapePermission;
         // Have to force needEscape false if the above value is false
-        if (!needEscapePermissioin)
+        if (!needEscapePermission)
             needEscape = false;
     }
 
@@ -84,7 +84,7 @@ public class QAEscapeHelper {
      * @return false for the operation is canceled.
      */
     public boolean checkIfEscapeNeeded(Component parentComponent) {
-        if (!needEscapePermissioin) {
+        if (!needEscapePermission) {
             needEscape = false;
             return true; // No need to check. QA should be run always for a local project.
         }
