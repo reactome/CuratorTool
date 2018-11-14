@@ -29,10 +29,16 @@ public interface QualityCheck {
     public QAReport checkInCommand() throws Exception;
     
     /**
-     * Show a short description about the goal of this QualityCheck.
-     * @return
+     * @return the name used to generate the report title and file name
      */
     public String getDisplayName();
+    
+    /**
+     * @return the report simple file name
+     */
+    default public String getFileName() {
+        return getDisplayName() + ".tsv";
+    }
 
     /**
      * Check the data in the specify data source. The output should be handled

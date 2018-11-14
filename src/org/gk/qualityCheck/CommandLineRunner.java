@@ -7,9 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,6 +27,8 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class CommandLineRunner {
     private static Logger logger = Logger.getLogger(CommandLineRunner.class);
+    
+    private static final String QA_PROP_FILE = "resources/qa.properties";
 
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
@@ -38,9 +37,11 @@ public class CommandLineRunner {
         Properties authProps = new Properties();
         authProps.load(new FileInputStream(authFile));
         
-        File qaPropsFile = getQAPropertiesFile();
         Properties qaProps = new Properties();
-        qaProps.load(new FileInputStream(qaPropsFile));
+        File qaPropsFile = new File(QA_PROP_FILE);
+        if (qaPropsFile.exists()) {
+            qaProps.load(new FileInputStream(qaPropsFile));
+        }
         String cutoffDateStr = qaProps.getProperty("cutoffDate");
         Date cutoffDate = null;
         if (cutoffDateStr != null) {
@@ -93,7 +94,7 @@ public class CommandLineRunner {
                 logger.info("Nothing to report!");
                 continue;
             }
-            String baseName = qa.getDisplayName() + ".txt";
+            String baseName = qa.getFileName();
             File file = new File(dir, baseName);
             report.output(baseName, dir.getAbsolutePath());
             logger.info("Output to " + file.getPath());
@@ -134,13 +135,6 @@ public class CommandLineRunner {
         if (file.exists())
             return file;
         throw new IllegalStateException("Make sure resources/auth.properties exists, which provides database connection information");
-    }
-    
-    private static File getQAPropertiesFile() {
-        File file = new File("resources/qa.properties");
-        if (file.exists())
-            return file;
-        throw new IllegalStateException("Make sure resources/qa.properties exists, which provides common QA settings");
     }
     
 }
