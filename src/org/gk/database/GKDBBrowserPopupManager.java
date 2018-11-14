@@ -22,7 +22,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
@@ -39,7 +57,16 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Project;
-import org.gk.render.*;
+import org.gk.render.FlowLine;
+import org.gk.render.ReactionNode;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableEntity;
+import org.gk.render.RenderableFactory;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
+import org.gk.render.Shortcut;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
@@ -129,6 +156,9 @@ public class GKDBBrowserPopupManager {
 			    if (instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram)) {
 			        popup.add(manager.getShowDiagramAction());
 			    }
+			}
+			else if (selection.size() == 2) {
+			    popup.add(manager.getCompareInstancesAction());
 			}
 		}
 		else if (type == AUTHOR_TOOL_TYPE) {
@@ -352,6 +382,27 @@ public class GKDBBrowserPopupManager {
 	    DiagramDisplayHandler diagramHandler = new DiagramDisplayHandler();
 	    diagramHandler.setParentComponent(browser);
 	    diagramHandler.showPathwayDiagram(inst);
+	}
+	
+	private Action getCompareInstancesAction() {
+	    Action action = new AbstractAction("Compare Instances") {
+	        public void actionPerformed(ActionEvent e) {
+	            compareInstances();
+	        }
+	    };
+	    action.putValue(Action.SHORT_DESCRIPTION, "Compare two selected instances");
+	    return action;
+	}
+	
+	private void compareInstances() {
+	    List selection = browser.getSchemaView().getSelection();
+        if (selection.size() != 2)
+            return;
+        GKInstance inst1 = (GKInstance) selection.get(0);
+        GKInstance inst2 = (GKInstance) selection.get(1);
+        InstanceComparisonPane compPane = new InstanceComparisonPane(inst1, inst2);
+        compPane.hideMergeBtn();
+        compPane.showInDialog("Instances Comparison", browser);
 	}
 	
 	/**

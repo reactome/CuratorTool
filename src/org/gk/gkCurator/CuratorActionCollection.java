@@ -2223,12 +2223,7 @@ public class CuratorActionCollection {
 		}
 		InstanceComparisonPane comparisonPane = new InstanceComparisonPane(instance1, instance2);
 		String title = "Comparing Instances in " + instance1.getSchemClass().getName();
-		JDialog dialog = new JDialog(curatorFrame, title);
-		dialog.getContentPane().add(comparisonPane, BorderLayout.CENTER);
-		//dialog.setModal(true);
-		dialog.setSize(800, 800);
-		GKApplicationUtilities.center(dialog);
-		dialog.setVisible(true);
+		comparisonPane.showInDialog(title, curatorFrame);
 	}
 	
 	public Action getCompareInstancesAction() {

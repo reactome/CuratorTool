@@ -82,7 +82,8 @@ public class PersistenceManager {
 				adaptor = new MySQLAdaptor(host, dbName, user, pwd, port);
 				// Keep the connection active using a dumb thread
 				// Use 10 minutes
-				adaptor.initDumbThreadForConnection(10 * 60 * 1000);
+				// Try a shorter time: 1 minute (Nov 14, 2018)
+				adaptor.initDumbThreadForConnection(1 * 60 * 1000);
 				adaptorMap.put(info, adaptor);
 			}
 			catch(SQLException e) {
