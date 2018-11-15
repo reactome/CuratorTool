@@ -198,4 +198,9 @@
 <!--     <pdURL value="http://reactomerelease.oicr.on.ca:8080/ELVWebApp/ElvService" /> -->
     <devWebELV value="http://reactomecurator.oicr.on.ca/entitylevelview/PathwayBrowser.html" />
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
+    <!-- After the database is connected, there is a background thread running, which pings the database 
+    to keep the connection stable. The following value controls how long the thread should wait to make
+    another ping. In other words, it controls the frequency of the ping. The default value is 1 minute, if 
+    this value is not provided. -->
+    <backgroundThreadDbCheck>1.0</backgroundThreadDbCheck> <!-- The unit is minute. -->
 </curator>

@@ -213,11 +213,13 @@ public class ReverseAttributePane extends JPanel {
                     if ((selectedCol == 1) && (selectedRow > -1)) {
                         GKInstance selectedInstance = (GKInstance) propTable.getValueAt(selectedRow, selectedCol);
                         //This can only work for a dialog
-                        Window parentWindow = SwingUtilities.getWindowAncestor(ReverseAttributePane.this);
-                        if (parentWindow instanceof JDialog)
-                            FrameManager.getManager().showInstance(selectedInstance, (JDialog)parentWindow, isEditable);
-                        else
-                            FrameManager.getManager().showInstance(selectedInstance, isEditable);
+                        //                        Window parentWindow = SwingUtilities.getWindowAncestor(ReverseAttributePane.this);
+                        //                        if (parentWindow instanceof JDialog)
+                        //                            FrameManager.getManager().showInstance(selectedInstance, (JDialog)parentWindow, isEditable);
+                        //                        else
+                        // As of November 14,2018, all instances will be displayed in Frames for easy navigation and
+                        // comparison.
+                        FrameManager.getManager().showInstance(selectedInstance, isEditable);
                     }
                 }
                 else if (e.isPopupTrigger())
