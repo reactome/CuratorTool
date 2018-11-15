@@ -5,6 +5,7 @@ package org.gk.persistence;
 
 import java.awt.Component;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +22,12 @@ import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.AuthorToolAppletUtilities;
+import org.gk.util.GKApplicationUtilities;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.JDOMException;
+import org.jdom.input.SAXBuilder;
+import org.jdom.xpath.XPath;
 
 /**
  * This is a factory class that create and mange PersistenceAdaptor for both
@@ -30,11 +37,11 @@ import org.gk.util.AuthorToolAppletUtilities;
 public class PersistenceManager {
 	// The sole instance
 	private static PersistenceManager manager;
-	// MySQL connectionion 
+	// MySQL connection 
 	private Map adaptorMap;
 	// The active MySQLAdaptor
 	private MySQLAdaptor activeDBAdaptor;
-	// The active file adptor
+	// The active file adaptor
 	private XMLFileAdaptor activeFileAdaptor;
 	//DB connecting info
 	private Properties dbConnectInfo;
@@ -82,8 +89,10 @@ public class PersistenceManager {
 				adaptor = new MySQLAdaptor(host, dbName, user, pwd, port);
 				// Keep the connection active using a dumb thread
 				// Use 10 minutes
-				// Try a shorter time: 1 minute (Nov 14, 2018)
-				adaptor.initDumbThreadForConnection(1 * 60 * 1000);
+				// As of November 14, 2018, make this configurable to avoid some kind of server
+				// wrong configuration, which may stall connection.
+				double minute = getBackgroundThreadWaitingTime();
+				adaptor.initDumbThreadForConnection((int)(minute * 60 * 1000));
 				adaptorMap.put(info, adaptor);
 			}
 			catch(SQLException e) {
@@ -94,6 +103,34 @@ public class PersistenceManager {
 		setActiveMySQLAdaptor((MySQLAdaptor)adaptor);
 		return adaptor;
 	}	
+	
+	private double getBackgroundThreadWaitingTime() {
+	    double minute = 1.0d; // Default will be 1 minute
+        try {
+            InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
+            if (metaConfig == null)
+                return minute;
+            SAXBuilder builder = new SAXBuilder();
+            Document doc = builder.build(metaConfig);
+            Element elm = (Element) XPath.selectSingleNode(doc.getRootElement(), 
+                                                          "backgroundThreadDbCheck");
+            if (elm == null)
+                return minute;
+            String value = elm.getTextNormalize();
+            if (value == null || value.length() == 0)
+                return minute;
+            minute = new Double(value);
+            return minute;
+        }
+        catch (IOException e) {
+            // Don't do anything if there is an exception.
+            e.printStackTrace();
+        }
+        catch (JDOMException e) {
+            e.printStackTrace();
+        }
+        return minute;
+	}
     
     /**
      * An overloaded method to get the active MySQLAdaptor. If no active MySQLAdaptor,
