@@ -30,6 +30,7 @@ import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
+import org.gk.util.GKApplicationUtilities;
 import org.gk.util.TextDialog;
 
 /**
@@ -256,6 +257,15 @@ public class InstanceComparisonPane extends JPanel {
 		pane.invalidate();
 		pane.getParent().validate();
 		attPane = null; // Mark for gc
+	}
+	
+	public void showInDialog(String title, Window owner) {
+	    JDialog dialog = new JDialog(owner, title);
+	    dialog.getContentPane().add(this, BorderLayout.CENTER);
+	    //dialog.setModal(true);
+	    dialog.setSize(800, 800);
+	    GKApplicationUtilities.center(dialog);
+	    dialog.setVisible(true);
 	}
 	
 	/**

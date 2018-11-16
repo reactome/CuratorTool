@@ -96,7 +96,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.2";
-	public static final int BUILD_NUMBER = 93;
+	public static final int BUILD_NUMBER = 94;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -1251,15 +1251,15 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		toolMenu = new JMenu("Tools");
 		//JMenuItem updateMetaItem = toolMenu.add(actionCollection.getUpdateMetaAction());
 		//updateMetaItem.setAccelerator(KeyStroke.getKeyStroke('U', shortcutMask));
-		JMenuItem deployPDItem = toolMenu.add(actionCollection.getDeployPathwayDiagramAction());
-		JMenuItem visualizationItem = toolMenu.add(actionCollection.getVisualizationAction());
+//		JMenuItem deployPDItem = toolMenu.add(actionCollection.getDeployPathwayDiagramAction());
+//		JMenuItem visualizationItem = toolMenu.add(actionCollection.getVisualizationAction());
 		//JMenuItem eventReleaseItem = toolMenu.add(actionCollection.getEventReleaseAction());
 		if (!isMac) {
-			toolMenu.addSeparator();
+//			toolMenu.addSeparator();
 			toolMenu.add(actionCollection.getOptionAction());
 		}
         // Add actions for GO related request
-        toolMenu.addSeparator();
+//        toolMenu.addSeparator();
         // As of June 4, this action has been removed.
 //        JMenu requestGOTermMenu = new JMenu("Request GO Term");
 //        toolMenu.add(requestGOTermMenu);
