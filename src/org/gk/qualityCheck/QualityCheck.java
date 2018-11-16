@@ -21,6 +21,10 @@ import org.gk.schema.GKSchemaClass;
  */
 public interface QualityCheck {
     
+    static final String REPORT_FILE_EXT = ".tsv";
+    
+    static final String SKIP_LIST_FILE_EXT = ".txt";
+
     /**
      * Check the whole database and generate a report. This method is designed so that
      * a QualityCheck can be run in a command line without GUIs.
@@ -36,8 +40,15 @@ public interface QualityCheck {
     /**
      * @return the report simple file name
      */
-    default public String getFileName() {
-        return getDisplayName() + ".tsv";
+    default public String getReportFileName() {
+        return getDisplayName() + REPORT_FILE_EXT;
+    }
+    
+    /**
+     * @return the skip list simple file name
+     */
+    default public String getSkipListFileName() {
+        return getDisplayName() + SKIP_LIST_FILE_EXT;
     }
 
     /**

@@ -102,10 +102,6 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     // Used to check if escape if needed
     protected QAEscapeHelper escapeHelper;
 
-    private Set<Long> escDbIds;
-
-    private Date cutoffDate;
-    
     protected AbstractQualityCheck() {
         escapeHelper = new QAEscapeHelper();
     }
@@ -166,7 +162,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
             return null; // This check will be run for a database only.
         // Load escape if any
-        File file = new File("QA_SkipList" + File.separator + getFileName());
+        File file = new File("QA_SkipList" + File.separator + getSkipListFileName());
         loadSkipList(file);
         QAReport report = new QAReport();
         return report; 

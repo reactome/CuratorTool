@@ -94,7 +94,7 @@ public class CommandLineRunner {
                 logger.info("Nothing to report!");
                 continue;
             }
-            String baseName = qa.getFileName();
+            String baseName = qa.getReportFileName();
             File file = new File(dir, baseName);
             report.output(baseName, dir.getAbsolutePath());
             logger.info("Output to " + file.getPath());
