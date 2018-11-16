@@ -1,0 +1,18 @@
+# A list of QAes to be run in the command line for the database
+org.gk.qualityCheck.ComplexCompartmentCheck
+org.gk.qualityCheck.ComplexSpeciesCheck
+org.gk.qualityCheck.DiagramReactionsCheck
+org.gk.qualityCheck.EntitySetCompartmentCheck
+org.gk.qualityCheck.EntitySetSpeciesCheck
+#org.gk.qualityCheck.EntitySetTypeCheck
+org.gk.qualityCheck.ImbalanceChecker
+org.gk.qualityCheck.MandatoryAttributesCheck
+org.gk.qualityCheck.PathwayDiagramCheck
+org.gk.qualityCheck.PathwayELVChecker
+#org.gk.qualityCheck.PathwaySpeciesCheck
+#org.gk.qualityCheck.ReactionCompartmentCheck
+org.gk.qualityCheck.ReactionELVChecker
+#org.gk.qualityCheck.ReactionSpeciesCheck
+org.gk.qualityCheck.ReactionSyncELVChecker
+#org.gk.qualityCheck.RequiredAttributesCheck
+org.gk.qualityCheck.StableIdentifierCheck
