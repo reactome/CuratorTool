@@ -35,11 +35,11 @@ import org.junit.Test;
  * @author wgm
  *
  */
-public class ReactionELVChecker extends AbstractQualityCheck {
+public class ReactionELVCheck extends AbstractQualityCheck {
 
-    private static Logger logger = Logger.getLogger(ReactionELVChecker.class);
+    private static Logger logger = Logger.getLogger(ReactionELVCheck.class);
     
-    public ReactionELVChecker() {
+    public ReactionELVCheck() {
     }
     
     @Override

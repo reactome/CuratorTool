@@ -25,7 +25,7 @@
         <attribute name="storedATXML" />
 	</hiddenAttributes>
 	<QACheckers>
-		<QAChecker name="Imbalance Check" class="org.gk.qualityCheck.ImbalanceChecker" />
+		<QAChecker name="Imbalance Check" class="org.gk.qualityCheck.ImbalanceCheck" />
         <QAChecker name="Mandatory Attribute Check" class="org.gk.qualityCheck.MandatoryAttributesCheck" />
 		<QAChecker name="Required Attributes Check" class="org.gk.qualityCheck.RequiredAttributesCheck" />
         <QAChecker name="EntitySet Type Check" class="org.gk.qualityCheck.EntitySetTypeCheck" />

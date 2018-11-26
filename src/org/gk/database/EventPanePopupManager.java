@@ -26,7 +26,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.qualityCheck.ImbalanceChecker;
+import org.gk.qualityCheck.ImbalanceCheck;
 import org.gk.qualityCheck.QualityCheck;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
@@ -117,7 +117,7 @@ public class EventPanePopupManager {
 	
 	private void checkImbalance(GKInstance event,
 	                            java.awt.Component parentComponent) {
-        QualityCheck checker = new ImbalanceChecker();
+        QualityCheck checker = new ImbalanceCheck();
         checker.setDatasource(event.getDbAdaptor());
         checker.setParentComponent(parentComponent);
         // We want to get all contained reaction be event if this event is a 

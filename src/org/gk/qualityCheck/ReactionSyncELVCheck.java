@@ -34,13 +34,13 @@ import org.junit.Test;
  * @author gwu
  *
  */
-public class ReactionSyncELVChecker extends ReactionELVChecker {
-    private static final Logger logger = Logger.getLogger(ReactionSyncELVChecker.class);
+public class ReactionSyncELVCheck extends ReactionELVCheck {
+    private static final Logger logger = Logger.getLogger(ReactionSyncELVCheck.class);
     
     /**
      * Default constructor.
      */
-    public ReactionSyncELVChecker() {
+    public ReactionSyncELVCheck() {
     }
     
     @Override

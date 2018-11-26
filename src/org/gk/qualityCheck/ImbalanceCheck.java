@@ -57,7 +57,7 @@ import org.gk.util.GKApplicationUtilities;
  *
  */
 //@SuppressWarnings({"unchecked", "rawtypes"})
-public class ImbalanceChecker extends ClassBasedQualityCheck {
+public class ImbalanceCheck extends ClassBasedQualityCheck {
     // A list of attributes should be checked
     protected final String[] checkedAttNames = new String[] {
             ReactomeJavaConstants.hasMember,
@@ -71,7 +71,7 @@ public class ImbalanceChecker extends ClassBasedQualityCheck {
     /**
      * Default constructor. It is required to load an instance dynamically.
      */
-    public ImbalanceChecker() {     
+    public ImbalanceCheck() {
     }
     
     @Override

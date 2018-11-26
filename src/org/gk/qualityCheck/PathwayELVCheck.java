@@ -26,9 +26,9 @@ import org.junit.Test;
  * @author wgm
  *
  */
-public class PathwayELVChecker extends ReactionELVChecker {
+public class PathwayELVCheck extends ReactionELVCheck {
     
-    public PathwayELVChecker() {
+    public PathwayELVCheck() {
     }
     
     /**
