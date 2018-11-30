@@ -51,6 +51,10 @@
 	        <QAChecker name="Reactions in All Diagrams" class="org.gk.qualityCheck.ReactionsInAllDiagramsCheck"></QAChecker>
             <QAChecker name="Pathways in All Digrams" class="org.gk.qualityCheck.PathwaysInAllDiagramsCheck"></QAChecker>
        </Group>
+       <Group name="EntityFunctionalStatue Check">
+       		<QAChecker name="DiseaseEntity" class="org.gk.qualityCheck.EntityFunctionalStatusDiseaseEntityCheck"></QAChecker>
+       		<QAChecker name="NormalEntity" class="org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck"></QAChecker>
+       </Group>
        <QAChecker name="New StableIdentifier Check" class="org.gk.qualityCheck.StableIdentifierCheck" dbOnly="true" />
     </QACheckers>
 	<autoPropagateAtts>

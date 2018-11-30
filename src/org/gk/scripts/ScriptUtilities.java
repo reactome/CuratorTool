@@ -71,7 +71,7 @@ public class ScriptUtilities {
     public static void addIEToModified(GKInstance inst,
                                        GKInstance ie,
                                        MySQLAdaptor dba) throws Exception {
-        List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+        inst.getAttributeValuesList(ReactomeJavaConstants.modified);
         inst.addAttributeValue(ReactomeJavaConstants.modified, 
                                      ie);
         dba.updateInstanceAttribute(inst,

@@ -174,7 +174,6 @@ public class MySQLAdaptor implements PersistenceAdaptor {
      * should be used.
      */
 	public void initDumbThreadForConnection(final int millsecond) {
-	    final long time1 = System.currentTimeMillis();
 	    Thread t = new Thread() {
 	        public void run() {
 	            // Force this thread into a infinity circle
