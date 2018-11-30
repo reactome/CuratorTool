@@ -86,25 +86,22 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null;
-        // Load cutoff date if any.
-        File file = new File("resources/qa.properties");
-        // The old form for compatibility.
-        if (!file.exists()) {
-            file = new File("QA_SkipList/StableIdentifierCheck.txt");
-        }
-        if (file.exists()) {
-            Properties prop = new Properties();
-            prop.load(new FileInputStream(file));
-            String cutoffDate = prop.getProperty("cutoffDate");
-            if (cutoffDate != null) {
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-                escapeHelper.setCutoffDate(df.parse(cutoffDate));
-                escapeHelper.setNeedEscape(true);
+        if (escapeHelper.getCutoffDate() == null) {
+            // The old cut-off date property file for compatibility.
+            File file = new File("QA_SkipList/StableIdentifierCheck.txt");
+            if (file.exists()) {
+                Properties prop = new Properties();
+                prop.load(new FileInputStream(file));
+                String cutoffDate = prop.getProperty("cutoffDate");
+                if (cutoffDate != null) {
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                    escapeHelper.setCutoffDate(df.parse(cutoffDate));
+                    escapeHelper.setNeedEscape(true);
+                }
             }
         }
         // Perform StableIdentifier check
         StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
-        Set<String> stidClassNames = stidGenerator.getClassNamesWithStableIds(dataSource);
         List<GKInstance> allInstances = grepAllInstances(stidGenerator);
         loadCreatedAttribute(allInstances);
         checkCreatedAttribute(allInstances);

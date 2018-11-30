@@ -164,6 +164,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         // Load escape if any
         File file = new File("QA_SkipList" + File.separator + getSkipListFileName());
         loadSkipList(file);
+        // Get the cut-off date from the properties file.
+        escapeHelper.setCutoffDate(QACheckProperties.getCutoffDate());
         QAReport report = new QAReport();
         return report; 
     }
@@ -196,11 +198,6 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     
     public void setDatasource(PersistenceAdaptor dataSource) {
         this.dataSource = dataSource;
-    }
-
-    @Override
-    public void setCutoffDate(Date cutoffDate) {
-        this.escapeHelper.setCutoffDate(cutoffDate);
     }
 
     public void setParentComponent(Component comp) {

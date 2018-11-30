@@ -37,7 +37,13 @@ public class QAEscapeHelper {
     private boolean needEscape;
     // A list of DB_IDs of instances that should be escaped QA checking
     private Set<Long> escapedDbIds;
-    // A date after which instances should be checked even it is in the escaped list.
+    
+    /**
+     * The date after which instances should be checked even it is in the
+     * escaped list. Note that, unlike the release-qa QA checks, the
+     * Curator QA check instance is responsible for setting the cut-off
+     * date. 
+     */
     private Date cutoffDate;
     
     public QAEscapeHelper() {

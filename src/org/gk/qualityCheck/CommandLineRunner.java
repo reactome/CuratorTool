@@ -5,10 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +15,7 @@ import java.util.stream.Stream;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -26,9 +24,22 @@ import org.gk.util.GKApplicationUtilities;
  *
  */
 public class CommandLineRunner {
+
     private static Logger logger = Logger.getLogger(CommandLineRunner.class);
-    
-    private static final String QA_PROP_FILE = "resources/qa.properties";
+
+    // TODO - on QA check refactoring, get the summary constants
+    // below from a common class.
+
+    /** The summary simple file name. */
+    private static final String SUMMARY_FILE_NM = "summary.tsv";
+
+    /** The summary file field delimiter. */
+    private static final String SUMMARY_DELIMITER = "\t";
+
+    /** The summary file headings. */
+    private static final String[] SUMMARY_HDGS = {
+            "Report", "Issue Count"
+    };
 
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
@@ -37,18 +48,6 @@ public class CommandLineRunner {
         Properties authProps = new Properties();
         authProps.load(new FileInputStream(authFile));
         
-        Properties qaProps = new Properties();
-        File qaPropsFile = new File(QA_PROP_FILE);
-        if (qaPropsFile.exists()) {
-            qaProps.load(new FileInputStream(qaPropsFile));
-        }
-        String cutoffDateStr = qaProps.getProperty("cutoffDate");
-        Date cutoffDate = null;
-        if (cutoffDateStr != null) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            cutoffDate = df.parse(cutoffDateStr);
-        }
-
         // The command line arguments take precedence.
         Map<String, String> cmdLineProps = new HashMap<String, String>();
         String option = null;
@@ -79,26 +78,35 @@ public class CommandLineRunner {
                 authProps.getProperty("dbUser"),
                 authProps.getProperty("dbPwd"));
         
-        List<QualityCheck> qaes = getAllQAes();
+        List<QualityCheck> checks = getAllQAChecks();
         File dir = getOutputDir();
-        for (QualityCheck qa : qaes) {
-            qa.setDatasource(dba);
-            qa.setCutoffDate(cutoffDate);
-            logger.info("Run " + qa.getClass().getName() + "...");
-            QAReport report = qa.checkInCommand();
+        File summaryFile = new File(dir, SUMMARY_FILE_NM);
+        FileUtilities summary = new FileUtilities();
+        summary.setOutput(summaryFile.getPath());
+        summary.printLine(String.join(SUMMARY_DELIMITER, SUMMARY_HDGS));
+        for (QualityCheck check : checks) {
+            check.setDatasource(dba);
+            logger.info("Run " + check.getClass().getName() + "...");
+            QAReport report = check.checkInCommand();
             if (report == null) {
                 logger.error("Cannot generate report!");
                 continue;
             }
+            String title = check.getDisplayName().replace('_', ' ');
+            String summaryLine = String.join(SUMMARY_DELIMITER, title,
+                    Integer.toString(report.getReportLines().size()));
+            summary.printLine(summaryLine);
             if (report.isEmpty()) {
                 logger.info("Nothing to report!");
                 continue;
             }
-            String baseName = qa.getReportFileName();
+            String baseName = check.getReportFileName();
             File file = new File(dir, baseName);
             report.output(baseName, dir.getAbsolutePath());
             logger.info("Output to " + file.getPath());
         }
+        summary.close();
+        logger.info("Summary is printed as " + summaryFile.getPath());
     }
     
     private static File getOutputDir() throws IOException {
@@ -109,7 +117,7 @@ public class CommandLineRunner {
         return dir;
     }
     
-    private static List<QualityCheck> getAllQAes() throws IOException {
+    private static List<QualityCheck> getAllQAChecks() throws IOException {
         File file = new File("resources/CommandLineQAList.txt");
         if (!file.exists())
             throw new IllegalStateException("Make sure resources/CommandLineQAList.txt exists, which lists all QAes should be run in a shell.");
