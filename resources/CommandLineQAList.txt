@@ -1,5 +1,6 @@
-# A list of QAes to be run in the command line for the database
-org.gk.qualityCheck.ComplexCompartmentCheck
+# The list of QA checks to be run in the command line on
+# a slice database.
+#org.gk.qualityCheck.ComplexCompartmentCheck
 org.gk.qualityCheck.ComplexSpeciesCheck
 org.gk.qualityCheck.DiagramReactionsCheck
 org.gk.qualityCheck.EntitySetCompartmentCheck
