@@ -10,6 +10,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 
 /**
@@ -51,6 +52,35 @@ public class DrugConsolidation {
         useDrugAsType(drugs, dba); 
         moveReferenceTherapeuticToReferenceEntity(drugs, dba);
         commit(drugs, databaseIdentifiers, dba);
+    }
+    
+    /**
+     * Rollback the change made by consolidation so that we have three subclasses:
+     * ProteinDrug, RNADrug, and ChemicalDrug. But nothing else will change.
+     * @param dba
+     * @throws Exception
+     */
+    public void split(MySQLAdaptor dba) throws Exception {
+        Collection<GKInstance> drugs = dba.fetchInstancesByClass(ReactomeJavaConstants.Drug);
+        // All values should be loaded before update. Otherwise, values may be lost.
+        for (GKInstance drug : drugs)
+            dba.fastLoadInstanceAttributeValues(drug);
+        Schema schema = dba.getSchema();
+        SchemaClass proteinCls = schema.getClassByName(ReactomeJavaConstants.ProteinDrug);
+        SchemaClass chemicalCls = schema.getClassByName(ReactomeJavaConstants.ChemicalDrug);
+        SchemaClass rnaCls = schema.getClassByName(ReactomeJavaConstants.RNADrug);
+        for (GKInstance drug : drugs) {
+            GKInstance drugType = (GKInstance) drug.getAttributeValue(ReactomeJavaConstants.drugType);
+            if (drugType.getDisplayName().equals("ProteinDrug"))
+                drug.setSchemaClass(proteinCls);
+            else if (drugType.getDisplayName().equals("ChemicalDrug"))
+                drug.setSchemaClass(chemicalCls);
+            else if (drugType.getDisplayName().equals("RNADrug"))
+                drug.setSchemaClass(rnaCls);
+            else
+                throw new IllegalStateException(drugType + " is not known!");
+        }
+        commit(drugs, null, dba);
     }
     
     private Collection<GKInstance> loadDrugs(MySQLAdaptor dba) throws Exception {
@@ -161,10 +191,12 @@ public class DrugConsolidation {
             GKInstance ie = ScriptUtilities.createDefaultIE(dba, 
                                                             ScriptUtilities.GUANMING_WU_DB_ID,
                                                             true);
-            // Store the new instances
-            for (GKInstance inst : databaseIdentifiers) {
-                inst.setAttributeValue(ReactomeJavaConstants.created, ie);
-                dba.storeInstance(inst);
+            if (databaseIdentifiers != null) {
+                // Store the new instances
+                for (GKInstance inst : databaseIdentifiers) {
+                    inst.setAttributeValue(ReactomeJavaConstants.created, ie);
+                    dba.storeInstance(inst);
+                }
             }
             // Update drugs
             for (GKInstance drug : drugs) {

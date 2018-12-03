@@ -188,7 +188,7 @@ public class InstanceDisplayNameGenerator {
 	        }
 	    }
 	    builder.append(" of ");
-	    GKInstance pe = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+	    GKInstance pe = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
 	    if (pe == null)
 	        builder.append("unknown");
 	    else

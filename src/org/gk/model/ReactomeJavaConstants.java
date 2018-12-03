@@ -332,4 +332,7 @@ public class ReactomeJavaConstants {
     public static final String regulate = "regulate";
     public static final String positivelyRegulate = "positivelyRegulate";
     public static final String negativelyRegulate = "negativelyRegulate";
+    
+    public static final String diseaseEntity = "diseaseEntity";
+    public static final String normalEntity = "normalEntity";
 }

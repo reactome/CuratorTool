@@ -50,7 +50,7 @@ public abstract class ClassBasedQualityCheck extends AbstractQualityCheck {
     }
     
     /**
-     * A way to dispaly error message regarding the checking.
+     * A way to display error message regarding the checking.
      */
     protected abstract void showErrorMessage();
     
@@ -88,12 +88,18 @@ public abstract class ClassBasedQualityCheck extends AbstractQualityCheck {
                 }
                 GKInstance reaction = (GKInstance) selected.get(0);
                 resultPane.setInstance(reaction);
-                resultPane.setText(titlePrefix + " for \"" + reaction.getDisplayName() + " [" + reaction.getDBID() + "]\"");
+                resultPane.setText(titlePrefix + " for \"" + 
+                                   reaction.getDisplayName() + 
+                                   " [" + reaction.getDBID() + "]\"" + 
+                                   getResultPanePostfix(reaction));
             }
         };
         return l;
     }
-
+    
+    protected String getResultPanePostfix(GKInstance instance) {
+        return "";
+    }
 
     protected class ResultPane extends JPanel {
         

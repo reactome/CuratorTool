@@ -1003,43 +1003,61 @@ public class InstanceUtilities {
     }
     
     /**
+     * Get reactions participants without outputs. However, if an output is used as input, catalyst,
+     * or regulator, it will be in the returned set.
+     * @param reaction
+     * @return
+     * @throws Exception
+     */
+    public static Set<GKInstance> getReactionLHSParticipants(GKInstance reaction) throws Exception {
+        return _getReactionParticipants(reaction, false);
+    }
+    
+    /**
      * Grep all PhysicalEntities participating in a specified reaction
      * @param reaction
      * @return
      * @throws Exception
      */
     public static Set<GKInstance> getReactionParticipants(GKInstance reaction) throws Exception {
+        return _getReactionParticipants(reaction, true);
+    }
+    
+    private static Set<GKInstance> _getReactionParticipants(GKInstance reaction,
+                                                     boolean includeOutput) throws Exception {
         if (!(reaction.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent) ||
-              reaction.getSchemClass().isa(ReactomeJavaConstants.Reaction))) // For backward compatibilty
-            throw new IllegalArgumentException("InstanceUtilities.getReactionParticipants(): " +
-                    "the passed instance should be a Reaction.");
-        Set<GKInstance> set = new HashSet<GKInstance>();
-        List inputs = reaction.getAttributeValuesList(ReactomeJavaConstants.input);
-        getReactionParticipants(inputs, set);
-        List outputs = reaction.getAttributeValuesList(ReactomeJavaConstants.output);
-        getReactionParticipants(outputs, set);
-        List cas = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
-        if (cas != null && cas.size() > 0) {
-            for (Iterator it = cas.iterator(); it.hasNext();) {
-                GKInstance ca = (GKInstance) it.next();
-                GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
-                if (catalyst != null)
-                    set.add(catalyst);
-            }
-        }
-        Collection regulations = InstanceUtilities.getRegulations(reaction);
-        if (regulations != null && regulations.size() > 0) {
-            for (Iterator it = regulations.iterator(); it.hasNext();) {
-                GKInstance regulation = (GKInstance) it.next();
-                GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
-                if (regulator == null)
-                    continue;
-                // Only take physical entity
-                if (regulator.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
-                    set.add(regulator);
-            }
-        }
-        return set;
+                reaction.getSchemClass().isa(ReactomeJavaConstants.Reaction))) // For backward compatibilty
+              throw new IllegalArgumentException("InstanceUtilities.getReactionParticipants(): " +
+                      "the passed instance should be a Reaction.");
+          Set<GKInstance> set = new HashSet<GKInstance>();
+          List inputs = reaction.getAttributeValuesList(ReactomeJavaConstants.input);
+          getReactionParticipants(inputs, set);
+          if (includeOutput) {
+              List outputs = reaction.getAttributeValuesList(ReactomeJavaConstants.output);
+              getReactionParticipants(outputs, set);
+          }
+          List cas = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
+          if (cas != null && cas.size() > 0) {
+              for (Iterator it = cas.iterator(); it.hasNext();) {
+                  GKInstance ca = (GKInstance) it.next();
+                  GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+                  if (catalyst != null)
+                      set.add(catalyst);
+              }
+          }
+          Collection regulations = InstanceUtilities.getRegulations(reaction);
+          if (regulations != null && regulations.size() > 0) {
+              for (Iterator it = regulations.iterator(); it.hasNext();) {
+                  GKInstance regulation = (GKInstance) it.next();
+                  GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+                  if (regulator == null)
+                      continue;
+                  // Only take physical entity
+                  if (regulator.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
+                      set.add(regulator);
+              }
+          }
+          return set;
     }
      
      private static void getReactionParticipants(List list,
