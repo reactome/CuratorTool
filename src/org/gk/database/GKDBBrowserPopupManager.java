@@ -155,6 +155,7 @@ public class GKDBBrowserPopupManager {
 			    GKInstance instance = (GKInstance) selection.get(0);
 			    if (instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram)) {
 			        popup.add(manager.getShowDiagramAction());
+			        popup.add(manager.getViewAsDiseaseDiagramAction());
 			    }
 			}
 			else if (selection.size() == 2) {
@@ -372,6 +373,25 @@ public class GKDBBrowserPopupManager {
 	        "Show pathway diagram for the selected PathwayDiagram instance");
 	    }
 	    return showDiagramAction;
+	}
+	
+	private Action getViewAsDiseaseDiagramAction() {
+	    Action action = new AbstractAction("View as Disease Diagram") {
+	        public void actionPerformed(ActionEvent e) {
+	            viewAsDiseaseDiagram();
+	        }
+	    };
+	    return action;
+	}
+	
+	private void viewAsDiseaseDiagram() {
+	    List selection = browser.getSchemaView().getSelection();
+	    if (selection.size() != 1)
+	        return;
+	    GKInstance inst = (GKInstance) selection.get(0);
+	    DiagramDisplayHandler diagramHandler = new DiagramDisplayHandler();
+	    diagramHandler.setParentComponent(browser);
+	    diagramHandler.viewPathwayAsDiseaseDiagram(inst);
 	}
 	
 	private void showPathwayDiagram() {

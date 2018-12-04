@@ -5,7 +5,9 @@
 package org.gk.pathwaylayout;
 
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -22,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.JButton;
+import javax.swing.JFrame;
+
 import org.gk.gkCurator.authorTool.InstanceHandler;
 import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
+import org.gk.gkEditor.ZoomablePathwayEditor;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -46,6 +52,7 @@ import org.gk.render.RenderableComplex;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RendererFactory;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.util.DialogControlPane;
 
 /**
  * This customized PathwayEditor is used to draw disease related pathway.
@@ -136,6 +143,46 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         overlayDiseaseReactions(diseaseIds);
         // Search for loss_of_functional nodes for special display
         checkLossOfFunctionNodes();
+    }
+    
+    /**
+     * Refresh the data structure and display.
+     */
+    public void refresh() {
+        Renderable pathway = getRenderable();
+        if (pathway == null)
+            return;
+        setRenderable(pathway); // Reset to force update
+        repaint(getVisibleRect());
+    }
+    
+    /**
+     * Display this panel in a JFrame.
+     */
+    public void showInFrame(Component parent) {
+        if (pathway == null) {
+            return; // Nothing to be displayed
+        }
+        JFrame frame = new JFrame("Diagram of " + pathway.getDisplayName());
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        DialogControlPane controlPane = new DialogControlPane();
+        ZoomablePathwayEditor pathwayEditor = new ZoomablePathwayEditor() {
+
+            @Override
+            protected PathwayEditor createPathwayEditor() {
+                return DiseasePathwayImageEditor.this;
+            }
+            
+        };
+        frame.getContentPane().add(pathwayEditor, BorderLayout.CENTER);
+        frame.getContentPane().add(controlPane, BorderLayout.SOUTH);
+        controlPane.getCancelBtn().setVisible(false);
+        JButton okBtn = controlPane.getOKBtn();
+        okBtn.setText("Close");
+        okBtn.addActionListener(e -> frame.dispose());
+        frame.setSize(900, 650);
+        frame.setLocationRelativeTo(parent);
+        frame.setVisible(true);
     }
     
     private void checkLossOfFunctionNodes() {
@@ -262,7 +309,6 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      */
     private void overlayDiseaseReaction(HyperEdge normalReaction,
                                         GKInstance diseaseReaction) throws Exception {
-        // Make a copy of the HyperEdge for future process that is related to Vertex and JSON generation
         HyperEdge reactionCopy = normalReaction.shallowCopy();
         reactionCopy.setReactomeId(diseaseReaction.getDBID());
         reactionCopy.setDisplayName(diseaseReaction.getDisplayName());
@@ -279,6 +325,46 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         nodes.addAll(normalReaction.getInhibitorNodes());
         nodes.addAll(normalReaction.getActivatorNodes());
         // List objects not listed in the disease reaction as crossed objects
+        Set<Long> diseaseIds = getDiseaseIDsInRLE(diseaseReaction);
+        Set<GKInstance> lofInstances = new HashSet<GKInstance>();
+        Map<Node, GKInstance> normalToDiseaseEntity = mapNormalToMutatedEntity(diseaseReaction, 
+                                                                              normalReaction,
+                                                                              lofInstances);
+        for (Node node : nodes) {
+            if (!diseaseIds.contains(node.getReactomeId())) {
+                // Check if it should be mapped to a normal entity
+                GKInstance diseaseEntity = normalToDiseaseEntity.get(node);
+                if (diseaseEntity == null) {
+                    crossedObjects.add(node); // Just crossed out
+                    node.invalidateConnectWidgets();
+                }
+                else {
+                    Node diseaseNode = replaceNormalNode(node, 
+                                                         diseaseEntity,
+                                                         contains(diseaseEntity, lofInstances));
+                    if (diseaseNode == null)
+                        continue; // Just in case
+                    diseaseNode.invalidateBounds();
+                    // Re-link to diseaseNode
+                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
+                    List<?> widgets = connectInfo.getConnectWidgets();
+                    for (Object obj : widgets) {
+                        ConnectWidget widget = (ConnectWidget) obj;
+                        if (widget.getConnectedNode() == node)
+                            widget.replaceConnectedNode(diseaseNode);
+                    }
+                    diseaseNode.invalidateBounds();
+                    diseaseNode.invalidateConnectWidgets();
+                }
+            }
+            else {
+                overlaidObjects.add(node);
+                node.invalidateBounds();
+            }
+        }
+    }
+
+    protected Set<Long> getDiseaseIDsInRLE(GKInstance diseaseReaction) throws Exception, InvalidAttributeException {
         Set<GKInstance> participants = InstanceUtilities.getReactionParticipants(diseaseReaction);
         Set<Long> diseaseIds = new HashSet<Long>();
         for (GKInstance participant : participants) {
@@ -298,35 +384,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 }
             }
         }
-        Set<GKInstance> lofInstances = new HashSet<GKInstance>();
-        Map<Node, GKInstance> normalToDiseaseEntity = mapMutatedToNormalNodes(diseaseReaction, 
-                                                                              normalReaction,
-                                                                              lofInstances);
-        for (Node node : nodes) {
-            if (!diseaseIds.contains(node.getReactomeId())) {
-                // Check if it should be mapped to a normal entity
-                GKInstance diseaseEntity = normalToDiseaseEntity.get(node);
-                if (diseaseEntity == null)
-                    crossedObjects.add(node); // Just crossed out
-                else {
-                    Node diseaseNode = replaceNormalNode(node, 
-                                                         diseaseEntity,
-                                                         contains(diseaseEntity, lofInstances));
-                    if (diseaseNode == null)
-                        continue; // Just in case
-                    // Re-link to diseaseNode
-                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
-                    List<?> widgets = connectInfo.getConnectWidgets();
-                    for (Object obj : widgets) {
-                        ConnectWidget widget = (ConnectWidget) obj;
-                        if (widget.getConnectedNode() == node)
-                            widget.replaceConnectedNode(diseaseNode);
-                    }
-                }
-            }
-            else
-                overlaidObjects.add(node);
-        }
+        return diseaseIds;
     }
     
     private void cacheDiseaseNode(GKInstance diseaseEntity,
@@ -425,9 +483,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @throws Exception
      * @TODO: add a new attribute normalEntity in the PhysicalEntity class.
      */
-    private Map<Node, GKInstance> mapMutatedToNormalNodes(GKInstance diseaseReaction,
-                                                          HyperEdge normalReaction,
-                                                          Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
+    protected Map<Node, GKInstance> mapNormalToMutatedEntity(GKInstance diseaseReaction,
+                                                             HyperEdge normalReaction,
+                                                             Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
         List<GKInstance> efs = diseaseReaction.getAttributeValuesList(ReactomeJavaConstants.entityFunctionalStatus);
         // Map mutated entities to normal entities via ReferenceGeneProduct
         Map<Node, GKInstance> normalToDiseaseEntity = new HashMap<Node, GKInstance>();
@@ -584,7 +642,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return false;
     }
     
-    private boolean isLOFEntity(GKInstance ef) throws Exception {
+    protected boolean isLOFEntity(GKInstance ef) throws Exception {
         GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
         if (pe == null)
             return false;

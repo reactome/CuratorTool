@@ -140,6 +140,7 @@ public class EntityLevelView extends JPanel {
         zoomableEditor.installToolbar(toolbar);
         Action openDiagramAction = actionCollection.getOpenDiagramAction();
         objectListPane.getEventPane().addAdditionalPopupAction(openDiagramAction);
+        objectListPane.getEventPane().addAdditionalPopupAction(actionCollection.getViewAsDiseaseDiagramAction());
         objectListPane.getEventPane().addAdditionalPopupAction(actionCollection.getEncapsulateDiagramAction());
     }
     

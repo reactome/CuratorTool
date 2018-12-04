@@ -9,17 +9,29 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 
 import org.gk.database.AttributeEditManager;
+import org.gk.database.DiagramDisplayHandler;
 import org.gk.database.HierarchicalEventPaneActions;
 import org.gk.database.InstanceSelectDialog;
+import org.gk.gkCurator.authorTool.PathwayDiagramHandler;
 import org.gk.gkEditor.AuthorToolActionCollection;
 import org.gk.gkEditor.PathwayEditorInsertActions;
 import org.gk.gkEditor.PopupMenuManager;
@@ -30,9 +42,30 @@ import org.gk.graphEditor.UndoableDeleteEdit;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.pathwaylayout.DiseasePathwayImageEditor;
+import org.gk.pathwaylayout.DiseasePathwayImageEditorViaEFS;
+import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.render.*;
+import org.gk.render.ConnectInfo;
+import org.gk.render.ConnectWidget;
+import org.gk.render.EntitySetAndEntitySetLink;
+import org.gk.render.EntitySetAndMemberLink;
+import org.gk.render.FlowLine;
+import org.gk.render.HyperEdge;
+import org.gk.render.InteractionType;
+import org.gk.render.Node;
+import org.gk.render.NodeConnectInfo;
+import org.gk.render.ProcessNode;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFactory;
+import org.gk.render.RenderableInteraction;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
 import org.gk.schema.SchemaClass;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -49,6 +82,8 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     private PopupMenuManager popupManager;
     private Action autoAssigCompAction;
     private Action openDiagramAction;
+    // A new feature for displaying a disease pathway as shown in the web application (Dec 3, 2018)
+    private Action viewAsDiseaseDiagramAction;
     private Action expandDiagramAction;
     private Action autoPrecedingEventAction;
     private Action hideCompartmentInNameAction;
@@ -805,17 +840,7 @@ public class ElvActionCollection extends AuthorToolActionCollection {
         if (openDiagramAction == null) {
             openDiagramAction = new AbstractAction("Open Diagram") {
                 public void actionPerformed(ActionEvent e) {
-                    List<GKInstance> selections = elv.getTreePane().getSelection();
-                    // Want to get the selected event
-                    GKInstance pathway = null;
-                    for (GKInstance instance : selections) {
-                        if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-                            pathway = instance;
-                            break;
-                        }
-                    }
-                    if (pathway == null)
-                        return;
+                    GKInstance pathway = getSelectedPathway();
                     try {
                         elv.displayEvent(pathway);
                     }
@@ -830,6 +855,44 @@ public class ElvActionCollection extends AuthorToolActionCollection {
             };
         }
         return openDiagramAction;
+    }
+    
+    public Action getViewAsDiseaseDiagramAction() {
+        if (viewAsDiseaseDiagramAction == null) {
+            viewAsDiseaseDiagramAction = new AbstractAction("View as Disease Diagram") {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    GKInstance pathway = getSelectedPathway();
+                    if (pathway == null)
+                        return;
+                    try {
+                        Collection<GKInstance> diagrams = pathway.getReferers(ReactomeJavaConstants.representedPathway);
+                        if (diagrams == null || diagrams.size() == 0) {
+                            JOptionPane.showMessageDialog(elv,
+                                                          "Error: No diagram available for selected pathway.", 
+                                                          "Error in Viewing Diagram",
+                                                          JOptionPane.ERROR_MESSAGE);
+                            return ;
+                        }
+                        GKInstance diagram = diagrams.stream().findFirst().get();
+                        DiagramGKBReader reader = new DiagramGKBReader();
+                        reader.setPersistenceAdaptor(pathway.getDbAdaptor());
+                        RenderablePathway rPathway = reader.openDiagram(diagram);
+
+                        DiagramDisplayHandler diagramHander = new DiagramDisplayHandler();
+                        diagramHander.setParentComponent(elv);
+                        diagramHander.viewPathwayAsDiseaseDiagram(pathway, rPathway);
+                    }
+                    catch(Exception e1) {
+                        JOptionPane.showMessageDialog(elv,
+                                                      "Error: " + e1, 
+                                                      "Error in Viewing Diagram",
+                                                      JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+        }
+        return viewAsDiseaseDiagramAction;
     }
     
     public Action getEncapsulateDiagramAction() {
@@ -1068,6 +1131,19 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     @Override
     protected void setDoNotReleaseEventVisible(boolean visible) {
         elv.getZoomablePathwayEditor().setDoNotReleaseEventVisible(visible);
+    }
+
+    private GKInstance getSelectedPathway() {
+        List<GKInstance> selections = elv.getTreePane().getSelection();
+        // Want to get the selected event
+        GKInstance pathway = null;
+        for (GKInstance instance : selections) {
+            if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                pathway = instance;
+                break;
+            }
+        }
+        return pathway;
     }
     
 }

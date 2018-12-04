@@ -10,7 +10,6 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -2457,44 +2456,7 @@ public class HyperEdge extends Renderable {
      * @return
      */
     public HyperEdge shallowCopy() {
-        try {
-            HyperEdge copy = (HyperEdge) getClass().newInstance();
-            copy.backbonePoints = backbonePoints;
-            copy.inputPoints = inputPoints;
-            copy.outputPoints = outputPoints;
-            copy.helperPoints = helperPoints;
-            copy.inhibitorPoints = inhibitorPoints;
-            copy.activatorPoints = activatorPoints;
-            copy.needInputArrow = needInputArrow;
-            copy.needOutputArrow = needOutputArrow;
-            copy.lineWidth = lineWidth;
-            copy.position = position;
-            if (attributes != null)
-                copy.attributes = new HashMap<>(attributes); // Need to copy this to avoid any clash (e.g. display name)
-            copy.foregroundColor = foregroundColor;
-            copy.backgroundColor = backgroundColor;
-            copy.lineColor = lineColor;
-            copy.isVisible = isVisible;
-            copy.bounds = bounds;
-            copy.renderer = renderer;
-            copy.selectionInfo = selectionInfo;
-            // Make a new copy of connect info
-            HyperEdgeConnectInfo connectInfoCopy = new HyperEdgeConnectInfo();
-            copy.connectInfo = connectInfoCopy;
-            if (connectInfo.getConnectWidgets() != null) {
-                for (ConnectWidget widget : connectInfo.getConnectWidgets()) {
-                    ConnectWidget widgetClone = widget.shallowCopy();
-                    widgetClone.setConnectedNode(widget.getConnectedNode());
-                    widgetClone.setEdge(copy);
-                    widgetClone.connect();
-                }
-            }
-            return copy;
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return RenderUtility.copyHyperEdge(this);
     }
 
     /**
