@@ -9,11 +9,11 @@ org.gk.qualityCheck.EntitySetSpeciesCheck
 org.gk.qualityCheck.ImbalanceCheck
 org.gk.qualityCheck.MandatoryAttributesCheck
 org.gk.qualityCheck.PathwayDiagramCheck
-org.gk.qualityCheck.PathwayELVCheck
+#org.gk.qualityCheck.PathwayELVCheck
 #org.gk.qualityCheck.PathwaySpeciesCheck
 #org.gk.qualityCheck.ReactionCompartmentCheck
-org.gk.qualityCheck.ReactionELVCheck
+#org.gk.qualityCheck.ReactionELVCheck
 #org.gk.qualityCheck.ReactionSpeciesCheck
-org.gk.qualityCheck.ReactionSyncELVCheck
+#org.gk.qualityCheck.ReactionSyncELVCheck
 #org.gk.qualityCheck.RequiredAttributesCheck
 org.gk.qualityCheck.StableIdentifierCheck
