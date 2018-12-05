@@ -120,7 +120,7 @@ public class PathwayDiagramXMLGenerator {
     
     private String generateXMLForDiseasePathwayDigram(GKInstance pd,
                                                       GKInstance pathway) throws Exception {
-        DiseasePathwayImageEditor diseaseHelper = new DiseasePathwayImageEditor();
+        DiseasePathwayImageEditor diseaseHelper = new DiseasePathwayImageEditorViaEFS();
         diseaseHelper.setPathway(pathway);
         diseaseHelper.setPersistenceAdaptor(pd.getDbAdaptor());
         DiagramGKBReader reader = new DiagramGKBReader();
@@ -212,8 +212,8 @@ public class PathwayDiagramXMLGenerator {
     
     @Test
     public void testGenerateXMLForPathwayDigram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
-                                            "test_slice_64",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_110818",
                                             "",
                                             "");
         // EGFR Pathway diagram
@@ -230,6 +230,10 @@ public class PathwayDiagramXMLGenerator {
         pathwayId = 2453864L;
         
         pathwayId = 376176L;
+        
+        pathwayId = 6802946L;
+        
+        pathwayId = 418594L;
         
         GKInstance pathway = dba.fetchInstance(pathwayId);
         GKInstance pdInst = fetchPathwayDiagram(pathway);

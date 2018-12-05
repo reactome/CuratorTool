@@ -73,15 +73,17 @@ public class DiagramDisplayHandler {
             return null;
         if (pathways.size() == 1)
             return pathways.stream().findAny().get();
-        // Show a list for user to choose
-        JFrame parentFrame = (JFrame) SwingUtilities.getAncestorOfClass(JFrame.class, parentComponent);
-        InstanceListDialog listDialog = new InstanceListDialog(parentFrame, "Choose Pathway", true);
         List<GKInstance> instances = new ArrayList<>();
         for (GKInstance pathway : pathways) {
             GKInstance disease = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.disease);
             if (disease != null)
                 instances.add(pathway);
         }
+        if (instances.size() == 1)
+            return instances.stream().findFirst().get();
+        // Show a list for user to choose
+        JFrame parentFrame = (JFrame) SwingUtilities.getAncestorOfClass(JFrame.class, parentComponent);
+        InstanceListDialog listDialog = new InstanceListDialog(parentFrame, "Choose Pathway", true);
         InstanceUtilities.sortInstances(instances);
         listDialog.setDisplayedInstances(instances);
         listDialog.setSize(800, 500);
