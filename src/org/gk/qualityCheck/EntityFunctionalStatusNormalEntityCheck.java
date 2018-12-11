@@ -2,6 +2,7 @@ package org.gk.qualityCheck;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 
 public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalStatusCheck {
 
@@ -21,11 +23,12 @@ public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalSta
     protected ResultTableModel getResultTableModel() throws Exception {
         return new NormalEntityTableModel();
     }
+    
 
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         // Check if this diseaseEntity is in the RLE's participant
-        Collection<GKInstance> referrers = instance.getReferers(ReactomeJavaConstants.entityFunctionalStatus);
+        Collection<GKInstance> referrers = efsToRLEs.get(instance);
         if (referrers == null || referrers.size() == 0)
             return true; // Just don't care
         GKInstance normalEntity = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.normalEntity);
@@ -47,6 +50,26 @@ public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalSta
         return true;
     }
     
+    protected Collection<GKInstance> loadReactions(MySQLAdaptor dba) throws Exception {
+        // We will start with RLEs for quick performance
+        Collection<GKInstance> rles = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+                                                                   ReactomeJavaConstants.entityFunctionalStatus,
+                                                                   "IS NOT NULL",
+                                                                   null);
+        dba.loadInstanceAttributeValues(rles, new String[] {
+                ReactomeJavaConstants.entityFunctionalStatus,
+                ReactomeJavaConstants.normalReaction
+                });
+        Set<GKInstance> normalRLEs = new HashSet<>();
+        for (GKInstance rle : rles) {
+            GKInstance normalRLE = (GKInstance) rle.getAttributeValue(ReactomeJavaConstants.normalReaction);
+            if (normalRLE != null)
+                normalRLEs.add(normalRLE);
+        }
+        loadReactionParticipants(normalRLEs, dba);
+        return rles;
+    }
+
     private class NormalEntityTableModel extends EFSEntityTableModel {
         
         protected void fillData(GKInstance efs) throws Exception {
