@@ -209,7 +209,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 List<GKInstance> efs = inst.getAttributeValuesList(ReactomeJavaConstants.entityFunctionalStatus);
                 Set<GKInstance> lofPEs = new HashSet<GKInstance>();
                 for (GKInstance ef : efs) {
-                    GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+                    GKInstance pe = getPhysicalEntityInEFS(ef);
                     if (isLOFEntity(ef))
                         lofPEs.add(pe);
                 }
@@ -505,7 +505,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         nodes.addAll(normalReaction.getInhibitorNodes());
         nodes.addAll(normalReaction.getActivatorNodes());
         for (GKInstance ef : efs) {
-            GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+            GKInstance pe = getPhysicalEntityInEFS(ef);
             if (pe != null) {
                 Set<GKInstance> refEntities = getReferenceEntity(pe);
                 // want to find the matched node
@@ -579,6 +579,15 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return normalToDiseaseEntity;
     }
 
+    protected GKInstance getPhysicalEntityInEFS(GKInstance ef) throws InvalidAttributeException, Exception {
+        GKInstance pe = null;
+        if (ef.getSchemClass().isValidAttribute(ReactomeJavaConstants.diseaseEntity))
+            pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
+        else if (ef.getSchemClass().isValidAttribute(ReactomeJavaConstants.physicalEntity)) // For old model
+            pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+        return pe;
+    }
+
     private void randomlyMapDiseaseNodesToNormalNodes(Map<Node, GKInstance> normalToDiseaseEntity,
                                                      Collection<GKInstance> mapped,
                                                      List<GKInstance> diseaseInputs,
@@ -649,7 +658,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     protected boolean isLOFEntity(GKInstance ef) throws Exception {
-        GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+        GKInstance pe = getPhysicalEntityInEFS(ef);
         if (pe == null)
             return false;
         GKInstance functionalStatus = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.functionalStatus);
