@@ -1,4 +1,22 @@
-Build 93 (Version 3.3) notes (November 5, 2018)
+Build 95 (Version 3.3) notes (December 11, 2018)
+
+The version number has increased to 3.3. New features are added in this build:
+
+1). Added "View as Disease Diagram" in the db schema view when the user chooses a PathwayDiagram instance and in the local ELV view when the user selects a disease pathway.
+
+2). Added two new QAs checking: 
+
+a). diseaseEntity slot in EntityFunctionalStatus to make sure it is a participant, but not output, in a disease RLE annotated by this EFS.
+
+b). normalEntity slot in EFS to make sure it is a participant, but not output, of a normalReaction annotated for a disease RLE annotated by this EFS.
+
+3). The data model used in this build has been updated to the latest of gk_central.
+
+Build 94 (Version 3.2) notes (November 16, 2018)
+
+Special build for Mac OS for test MySQL connection issue: It aborts too quick. Adjusted the background connection thread to make it ping the server much more frequently.
+
+Build 93 (Version 3.2) notes (November 5, 2018)
 
 Two changes:
 
