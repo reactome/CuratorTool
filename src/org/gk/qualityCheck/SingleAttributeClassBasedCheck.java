@@ -159,7 +159,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             report.addLine(instance.getDBID().toString(),
                     instance.getDisplayName(),
                     getIssue(instance),
-                    InstanceUtilities.getLatestIEFromInstance(instance).getDisplayName());
+                    InstanceUtilities.getLatestCuratorIEFromInstance(instance).getDisplayName());
         }
         report.setColumnHeaders("DB_ID",
                 "DisplayName",
