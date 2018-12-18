@@ -6,9 +6,12 @@ package org.gk.qualityCheck;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JOptionPane;
@@ -39,6 +42,10 @@ import org.junit.Test;
 public class DiagramReactionsCheck extends PathwayDiagramCheck {
     protected DiagramGKBReader reader;
     
+    protected Map<GKInstance, String> instToIssue;
+
+    private HashMap<GKInstance, Collection<Long>> instToMissingRxtIds;
+
     public DiagramReactionsCheck() {
     }
     
@@ -60,10 +67,16 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
         return "Diagram_Missing_Reactions";
     }
     
+    /**
+     * Formats the issue string as a comma-delimited list of
+     * the missing reaction <code>reactomeId</code> values
+     * 
+     * @param instance the PathwayDiagram instance
+     * @return the QA report issue string
+     */
     @Override
     protected String getIssue(GKInstance instance) throws Exception {
-        GKInstance pathway = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
-        Set<Long> missingRxtIds = getMissingReactionIds(instance, pathway);
+        Collection<Long> missingRxtIds = instToMissingRxtIds.get(instance);
         StringBuilder builder = new StringBuilder();
         missingRxtIds.forEach(id -> builder.append(","));
         builder.deleteCharAt(builder.length() - 1);
@@ -76,26 +89,77 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
     }
 
     @Override
+    protected void checkInstances(Collection<GKInstance> instances) throws Exception {
+        // Clear the missing reaction db ids map, if necessary.
+        if (instToMissingRxtIds != null) {
+            instToMissingRxtIds.clear();
+        }
+        super.checkInstances(instances);
+    }
+
+    /**
+     * Runs this QA check on the given PathwayDiagram instance
+     * and returns whether the diagram has a reportable issue.
+     * 
+     * @param instance the PathwayDiagram instance
+     * @return whether all of the diagram HyperEdge and ProcessNode
+     *   <code>reactomeId</code> values are found in the database
+     */
+    @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
+        // Make the missing reaction db ids map, if necessary.
+        if (instToMissingRxtIds == null) {
+            instToMissingRxtIds = new HashMap<GKInstance, Collection<Long>>();
+        }
+        Set<Long> missingRxtIds = getMissingReactionIds(instance);
+        if (!missingRxtIds.isEmpty()) {
+            instToMissingRxtIds.put(instance, missingRxtIds);
+        }
+        return missingRxtIds.size() == 0;
+    }
+
+    /**
+     * Validates that the given instance is a PathwayDiagram and
+     * returns the diagram reaction <code>reactomeId</code> values
+     * which are not in the represented Pathway event hierarchy.
+     * 
+     * @param instance the PathwayDiagram instance
+     * @return the mimssing db ids
+     * @throws IllegalArgumentException is the instance is not a PathwayDiagram
+     * @throws Exception
+     */
+    protected Set<Long> getMissingReactionIds(GKInstance instance) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
             throw new IllegalArgumentException(instance + " is not a PathwayDiagram instance!");
         GKInstance pathway = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
-        if (pathway == null)
-            return true; // Nothing to be checked with
         Set<Long> missingRxtIds = getMissingReactionIds(instance, pathway);
-        return missingRxtIds.size() == 0;
+        return missingRxtIds;
     }
     
+    /**
+     * Detects the diagram reaction representation <code>reactomeId</code>
+     * values which are not found in the database.
+     * 
+     * If the <em>pathway</em> argument is null, then an empty set is returned.
+     * 
+     * @param diagram
+     * @param pathway
+     * @return 
+     * @throws Exception
+     */
     private Set<Long> getMissingReactionIds(GKInstance diagram,
                                             GKInstance pathway) throws Exception {
+        if (pathway == null) {
+            return Collections.emptySet();
+        }
         Set<Long> rtn = new HashSet<Long>();
-        // Get all contained reactions
-        Set<GKInstance> reactions = InstanceUtilities.grepPathwayEventComponents(pathway);
         // Get all contained Event ids by this Pathway
         Set<Long> dbIds = extractReactomeIds(diagram);
         if (dbIds == null || dbIds.size() == 0) {
             return rtn; // Nothing has been drawn yet in this diagram
         }
+        // Get all contained reactions
+        Set<GKInstance> reactions = InstanceUtilities.grepPathwayEventComponents(pathway);
         filterOutDoNotReleaseEvents(reactions);
         // Check DB_IDs to see if any Pathway there
         GKInstance event = null;
@@ -160,6 +224,13 @@ public class DiagramReactionsCheck extends PathwayDiagramCheck {
         dba.loadInstanceAttributeValues(c, att);
     }
 
+    /**
+     * Overrides the base class method behaviour to return only the
+     * <code>reactomeId</code> values of HyperEdge and ProcessNode
+     * renderables in the given diagram.
+     * 
+     * @param instance the PathwayDiagram instance
+     */
     @Override
     protected Set<Long> extractReactomeIds(GKInstance instance) throws InvalidAttributeException, Exception {
         String xml = (String) instance.getAttributeValue(ReactomeJavaConstants.storedATXML);
