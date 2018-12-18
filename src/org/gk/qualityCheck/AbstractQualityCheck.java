@@ -157,6 +157,16 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         return words;
     }
     
+    /**
+     * This base class implementation returns an empty report.
+     * A side effect of this method is to load the skip list.
+     * 
+     * Subclasses have the responsibility to override this method,
+     * call the superclass, and fill in the empty report.
+     * 
+     * @return null if the data source is not a database adaptor,
+     *  otherwise an empty report
+     */
     @Override
     public QAReport checkInCommand() throws Exception {
         if (dataSource == null || !(dataSource instanceof MySQLAdaptor))
@@ -437,7 +447,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
 							   SchemaViewPane schemaView,
 							   EventCentricViewPane eventView,
 							   Properties properties) {
-		try {
+        try {
 			QualityCheck checker = (QualityCheck) Class.forName(checkerClsName).newInstance();
 			checker.setDatasource(dataSource);
 			// Only database can escape a set of instances.
