@@ -56,6 +56,11 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
         super.checkOutSelectedInstances(frame);
     }
 
+    /**
+     * @param instance the PathwayDiagram instance
+     * @return whether all of the diagram <code>reactomeId</code>
+     *   values are found in the database
+     */
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
@@ -77,6 +82,20 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
         }
     }
 
+    /**
+     * Returns the diagram XML element <code>reactomeId</code> attribute values
+     * relevant to this QA check.
+     * 
+     * This {@link PathwayDiagramCheck} implementation eturns all diagram XML
+     * element <code>reactomeId</code> attribute values found in the diagram.
+     * Subclasses can override this method to filter for only the db ids
+     * pertinent to the specific QA check.
+     * 
+     * @param instance the PathwayDiagram instance
+     * @return the db ids
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
     protected Set<Long> extractReactomeIds(GKInstance instance) throws InvalidAttributeException, Exception {
         String xml = (String) instance.getAttributeValue(ReactomeJavaConstants.storedATXML);
         if (xml == null || xml.length() == 0)
