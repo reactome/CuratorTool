@@ -36,6 +36,11 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
         };
     }
     
+    @Override
+    public String getDisplayName() {
+        return "Complex_Compartment_Inconsistency";
+    }
+
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         Set<GKInstance> toBeLoaded = loadComplexHasComponent(instances,
