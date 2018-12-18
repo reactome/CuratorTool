@@ -16,10 +16,13 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
 /**
- * This class is used to check species setting. If more than one species are assigned to the checked instances
- * and its contained instances, it will be flagged as wrong.
+ * This class is used to check species setting. Subclasses supply the
+ * class and attributes to check. Instances of the class are reported
+ * if the instance species does not exactly equal the species of
+ * instances referenced by the attribute. Both the <code>species</code>
+ * and <code>relatedSpecies</code> values are used. 
+ * 
  * @author wgm
- *
  */
 @SuppressWarnings("unchecked")
 public abstract class SpeciesCheck extends SingleAttributeClassBasedCheck {

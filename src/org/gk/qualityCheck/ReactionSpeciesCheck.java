@@ -12,6 +12,13 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaClass;
 
+/**
+ * This QA check reports Reactions whose species does not exactly
+ * equal the species of its participants. Both the <code>species</code>
+ * and <code>relatedSpecies</code> values are used. 
+ *
+ * @author Fred Loney <loneyf@ohsu.edu>
+ */
 public class ReactionSpeciesCheck extends SpeciesCheck {
     private ReactionQACheckHelper qaHelper;
     
