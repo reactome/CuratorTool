@@ -55,9 +55,7 @@ public class PMIDXMLInfoFetcher2 {
         isr.close();
         is.close();
         String text = builder.toString();
-        System.out.println(text);
         text = StringEscapeUtils.unescapeXml(text);
-        System.out.println(text);
         StringReader sr = new StringReader(text);
         SAXBuilder saxBuilder = new SAXBuilder();
         Document document = saxBuilder.build(sr);
