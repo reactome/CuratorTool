@@ -6,7 +6,8 @@
     </description>
 	
 	<!-- Defining a list of directory names to be used -->
-	<property name="targetDir" value="${basedir}/../WebELVTool" />
+	<property name="targetDir" value="${basedir}/WebELVTool" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="orgDir" value="${classDir}/org" />
 	<property name="libDir" value="${basedir}/lib" />
@@ -24,10 +25,25 @@
 		<mkdir dir="${targetDir}/resources" />
 		<mkdir dir="${targetDir}/logs" />
 	</target>
+
+	<!-- path for including all jar files in library directory -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<!-- compile source code in specified src directory -->
+	<target name="compile">
+		<mkdir dir="${classDir}" />
+        	<javac srcdir="${srcDir}" destdir="${classDir}" >
+			<classpath refid="class.path" />
+		</javac>
+        </target>
 	
 	<!-- copy all files to the target directory -->
 	<!-- Don't delete the targetDir since there is CVS information there -->
-	<target name="jar">
+	<target name="jar" depends="compile">
 		<jar destfile="${targetDir}/webELVTool.jar">
 			<fileset dir="${classDir}">
 				<include name="org/gk/util/**" />
