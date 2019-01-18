@@ -5,7 +5,6 @@
 package org.gk.gkCurator.authorTool;
 
 import java.util.Map;
-
 import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
@@ -18,7 +17,33 @@ public class ModifiedResidueHandler {
         
     }
     
-    public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
+    /**
+     * Returns the feature representing the given residue.
+     * 
+     * The feature label is determined as follows:
+     * <ul>
+     * <li>If the residue has a <em>modification</em> value which maps
+     *     to a {@link AttributeEditConfig#getModifications()} short name,
+     *     then that is the label.
+     * </ul>
+     * <li>Otherwise, if the residue has a <em>psiMod</em> value and the
+     *     parsed residue display name contains a
+     *     {@link AttributeEditConfig#getPsiModifications()} short name,
+     *     then that is the label.
+     * </ul>
+     * <li>Otherwise, the label is null.
+     * </ul>
+     * 
+     * <em>Note</em>: this method catches exceptions and prints the
+     * exception to <code>stdout</code>. In that case, the returned
+     * feature might be incomplete and invalid. There is no definitive
+     * way for the caller to detect that situation.
+     * 
+     * @param modifiedResidue
+     * @return the feature
+     * @throws Exception
+     */
+   public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
         // Need to convert to attachments
         Map<String, String> residues = AttributeEditConfig.getConfig().getModificationResidues();
         Map<String, String> modifications = AttributeEditConfig.getConfig().getModifications();
