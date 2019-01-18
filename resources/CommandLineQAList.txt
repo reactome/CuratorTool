@@ -1,8 +1,12 @@
 # The list of QA checks to be run in the command line on
 # a slice database.
-#org.gk.qualityCheck.ComplexCompartmentCheck
+org.gk.qualityCheck.ComplexCompartmentCheck
 org.gk.qualityCheck.ComplexSpeciesCheck
-org.gk.qualityCheck.DiagramReactionsCheck
+org.gk.qualityCheck.DiagramMissingReactionsCheck
+#org.gk.qualityCheck.DiagramNodeAttachmentCheck
+org.gk.qualityCheck.DiagramOrphanEntitiesChec
+org.gk.qualityCheck.DiagramSubpathwayCheck
+org.gk.qualityCheck.DiagramReactionShapeCheck
 org.gk.qualityCheck.EntitySetCompartmentCheck
 org.gk.qualityCheck.EntitySetSpeciesCheck
 #org.gk.qualityCheck.EntitySetTypeCheck
