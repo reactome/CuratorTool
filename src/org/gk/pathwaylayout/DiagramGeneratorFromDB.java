@@ -242,13 +242,15 @@ public class DiagramGeneratorFromDB {
         pathwayId = 5619054L; // Use normalPathway
         pathwayId = 4341670L;
         pathwayId = 4687000L;
+        pathwayId = 5603029L;
+        pathwayId = 6802949L;
 //        pathwayId = 5657562L; 
 //        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                               "gk_central", 
 //                               "authortool", 
 //                               "T001test");
         dba = new MySQLAdaptor("localhost",
-                               "gk_current_ver53",
+                               "test_gk_central_efs_new",
                                "root",
                                "macmysql01");
         dba.setUseCache(true);
@@ -758,7 +760,7 @@ public class DiagramGeneratorFromDB {
         fineTuneDiagram(rPathway);
         PathwayEditor editor = null;
         if (isDiseaseRelatedPd) {
-            DiseasePathwayImageEditor editor1 = new DiseasePathwayImageEditor();
+            DiseasePathwayImageEditor editor1 = new DiseasePathwayImageEditorViaEFS();
             editor1.setIsForNormal(isNormalPathway);
             editor1.setPersistenceAdaptor(diagram.getDbAdaptor());
             editor1.setPathway(pathway);

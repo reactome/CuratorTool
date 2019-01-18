@@ -25,14 +25,18 @@ import javax.swing.JFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 import org.gk.gkEditor.ZoomablePathwayEditor;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.pathwaylayout.DiseasePathwayImageEditor;
+import org.gk.pathwaylayout.DiseasePathwayImageEditorViaEFS;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
-import org.gk.persistence.PersistenceManager;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.util.GKApplicationUtilities;
@@ -46,46 +50,115 @@ import org.gk.util.StringUtils;
  */
 public class DiagramDisplayHandler {
     private Component parentComponent;
+    // Keep the database persistence for use
+    private PersistenceAdaptor dbAdaptor;
     
     /**
      * Default constructor.
      */
     public DiagramDisplayHandler() {
     }
-    
-    
+
     public Component getParentComponent() {
         return parentComponent;
     }
 
-
     public void setParentComponent(Component parentComponent) {
         this.parentComponent = parentComponent;
     }
+    
+    private GKInstance getPathway(GKInstance pd) throws Exception {
+        List<GKInstance> pathways = pd.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
+        if (pathways == null || pathways.size() == 0)
+            return null;
+        if (pathways.size() == 1)
+            return pathways.stream().findAny().get();
+        List<GKInstance> instances = new ArrayList<>();
+        for (GKInstance pathway : pathways) {
+            GKInstance disease = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.disease);
+            if (disease != null)
+                instances.add(pathway);
+        }
+        if (instances.size() == 1)
+            return instances.stream().findFirst().get();
+        // Show a list for user to choose
+        JFrame parentFrame = (JFrame) SwingUtilities.getAncestorOfClass(JFrame.class, parentComponent);
+        InstanceListDialog listDialog = new InstanceListDialog(parentFrame, "Choose Pathway", true);
+        InstanceUtilities.sortInstances(instances);
+        listDialog.setDisplayedInstances(instances);
+        listDialog.setSize(800, 500);
+        listDialog.setLocationRelativeTo(parentComponent);
+        listDialog.setModal(true);
+        listDialog.setVisible(true);
+        if (listDialog.isOKClicked()) {
+            List<GKInstance> selection = listDialog.getInstanceListPane().getSelection();
+            if (selection.size() == 0)
+                return null;
+            return selection.get(0);
+        }
+        return null;
+    }
 
+    public void viewPathwayAsDiseaseDiagram(GKInstance inst) {
+        if (!inst.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
+            return;
+        try {
+            GKInstance pathway = getPathway(inst);
+            if (pathway == null)
+                return;
+            DiagramGKBReader reader = new DiagramGKBReader();
+            RenderablePathway diagram = reader.openDiagram(inst);
+            viewPathwayAsDiseaseDiagram(pathway, diagram);
+        }
+        catch (Exception e) {
+            JOptionPane.showMessageDialog(parentComponent, 
+                                          "Cannot show disease diagram: " + e.getMessage(), 
+                                          "Error in Showing Disease Diagram",
+                                          JOptionPane.ERROR_MESSAGE);
+            System.err.println("GKDBBrowserPopupManager.viewPathwayAsDiseaseDiagram(): " + e);
+            e.printStackTrace();
+        }
+    }
+
+    public void viewPathwayAsDiseaseDiagram(GKInstance pathway, RenderablePathway diagram) {
+        dbAdaptor = pathway.getDbAdaptor();
+        DiseasePathwayImageEditor editor = new DiseasePathwayImageEditorViaEFS();
+        editor.setIsForNormal(false);
+        editor.setPathway(pathway);
+        editor.setPersistenceAdaptor(pathway.getDbAdaptor());
+        editor.setRenderable(diagram);
+        ZoomablePathwayEditor pathwayEditor = new ZoomablePathwayEditor() {
+
+            @Override
+            protected PathwayEditor createPathwayEditor() {
+                return editor;
+            }
+            
+        };
+        addActionsToPathwayEditor(pathwayEditor);
+        pathwayEditor.setTitle("<html><u>" + pathway.getDisplayName() + "</u></html>");
+        pathwayEditor.getPathwayEditor().setEditable(false);
+        JFrame frame = new JFrame("Pathway Disease Diagram View");
+        frame.getContentPane().add(pathwayEditor, BorderLayout.CENTER);
+        frame.setSize(800, 600);
+        if (parentComponent == null)
+            GKApplicationUtilities.center(frame);
+        else
+            frame.setLocationRelativeTo(parentComponent);
+        
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setVisible(true);
+    }
 
     public void showPathwayDiagram(GKInstance inst) {
         if (!inst.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
             return;
+        dbAdaptor = inst.getDbAdaptor();
         try {
             DiagramGKBReader reader = new DiagramGKBReader();
             RenderablePathway diagram = reader.openDiagram(inst);
             ZoomablePathwayEditor pathwayEditor = new ZoomablePathwayEditor();
-            pathwayEditor.getPathwayEditor().addMouseListener(new MouseAdapter() {
-                public void mousePressed(MouseEvent e) {
-                    if (e.isPopupTrigger()) {
-                        doPathwayEditorPopup(e);
-                    }
-                }
-                public void mouseReleased(MouseEvent e) {
-                    if (e.isPopupTrigger())
-                        doPathwayEditorPopup(e);
-                }
-                public void mouseClicked(MouseEvent e) {
-                    if (e.getClickCount() == 2)
-                        doPathwayEditorDoubleClick(e);
-                }
-            });
+            addActionsToPathwayEditor(pathwayEditor);
             pathwayEditor.getPathwayEditor().setRenderable(diagram);
             // Check if there is any objects have been deleted
             Set<Long> dbIds = new HashSet<Long>();
@@ -97,8 +170,7 @@ public class DiagramDisplayHandler {
                     dbIds.add(r.getReactomeId());
                 }
                 // Need to check these instances in the database
-                MySQLAdaptor dba = (MySQLAdaptor) inst.getDbAdaptor();
-                Collection<?> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
+                Collection<?> c = dbAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
                                                                ReactomeJavaConstants.DB_ID,
                                                                "=", 
                                                                dbIds);
@@ -154,6 +226,25 @@ public class DiagramDisplayHandler {
             e.printStackTrace();
         }
     }
+
+
+    private void addActionsToPathwayEditor(ZoomablePathwayEditor pathwayEditor) {
+        pathwayEditor.getPathwayEditor().addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    doPathwayEditorPopup(e);
+                }
+            }
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger())
+                    doPathwayEditorPopup(e);
+            }
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2)
+                    doPathwayEditorDoubleClick(e);
+            }
+        });
+    }
     
     private void doPathwayEditorDoubleClick(MouseEvent e) {
         PathwayEditor editor = (PathwayEditor) e.getSource();
@@ -163,12 +254,11 @@ public class DiagramDisplayHandler {
         Renderable r = (Renderable) selection.get(0);
         if (r.getReactomeId() == null)
             return;
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
         try {
-            GKInstance inst = dba.fetchInstance(r.getReactomeId());
+            GKInstance inst = dbAdaptor.fetchInstance(r.getReactomeId());
             if (inst == null)
                 return;
-            FrameManager.getManager().showInstance(inst, false);
+            FrameManager.getManager().showInstance(inst, !(dbAdaptor instanceof MySQLAdaptor));
         }
         catch(Exception e1) {
             // Don't popup any dialog. Just silently printout exception
@@ -199,8 +289,7 @@ public class DiagramDisplayHandler {
                 Action action = new AbstractAction("View Instance") {
                     public void actionPerformed(ActionEvent e) {
                         try {
-                            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
-                            GKInstance inst = dba.fetchInstance(r.getReactomeId());
+                            GKInstance inst = dbAdaptor.fetchInstance(r.getReactomeId());
                             if (inst == null) {
                                 JOptionPane.showMessageDialog(editor,
                                                               "Cannot find instance for " + r.getReactomeId() + ". It may have been deleted.",
@@ -222,8 +311,7 @@ public class DiagramDisplayHandler {
                     @Override
                     public void actionPerformed(ActionEvent arg0) {
                         try {
-                            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
-                            GKInstance inst = dba.fetchInstance(r.getReactomeId());
+                            GKInstance inst = dbAdaptor.fetchInstance(r.getReactomeId());
                             if (inst == null) {
                                 JOptionPane.showMessageDialog(editor,
                                         "Cannot find instance for " + r.getReactomeId() + ". It may have been deleted.",
@@ -257,6 +345,26 @@ public class DiagramDisplayHandler {
             }
         };
         popup.add(wrapTextIntoNodesAction);
+        // The following code cannot work for the time being for a local 
+        // project: the Renderable is loaded directly from XML. However,
+        // the user may not save the XML after making changes in the ELV
+        // therefore, the two views are out-of-sync though _displayNames
+        // may be get updated. For a diagram in the database, reloading
+        // XML will be needed. 
+        // TODO: Need to implement via editing action listening and to be completed
+        // for future update.
+//        // For disease diagram, add a refresh for editing
+//        if (editor instanceof DiseasePathwayImageEditor) {
+//            Action refresh = new AbstractAction("Refresh") {
+//                
+//                @Override
+//                public void actionPerformed(ActionEvent e) {
+//                    ((DiseasePathwayImageEditor)editor).refresh();
+//                }
+//            };
+//            popup.addSeparator();
+//            popup.add(refresh);
+//        }
         popup.show(editor, e.getX(), e.getY());
     }
     

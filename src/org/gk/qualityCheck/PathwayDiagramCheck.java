@@ -107,7 +107,7 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
 //            return true;  // Just ignore it
         Set<Long> dbIds = new HashSet<Long>();
         // Use this REGEXP to find all reactomeIds
-        String regexp = "reactomeId=\"((\\d)+)";
+        String regexp = "reactomeId=\"(-?(\\d)+)";
         Pattern pattern = Pattern.compile(regexp);
         Matcher matcher = pattern.matcher(xml);
         int start = 0;

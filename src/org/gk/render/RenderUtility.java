@@ -11,10 +11,12 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.util.DrawUtilities;
@@ -24,7 +26,136 @@ import org.gk.util.DrawUtilities;
  * @author wgm
  */
 public class RenderUtility {
+    
+    private static List<List<Point>> copyListsOfPoints(List<List<Point>> listOfPoints) {
+        if (listOfPoints == null)
+            return null;
+        List<List<Point>> copy = new ArrayList<>();
+        for (List<Point> points : listOfPoints) {
+            List<Point> subCopy = copyPoints(points);
+            copy.add(subCopy);
+        }
+        return copy;
+    }
+    
+    private static List<Point> copyPoints(List<Point> points) {
+        if (points == null)
+            return null;
+        List<Point> copy = points.stream().map(p -> new Point(p)).collect(Collectors.toList());
+        return copy;
+    }
+    
+    /**
+     * Create a shallow copy of this HyperEdge. All attributes in the returned copy are shared
+     * with this objects.
+     * @return
+     */
+    public static HyperEdge copyHyperEdge(HyperEdge edge) {
+        try {
+            HyperEdge copy = edge.getClass().newInstance();
+            // Position should be copied first
+            Point position = edge.getPosition();
+            copy.setPosition(position == null ? null : new Point(position));
+            copy.setBackbonePoints(copyPoints(edge.getBackbonePoints()));
+            copy.setInputPoints(copyListsOfPoints(edge.getInputPoints()));
+            copy.setOutputPoints(copyListsOfPoints(edge.getOutputPoints()));
+            copy.setHelperPoints(copyListsOfPoints(edge.getHelperPoints()));
+            copy.setInhibitorPoints(copyListsOfPoints(edge.getInhibitorPoints()));
+            copy.setActivatorPoints(copyListsOfPoints(edge.getActivatorPoints()));
+            copy.setNeedInputArrow(edge.isNeedInputArrow());
+            copy.setNeedOutputArrow(edge.isNeedOutputArrow());
+            copy.setLineWidth(edge.getLineWidth());
+            if (edge.getAttributes() != null)
+                copy.attributes = new HashMap<>(edge.getAttributes()); // Need to copy this to avoid any clash (e.g. display name)
+            copy.setForegroundColor(edge.getForegroundColor());
+            copy.setBackgroundColor(edge.getBackgroundColor());
+            copy.setLineColor(edge.getLineColor());
+            copy.setIsVisible(edge.isVisible());
+            Rectangle bounds = edge.getBounds();
+            copy.setBounds((bounds == null ? null : new Rectangle(bounds)));
+            copy.setRenderer(edge.getRenderer());
+            // Make a new copy of connect info
+            HyperEdgeConnectInfo connectInfoCopy = new HyperEdgeConnectInfo();
+            copy.connectInfo = connectInfoCopy;
+            ConnectInfo connectInfo = edge.getConnectInfo();
+            if (connectInfo.getConnectWidgets() != null) {
+                for (ConnectWidget widget : connectInfo.getConnectWidgets()) {
+                    ConnectWidget widgetClone = widget.shallowCopy();
+                    replaceWidgetPoints(widgetClone, copy);
+                    widgetClone.setConnectedNode(widget.getConnectedNode());
+                    widgetClone.setEdge(copy);
+                    widgetClone.connect();
+                }
+            }
+            return copy;
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    private static void replaceWidgetPoints(ConnectWidget widget, HyperEdge edge) {
+        List<List<Point>> listOfPoints = null;
+        List<Point> backbonePoints = edge.getBackbonePoints();
+        Point controlPoint = null;
+        List<Point> points = null;
+        if (widget.getRole() == HyperEdge.INPUT) {
+            listOfPoints = edge.getInputPoints();
+            if (listOfPoints == null) {
+                points = backbonePoints;
+            }
+            else {
+                points = listOfPoints.get(widget.getIndex());
+                controlPoint = backbonePoints.get(0);
+            }
+        }
+        else if (widget.getRole() == HyperEdge.OUTPUT) {
+            listOfPoints = edge.getOutputPoints();
+            if (listOfPoints == null) {
+                points = backbonePoints;
+            }
+            else {
+                points = listOfPoints.get(widget.getIndex());
+                controlPoint = backbonePoints.get(backbonePoints.size() - 1);
+            }
+        }
+        else if (widget.getRole() == HyperEdge.CATALYST) {
+            listOfPoints = edge.getHelperPoints();
+            points = listOfPoints.get(widget.getIndex());
+            controlPoint = edge.getPosition();
+        }
+        else if (widget.getRole() == HyperEdge.ACTIVATOR) {
+            listOfPoints = edge.getActivatorPoints();
+            points = listOfPoints.get(widget.getIndex());
+            controlPoint = edge.getPosition();
+        }
+        else if (widget.getRole() == HyperEdge.INHIBITOR) {
+            listOfPoints = edge.getInhibitorPoints();
+            points = listOfPoints.get(widget.getIndex());
+            controlPoint = edge.getPosition();
+        }
+        replaceWidgetPoints(widget, points, controlPoint);
+    }
 
+    private static void replaceWidgetPoints(ConnectWidget widget,
+                                            List<Point> points,
+                                            Point controlP) {
+        if (points.size() == 1) {
+            widget.setPoint(points.get(0));
+            if (controlP != null)
+                widget.setControlPoint(controlP);
+        }
+        else {
+            for (Point p : points) {
+                if (p.equals(widget.getControlPoint()))
+                    widget.setControlPoint(p);
+                else if (p.equals(widget.getPoint()))
+                    widget.setPoint(p);
+            }
+        }
+    }
+    
     public static void hideCompartmentInNodeName(RenderablePathway diagram) {
         List<Renderable> components = diagram.getComponents();
         if (components == null || components.size() == 0)

@@ -28,6 +28,7 @@ import org.gk.render.RenderableEntity;
 import org.gk.render.RenderableEntitySet;
 import org.gk.render.RenderableGene;
 import org.gk.render.RenderableProtein;
+import org.gk.render.RenderableProteinDrug;
 import org.gk.render.RenderableRNA;
 import org.gk.render.RenderableRNADrug;
 import org.gk.render.RenderableReaction;
@@ -193,28 +194,29 @@ public class SearchDBTypeHelper {
             return RenderableComplex.class;
         else if (cls.isa(ReactomeJavaConstants.SimpleEntity))
             return RenderableChemical.class;
+        // Rollback the original three sub drug types as of December 10, 2018.
+        else if (cls.isa(ReactomeJavaConstants.ChemicalDrug))
+            return RenderableChemicalDrug.class;
+        else if (cls.isa(ReactomeJavaConstants.ProteinDrug))
+            return RenderableProteinDrug.class;
+        else if (cls.isa(ReactomeJavaConstants.RNADrug))
+            return RenderableRNADrug.class;
         // As of November, 2018, there is only one Drug class
-        else if (cls.isa(ReactomeJavaConstants.Drug)) {
-            if (cls.isValidAttribute(ReactomeJavaConstants.drugType)) {
-                GKInstance drugType = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.drugType);
-                if (drugType == null)
-                    return RenderableChemicalDrug.class;
-                else if (drugType.getDisplayName().equalsIgnoreCase("ChemicalDrug"))
-                    return RenderableChemicalDrug.class;
-                else if (drugType.getDisplayName().equalsIgnoreCase("ProteinDrug"))
-                    return RenderableChemicalDrug.class;
-                else if (drugType.getDisplayName().equalsIgnoreCase("RNADrug"))
-                    return RenderableRNADrug.class;
-            }
-            else
-                return RenderableChemicalDrug.class; // Use this as the default
-        }
-//        else if (cls.isa(ReactomeJavaConstants.ChemicalDrug))
-//            return RenderableChemicalDrug.class;
-//        else if (cls.isa(ReactomeJavaConstants.ProteinDrug))
-//            return RenderableProteinDrug.class;
-//        else if (cls.isa(ReactomeJavaConstants.RNADrug))
-//            return RenderableRNADrug.class;
+//        else if (cls.isa(ReactomeJavaConstants.Drug)) {
+//            if (cls.isValidAttribute(ReactomeJavaConstants.drugType)) {
+//                GKInstance drugType = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.drugType);
+//                if (drugType == null)
+//                    return RenderableChemicalDrug.class;
+//                else if (drugType.getDisplayName().equalsIgnoreCase("ChemicalDrug"))
+//                    return RenderableChemicalDrug.class;
+//                else if (drugType.getDisplayName().equalsIgnoreCase("ProteinDrug"))
+//                    return RenderableChemicalDrug.class;
+//                else if (drugType.getDisplayName().equalsIgnoreCase("RNADrug"))
+//                    return RenderableRNADrug.class;
+//            }
+//            else
+//                return RenderableChemicalDrug.class; // Use this as the default
+//        }
         else if (cls.isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
             // Have to check reference entity
             GKInstance referenceEntity = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.referenceEntity);

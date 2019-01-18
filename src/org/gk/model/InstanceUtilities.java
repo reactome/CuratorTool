@@ -1037,16 +1037,14 @@ public class InstanceUtilities {
               List outputs = reaction.getAttributeValuesList(ReactomeJavaConstants.output);
               getReactionParticipants(outputs, set);
           }
-          List cas = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
-          if (cas != null && cas.size() > 0) {
-              for (Iterator it = cas.iterator(); it.hasNext();) {
-                  GKInstance ca = (GKInstance) it.next();
-                  GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
-                  if (catalyst != null)
-                      set.add(catalyst);
-              }
-          }
-          Collection regulations = InstanceUtilities.getRegulations(reaction);
+          getReactionCatalysts(reaction, set);
+          getReactionRegulators(reaction, set);
+          return set;
+    }
+
+    public static void getReactionRegulators(GKInstance reaction, Set<GKInstance> set)
+            throws Exception, InvalidAttributeException {
+        Collection regulations = InstanceUtilities.getRegulations(reaction);
           if (regulations != null && regulations.size() > 0) {
               for (Iterator it = regulations.iterator(); it.hasNext();) {
                   GKInstance regulation = (GKInstance) it.next();
@@ -1058,7 +1056,20 @@ public class InstanceUtilities {
                       set.add(regulator);
               }
           }
-          return set;
+    }
+
+
+    public static void getReactionCatalysts(GKInstance reaction, Set<GKInstance> set)
+            throws InvalidAttributeException, Exception {
+        List cas = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
+          if (cas != null && cas.size() > 0) {
+              for (Iterator it = cas.iterator(); it.hasNext();) {
+                  GKInstance ca = (GKInstance) it.next();
+                  GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+                  if (catalyst != null)
+                      set.add(catalyst);
+              }
+          }
     }
      
      private static void getReactionParticipants(List list,

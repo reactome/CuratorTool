@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 
 public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalStatusCheck {
     
@@ -16,7 +17,7 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
         checkAttribute = "disease entity";
         followAttributes = new String[] {ReactomeJavaConstants.diseaseEntity};
     }
-
+    
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         GKInstance diseaseEntity = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
@@ -25,7 +26,7 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
             return false;
         }
         // Check if this diseaseEntity is in the RLE's participant
-        Collection<GKInstance> referrers = instance.getReferers(ReactomeJavaConstants.entityFunctionalStatus);
+        Collection<GKInstance> referrers = efsToRLEs.get(instance);
         if (referrers == null || referrers.size() == 0)
             return true; // Just don't care
         for (GKInstance rle : referrers) {
@@ -42,6 +43,20 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
     protected ResultTableModel getResultTableModel() throws Exception {
         ResultTableModel model = new DiseaseEntityTableModel();
         return model;
+    }
+    
+    protected Collection<GKInstance> loadReactions(MySQLAdaptor dba) throws Exception {
+        // We will start with RLEs for quick performance
+        Collection<GKInstance> rles = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+                                                                   ReactomeJavaConstants.entityFunctionalStatus,
+                                                                   "IS NOT NULL",
+                                                                   null);
+        dba.loadInstanceAttributeValues(rles, new String[] {
+                ReactomeJavaConstants.entityFunctionalStatus,
+                ReactomeJavaConstants.normalReaction
+                });
+        loadReactionParticipants(rles, dba);
+        return rles;
     }
     
     private class DiseaseEntityTableModel extends EFSEntityTableModel {
@@ -75,8 +90,13 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
             Collection<GKInstance> referrers = efs.getReferers(ReactomeJavaConstants.entityFunctionalStatus);
             if (referrers == null || referrers.size() == 0)
                 return ; 
+            GKInstance diseaseEntity = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
+            if (diseaseEntity == null)
+                return ; // Nothing to be done
             for (GKInstance rle : referrers) {
                 Set<GKInstance> rleParticipants = InstanceUtilities.getReactionLHSParticipants(rle);
+                if (rleParticipants.contains(diseaseEntity))
+                    continue; // An EFS may be involved in multiple disease reactions.
                 List<String> row = new ArrayList<>();
                 row.add(rle.getDBID().toString());
                 row.add(rle.getDisplayName());

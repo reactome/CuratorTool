@@ -5,7 +5,9 @@
 package org.gk.pathwaylayout;
 
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -22,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.JButton;
+import javax.swing.JFrame;
+
 import org.gk.gkCurator.authorTool.InstanceHandler;
 import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
+import org.gk.gkEditor.ZoomablePathwayEditor;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -46,6 +52,7 @@ import org.gk.render.RenderableComplex;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RendererFactory;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.util.DialogControlPane;
 
 /**
  * This customized PathwayEditor is used to draw disease related pathway.
@@ -55,7 +62,7 @@ import org.gk.schema.InvalidAttributeException;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DiseasePathwayImageEditor extends PathwayEditor {
     private boolean isForNormal;
-    private PersistenceAdaptor adaptor;
+    protected PersistenceAdaptor adaptor;
     // Pathway instance this editor is used for
     private GKInstance pathway;
     // Cached values
@@ -63,10 +70,10 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     private Set<Long> diseaseIds;
     private List<Renderable> normalComps;
     private List<Renderable> diseaseComps;
-    private List<Node> crossedObjects;
-    private List<Renderable> overlaidObjects;
+    protected Set<Node> crossedObjects;
+    protected Set<Renderable> overlaidObjects;
     // List of loss_of_function nodes that should be drawn specially
-    private List<Node> lofNodes;
+    private Set<Node> lofNodes;
     // Keep track mapping from normal node to disease node so that
     // only one copy disease node is needed to create per DB_ID
     private Map<Node, Map<Long,Node>> normalToDBIDToDiseaseNode;
@@ -99,7 +106,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @return
      */
     public List<Node> getCrossedObjects() {
-        return this.crossedObjects;
+        if (crossedObjects == null)
+            return new ArrayList<>();
+        return new ArrayList<>(crossedObjects);
     }
     
     /**
@@ -107,7 +116,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @return
      */
     public List<Renderable> getOverlaidObjects() {
-        return this.overlaidObjects;
+        if (overlaidObjects == null)
+            return new ArrayList<>();
+        return new ArrayList<>(overlaidObjects);
     }
     
     /**
@@ -115,7 +126,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @return
      */
     public List<Node> getLofNodes() {
-        return this.lofNodes;
+        if (lofNodes == null)
+            return new ArrayList<>();
+        return new ArrayList<>(lofNodes);
     }
 
     /**
@@ -131,16 +144,56 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         if (isForNormal)
             return; // No need for doing overlay
         //List<Renderable> overlaidObjects = new ArrayList<Renderable>();
-        crossedObjects = new ArrayList<Node>();
-        overlaidObjects = new ArrayList<Renderable>();
+        crossedObjects = new HashSet<>();
+        overlaidObjects = new HashSet<>();
         overlayDiseaseReactions(diseaseIds);
         // Search for loss_of_functional nodes for special display
         checkLossOfFunctionNodes();
     }
     
+    /**
+     * Refresh the data structure and display.
+     */
+    public void refresh() {
+        Renderable pathway = getRenderable();
+        if (pathway == null)
+            return;
+        setRenderable(pathway); // Reset to force update
+        repaint(getVisibleRect());
+    }
+    
+    /**
+     * Display this panel in a JFrame.
+     */
+    public void showInFrame(Component parent) {
+        if (pathway == null) {
+            return; // Nothing to be displayed
+        }
+        JFrame frame = new JFrame("Diagram of " + pathway.getDisplayName());
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        DialogControlPane controlPane = new DialogControlPane();
+        ZoomablePathwayEditor pathwayEditor = new ZoomablePathwayEditor() {
+
+            @Override
+            protected PathwayEditor createPathwayEditor() {
+                return DiseasePathwayImageEditor.this;
+            }
+            
+        };
+        frame.getContentPane().add(pathwayEditor, BorderLayout.CENTER);
+        frame.getContentPane().add(controlPane, BorderLayout.SOUTH);
+        controlPane.getCancelBtn().setVisible(false);
+        JButton okBtn = controlPane.getOKBtn();
+        okBtn.setText("Close");
+        okBtn.addActionListener(e -> frame.dispose());
+        frame.setSize(900, 650);
+        frame.setLocationRelativeTo(parent);
+        frame.setVisible(true);
+    }
+    
     private void checkLossOfFunctionNodes() {
         try {
-            lofNodes = new ArrayList<Node>();
+            lofNodes = new HashSet<Node>();
             List<Renderable> components = displayedObject.getComponents();
             if (components == null || components.size() == 0)
                 return;
@@ -156,7 +209,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 List<GKInstance> efs = inst.getAttributeValuesList(ReactomeJavaConstants.entityFunctionalStatus);
                 Set<GKInstance> lofPEs = new HashSet<GKInstance>();
                 for (GKInstance ef : efs) {
-                    GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+                    GKInstance pe = getPhysicalEntityInEFS(ef);
                     if (isLOFEntity(ef))
                         lofPEs.add(pe);
                 }
@@ -260,9 +313,8 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @param diseaseReaction
      * @param overlaidObjects
      */
-    private void overlayDiseaseReaction(HyperEdge normalReaction,
-                                        GKInstance diseaseReaction) throws Exception {
-        // Make a copy of the HyperEdge for future process that is related to Vertex and JSON generation
+    protected void overlayDiseaseReaction(HyperEdge normalReaction,
+                                          GKInstance diseaseReaction) throws Exception {
         HyperEdge reactionCopy = normalReaction.shallowCopy();
         reactionCopy.setReactomeId(diseaseReaction.getDBID());
         reactionCopy.setDisplayName(diseaseReaction.getDisplayName());
@@ -279,6 +331,46 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         nodes.addAll(normalReaction.getInhibitorNodes());
         nodes.addAll(normalReaction.getActivatorNodes());
         // List objects not listed in the disease reaction as crossed objects
+        Set<Long> diseaseIds = getDiseaseIDsInRLE(diseaseReaction);
+        Set<GKInstance> lofInstances = new HashSet<GKInstance>();
+        Map<Node, GKInstance> normalToDiseaseEntity = mapNormalToMutatedEntity(diseaseReaction, 
+                                                                               normalReaction,
+                                                                               lofInstances);
+        for (Node node : nodes) {
+            if (!diseaseIds.contains(node.getReactomeId())) {
+                // Check if it should be mapped to a normal entity
+                GKInstance diseaseEntity = normalToDiseaseEntity.get(node);
+                if (diseaseEntity == null) {
+                    crossedObjects.add(node); // Just crossed out
+                    node.invalidateConnectWidgets();
+                }
+                else {
+                    Node diseaseNode = replaceNormalNode(node, 
+                                                         diseaseEntity,
+                                                         contains(diseaseEntity, lofInstances));
+                    if (diseaseNode == null)
+                        continue; // Just in case
+                    diseaseNode.invalidateBounds();
+                    // Re-link to diseaseNode
+                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
+                    List<?> widgets = connectInfo.getConnectWidgets();
+                    for (Object obj : widgets) {
+                        ConnectWidget widget = (ConnectWidget) obj;
+                        if (widget.getConnectedNode() == node)
+                            widget.replaceConnectedNode(diseaseNode);
+                    }
+                    diseaseNode.invalidateBounds();
+                    diseaseNode.invalidateConnectWidgets();
+                }
+            }
+            else {
+                overlaidObjects.add(node);
+                node.invalidateBounds();
+            }
+        }
+    }
+
+    protected Set<Long> getDiseaseIDsInRLE(GKInstance diseaseReaction) throws Exception, InvalidAttributeException {
         Set<GKInstance> participants = InstanceUtilities.getReactionParticipants(diseaseReaction);
         Set<Long> diseaseIds = new HashSet<Long>();
         for (GKInstance participant : participants) {
@@ -298,35 +390,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 }
             }
         }
-        Set<GKInstance> lofInstances = new HashSet<GKInstance>();
-        Map<Node, GKInstance> normalToDiseaseEntity = mapMutatedToNormalNodes(diseaseReaction, 
-                                                                              normalReaction,
-                                                                              lofInstances);
-        for (Node node : nodes) {
-            if (!diseaseIds.contains(node.getReactomeId())) {
-                // Check if it should be mapped to a normal entity
-                GKInstance diseaseEntity = normalToDiseaseEntity.get(node);
-                if (diseaseEntity == null)
-                    crossedObjects.add(node); // Just crossed out
-                else {
-                    Node diseaseNode = replaceNormalNode(node, 
-                                                         diseaseEntity,
-                                                         contains(diseaseEntity, lofInstances));
-                    if (diseaseNode == null)
-                        continue; // Just in case
-                    // Re-link to diseaseNode
-                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
-                    List<?> widgets = connectInfo.getConnectWidgets();
-                    for (Object obj : widgets) {
-                        ConnectWidget widget = (ConnectWidget) obj;
-                        if (widget.getConnectedNode() == node)
-                            widget.replaceConnectedNode(diseaseNode);
-                    }
-                }
-            }
-            else
-                overlaidObjects.add(node);
-        }
+        return diseaseIds;
     }
     
     private void cacheDiseaseNode(GKInstance diseaseEntity,
@@ -340,7 +404,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         dbIdToDiseaseNode.put(diseaseEntity.getDBID(), diseaseNode);
     }
 
-    private Node replaceNormalNode(Node normalNode,
+    protected Node replaceNormalNode(Node normalNode,
                                    GKInstance diseaseEntity,
                                    Boolean needDashedBorder) {
         Map<Long, Node> dbIdToDiseaseNode = normalToDBIDToDiseaseNode.get(normalNode);
@@ -394,7 +458,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return null;
     }
     
-    private Node findBestPossibleMatch(List<Node> nodes, Set<GKInstance> refEntities) throws Exception {
+    protected Node findBestPossibleMatch(Collection<Node> nodes, Set<GKInstance> refEntities) throws Exception {
         Node bestNode = null;
         int bestExtra = Integer.MAX_VALUE;
         for (Node node : nodes) {
@@ -425,9 +489,9 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @throws Exception
      * @TODO: add a new attribute normalEntity in the PhysicalEntity class.
      */
-    private Map<Node, GKInstance> mapMutatedToNormalNodes(GKInstance diseaseReaction,
-                                                          HyperEdge normalReaction,
-                                                          Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
+    protected Map<Node, GKInstance> mapNormalToMutatedEntity(GKInstance diseaseReaction,
+                                                             HyperEdge normalReaction,
+                                                             Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
         List<GKInstance> efs = diseaseReaction.getAttributeValuesList(ReactomeJavaConstants.entityFunctionalStatus);
         // Map mutated entities to normal entities via ReferenceGeneProduct
         Map<Node, GKInstance> normalToDiseaseEntity = new HashMap<Node, GKInstance>();
@@ -441,7 +505,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         nodes.addAll(normalReaction.getInhibitorNodes());
         nodes.addAll(normalReaction.getActivatorNodes());
         for (GKInstance ef : efs) {
-            GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+            GKInstance pe = getPhysicalEntityInEFS(ef);
             if (pe != null) {
                 Set<GKInstance> refEntities = getReferenceEntity(pe);
                 // want to find the matched node
@@ -515,6 +579,15 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return normalToDiseaseEntity;
     }
 
+    protected GKInstance getPhysicalEntityInEFS(GKInstance ef) throws InvalidAttributeException, Exception {
+        GKInstance pe = null;
+        if (ef.getSchemClass().isValidAttribute(ReactomeJavaConstants.diseaseEntity))
+            pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
+        else if (ef.getSchemClass().isValidAttribute(ReactomeJavaConstants.physicalEntity)) // For old model
+            pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+        return pe;
+    }
+
     private void randomlyMapDiseaseNodesToNormalNodes(Map<Node, GKInstance> normalToDiseaseEntity,
                                                      Collection<GKInstance> mapped,
                                                      List<GKInstance> diseaseInputs,
@@ -576,7 +649,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * @param c
      * @return
      */
-    private boolean contains(GKInstance inst, Collection<GKInstance> c) {
+    protected boolean contains(GKInstance inst, Collection<GKInstance> c) {
         for (GKInstance inst1 : c) {
             if (inst1.getDBID().equals(inst.getDBID()))
                 return true;
@@ -584,8 +657,8 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         return false;
     }
     
-    private boolean isLOFEntity(GKInstance ef) throws Exception {
-        GKInstance pe = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+    protected boolean isLOFEntity(GKInstance ef) throws Exception {
+        GKInstance pe = getPhysicalEntityInEFS(ef);
         if (pe == null)
             return false;
         GKInstance functionalStatus = (GKInstance) ef.getAttributeValue(ReactomeJavaConstants.functionalStatus);
@@ -598,26 +671,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     private Set<GKInstance> getReferenceEntity(GKInstance pe) throws Exception {
-        Set<GKInstance> rtn = new HashSet<GKInstance>();
-        if (pe.getSchemClass().isValidAttribute(ReactomeJavaConstants.referenceEntity)) {
-            GKInstance ref = (GKInstance) pe.getAttributeValue(ReactomeJavaConstants.referenceEntity);
-            if (ref != null)
-                rtn.add(ref);
-            return rtn;
-        }
-        Set<GKInstance> contained = InstanceUtilities.getContainedInstances(pe, 
-                                                                            ReactomeJavaConstants.hasMember, 
-                                                                            ReactomeJavaConstants.hasCandidate,
-                                                                            ReactomeJavaConstants.hasComponent);
-        // Check member or complex subunits
-        for (GKInstance tmp : contained) {
-            if (tmp.getSchemClass().isValidAttribute(ReactomeJavaConstants.referenceEntity)) {
-                GKInstance ref = (GKInstance) tmp.getAttributeValue(ReactomeJavaConstants.referenceEntity);
-                if (ref != null)
-                    rtn.add(ref);
-            }
-        }
-        return rtn;
+        return InstanceUtilities.grepReferenceEntitiesForPE(pe);
     }
 
     @Override
@@ -806,7 +860,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     private void drawComponents(Graphics g, 
-                                List<Renderable> comps,
+                                Collection<Renderable> comps,
                                 Rectangle clip,
                                 boolean drawEdgeFirst) {
         List<HyperEdge> edges = new ArrayList<HyperEdge>();
@@ -827,7 +881,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             }
         }
         // Draw complexes now
-        drawComplexes(comps, clip, g);
+        drawComplexes(new ArrayList<>(comps), clip, g);
         for (Renderable obj : comps) {
             if (obj instanceof RenderableCompartment ||
                 obj instanceof RenderableComplex ||
@@ -853,7 +907,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     private void drawCrosses(Graphics g,
-                             List<Node> nodes,
+                             Set<Node> nodes,
                              Rectangle clip) {
         Graphics2D g2 = (Graphics2D) g;
         Stroke oldStroke = g2.getStroke();
