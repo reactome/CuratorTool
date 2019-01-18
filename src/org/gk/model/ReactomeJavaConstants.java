@@ -335,4 +335,6 @@ public class ReactomeJavaConstants {
     
     public static final String diseaseEntity = "diseaseEntity";
     public static final String normalEntity = "normalEntity";
+    
+    public static final String TranslationalModification = "TranslationalModification";
 }
