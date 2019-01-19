@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -20,12 +22,17 @@ import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
+import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 
 /**
- * This method is used to check (sub)Pathway contained by any PathwayDiagram.
+ * This QA check associates (sub)pathways with the diagrams which contain
+ * them. There is one report line for each subpathway whose RLEs in its
+ * event hierarchy are displayed as components of a diagram. The report
+ * displays the subpathway and the diagrams which contain all of its
+ * RLEs. Normally there should be only one such diagram.
+ * 
  * @author wgm
- *
  */
 public class PathwayELVCheck extends ReactionELVCheck {
 
@@ -35,22 +42,40 @@ public class PathwayELVCheck extends ReactionELVCheck {
     }
     
     /**
+     * Replaces the superclass {@link ReactionELVCheck#getHeaders()}
+     * <code>Reaction</code> occurrences with <code>Subpathway</code>.
+     * 
+     * @return the report headers
+     */
+    @Override
+    protected String[] getHeaders() {
+        String[] reactionCheckHdrs = super.getHeaders();
+        return Stream.of(reactionCheckHdrs)
+                .map(hdr -> hdr.replace("Reaction", "Subpathway"))
+                .collect(Collectors.toList())
+                .toArray(new String[reactionCheckHdrs.length]);
+    }
+
+    /**
      * This method is used to check the usage of Pathway instances in a
      * specified Database.
      * 
-     * The return value is the {pathway: diagrams} map which associates
-     * each pathway with the diagrams which represent that pathway's
+     * The return value is the {subpathway: diagrams} map which associates
+     * each subpathway with the diagrams which represent that pathway's
      * event hierarchy. The keys in the map consist of all pathways which
      * are contained in another pathway's diagram. Each map value is a set
      * of PathwayDiagram instances. The members of this set are the diagrams
-     * which represent the  contained in in the pathway key event
-     * hierarchy.
+     * which represent all events the key pathway's event hierarchy.
      * 
-     * Note: Not all pathways are in the key set.
+     * <em>Note</em>: Only pathways whose RLEs are entirely contained in
+     * another diagram are in the return value. Pathways with their own diagram
+     * are not in the map. Pathways whose RLEs are only partially represented
+     * in another diagram are also not in the return value.
+     * {@link ReactionSyncELVCheck} checks whether an RLE is not synchronized
+     * with its database instance content.
      * 
      * @param dba
-     * @return the {pathway: diagrams} map of all subpathway
-          diagrams contained in the event hierarchy of the key
+     * @return the {subpathway: diagrams} map
      * @throws Exception
      */
     @Override
@@ -60,34 +85,16 @@ public class PathwayELVCheck extends ReactionELVCheck {
         Collection<?> diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         if (diagrams == null || diagrams.size() == 0)
             return pathwayToDiagrams;
-        DiagramGKBReader reader = new DiagramGKBReader();
         // Collect the {pathway: diagrams} map which associates
         // a pathway key with the diagrams which represent the RLEs
         // in that pathway's event hierarchy.
         for (Iterator<?> it = diagrams.iterator(); it.hasNext();) {
             GKInstance diagram = (GKInstance) it.next();
-            String xml = (String) diagram.getAttributeValue(ReactomeJavaConstants.storedATXML);
-            if (xml == null || xml.length() == 0) {
-                logger.error("Pathway diagram does not have XML: " +
-                        diagram.getDisplayName() + "(DB_ID " +
-                        diagram.getDBID() + ")");
-                continue;
-            }
-            RenderablePathway renderableDiagram = reader.openDiagram(xml);
-            // Check the edges
-            List<?> components = renderableDiagram.getComponents();
-            if (components == null || components.size() == 0)
-                continue; // Just in case it is an empty!
             GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
             if (pathway == null)
                 continue;
             // Collect the db ids of renderables in the diagram.
-            Set<Long> dbIdsInELV = new HashSet<Long>();
-            for (Iterator<?> it1 = components.iterator(); it1.hasNext();) {
-                Renderable r = (Renderable) it1.next();
-                if (r.getReactomeId() != null)
-                    dbIdsInELV.add(r.getReactomeId());
-            }
+            Set<Long> dbIdsInELV = getComponentDbIds(diagram);
             // The events in the pathway event hierarchy.
             Set<GKInstance> contained = InstanceUtilities.getContainedEvents(pathway);
             // If a subpathway event hierarchy RLEs are represented
@@ -115,10 +122,40 @@ public class PathwayELVCheck extends ReactionELVCheck {
                     }
                     set.add(diagram);
                 }
-            }            
+            }
         }
         return pathwayToDiagrams;
-    }    
+    }
+    
+    /**
+     * @param diagram the PathwayDiagram instance
+     * @return the db ids of companents contained in the diagram
+     * @throws Exception
+     */
+    protected Set<Long> getComponentDbIds(GKInstance diagram) throws Exception {
+        Set<Long> dbIds = new HashSet<Long>();
+        String xml = (String) diagram.getAttributeValue(ReactomeJavaConstants.storedATXML);
+        if (xml == null || xml.length() == 0) {
+            logger.error("Pathway diagram does not have XML: " +
+                    diagram.getDisplayName() + "(DB_ID " +
+                    diagram.getDBID() + ")");
+            return dbIds;
+        }
+        DiagramGKBReader reader = new DiagramGKBReader();
+        RenderablePathway renderableDiagram = reader.openDiagram(xml);
+        // Check the edges
+        List<?> components = renderableDiagram.getComponents();
+        if (components == null || components.size() == 0)
+            return dbIds; // Just in case it is an empty!
+        // Collect the db ids of renderables in the diagram.
+        for (Iterator<?> it1 = components.iterator(); it1.hasNext();) {
+            Renderable r = (Renderable) it1.next();
+            if (r.getReactomeId() != null)
+                dbIds.add(r.getReactomeId());
+        }
+        
+        return dbIds;
+    }
     
     /**
      * @param reactions the events (RLEs and pathways) to check
