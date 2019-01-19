@@ -77,7 +77,7 @@ public class EntitySetTypeCheck extends SingleAttributeClassBasedCheck {
     protected void loadAttributes(Collection<GKInstance> instances)
             throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
+        loadEntitySetMembers(instances, dba);
     }
 
     @Override
