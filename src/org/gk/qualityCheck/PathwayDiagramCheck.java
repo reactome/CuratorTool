@@ -4,43 +4,105 @@
  */
 package org.gk.qualityCheck;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.render.ContainerNode;
+import org.gk.render.Node;
+import org.gk.render.Note;
+import org.gk.render.ProcessNode;
+import org.gk.render.ReactionNode;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderablePathway;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.util.StringUtils;
 
+/**
+ * This is the base class for QA checks which validate a pathway diagram.
+ *
+ * <em>Note</em>: this class extends {@link SingleAttributeClassBasedCheck}
+ * even though a diagram check does not necessarily set or validate one
+ * specific <code>PathwayDiagram</code> attribute.
+ * {@link SingleAttributeClassBasedCheck} is extended because it provides
+ * convenient reporting functionality.  
+ *
+ * @author Fred Loney <loneyf@ohsu.edu>
+ */
+abstract public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
 
-public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
+    /**
+     * The pathway diagram {instance: issue db ids} map.
+     */
+    private HashMap<GKInstance, Collection<Long>> pdToIssueDbIds;
+    
+    /**
+     * The parsed diagram XML reader.
+     */
+    protected DiagramGKBReader reader;
 
+    /**
+     * Sets the {@link SingleAttributeClassBasedCheck#checkClsName}
+     * to <code>PathwayDiagram</code>.
+     * 
+     * The {@link SingleAttributeClassBasedCheck#checkAttribute} is
+     * not set, since no specific attribute is suitable for display
+     * purposes.
+     */
     public PathwayDiagramCheck() {
         checkClsName = ReactomeJavaConstants.PathwayDiagram;
-        checkAttribute = ""; // For progress pane to avoid null 
     }
     
+    /**
+     * The headers for the diagram db id, pathway name, pathway db id,
+     * issue and author columns.
+     * 
+     * @see {@link #getReportLines(GKInstance)}
+     */
     @Override
-    public String getDisplayName() {
-        return "Deleted_Objects_In_Diagram";
+    protected String[] getColumnHeaders() {
+        return new String[] {
+                "Diagram_DBID", "Pathway_DisplayName", "Pathway_DBID",
+                getIssueTitle(), "Created", "Modified"
+        };
     }
 
+    /**
+     * The values for the diagram db id, pathway name, pathway db id,
+     * issue and most recent author columns.
+     * 
+     * @param instance the pathway diagram instance with an issue
+     * @see {@link #getIssue(GKInstance)}
+     */
     @Override
-    protected Set<GKInstance> getAllContainedEntities(GKInstance container) throws Exception {
-        return new HashSet<GKInstance>();
-    }
-
-    @Override
-    protected String getIssue(GKInstance instance) throws Exception {
-        return "Deleted Instance in Diagram";
+    protected String[][] getReportLines(GKInstance instance) throws Exception {
+        GKInstance pathway =
+                (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
+        GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
+        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
+        String[] line = new String[] {
+                instance.getDBID().toString(),
+                pathway.getDisplayName(),
+                pathway.getDBID().toString(),
+                getIssue(instance),
+                created.getDisplayName(),
+                modified.getDisplayName()
+        };
+        return new String[][] { line };
     }
 
     @Override
@@ -55,48 +117,70 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
             return;
         super.checkOutSelectedInstances(frame);
     }
+    
+    /**
+     * @param instance the PathwayDiagram instance
+     * @return the  db ids to report
+     */
+    abstract protected Collection<Long> doCheck(GKInstance instance) throws Exception;
 
     /**
      * @param instance the PathwayDiagram instance
-     * @return whether all of the diagram <code>reactomeId</code>
-     *   values are found in the database
+     * @return the QA report issue db column value
+     */
+    protected String getIssueDbIdsColumnValue(GKInstance instance) throws Exception {
+        return getIssueDbIds(instance).stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
+    }
+
+    protected Collection<Long> getIssueDbIds(GKInstance instance) {
+        return pdToIssueDbIds.get(instance);
+    }
+    
+    /**
+     * Runs this QA check on the given PathwayDiagram instance
+     * and returns whether the diagram has a reportable issue.
+     * 
+     * @param instance the PathwayDiagram instance
+     * @return whether all of the diagram HyperEdge and ProcessNode
+     *   <code>reactomeId</code> values are found in the database
      */
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
             throw new IllegalArgumentException(instance + " is not a PathwayDiagram instance!");
-        Set<Long> dbIds = extractReactomeIds(instance);
-        if (dbIds == null || dbIds.size() == 0)
-            return true;
-        if (dataSource instanceof MySQLAdaptor) {
-            MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-            boolean rtn = dba.exist(new ArrayList<Long>(dbIds));
-            return rtn;
+        // Make the invalid db ids map, if necessary.
+        if (pdToIssueDbIds == null) {
+            pdToIssueDbIds = new HashMap<GKInstance, Collection<Long>>();
         }
-        else {
-            Collection<?> instances = dataSource.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
-                                                                          ReactomeJavaConstants.DB_ID,
-                                                                          "=", 
-                                                                          dbIds);
-            return instances.size() == dbIds.size();
+        // The invalid instances.
+        Collection<Long> issueDbIds = doCheck(instance);
+        if (!issueDbIds.isEmpty()) {
+            pdToIssueDbIds.put(instance, issueDbIds);
         }
+        return issueDbIds.size() == 0;
+    }
+
+    @Override
+    protected void checkInstances(Collection<GKInstance> instances) throws Exception {
+        // Clear the missing reaction db ids map, if necessary.
+        if (pdToIssueDbIds != null) {
+            pdToIssueDbIds.clear();
+        }
+        super.checkInstances(instances);
     }
 
     /**
-     * Returns the diagram XML element <code>reactomeId</code> attribute values
-     * relevant to this QA check.
-     * 
-     * This {@link PathwayDiagramCheck} implementation eturns all diagram XML
-     * element <code>reactomeId</code> attribute values found in the diagram.
-     * Subclasses can override this method to filter for only the db ids
-     * pertinent to the specific QA check.
+     * Returns all diagram XML element <code>reactomeId</code> attribute
+     * values found in the diagram.
      * 
      * @param instance the PathwayDiagram instance
-     * @return the db ids
+     * @return the db ids, or null if the diagram XML is missing or empty
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    protected Set<Long> extractReactomeIds(GKInstance instance) throws InvalidAttributeException, Exception {
+    protected Collection<Long> extractReactomeIds(GKInstance instance) throws InvalidAttributeException, Exception {
         String xml = (String) instance.getAttributeValue(ReactomeJavaConstants.storedATXML);
         if (xml == null || xml.length() == 0)
             return null;
@@ -125,10 +209,24 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
                                          ReactomeJavaConstants.PathwayDiagram);
     }
 
+    /**
+     * Returns the issue display table model.
+     * 
+     * The table title is specific to the missing db id check.
+     * Subclasses should override either this method or
+     * {@link #getResultTableModel(String)}.
+     */
     @Override
     protected ResultTableModel getResultTableModel() throws Exception {
-        return new PathwayDiagramTableModel();
+        return new PathwayDiagramTableModel(getResultTableModelTitle());
     }
+
+    /**
+     * Returns the issue display table title.
+     * 
+     * return title the table title
+     */
+    abstract protected String getResultTableModelTitle();
 
     @Override
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
@@ -140,12 +238,66 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
                        ReactomeJavaConstants.storedATXML, 
                        dba);
     }
-    
+
+    protected RenderablePathway getRenderablePathway(GKInstance instance)
+            throws InvalidAttributeException, Exception {
+                String xml = (String) instance.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                if (xml == null || xml.length() == 0)
+                    return null;
+                if (reader == null)
+                    reader = new DiagramGKBReader();
+                RenderablePathway diagram = reader.openDiagram(xml);
+                return diagram;
+            }
+
+    @Override
+    protected String getIssue(GKInstance instance) throws Exception {
+        return getIssueDbIds(instance).stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
+    }
+
+    /**
+     * Returns whether the given diagram component represents a
+     * database PhysicalEntity.
+     * 
+     * @param component the component to check
+     * @return whether the component represents a PhysicalEntity
+     */
+    protected boolean isPhysicalEntityNode(Renderable component) {
+        return component.getReactomeId() != null &&
+                component instanceof Node &&
+                (component instanceof RenderableComplex ||
+                 !(component instanceof ContainerNode ||
+                         component instanceof ProcessNode ||
+                         component instanceof ReactionNode));
+    }
+
+    /**
+     * Returns the diagram components which represent a database PhysicalEntity.
+     * 
+     * @param diagram the diagram to check
+     * @return the entity nodes
+     */
+    protected Collection<Node> getPhysicalEntityNodes(RenderablePathway diagram) {
+        @SuppressWarnings("unchecked")
+        List<Renderable> components = diagram.getComponents();
+        if (components == null) {
+            return Collections.emptyList();
+        }
+        
+        return components.stream()
+                .filter(cmpnt -> isPhysicalEntityNode(cmpnt))
+                .map(cmpnt -> (Node) cmpnt)
+                .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("serial")
     private class PathwayDiagramTableModel extends ResultTableModel {
         private String[] values = null;
         
-        public PathwayDiagramTableModel() {
-            setColNames(new String[]{"Pathway", "DB_IDs without Instances"});
+        public PathwayDiagramTableModel(String title) {
+            setColNames(new String[]{"Pathway", title});
         }
 
         @Override
@@ -153,20 +305,18 @@ public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
             if (values == null)
                 values = new String[2];
             try {
+                // The reported pathway.
                 GKInstance pathway = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
                 values[0] = pathway.getDisplayName() + " [" + pathway.getDBID() + "]";
-                // Get DB_IDs that are not in the database
-                Set<Long> reactomeIds = extractReactomeIds(instance);
-                Collection<?> instances = dataSource.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
-                                                                     ReactomeJavaConstants.DB_ID,
-                                                                     "=", 
-                                                                     reactomeIds);
-                Set<Long> found = new HashSet<Long>();
-                for (Object obj : instances) {
-                    found.add(((GKInstance)obj).getDBID());
+                // The reported db ids.
+                Collection<Long> dbIds = pdToIssueDbIds.get(instance);
+                if (dbIds == null) {
+                    values[1] = "";
+                } else {
+                    values[1] = dbIds.stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(", "));
                 }
-                reactomeIds.removeAll(found);
-                values[1] = StringUtils.join(", ", new ArrayList<Long>(reactomeIds));
                 fireTableStructureChanged();
             }
             catch(Exception e) {
