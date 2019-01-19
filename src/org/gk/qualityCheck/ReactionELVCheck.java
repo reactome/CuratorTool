@@ -31,16 +31,17 @@ import org.junit.Test;
 
 /**
  * This class is used to check the usage of ReactionlikeEvent in ELVs.
- * It will build a report of which reports are used by which RLE.
+ * It will build a report of which diagrams contain RLEs.
  * There is one detail line in the report for every RLE in the database.
- * The fields contain the RLE db id, RLE name, release flag, species,
+ * The fields consist of the RLE db id, RLE name, release flag, species,
  * disease flag, diagram count, diagram db ids, and diagram names.
  * 
- * Note: unlike most QA checks, this check does not highlight issues to
- * address. One possible use of the report is to detect RLEs which are
- * not represented in any report.
+ * <em>Note</em>: Unlike most QA checks, this check's report is a
+ * reference for informational purposes. The report does not consist of
+ * issues to address.
  * 
- * Note: This class will be used for command line checking or servlet only.
+ * <em>Note</em>: This class will be used for command line checking or
+ * servlet only.
  *
  * @author wgm
  */
@@ -88,14 +89,19 @@ public class ReactionELVCheck extends AbstractQualityCheck {
             return null;
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         // The {reaction: diagrams} map.
-        Map<GKInstance, Set<GKInstance>> reactionToDiagrams = checkEventUsageInELV(dba);
-        if (reactionToDiagrams.size() == 0)
-            return report;
+        Map<GKInstance, Set<GKInstance>> eventToDiagrams = checkEventUsageInELV(dba);
+        addEventToDiagramMapToReport(report, eventToDiagrams);
+        return report;
+    }
+
+    protected void addEventToDiagramMapToReport(QAReport report,
+            Map<GKInstance, Set<GKInstance>> eventToDiagrams) throws Exception {
+        if (eventToDiagrams.size() == 0)
+            return;
         // Convert the map to a string of report lines.
-        String text = convertEventToDiagramMapToText(reactionToDiagrams);
+        String text = convertEventToDiagramMapToText(eventToDiagrams);
         // Add the report content from the report lines string.
         convertTextToReport(text, report);
-        return report;
     }
 
     /**
@@ -191,7 +197,7 @@ public class ReactionELVCheck extends AbstractQualityCheck {
      */
     public String convertEventToDiagramMapToText(final Map<GKInstance, Set<GKInstance>> reactionToDiagrams) throws Exception {
         StringBuilder builder = new StringBuilder();
-        builder.append(String.join("\t", HEADERS));
+        builder.append(String.join("\t", getHeaders()));
         // Sort the reactions by db id.
         List<GKInstance> reactions = new ArrayList<GKInstance>(reactionToDiagrams.keySet());
         Collections.sort(reactions, new Comparator<GKInstance>() {
@@ -249,6 +255,10 @@ public class ReactionELVCheck extends AbstractQualityCheck {
             }
         }
         return builder.toString();
+    }
+
+    protected String[] getHeaders() {
+        return HEADERS;
     }
     
     @Test
