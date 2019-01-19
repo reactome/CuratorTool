@@ -171,7 +171,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * A helper method to get pathways represented by a RenderablePathway, which may have more than one pathway.
-     * @param pathway
+     * @param embedder
      * @return
      * @throws Exception
      */
