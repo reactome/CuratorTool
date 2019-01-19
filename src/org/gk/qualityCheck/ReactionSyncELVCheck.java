@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -36,16 +37,30 @@ import org.junit.Test;
  */
 public class ReactionSyncELVCheck extends ReactionELVCheck {
     private static final Logger logger = Logger.getLogger(ReactionSyncELVCheck.class);
-    
+
+    private static final String[] HEADERS = {
+            "Diagram_DBID", "Pathway_DisplayName", "Pathway_DBID",
+            "Reaction_DBID", "Issue", "Created", "Modified"
+    };
+
     /**
      * Default constructor.
      */
     public ReactionSyncELVCheck() {
     }
     
+    /**
+     * This method overrides {@link ReactionELVCheck#checkEventUsageInELV(MySQLAdaptor)}
+     * to build the database instance {diagram: unmatched reactions} map.
+     * 
+     * @param dba
+     * @return the {diagram: unmatched reactions} map
+     * @throws Exception
+     */
     @Override
     @SuppressWarnings("unchecked")
     public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(MySQLAdaptor dba) throws Exception {
+        // Build the map.
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         Map<GKInstance, Set<GKInstance>> pdToRxts = new HashMap<GKInstance, Set<GKInstance>>();
         for (GKInstance pd : pds) {
@@ -63,19 +78,32 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     @Override
     public String convertEventToDiagramMapToText(Map<GKInstance, Set<GKInstance>> pdToRxts) throws Exception {
         StringBuilder builder = new StringBuilder();
-        builder.append("DB_ID\tDisplayName\tUnsynchronized Reaction IDs");
+        String header = String.join("\t", HEADERS);
+        builder.append(header);
+        builder.append("\n");
         List<GKInstance> pdList = new ArrayList<GKInstance>(pdToRxts.keySet());
         InstanceUtilities.sortInstances(pdList);
         for (GKInstance pd : pdList) {
-            builder.append("\n").append(pd.getDBID()).append("\t");
-            builder.append(pd.getDisplayName()).append("\t");
             Set<GKInstance> rxts = pdToRxts.get(pd);
-            for (Iterator<GKInstance> it = rxts.iterator(); it.hasNext();) {
-                GKInstance rxt = it.next();
-                builder.append(rxt.getDBID());
-                if (it.hasNext())
-                    builder.append(", ");
-            }
+            String rxtsColValue = rxts.stream()
+                    .map(GKInstance::getDBID)
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+            GKInstance pathway =
+                    (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.representedPathway);
+            GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pd);
+            GKInstance created = (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.created);
+            String[] colValues = new String[] {
+                    pd.getDBID().toString(),
+                    pathway.getDisplayName(),
+                    pathway.getDBID().toString(),
+                    rxtsColValue,
+                    created.getDisplayName(),
+                    modified.getDisplayName()
+            };
+            String detail = String.join("\t", colValues);
+            builder.append(detail);
+            builder.append("\n");
         }
         return builder.toString();
     }
@@ -151,6 +179,14 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         return true;
     }
     
+    /**
+     * @param values the data source instances to check
+     * @param nodes the diagram nodes to check
+     * @param nodeToStoi the {node: count} stoichiometry map
+     * @return whether the node reactomeIds and instance db ids match in
+     *  both occurence and count
+     * @throws Exception
+     */
     private boolean checkValuesAndNodes(List<GKInstance> values,
                                         List<Node> nodes,
                                         Map<Renderable, Integer> nodeToStoi) throws Exception {
@@ -171,7 +207,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         Collections.sort(nodeIdsInDiagram);
         return valueIds.equals(nodeIdsInDiagram);
     }
-                                          
+
     
     /**
      * Grep a set of HyperEdge objects drawn in the passed PathwayDiagram instance.
