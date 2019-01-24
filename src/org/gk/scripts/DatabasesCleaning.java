@@ -11,16 +11,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.gk.database.ReverseAttributePane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -32,6 +35,113 @@ import org.junit.Test;
 public class DatabasesCleaning {
     
     public DatabasesCleaning() {
+    }
+    
+    @Test
+    public void checkCatalystActivities() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "test_gk_central_efs_new",
+                                            "root",
+                                            "macmysql01");
+        Collection<GKInstance> cas = dba.fetchInstancesByClass(ReactomeJavaConstants.CatalystActivity);
+        dba.loadInstanceAttributeValues(cas, new String[] {
+                ReactomeJavaConstants.physicalEntity,
+                ReactomeJavaConstants.activeUnit
+        });
+        int casWithComplex = 0;
+        int casWithComplexAndActiveUnit = 0;
+        for (GKInstance ca : cas) {
+            GKInstance pe = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+            if (pe == null || !(pe.getSchemClass().isa(ReactomeJavaConstants.Complex)))
+                continue;
+            GKInstance species = (GKInstance) pe.getAttributeValue(ReactomeJavaConstants.species);
+            if (species == null || !species.getDisplayName().equals("Homo sapiens"))
+                continue;
+            casWithComplex ++;
+            GKInstance activeUnit = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.activeUnit);
+            if (activeUnit != null)
+                casWithComplexAndActiveUnit ++;
+        }
+        System.out.println("casWithComplex: " + casWithComplex);
+        System.out.println("casWithComplexAndActiveUnit: " + casWithComplexAndActiveUnit);
+        double ratio = casWithComplexAndActiveUnit / (double) casWithComplex;
+        System.out.println("Ratio: " + ratio);
+    }
+    
+    @Test
+    public void countRNAGenes() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_091218",
+                "root",
+                "macmysql01");
+        Collection<GKInstance> ewases = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityWithAccessionedSequence);
+        int count = 0;
+        Set<GKInstance> refRNAs = new HashSet<>();
+        for (GKInstance inst : ewases) {
+            GKInstance ref = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.referenceEntity);
+            if (ref == null) {
+                continue;
+            }
+            if (!ref.getSchemClass().isa(ReactomeJavaConstants.ReferenceRNASequence))
+                continue;
+            GKInstance species = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.species);
+            if (!species.getDisplayName().equals("Homo sapiens"))
+                continue;
+            if (inst.getDisplayName().contains("mRNA"))
+                continue;
+            System.out.println(inst);
+            count ++;
+            refRNAs.add(ref);
+        }
+        System.out.println("Total: " + count);
+        System.out.println("Total ReferenceRNAs used: " + refRNAs.size());
+    }
+    
+    @Test
+    public void checkReferenceMoleculeDuplications() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                "gk_central",
+                "authortool", 
+                "T001test");
+        Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceMolecule);
+        c.addAll(dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceGroup));
+        System.out.println("Total instances: " + c.size());
+        SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.ReferenceEntity).getAttribute(ReactomeJavaConstants.identifier);
+        dba.loadInstanceAttributeValues(c, att);
+        
+        Map<String, Set<GKInstance>> idToInst = new HashMap<>();
+        for (GKInstance i : c) {
+            String id = (String) i.getAttributeValue(ReactomeJavaConstants.identifier);
+            if (id == null)
+                continue;
+            idToInst.compute(id, (key, set) -> {
+                if (set == null)
+                    set = new HashSet<>();
+                set.add(i);
+                return set;
+            });
+        }
+        Set<String> duplicatedIds = idToInst.keySet().stream().filter(id -> idToInst.get(id).size() > 1).collect(Collectors.toSet());
+        idToInst.keySet().retainAll(duplicatedIds);
+        System.out.println("Total duplicated ids in ReferenceMolecule/Group: " + idToInst.size());
+        System.out.println("ChEBI_ID\tDB_ID\tName\tClass\tReferers");
+        for (String id : idToInst.keySet()) {   
+            Set<GKInstance> set = idToInst.get(id);
+            for (GKInstance inst : set) {
+                Set<GKInstance> referrers = new HashSet<>();
+                Collection<GKInstance> rs = inst.getReferers(ReactomeJavaConstants.referenceEntity);
+                if (rs != null)
+                    referrers.addAll(rs);
+                rs = inst.getReferers(ReactomeJavaConstants.modification);
+                if (rs != null)
+                    referrers.addAll(rs);
+                System.out.println(id + "\t" +
+                                   inst.getDBID() + "\t" + 
+                                   inst.getDisplayName() + "\t" + 
+                                   inst.getSchemClass().getName() + "\t" + 
+                                   referrers);
+            }
+        }
     }
     
     @Test

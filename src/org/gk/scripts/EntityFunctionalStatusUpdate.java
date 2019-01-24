@@ -913,19 +913,23 @@ public class EntityFunctionalStatusUpdate {
     
     public static void main(String[] args) throws Exception {
         // Need database name and user account
-        if (args.length < 3) {
-            System.err.println("java -Xmx8G EntityFunctionalStatusUpdate dbName user pass");
+        if (args.length < 4) {
+            System.err.println("java -Xmx8G EntityFunctionalStatusUpdate dbName user pass {drug|efs}");
             return;
         }
         MySQLAdaptor dba = new MySQLAdaptor("localhost", 
                                             args[0],
                                             args[1],
                                             args[2]);
-//        // Split the drugs into their individual subclasses
-//        DrugConsolidation consolidation = new DrugConsolidation();
-//        consolidation.split(dba);
-        EntityFunctionalStatusUpdate updater = new EntityFunctionalStatusUpdate();
-        updater.update(dba);
+        if (args[3].equals("drug")) {
+            // Split the drugs into their individual subclasses
+            DrugConsolidation drugHandler = new DrugConsolidation();
+            drugHandler.split(dba);
+        }
+        else if (args[3].equals("efs")) {
+            EntityFunctionalStatusUpdate updater = new EntityFunctionalStatusUpdate();
+            updater.update(dba);
+        }
     }
     
     private class NormalEntityMapResult {

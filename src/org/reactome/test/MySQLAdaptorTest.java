@@ -13,8 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import jp.sbi.celldesigner.blockDiagram.diagram.Annotation.EffectInfo;
-
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -41,6 +39,35 @@ public class MySQLAdaptorTest {
     private MySQLAdaptor adaptor = null;
     
     public MySQLAdaptorTest() {
+    }
+    
+    @Test 
+    public void checkRegulations() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_082417",
+                "root",
+                "macmysql01");
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.regulatedEntity});
+        int counter = 0;
+        int counter1 = 0;
+        for (GKInstance regulation : regulations) {
+            GKInstance regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+            if (regulatedEntity == null) {
+//                System.out.println(regulation + " doesn't have a regulatedEntity!");
+                continue;
+            }
+            if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.CatalystActivity)) {
+                counter ++;
+                GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+                if (regulator == null)
+                    continue;
+                if (regulator.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity))
+                    counter1 ++;
+            }
+        }
+        System.out.println("RegulatedEntity is CatalystActivity: " + counter);
+        System.out.println("Regulator is SimpleEntity: " + counter1);
     }
     
     public void generateLocalSchema() throws Exception {
@@ -107,7 +134,7 @@ public class MySQLAdaptorTest {
         
         try {
             MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                                "gk_central_062713", 
+                                                "gk_central_122217", 
                                                 "root", 
                                                 "macmysql01",
                                                 3306);
@@ -118,8 +145,8 @@ public class MySQLAdaptorTest {
                                                            "=",
                                                            inst);
             System.out.println("Returned: " + c.size());
-//            if (true)
-//                return;
+            if (true)
+                return;
             // Human Signaling by EGFR DB_ID
             Long dbId = 177929L;
             GKInstance egfr = dba.fetchInstance(dbId);

@@ -161,6 +161,7 @@
         <modification name="amide" shortName="A" />
     </modifications>
     <psiModifications>
+    	<!-- Added in January, 2019 -->
         <modification name="acetyl" shortName="Ac" />
         <modification name="carboxyl" shortName="CA" />
         <modification name="cysteinyl" shortName="CY" />

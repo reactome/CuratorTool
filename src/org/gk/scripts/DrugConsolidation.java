@@ -39,7 +39,8 @@ public class DrugConsolidation {
                                             args[1],
                                             args[2]);
         DrugConsolidation consolidation = new DrugConsolidation();
-        consolidation.consolidate(dba);
+        consolidation.split(dba);
+//        consolidation.consolidate(dba);
     }
     
     public void consolidate(MySQLAdaptor dba) throws Exception {

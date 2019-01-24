@@ -259,6 +259,8 @@
 			//1). Use jar -Mcvf install.zip ReactomeCuratorTool.app to create an installer for mac
 			//2). Try to delete any hidden files from MacOS (.DS_Store or similar)
 			1). Use jar -Mcvf to generate install.zip file by including necessary file (7 files/directories).
+			1.1). Note on Nov 30, 2017: Don't use jar -Mcvf, use zip for mac os. Otherwise, downloaded file using Chrome and FireFox cannot be unzipped 
+			correctly, though Safari is fine. Use this command: zip -r install.zip ReactomeCuratorTool.app
 			2). Manually open the dmg file in the builder folder and copy ReactomeCurator.app file into the default folder, and then jar it.
 			3). Move these two install.zip files to reactomedev.oicr.on.ca.
 		-->
