@@ -8,7 +8,6 @@ import java.awt.Component;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +26,7 @@ import org.gk.schema.SchemaClass;
  * @author wgm
  *
  */
+@SuppressWarnings("unchecked")
 public class InstanceCloneHelper {
     
     public InstanceCloneHelper() {
@@ -38,12 +38,15 @@ public class InstanceCloneHelper {
         if (selection != null && selection.size() > 0) {
             // To be selected
             XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-            for (Iterator it = selection.iterator(); it.hasNext();) {
-                GKInstance instance = (GKInstance) it.next();
+            Map<GKInstance, GKInstance> oldToNew = new HashMap<>();
+            for (GKInstance instance : selection) {
                 if (instance.isShell())
                     continue; // Should not occur since Clone action should be disabled
-                GKInstance copy = cloneInstance(instance, fileAdaptor);
-                newInstances.add(copy);
+                GKInstance copy = oldToNew.get(instance);
+                if (copy != null)
+                    continue; // This may be cloned already
+                copy = cloneInstance(instance, fileAdaptor);
+                oldToNew.put(instance, copy);
                 // Check if components in a Complex should be copied recursively
                 if (instance.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
                     int reply = JOptionPane.showConfirmDialog(parentComp,
@@ -51,30 +54,58 @@ public class InstanceCloneHelper {
                                                               "Complex Clone",
                                                               JOptionPane.YES_NO_OPTION);
                     if (reply == JOptionPane.YES_OPTION) {
-                        List newComponents = cloneComplexSubunits(copy, 
-                                                                  fileAdaptor,
-                                                                  parentComp);
-                        newInstances.addAll(newComponents);
+                        cloneComplexRecursively(copy, 
+                                             oldToNew,
+                                             fileAdaptor,
+                                             parentComp);
+                    }
+                }
+                else if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                    int reply = JOptionPane.showConfirmDialog(parentComp,
+                                                              "Do you want to clone the contained events recursively?",
+                                                              "Pathway Clone",
+                                                              JOptionPane.YES_NO_OPTION);
+                    if (reply == JOptionPane.YES_OPTION) {
+                        clonePathwayRecursively(copy, 
+                                                oldToNew,
+                                                fileAdaptor,
+                                                parentComp);
                     }
                 }
             }
+            newInstances.addAll(oldToNew.values());
         }
         return newInstances;
     }
     
+    private Set<String> getAttributeNamesNotClonable() {
+        Set<String> rtn = new HashSet<>();
+        List<String> uneditableAttNames = AttributeEditConfig.getConfig().getUneditableAttNames();
+        if (uneditableAttNames != null)
+            rtn.addAll(uneditableAttNames);
+        // Something else too
+        rtn.add(ReactomeJavaConstants.authored);
+        rtn.add(ReactomeJavaConstants.edited);
+        rtn.add(ReactomeJavaConstants.reviewed);
+        rtn.add(ReactomeJavaConstants.revised);
+        rtn.add(ReactomeJavaConstants._doRelease);
+        rtn.add(ReactomeJavaConstants.releaseStatus);
+        rtn.add(ReactomeJavaConstants.releaseDate);
+        return rtn;
+    }
+    
     public GKInstance cloneInstance(GKInstance instance, 
-                                     XMLFileAdaptor fileAdaptor) {
+                                    XMLFileAdaptor fileAdaptor) {
         if (instance.isShell())
             throw new IllegalArgumentException("CuratorActionCollection.cloneInstance(): " +
                     "A shell instance cannot be cloned.");
         GKInstance copy = (GKInstance) instance.clone();
         // Have to check un-editable attributes.
         // It seems that this is not an elegant way?
-        java.util.List uneditableAttNames = AttributeEditConfig.getConfig().getUneditableAttNames();
-        if (uneditableAttNames != null && uneditableAttNames.size() > 0) {
+        Set<String> notClonableSlots = getAttributeNamesNotClonable();
+        if (notClonableSlots != null && notClonableSlots.size() > 0) {
             SchemaClass cls = copy.getSchemClass();
-            for (Iterator it1 = uneditableAttNames.iterator(); it1.hasNext();) {
-                String attName = (String) it1.next();
+            for (String attName : notClonableSlots) {
                 if (cls.isValidAttribute(attName))
                     copy.setAttributeValueNoCheck(attName, null);
             }
@@ -87,45 +118,48 @@ public class InstanceCloneHelper {
         return copy;
     }
     
-    private List cloneComplexSubunits(GKInstance complex, 
-                                      XMLFileAdaptor fileAdaptor,
-                                      Component parentComp) {
+    private void cloneInstancesRecursively(GKInstance container, 
+                                           String attName,
+                                           Map<GKInstance, GKInstance> oldToNew,
+                                           XMLFileAdaptor fileAdaptor,
+                                           Component parentComp) {
+        if (!container.getSchemClass().isValidAttribute(attName))
+            return; // There is no need to do anything
         // Need to check if a shell instance is included in the hasComponent hierarchy.
         // If true, deep cloning cannot work
-        List subunits = null;
+        List<GKInstance> values = null;
         try {
-            subunits = complex.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+            values = container.getAttributeValuesList(attName);
         }
         catch(Exception e) {
-            System.err.println("CuratorActionCollection.cloneComplexSubunits(): " + e);
+            System.err.println("CuratorActionCollection.cloneInstancesRecursively(): " + e);
             e.printStackTrace();
         }
-        if (subunits == null || subunits.size() == 0)
-            return new ArrayList(); // Nothing to do. Just return
-        Set current = new HashSet();
-        Set next = new HashSet();
-        current.addAll(subunits);
+        if (values == null || values.size() == 0)
+            return ; // Nothing to do. Just return
+        Set<GKInstance> current = new HashSet<>();
+        Set<GKInstance> next = new HashSet<>();
+        current.addAll(values);
         while (current.size() > 0) {
             try {
-                for (Iterator it = current.iterator(); it.hasNext();) {
-                    GKInstance tmp = (GKInstance) it.next();
+                for (GKInstance tmp : current) {
                     if (tmp.isShell()) {
                         JOptionPane.showMessageDialog(parentComp,
-                                                      "A shell instance is contained in the hasComponent hierarchy.\n"
-                                                      +"A recursize cloning cannot be applied to such a complex.",
+                                                      "A shell instance is contained in the hierarchy.\n"
+                                                     + "A recursize cloning cannot be applied for " + container.getDisplayName() + ".",
                                                       "Error in Cloning",
                                                       JOptionPane.ERROR_MESSAGE);
-                        return new ArrayList(); // Return an empty Array to make the caller happy
+                        return ; // Return an empty Array to make the caller happy
                     }
-                    if (tmp.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-                        List list = tmp.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+                    if (tmp.getSchemClass().isValidAttribute(attName)) {
+                        List<GKInstance> list = tmp.getAttributeValuesList(attName);
                         if (list != null && list.size() > 0)
                             next.addAll(list);
                     }
                 }
             }  
             catch (Exception e) {
-                System.err.println("CuratorActionCollection.cloneComplexSubunits(): " + e);
+                System.err.println("CuratorActionCollection.cloneInstancesRecursively(): " + e);
                 e.printStackTrace();
             }
             current.clear();
@@ -136,38 +170,65 @@ public class InstanceCloneHelper {
         // Use this map to avoid clone the same Subunit more than once 
         // since a subunit can be contained more than multiple times in
         // one Complex or its contained complex
-        Map oldToNewMap = new HashMap();
-        cloneComplex(complex, oldToNewMap, fileAdaptor);
-        return new ArrayList(oldToNewMap.values());
+        cloneInstancesRecursively(container, attName, oldToNew, fileAdaptor);
     }
     
-    private void cloneComplex(GKInstance complex, Map oldToNewMap, XMLFileAdaptor fileAdaptor) {
-        List subunits = null;
+    private void cloneInstancesRecursively(GKInstance container,
+                                           String attName,
+                                           Map<GKInstance, GKInstance> oldToNew,
+                                           XMLFileAdaptor fileAdaptor) {
+        if (!container.getSchemClass().isValidAttribute(attName))
+            return;
+        List<GKInstance> values = null;
         try {
-            subunits = complex.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+            values = container.getAttributeValuesList(attName);
         }
         catch(Exception e) {
-            System.err.println("CuratorActionCollection.cloneComplexSubunits(): " + e);
+            System.err.println("CuratorActionCollection.cloneInstancesRecursively(): " + e);
             e.printStackTrace();
         }
-        if (subunits == null || subunits.size() == 0)
+        if (values == null || values.size() == 0)
             return;
-        GKInstance subunit = null;
-        GKInstance clone = null;
-        List newValues = new ArrayList(subunits.size());
-        for (Iterator it = subunits.iterator(); it.hasNext();) {
-            subunit = (GKInstance) it.next();
-            clone = (GKInstance) oldToNewMap.get(subunit);
+        List<GKInstance> newValues = new ArrayList<>(values.size());
+        for (GKInstance value : values) {
+            GKInstance clone = (GKInstance) oldToNew.get(value);
             if (clone == null) {
-                clone = cloneInstance(subunit, fileAdaptor);
-                oldToNewMap.put(subunit, clone);
-                if (subunit.getSchemClass().isa(ReactomeJavaConstants.Complex))
-                    cloneComplex(clone, oldToNewMap, fileAdaptor);
+                clone = cloneInstance(value, fileAdaptor);
+                oldToNew.put(value, clone);
+                if (value.getSchemClass().isValidAttribute(attName))
+                    cloneInstancesRecursively(clone, attName, oldToNew, fileAdaptor);
             }
             newValues.add(clone);
         }
-        complex.setAttributeValueNoCheck(ReactomeJavaConstants.hasComponent,
-                                         newValues);
+        try {
+            container.setAttributeValue(attName, newValues);
+        }
+        catch(Exception e) {
+            System.err.println("CuratorActionCollection.cloneInstancesRecursively(): " + e);
+            e.printStackTrace();
+        }
+    }
+    
+    private void cloneComplexRecursively(GKInstance complex, 
+                                         Map<GKInstance, GKInstance> oldToNew,
+                                         XMLFileAdaptor fileAdaptor,
+                                         Component parentComp) {
+        cloneInstancesRecursively(complex,
+                                  ReactomeJavaConstants.hasComponent,
+                                  oldToNew,
+                                  fileAdaptor,
+                                  parentComp);
+    }
+    
+    private void clonePathwayRecursively(GKInstance pathway, 
+                                         Map<GKInstance, GKInstance> oldToNew,
+                                         XMLFileAdaptor fileAdaptor,
+                                         Component parentComp) {
+        cloneInstancesRecursively(pathway,
+                                  ReactomeJavaConstants.hasEvent,
+                                  oldToNew,
+                                  fileAdaptor,
+                                  parentComp);
     }
     
 }
