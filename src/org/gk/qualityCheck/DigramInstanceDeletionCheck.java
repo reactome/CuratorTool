@@ -4,38 +4,28 @@
  */
 package org.gk.qualityCheck;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
-import org.gk.schema.InvalidAttributeException;
-import org.gk.util.StringUtils;
+import org.junit.Test;
 
 /**
- * This QA check verifies that the <code>reactomeId</code> values
- * of objects represented in a diagram exists in the data source.
+ * This QA check verifies that the <code>DB_ID</code> values
+ * of instances represented in a diagram exist in the database hosting 
+ * the diagram.
  * 
  * Although this class performs a specific QA check, subclasses
  * can extend it to perform other diagram checks.
  *
  * @author Fred Loney <loneyf@ohsu.edu>
  */
-public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
+public class DigramInstanceDeletionCheck extends PathwayDiagramCheck {
 
     @Override
     public String getDisplayName() {
@@ -43,18 +33,19 @@ public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
     }
     
     /**
-     * Returns the diagram entity db ids which are not in the database.
+     * Returns a collection of DB_IDs for instances that have not been in the
+     * database any more. This may be caused by deletion of instances originally
+     * drawn in the pathway diagram
      * 
      * @param instance the PathwayDiagram instance
-     * @return the missing db ids
+     * @return the missing DB_IDs
      */
     @Override
     protected Collection<Long> doCheck(GKInstance instance) throws Exception {
         return getMissingDbIds(instance);
     }
 
-    private Collection<Long> getMissingDbIds(GKInstance instance)
-            throws InvalidAttributeException, Exception, SQLException {
+    private Collection<Long> getMissingDbIds(GKInstance instance) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
             throw new IllegalArgumentException(instance + " is not a PathwayDiagram instance!");
         Collection<Long> dbIds = extractReactomeIds(instance);
@@ -64,19 +55,17 @@ public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
         if (dataSource instanceof MySQLAdaptor) {
             MySQLAdaptor dba = (MySQLAdaptor) dataSource;
             existing = dba.existing(dbIds);
-        } else {
+        } 
+        else {
             @SuppressWarnings("unchecked")
             Collection<GKInstance> instances = dataSource.fetchInstanceByAttribute(
                     ReactomeJavaConstants.DatabaseObject,
                     ReactomeJavaConstants.DB_ID,
                     "=",
                     dbIds);
-            if (instances.size() == dbIds.size()) {
-                return Collections.emptyList();
-            }
             existing = instances.stream()
-                    .map(GKInstance::getDBID)
-                    .collect(Collectors.toSet());
+                                .map(GKInstance::getDBID)
+                                .collect(Collectors.toSet());
         }
  
         // The most common case.
@@ -91,14 +80,17 @@ public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
     }
 
     @Override
-    protected Set<GKInstance> filterInstancesForProject(Set<GKInstance> instances) {
-        return filterInstancesForProject(instances, 
-                                         ReactomeJavaConstants.PathwayDiagram);
+    protected String getResultTableIssueDBIDColName() {
+        return "DB_IDs for Deleted Objects";
     }
-
-    @Override
-    protected String getResultTableModelTitle() {
-        return "DB_IDs without Instances";
+    
+    @Test
+    public void testCheckInCommand() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_122118",
+                                            "root",
+                                            "macmysql01");
+        super.testCheckInCommand(dba);
     }
 
 }

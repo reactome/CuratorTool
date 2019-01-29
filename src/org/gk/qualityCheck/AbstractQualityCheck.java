@@ -45,6 +45,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
+import org.apache.log4j.PropertyConfigurator;
 import org.gk.database.AttributeEditEvent;
 import org.gk.database.AttributeEditListener;
 import org.gk.database.AttributeEditManager;
@@ -71,6 +72,7 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 import org.jdom.xpath.XPath;
+import org.junit.Test;
 
 /**
  * This is an abstract implementation of QualityCheck. It takes care of some common
@@ -155,6 +157,13 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         }
 
         return words;
+    }
+    
+    protected void testCheckInCommand(MySQLAdaptor dba) throws Exception {
+        PropertyConfigurator.configure("resources/log4j.properties");
+        setDatasource(dba);
+        QAReport report = checkInCommand();
+        report.output(report.getReportLines().size());
     }
     
     /**

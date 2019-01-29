@@ -24,7 +24,6 @@ import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.ContainerNode;
 import org.gk.render.Node;
-import org.gk.render.Note;
 import org.gk.render.ProcessNode;
 import org.gk.render.ReactionNode;
 import org.gk.render.Renderable;
@@ -218,15 +217,15 @@ abstract public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck
      */
     @Override
     protected ResultTableModel getResultTableModel() throws Exception {
-        return new PathwayDiagramTableModel(getResultTableModelTitle());
+        return new PathwayDiagramTableModel(getResultTableIssueDBIDColName());
     }
 
     /**
-     * Returns the issue display table title.
+     * Returns the issue display table issue header.
      * 
-     * return title the table title
+     * return title the table header of the column used to display issues.
      */
-    abstract protected String getResultTableModelTitle();
+    abstract protected String getResultTableIssueDBIDColName();
 
     @Override
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
@@ -239,16 +238,12 @@ abstract public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck
                        dba);
     }
 
-    protected RenderablePathway getRenderablePathway(GKInstance instance)
-            throws InvalidAttributeException, Exception {
-                String xml = (String) instance.getAttributeValue(ReactomeJavaConstants.storedATXML);
-                if (xml == null || xml.length() == 0)
-                    return null;
-                if (reader == null)
-                    reader = new DiagramGKBReader();
-                RenderablePathway diagram = reader.openDiagram(xml);
-                return diagram;
-            }
+    protected RenderablePathway getRenderablePathway(GKInstance pathwayDiagramInst) throws Exception {
+        if (reader == null)
+            reader = new DiagramGKBReader();
+        RenderablePathway diagram = reader.openDiagram(pathwayDiagramInst);
+        return diagram;
+    }
 
     @Override
     protected String getIssue(GKInstance instance) throws Exception {

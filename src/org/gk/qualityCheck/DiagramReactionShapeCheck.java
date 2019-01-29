@@ -7,27 +7,36 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.ReactionType;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.schema.SchemaClass;
+import org.junit.Test;
 
 /**
- * This is the Curator QA adaptation of the diagram-converter T113 check
- * for diagram reaction shape type consistency with the represented
- * database Reaction reactionType value.
- *
- * The diagram reaction type is determined as follows:
+ * TODO: Hold this check for the time being until we figure out how we are going to
+ * do with reaction types.
+ * This QA is to make sure the drawn reaction type is the same as the annotated one 
+ * based on the following rules:
  * <ol>
- * <li>BlackBoxEvent => <code>omitted</code>
+ * <li>BlackBoxEvent => <code>omitted or Uncertain</code>
  * <li>Polymerisation or Depolymerisation or has catalystActivity => <code>transition</code>
  * <li>More inputs than outputs and has a Complex output => <code>association</code>
  * <li>More outputs than inputs and has a Complex input => <code>dissociation</code>
  * <li>Otherwise => <code>transition</code>
  * </ol>
+ * The output from this check should be the same as the diagram QA check T113 in
+ * the diagram-converter project.
+ * Note: The offended cases most likely are caused by the following two categories:
+ * 1). Assign specific type to BlackBoxEvent as transition, association, or dissociation
+ * 2). Use the generic transition to other types.
  * 
  * @author Fred Loney <loneyf@ohsu.edu>
  */
@@ -46,16 +55,12 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
         String foundType;
     }
     
-    /**
-     * The reaction issue reporting details.
-     *
-     * @author Fred Loney <loneyf@ohsu.edu>
-     */
+    // The reaction issue reporting details.
     private Map<Long, IssueDetail> rxnDbIdToDetail = new HashMap<Long, IssueDetail>();
     
     @Override
     public String getDisplayName() {
-        return "Diagram_Reactions_Shape_Mismatch";
+        return "Diagram_Reactions_Type_Mismatch";
     }
 
     @Override
@@ -94,7 +99,7 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
     protected Collection<Long> doCheck(GKInstance instance) throws Exception {
         RenderablePathway pathway = getRenderablePathway(instance);
         // The diagram reactions.
-        Collection<RenderableReaction> rxnEdges = extractReactionRenderables(pathway);
+        Collection<RenderableReaction> rxnEdges = getDisplayedRLEes(pathway);
         // Check each diagram reaction.
         Set<Long> mismatchedRxnDbIds = new HashSet<Long>();
         for (RenderableReaction rxnEdge: rxnEdges) {
@@ -107,27 +112,26 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
                 continue;
             }
             // The diagram reaction type (default transition).
-            ReactionType diagRxnType = rxnEdge.getReactionType();
-            if (diagRxnType == null) {
-                diagRxnType = ReactionType.TRANSITION;
+            ReactionType foundType = rxnEdge.getReactionType();
+            if (foundType == null) { // This is the default
+                foundType = ReactionType.TRANSITION;
             }
             // The reaction type inferred from the database reaction object.
-            ReactionType dbRxnType = inferReactionType(rxnInst);
-            if (diagRxnType != dbRxnType) {
+            Set<ReactionType> correctTypes = inferReactionType(rxnInst);
+            if (!correctTypes.contains(foundType)) {
                 mismatchedRxnDbIds.add(rxnDbId);
                 IssueDetail details = new IssueDetail();
                 details.reaction = rxnInst;
-                details.foundType = diagRxnType.toString();
-                details.correctType = dbRxnType.toString();
+                details.foundType = foundType.toString();
+                details.correctType = correctTypes.stream().map(ReactionType::toString).collect(Collectors.joining(", "));
                 rxnDbIdToDetail.put(rxnDbId, details);
             }
         }
-        
         return mismatchedRxnDbIds;
     }
-
+    
     @SuppressWarnings("unchecked")
-    private ReactionType inferReactionType(GKInstance instance) throws Exception {
+    private Set<ReactionType> inferReactionType(GKInstance instance) throws Exception {
         SchemaClass schemaCls = instance.getSchemClass();
         if (!schemaCls.isa(ReactomeJavaConstants.ReactionlikeEvent)) {
             String msg = "The instance must be a ReactionlikeEvent; found: " +
@@ -137,29 +141,39 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
         }
         // BBE => omitted.
         if (schemaCls.isa(ReactomeJavaConstants.BlackBoxEvent)) {
-            return ReactionType.OMITTED_PROCESS;
+            return Stream.of(ReactionType.OMITTED_PROCESS,
+                             ReactionType.UNCERTAIN_PROCESS).collect(Collectors.toSet());
         }
+        Set<ReactionType> types = new HashSet<>();
+        // This is for test
+//        types.add(ReactionType.TRANSITION);
+        
         // (de)polymerisation or has catalyst => association.
         if (schemaCls.isa(ReactomeJavaConstants.Polymerisation) ||
                 schemaCls.isa(ReactomeJavaConstants.Depolymerisation) ||
                 instance.getAttributeValue(ReactomeJavaConstants.catalystActivity) != null) {
-            return ReactionType.TRANSITION;
+            types.add(ReactionType.TRANSITION);
+            return types;
         }
-        List<GKInstance> inputs =
-                instance.getAttributeValuesList(ReactomeJavaConstants.input);
-        List<GKInstance> outputs = 
-                instance.getAttributeValuesList(ReactomeJavaConstants.output);
-        int netProductCnt = outputs.size() - inputs.size();
-        // More inputs than outputs and has a Complex output => association.
-        // More outputs than inputs and has a Complex input => dissociation.
-        if (netProductCnt < 0 && hasComplex(outputs)) {
-            return ReactionType.ASSOCIATION;
-        } else if (netProductCnt > 0 && hasComplex(inputs)) {
-            return ReactionType.DISSOCIATION;
+        else {
+            List<GKInstance> inputs =
+                    instance.getAttributeValuesList(ReactomeJavaConstants.input);
+            List<GKInstance> outputs = 
+                    instance.getAttributeValuesList(ReactomeJavaConstants.output);
+            int netProductCnt = outputs.size() - inputs.size();
+            // More inputs than outputs and has a Complex output => association.
+            // More outputs than inputs and has a Complex input => dissociation.
+            if (netProductCnt < 0 && hasComplex(outputs)) {
+                types.add(ReactionType.ASSOCIATION);
+                return types;
+            } else if (netProductCnt > 0 && hasComplex(inputs)) {
+                types.add(ReactionType.DISSOCIATION);
+                return types;
+            }
         }
-        
-        // Default is transition.
-        return ReactionType.TRANSITION;
+        // As the default
+        types.add(ReactionType.TRANSITION);
+        return types;
     }
     
     /**
@@ -207,8 +221,17 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
     }
     
     @Override
-    protected String getResultTableModelTitle() {
+    protected String getResultTableIssueDBIDColName() {
         return "Mismatched Reaction DBIDs";
+    }
+    
+    @Test
+    public void testCheckInCommand() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_122118",
+                                            "root",
+                                            "macmysql01");
+        super.testCheckInCommand(dba);
     }
 
 }

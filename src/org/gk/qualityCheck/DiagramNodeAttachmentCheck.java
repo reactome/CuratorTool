@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.gk.database.AttributeEditConfig;
 import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.model.GKInstance;
@@ -36,20 +37,28 @@ import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableProtein;
 import org.gk.render.RenderableRNA;
 import org.gk.util.GKApplicationUtilities;
+import org.junit.Test;
 import org.w3c.dom.Document;
 
 /**
- * This is the Curator QA adaptation of the diagram-converter T114 and
- * T115 node attachment QA checks.
+ * This check is to make sure hasModified values in EntityWithAccessionedSequence instances
+ * are correctly displayed in pathway diagrams. The output should be similar to one from
+ * T114 and T115 in the diagram-converter.
  * 
  * @author Fred Loney <loneyf@ohsu.edu>
  */
 public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
 
     private static final String[] HEADERS = {
-            "Diagram_DBID", "Pathway_DisplayName", "Pathway_DBID",
-            "Entity_DBID", "Entity_DisplayName", "Attachment_DBIDs", "Issue",
-            "Created", "Modified"
+            "Diagram_DBID",
+            "Pathway_DisplayName", 
+            "Pathway_DBID",
+            "Entity_DBID", 
+            "Entity_DisplayName", 
+            "Attachment_DBIDs", 
+            "Issue",
+            "Created", 
+            "Modified"
     };
     
     private static final String[] LOAD_ATTS = {
@@ -62,17 +71,12 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
         String issue;
     }
     
-    /**
-     * The reaction issue reporting details.
-     *
-     * @author Fred Loney <loneyf@ohsu.edu>
-     */
-    private Map<Long, List<IssueDetail>> ewasDbIdToDetails =
-            new HashMap<Long, List<IssueDetail>>();
+    // The reaction issue reporting details.
+    private Map<Long, List<IssueDetail>> ewasDbIdToDetails = new HashMap<>();
     
     @Override
     public String getDisplayName() {
-        return "Diagram_Node_Attachment_Mismatch";
+        return "Diagram_Entity_Modification_Mismatch";
     }
 
     @Override
@@ -81,15 +85,15 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
     }
 
     @Override
-    protected Collection<Long> doCheck(GKInstance instance) throws Exception {
+    protected Collection<Long> doCheck(GKInstance pathwayDiagramInst) throws Exception {
         // Clear the detail map.
         ewasDbIdToDetails.clear();
         // The diagram pathway.
-        RenderablePathway diagram = getRenderablePathway(instance);
+        RenderablePathway diagram = getRenderablePathway(pathwayDiagramInst);
         // The diagram EWAS nodes.
         Collection<Node> ewasNodes = getPhysicalEntityNodes(diagram).stream()
-                .filter(node -> isEWASNode(node))
-                .collect(Collectors.toList());
+                                                                    .filter(node -> isEWASNode(node))
+                                                                    .collect(Collectors.toList());
         // Check the EWAS nodes.
         checkAttachments(ewasNodes);
         
@@ -98,26 +102,25 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
 
     private boolean isEWASNode(Node node) {
         return node instanceof RenderableGene ||
-                node instanceof RenderableProtein ||
-                node instanceof RenderableRNA;
+               node instanceof RenderableProtein ||
+               node instanceof RenderableRNA;
     }
 
     @Override
-    protected String[][] getReportLines(GKInstance instance) throws Exception {
-        GKInstance pathway =
-                (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
-        Collection<Long> rxnDbIds = getIssueDbIds(instance);
+    protected String[][] getReportLines(GKInstance pathwayDiagramInst) throws Exception {
+        GKInstance pathway = (GKInstance) pathwayDiagramInst.getAttributeValue(ReactomeJavaConstants.representedPathway);
+        Collection<Long> ewasDbIds = getIssueDbIds(pathwayDiagramInst);
         List<String[]> lines = new ArrayList<String[]>();
-        GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
-        for (Long rxnDbId: rxnDbIds) {
-            List<IssueDetail> details = ewasDbIdToDetails.get(rxnDbId);
+        GKInstance created = (GKInstance) pathwayDiagramInst.getAttributeValue(ReactomeJavaConstants.created);
+        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pathwayDiagramInst);
+        for (Long ewasDBID : ewasDbIds) {
+            List<IssueDetail> details = ewasDbIdToDetails.get(ewasDBID);
             for (IssueDetail detail: details) {
                 String residueDbIds = detail.residueDbIds.stream()
                         .map(Object::toString)
                         .collect(Collectors.joining(", "));
                 String[] line = {
-                        instance.getDBID().toString(),
+                        pathwayDiagramInst.getDBID().toString(),
                         pathway.getDisplayName(),
                         pathway.getDBID().toString(),
                         detail.entity.getDBID().toString(),
@@ -135,7 +138,7 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
     }
 
     @Override
-    protected String getResultTableModelTitle() {
+    protected String getResultTableIssueDBIDColName() {
         return "Node Attachment Mismatch";
     }
 
@@ -147,52 +150,32 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
      */
     @SuppressWarnings("unchecked")
     private void checkAttachments(Collection<Node> nodes) throws Exception {
-        // Fetch the corresponding instances.
-        List<Long> dbIds = nodes.stream()
-                .map(Renderable::getReactomeId)
-                .collect(Collectors.toList());
-        PersistenceAdaptor dataSource = getDatasource();
-        Collection<GKInstance> instances;
-        if (dataSource instanceof MySQLAdaptor) {
-            MySQLAdaptor dba = (MySQLAdaptor)dataSource;
-            instances = dba.fetchInstances(
-                    ReactomeJavaConstants.EntityWithAccessionedSequence, dbIds);
-            dba.loadInstanceAttributeValues(instances, LOAD_ATTS);
-        } else {
-            instances = new HashSet<GKInstance>();
-            for (Long dbId: dbIds) {
-                GKInstance instance = dataSource.fetchInstance(dbId);
-                instances.add(instance);
-            }
-        }
-        Map<Long, GKInstance> dbIdToInstMap = instances.stream()
-                .collect(Collectors.toMap(GKInstance::getDBID, Function.identity()));
-        
+        Map<Long, GKInstance> dbIdToInstMap = loadInstances(nodes);
         // Load the config containing the attachment short names.
-        loadConfig();
-        
+        loadAttributeEditConfig();
         // Check each EWAS node.
         for (Node node: nodes) {
             Long ewasDbId = node.getReactomeId();
             GKInstance instance = dbIdToInstMap.get(ewasDbId);
+            if (instance == null)
+                continue;
             List<NodeAttachment> attachments = node.getNodeAttachments();
             if (attachments == null) {
                 attachments = Collections.emptyList();
             }
-            // The non-null diagam attachment reactomeIds.
+            // The non-null diagram attachment reactomeIds.
             Set<Long> attachmentDbIds = attachments.stream()
                     .map(NodeAttachment::getReactomeId)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
             // The database modified residue instances.
-            List<GKInstance> residues =
-                    instance.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
+            List<GKInstance> residues = instance.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
             Map<Long, GKInstance> dbIdToResidueMap = new HashMap<Long, GKInstance>();
             for (GKInstance residue: residues) {
                 dbIdToResidueMap.put(residue.getDBID(), residue);
             }
             
-            // Check for missing or extra digram attachments.
+            // Check for missing or extra diagram attachments.
             Set<Long> residueDbIds = dbIdToResidueMap.keySet();
             List<IssueDetail> details = new ArrayList<IssueDetail>();
             if (!residueDbIds.equals(attachmentDbIds)) {
@@ -217,10 +200,9 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
             }
             
             // Check the labels.
-            Map<String, Set<Long>> missing = new HashMap<String, Set<Long>>(); 
-            Map<String, Set<Long>> extra = new HashMap<String, Set<Long>>(); 
-            Map<String, Map<String, Set<Long>>> mismatch =
-                    new HashMap<String, Map<String, Set<Long>>>(); 
+            Map<String, Set<Long>> missing = new HashMap<>(); 
+            Map<String, Set<Long>> extra = new HashMap<>(); 
+            Map<String, Map<String, Set<Long>>> mismatch = new HashMap<>();
             for (NodeAttachment attachment: attachments) {
                 Long dbId = attachment.getReactomeId();
                 if (dbId == null) {
@@ -309,6 +291,31 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
             }
         }
     }
+
+    protected Map<Long, GKInstance> loadInstances(Collection<Node> nodes) throws Exception {
+        // Fetch the corresponding instances.
+        List<Long> dbIds = nodes.stream()
+                .map(Renderable::getReactomeId)
+                .collect(Collectors.toList());
+        PersistenceAdaptor dataSource = getDatasource();
+        Collection<GKInstance> instances;
+        if (dataSource instanceof MySQLAdaptor) {
+            MySQLAdaptor dba = (MySQLAdaptor)dataSource;
+            instances = dba.fetchInstances(
+                    ReactomeJavaConstants.EntityWithAccessionedSequence, dbIds);
+            dba.loadInstanceAttributeValues(instances, LOAD_ATTS);
+        } else {
+            instances = new HashSet<GKInstance>();
+            for (Long dbId: dbIds) {
+                GKInstance instance = dataSource.fetchInstance(dbId);
+                instances.add(instance);
+            }
+        }
+        Map<Long, GKInstance> dbIdToInstMap = instances.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(GKInstance::getDBID, Function.identity()));
+        return dbIdToInstMap;
+    }
     
     /**
      * Returns the label for the given residue, determined as follows:
@@ -338,7 +345,7 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
         return feature.getLabel();
     }
     
-    private AttributeEditConfig loadConfig() throws Exception {
+    private AttributeEditConfig loadAttributeEditConfig() throws Exception {
         AttributeEditConfig config = AttributeEditConfig.getConfig();
         InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
         if (metaConfig == null)
@@ -347,8 +354,17 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
         DocumentBuilder builder = dbf.newDocumentBuilder();
         Document document = builder.parse(metaConfig);
         config.loadConfig(document);
-        
         return config;
     }
+    
+    @Test
+    public void testCheckInCommand() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_122118",
+                                            "root",
+                                            "macmysql01");
+        super.testCheckInCommand(dba);
+    }
+
      
 }
