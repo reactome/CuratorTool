@@ -180,6 +180,7 @@ public class PopupMenuManager {
                 menu.add(actionCollection.getPrivateNoteAction());
                 menu.add(actionCollection.getTightBoundsAction());
                 menu.add(actionCollection.getWrapTextIntoNodesAction());
+                menu.add(actionCollection.getResetNodeFeaturesAction());
                 menu.add(actionCollection.getDoNotReleaseAction());
             }
             menu.add(actionCollection.getToggleShowPathwayAction());
