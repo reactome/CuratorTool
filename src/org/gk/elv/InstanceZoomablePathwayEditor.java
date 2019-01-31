@@ -1042,6 +1042,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         Graphics g = pathwayEditor.getGraphics();
         for (GKInstance residue : residues) {
             RenderableFeature feature = handler.convertModifiedResidue(residue);
+            if (feature == null)
+                continue;
             feature.validateBounds(node.getBounds(), g);
             features.add(feature);
         }

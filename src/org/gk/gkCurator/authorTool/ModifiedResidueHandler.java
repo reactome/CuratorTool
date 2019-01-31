@@ -57,6 +57,9 @@ public class ModifiedResidueHandler {
      * @throws Exception
      */
    public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
+       // Work for ModifiedResidue only
+       if (!modifiedResidue.getSchemClass().isa(ReactomeJavaConstants.ModifiedResidue))
+           return null;
         // Need to convert to attachments
         Map<String, String> residues = AttributeEditConfig.getConfig().getModificationResidues();
         Map<String, String> modifications = AttributeEditConfig.getConfig().getModifications();

@@ -191,6 +191,8 @@ public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
         Map<Long, Set<RenderableFeature>> modelIdToFeatures = new HashMap<>();
         for (GKInstance residue : residues) {
             RenderableFeature feature = handler.convertModifiedResidue(residue);
+            if (feature == null)
+                continue;
             modelIdToFeatures.compute(residue.getDBID(), (key, set) -> {
                 if (set == null)
                     set = new HashSet<>();
