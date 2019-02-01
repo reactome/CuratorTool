@@ -32,14 +32,14 @@ import org.gk.schema.SchemaClass;
 /**
  * This is the base class for diagram reaction checks. Subclasses
  * perform a diagram check by implementing the
- * {@link PathwayDiagramCheck#doCheck(GKInstance)} method.
+ * {@link AbstractPathwayDiagramCheck#doCheck(GKInstance)} method.
  * 
  * Checking a diagram does not check subpathways included in the
  * diagram which have their own diagram.
  * 
  * @author wgm
  */
-public abstract class DiagramReactionsCheck extends PathwayDiagramCheck {
+public abstract class DiagramReactionsCheck extends AbstractPathwayDiagramCheck {
     
     protected DiagramReactionsCheck() {
     }

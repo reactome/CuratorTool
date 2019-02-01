@@ -47,7 +47,7 @@ import org.w3c.dom.Document;
  * @author Fred Loney <loneyf@ohsu.edu> & Guanming Wu <wug@ohsu.edu>
  */
 @SuppressWarnings("unchecked")
-public class DiagramNodeAttachmentCheck extends PathwayDiagramCheck {
+public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
     // The reaction issue reporting details.
     private Map<Long, String> ewasDbIdToDetails = new HashMap<>();
     private Map<Long, GKInstance> ewasDbIdToInst = new HashMap<>(); // Just a quick cache

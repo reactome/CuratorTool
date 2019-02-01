@@ -25,7 +25,7 @@ import org.junit.Test;
  *
  * @author Fred Loney <loneyf@ohsu.edu>
  */
-public class DigramInstanceDeletionCheck extends PathwayDiagramCheck {
+public class DigramInstanceDeletionCheck extends AbstractPathwayDiagramCheck {
 
     @Override
     public String getDisplayName() {

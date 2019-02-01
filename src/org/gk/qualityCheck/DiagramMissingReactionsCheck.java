@@ -100,7 +100,7 @@ public class DiagramMissingReactionsCheck extends DiagramReactionsCheck {
 //        if (displayedEventIds == null || displayedEventIds.size() == 0) {
 //            return Collections.emptySet(); // Nothing has been drawn yet in this diagram
 //        }
-        // Only the first normal pathway will be returned in this pathwayDiagramInst is
+        // Only the first normal pathway will be returned in this pathwayDiagramInst if
         // shared between normal pathway and one or more disease pathways. The normal pathway
         // is expected in the first place.
         GKInstance pathway = (GKInstance) pathwayDiagramInst.getAttributeValue(ReactomeJavaConstants.representedPathway);
@@ -130,7 +130,6 @@ public class DiagramMissingReactionsCheck extends DiagramReactionsCheck {
                 rles.removeAll(subPathwayRxns);
             }
         }
-
         return rles;
     }
     

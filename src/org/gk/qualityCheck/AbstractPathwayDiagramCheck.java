@@ -42,7 +42,7 @@ import org.gk.schema.InvalidAttributeException;
  *
  * @author Fred Loney <loneyf@ohsu.edu>
  */
-abstract public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck {
+abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBasedCheck {
 
     /**
      * The pathway diagram {instance: issue db ids} map.
@@ -62,7 +62,7 @@ abstract public class PathwayDiagramCheck extends SingleAttributeClassBasedCheck
      * not set, since no specific attribute is suitable for display
      * purposes.
      */
-    public PathwayDiagramCheck() {
+    public AbstractPathwayDiagramCheck() {
         checkClsName = ReactomeJavaConstants.PathwayDiagram;
     }
     
