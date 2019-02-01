@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -30,8 +29,10 @@ import org.junit.Test;
 
 /**
  * This class is used to check if a drawn reaction is synchronized with the actually annotated
- * reaction in the database. Sometimes because of editing, a drawn reaction may be out of syncrhonization
- * with one in the database.
+ * reaction in the database. Sometimes because of editing, a drawn reaction may be out of synchronization
+ * with one in the database. Only one issue will be returned for an offended ReactionlikeEvent instance even
+ * though it may have multiple issues. The curator should check out PathwayDiagrams and then reopen it with 
+ * the curator tool. In most cases, the diagram will be fixed automatically in the local project.
  * @author gwu
  *
  */
@@ -39,9 +40,19 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     private static final Logger logger = Logger.getLogger(ReactionSyncELVCheck.class);
 
     private static final String[] HEADERS = {
-            "Diagram_DBID", "Pathway_DisplayName", "Pathway_DBID",
-            "Reaction_DBID", "Issue", "Created", "Modified"
+            "Diagram_DBID", 
+            "Pathway_DisplayName", 
+            "Pathway_DBID",
+            "Reaction_DBID", 
+            "Issue", 
+            "Created", 
+            "Modified"
     };
+    
+    // Keep the check results for display: key = dbId of PD.dbId of RLE, 
+    // value is one issue. A RLE may have multiple issue, however, in this check
+    // there will be only one issue reported.
+    private Map<String, String> dbIdsToIssue;
 
     /**
      * Default constructor.
@@ -60,6 +71,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     @Override
     @SuppressWarnings("unchecked")
     public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(MySQLAdaptor dba) throws Exception {
+        dbIdsToIssue = new HashMap<>();
         // Build the map.
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         Map<GKInstance, Set<GKInstance>> pdToRxts = new HashMap<GKInstance, Set<GKInstance>>();
@@ -84,26 +96,26 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         List<GKInstance> pdList = new ArrayList<GKInstance>(pdToRxts.keySet());
         InstanceUtilities.sortInstances(pdList);
         for (GKInstance pd : pdList) {
-            Set<GKInstance> rxts = pdToRxts.get(pd);
-            String rxtsColValue = rxts.stream()
-                    .map(GKInstance::getDBID)
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", "));
             GKInstance pathway =
                     (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.representedPathway);
-            GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pd);
-            GKInstance created = (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.created);
-            String[] colValues = new String[] {
-                    pd.getDBID().toString(),
-                    pathway.getDisplayName(),
-                    pathway.getDBID().toString(),
-                    rxtsColValue,
-                    created.getDisplayName(),
-                    modified.getDisplayName()
-            };
-            String detail = String.join("\t", colValues);
-            builder.append(detail);
-            builder.append("\n");
+            Set<GKInstance> rxts = pdToRxts.get(pd);
+            for (GKInstance rle : rxts) {
+                GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(rle);
+                GKInstance created = (GKInstance) rle.getAttributeValue(ReactomeJavaConstants.created);
+                String issue = dbIdsToIssue.get(pd.getDBID() + "." + rle.getDBID());
+                String[] colValues = new String[] {
+                        pd.getDBID().toString(),
+                        pathway.getDisplayName(),
+                        pathway.getDBID().toString(),
+                        rle.getDBID() + "",
+                        issue == null ? "" : issue,
+                        created.getDisplayName(),
+                        modified.getDisplayName()
+                };
+                String detail = String.join("\t", colValues);
+                builder.append(detail);
+                builder.append("\n");
+            }
         }
         return builder.toString();
     }
@@ -121,7 +133,9 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
                 logger.error("Event with DB_ID in " + diagram + "\n cannot be found: " + edge.getReactomeId());
                 continue; 
             }
-            if (!isEdgeAndReactionSame(inst, edge))
+            if (!isEdgeAndReactionSame(inst, 
+                                       edge,
+                                       diagram))
                 unmatched.add(inst);
         }
         return unmatched;
@@ -129,19 +143,26 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     
     @SuppressWarnings("unchecked")
     private boolean isEdgeAndReactionSame(GKInstance instance,
-                                          RenderableReaction rxt) throws Exception {
+                                          RenderableReaction rxt,
+                                          GKInstance pd) throws Exception {
         // Fist check if they have the same inputs
         List<GKInstance> inputs = instance.getAttributeValuesList(ReactomeJavaConstants.input);
         List<Node> inputNodes = rxt.getInputNodes();
         Map<Renderable, Integer> inputToStoi = rxt.getInputStoichiometries();
-        if (!checkValuesAndNodes(inputs, inputNodes, inputToStoi))
+        if (!checkValuesAndNodes(inputs, inputNodes, inputToStoi)) {
+            dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
+                             "input out of sync");
             return false;
+        }
         // Check output 
         List<GKInstance> outputs = instance.getAttributeValuesList(ReactomeJavaConstants.output);
         List<Node> outputNodes = rxt.getOutputNodes();
         Map<Renderable, Integer> outputToStoi = rxt.getOutputStoichiometries();
-        if (!checkValuesAndNodes(outputs, outputNodes, outputToStoi))
+        if (!checkValuesAndNodes(outputs, outputNodes, outputToStoi)) {
+            dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
+                    "output out of sync");
             return false;
+        }
         // Check Catalysts
         List<GKInstance> cas = instance.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
         List<GKInstance> catalysts = new ArrayList<GKInstance>();
@@ -153,10 +174,13 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         List<Node> catalystNodes = rxt.getHelperNodes();
         // Just an empty map in order to use the refactored method
         Map<Renderable, Integer> emptyMap = new HashMap<Renderable, Integer>();
-        if (!checkValuesAndNodes(catalysts, catalystNodes, emptyMap))
+        if (!checkValuesAndNodes(catalysts, catalystNodes, emptyMap)) {
+            dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
+                    "catalyst out of sync");
             return false;
+        }
         // Check activators
-        Collection<GKInstance> regulations = instance.getReferers(ReactomeJavaConstants.regulatedEntity);
+        Collection<GKInstance> regulations = InstanceUtilities.getRegulations(instance);
         List<GKInstance> activators = new ArrayList<GKInstance>();
         List<GKInstance> inhibitors = new ArrayList<GKInstance>();
         if (regulations != null && regulations.size() > 0) {
@@ -171,11 +195,17 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
             }
         }
         List<Node> activatorNodes = rxt.getActivatorNodes();
-        if (!checkValuesAndNodes(activators, activatorNodes, emptyMap))
+        if (!checkValuesAndNodes(activators, activatorNodes, emptyMap)) {
+            dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
+                    "activator out of sync");
             return false;
+        }
         List<Node> inhibitorNodes = rxt.getInhibitorNodes();
-        if (!checkValuesAndNodes(inhibitors, inhibitorNodes, emptyMap))
+        if (!checkValuesAndNodes(inhibitors, inhibitorNodes, emptyMap)) {
+            dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
+                            "inhibitor out of sync");
             return false;
+        }
         return true;
     }
     
@@ -245,6 +275,15 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         Map<GKInstance, Set<GKInstance>> pdToRxts = checkEventUsageInELV(dba);
         String output = convertEventToDiagramMapToText(pdToRxts);
         System.out.println(output);
+    }
+    
+    @Test
+    public void testCheckInCommand() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "test_slice_67",
+                                            "root",
+                                            "macmysql01");
+        super.testCheckInCommand(dba);
     }
     
 }
