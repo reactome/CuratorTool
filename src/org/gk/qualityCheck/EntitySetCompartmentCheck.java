@@ -37,7 +37,7 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
     
     @Override
     protected String getIssueTitle() {
-        return "ExtraCompartmentsInEntitySetOrMembers";
+        return "Extra_Compartment_DisplayNames";
     }
     
     @Override
@@ -69,7 +69,6 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
     
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        // Need to load all complexes in case some complexes are used by complexes for checking
         Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
         if (progressPane != null)
             progressPane.setText("Load PhysicalEntity compartment...");

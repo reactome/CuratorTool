@@ -61,7 +61,8 @@ public class EntityInstanceHandler extends InstanceHandler {
         for (Iterator it = list.iterator(); it.hasNext();) {
             GKInstance modifiedResidue = (GKInstance) it.next();
             RenderableFeature feature = handler.convertModifiedResidue(modifiedResidue);
-            features.add(feature);
+            if (feature != null)
+                features.add(feature);
         }
         Node node = (Node) r;
         node.setNodeAttachmentsLocally(features);

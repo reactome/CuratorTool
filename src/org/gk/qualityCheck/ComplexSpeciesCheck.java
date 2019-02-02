@@ -11,6 +11,15 @@ import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
+/**
+ * This QA check reports Complexes whose species does not exactly
+ * equal the species of its components. Both the <code>species</code>
+ * and <code>relatedSpecies</code> values are used. 
+ * 
+ * @see SpeciesCheck
+ * @author wgm
+ */
+@SuppressWarnings("unchecked")
 public class ComplexSpeciesCheck extends SpeciesCheck {
     
     public ComplexSpeciesCheck() {

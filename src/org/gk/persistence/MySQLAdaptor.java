@@ -2123,43 +2123,65 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				}
 			}
 		}
-	}	
-	
-	/**
-	 * Check if a list of DB_IDs exit in the database.
-	 * @param dbIds
-	 * @return
-	 */
-	public boolean exist(List dbIds) throws SQLException {
-	    if (dbIds == null || dbIds.size() == 0)
-	        return true;
-	    List needCheckedList = new ArrayList(dbIds);
-	    for (Iterator it = needCheckedList.iterator(); it.hasNext();) {
-	        Long dbID = (Long) it.next();
-	        if (instanceCache.containsKey(dbID))
-	            it.remove();
-	    }
-	    if (needCheckedList.size() == 0)
-	        return true;
-		SchemaClass root = ((GKSchema)schema).getRootClass();
-		String query = "SELECT DB_ID FROM " + root.getName() + " WHERE DB_ID IN (" + 
-		                StringUtils.join(",", needCheckedList) + ")";
-		Set idsInDB = new HashSet();
-		Statement stat = getConnection().createStatement();
-		ResultSet resultSet = stat.executeQuery(query);
-	    while (resultSet.next()) {
-	        long id = resultSet.getLong(1);
-	        idsInDB.add(new Long(id));
-	    }
-	    resultSet.close();
-	    stat.close();
-	    for (Iterator it = needCheckedList.iterator(); it.hasNext();) {
-	        Long id = (Long) it.next();
-	        if (!idsInDB.contains(id))
-	            return false;
-	    }
-		return true;
 	}
+
+    /**
+     * Check if a list of DB_IDs exist in the database.
+     * @param dbIds
+     * @return
+     */
+    public boolean exist(List dbIds) throws SQLException {
+        @SuppressWarnings("unchecked")
+        Set<Long> idsInDB = existing(dbIds);
+        // The most likely case.
+        if (idsInDB.size() == dbIds.size()) {
+            return true;
+        };
+        // The list might include duplicates.
+        @SuppressWarnings("unchecked")
+        HashSet dbIdsSet = new HashSet(dbIds);
+        
+        return idsInDB.size() == dbIdsSet.size();
+    }
+    
+    /**
+     * Returns the DB_IDs from the list which exist in the database.
+     * 
+     * @param dbIds the db ids to check
+     * @return the db ids which are in the database
+     */
+    public Set<Long> existing(Collection<Long> dbIds) throws SQLException {
+        Set<Long> existing = new HashSet<Long>(dbIds.size());
+        if (dbIds == null || dbIds.size() == 0)
+            return existing;
+        
+        // Check the cache.
+        List<Long> needCheckedList = new ArrayList<Long>(dbIds);
+        for (Iterator it = needCheckedList.iterator(); it.hasNext();) {
+            Long dbID = (Long) it.next();
+            if (instanceCache.containsKey(dbID)) {
+                existing.add(dbID);
+                it.remove();
+            }
+        }
+        if (needCheckedList.size() == 0)
+            return existing;
+
+        // Check the database;
+        SchemaClass root = ((GKSchema)schema).getRootClass();
+        String query = "SELECT DB_ID FROM " + root.getName() + " WHERE DB_ID IN (" +
+                        StringUtils.join(",", needCheckedList) + ")";
+        Statement stat = getConnection().createStatement();
+        ResultSet resultSet = stat.executeQuery(query);
+        while (resultSet.next()) {
+            long id = resultSet.getLong(1);
+            existing.add(new Long(id));
+        }
+        resultSet.close();
+        stat.close();
+        
+        return existing;
+    }
 	
 	/**
 	 * Take the given instance and see if the corresponding instance

@@ -8,7 +8,10 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
@@ -21,9 +24,11 @@ import org.apache.log4j.Logger;
  */
 public class QACheckProperties {
 
+    private final static Logger logger = Logger.getLogger(QACheckProperties.class);
+
     private static final String CUTOFF_DATE_PROP = "cutoffDate";
 
-    private final static Logger logger = Logger.getLogger(QACheckProperties.class);
+    private static final String DEVELOPERS_PROP = "developers";
     
     private static final String QA_PROP_RESOURCE = "/qa.properties";
     
@@ -49,6 +54,11 @@ public class QACheckProperties {
 
     public static Date getCutoffDate() {
         return (Date) PROPERTIES.get(CUTOFF_DATE_PROP);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<Long> getDeveloperDbIds() {
+        return (List<Long>) PROPERTIES.get(DEVELOPERS_PROP);
     }
     
     private static Properties loadProperties() {
@@ -81,6 +91,19 @@ public class QACheckProperties {
             } catch (ParseException e) {
                 // Not a fatal error.
                 logger.error("Cut-off date property value format invalid: " + cutoffDateStr);
+            }
+        }
+        // Cast the developers to a db id list.
+        String developersStr = properties.getProperty(DEVELOPERS_PROP);
+        if (developersStr != null) {
+            try {
+                List<Long> developers = Stream.of(developersStr.split(",\\s*"))
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+                properties.put(DEVELOPERS_PROP, developers);
+            } catch (NumberFormatException e) {
+                // Not a fatal error.
+                logger.error("Developers property format invalid: " + developersStr);
             }
         }
 

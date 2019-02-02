@@ -46,7 +46,7 @@
         </Group>
         <Group name="Pathway Diagram Check" dbOnly="true">
             <QAChecker name="Deleted Objects in Diagram" class="org.gk.qualityCheck.PathwayDiagramCheck"></QAChecker>
-            <QAChecker name="Missing Reactions in Diagram" class="org.gk.qualityCheck.DiagramReactionsCheck"></QAChecker>
+            <QAChecker name="Missing Reactions in Diagram" class="org.gk.qualityCheck.DiagramMissingReactionsCheck"></QAChecker>
             <QAChecker name="Unsynchronized Reactions in Diagram" class="org.gk.qualityCheck.DiagramReactionSyncCheck"></QAChecker>
 	        <QAChecker name="Reactions in All Diagrams" class="org.gk.qualityCheck.ReactionsInAllDiagramsCheck"></QAChecker>
             <QAChecker name="Pathways in All Digrams" class="org.gk.qualityCheck.PathwaysInAllDiagramsCheck"></QAChecker>
@@ -161,9 +161,9 @@
         <modification name="amide" shortName="A" />
     </modifications>
     <psiModifications>
-    	<!-- Added in January, 2019 -->
         <modification name="acetyl" shortName="Ac" />
         <modification name="carboxyl" shortName="CA" />
+        <modification name="carboxyglutamic" shortName="CA" />
         <modification name="cysteinyl" shortName="CY" />
         <modification name="half-cystyl" shortName="HC" />
         <modification name="hydroxyl" shortName="HO" />

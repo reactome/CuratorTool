@@ -7,6 +7,7 @@ package org.gk.elv;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -15,12 +16,22 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.*;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 
 import org.gk.database.AttributeEditEvent;
@@ -28,6 +39,7 @@ import org.gk.database.AttributeEditManager;
 import org.gk.database.FrameManager;
 import org.gk.gkCurator.authorTool.InstanceHandler;
 import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
+import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.gkCurator.authorTool.RenderableHandler;
 import org.gk.gkCurator.authorTool.RenderableHandlerFactory;
 import org.gk.gkEditor.ZoomablePathwayEditor;
@@ -43,8 +55,24 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.render.*;
+import org.gk.qualityCheck.DiagramNodeAttachmentCheck;
+import org.gk.render.ConnectWidget;
+import org.gk.render.FlowLine;
+import org.gk.render.HyperEdge;
+import org.gk.render.Node;
+import org.gk.render.NodeAttachment;
+import org.gk.render.Note;
+import org.gk.render.ProcessNode;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFeature;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
@@ -924,6 +952,103 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         pathwayEditor.setIsEditing(true);
         pathwayEditor.setEditingNode(note);
         pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+    }
+    
+    private boolean downloadPsiMod() {
+        int approve = JOptionPane.showConfirmDialog(this,
+                                                    "Local PsiMod instances need to be fully downloaded.\n"
+                                                            + "Do you want to go ahead?", 
+                                                            "Download Instances?", 
+                                                            JOptionPane.OK_CANCEL_OPTION);
+        if (approve != JOptionPane.OK_OPTION)
+            return false;
+        PersistenceManager manager = PersistenceManager.getManager();
+        MySQLAdaptor dba = manager.getActiveMySQLAdaptor(pathwayEditor);
+        if (dba == null)
+            return false;
+        try {
+            Collection<GKInstance> psiMods = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.PsiMod);
+            for (GKInstance psiMod : psiMods) {
+                Long dbId = psiMod.getDBID();
+                if (dbId < 0 || !psiMod.isShell())
+                    continue;
+                GKInstance dbCopy = dba.fetchInstance(dbId);
+                manager.updateLocalFromDB(psiMod, dbCopy);
+            }
+            return true;
+        }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(this,
+                                          "Error in downloading PsiMods: " + e.getMessage(),
+                                          "Error in Downloading", 
+                                          JOptionPane.ERROR_MESSAGE);
+            System.err.println("InstanceZoomablePathwayEditor.downloadPsiMod: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void resetNodeFeatures() {
+        if (!downloadPsiMod())
+            return;
+        List<Renderable> components = pathwayEditor.getDisplayedObjects();
+        if (components == null || components.size() == 0)
+            return;
+        List<Node> toBeUpdated = new ArrayList<>();
+        DiagramNodeAttachmentCheck check = new DiagramNodeAttachmentCheck();
+        try {
+            for (Renderable r : components) {
+                if (r.getReactomeId() == null ||
+                    r instanceof HyperEdge)
+                    continue;
+                GKInstance inst = fileAdaptor.fetchInstance(r.getReactomeId());
+                if (inst == null)
+                    continue;
+                if (!(inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence)))
+                    continue;
+                Set<String> issues = check.checkNodeFeatures((Node)r, inst);
+                if (issues == null || issues.size() == 0)
+                    continue;
+                updateNodeFeatures((Node)r, inst);
+                toBeUpdated.add((Node)r);
+            }
+            if (toBeUpdated.size() > 0) {
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+                pathwayEditor.fireGraphEditorActionEvent(GraphEditorActionEvent.LAYOUT);
+            }
+            else {
+                JOptionPane.showMessageDialog(this,
+                                              "All node features are correct. Nothing to update.",
+                                              "No Update", 
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(this,
+                                          "Error in resetting node features: " + e.getMessage(),
+                                          "Error in Resetting Node Features", 
+                                          JOptionPane.ERROR_MESSAGE);
+            System.err.println("InstanceZoomablePathwayEditor.resetNodeFeatures: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void updateNodeFeatures(Node node, GKInstance instance) throws Exception {
+        ModifiedResidueHandler handler = new ModifiedResidueHandler();
+        List<GKInstance> residues = instance.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
+        // Features that are supposed to be displayed
+        List<NodeAttachment> features = new ArrayList<>();
+        Graphics g = pathwayEditor.getGraphics();
+        for (GKInstance residue : residues) {
+            RenderableFeature feature = handler.convertModifiedResidue(residue);
+            if (feature == null)
+                continue;
+            feature.validateBounds(node.getBounds(), g);
+            features.add(feature);
+        }
+        node.setNodeAttachmentsLocally(features);
+        node.layoutNodeAttachemtns();
     }
     
     public void setDoNotReleaseEventVisible(boolean visible) {

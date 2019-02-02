@@ -52,11 +52,6 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         qaHelper = new ReactionQACheckHelper();
     }
     
-    @Override
-    protected String getIssueTitle() {
-        return "CompartmentUsageIssue";
-    }
-    
     protected List getAllowedRxtEntityCompartments() throws IOException {
         if (allowedRxtEntityCompartments == null) {
             // Need to load

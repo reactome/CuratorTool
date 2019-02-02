@@ -8,3 +8,5 @@ tmp/*
 
 
 /.classpath
+/temp/
+/tmp/

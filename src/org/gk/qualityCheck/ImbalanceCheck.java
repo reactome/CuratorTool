@@ -100,7 +100,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
                 if (!checkCleavage(reaction)) {
                     report.addLine(reaction.getDBID().toString(),
                             reaction.getDisplayName(),
-                            InstanceUtilities.getLatestIEFromInstance(reaction).getDisplayName());
+                            InstanceUtilities.getLatestCuratorIEFromInstance(reaction).getDisplayName());
                 }
             }
         }

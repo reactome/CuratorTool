@@ -114,7 +114,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
                 String output = checkRequiredAttsInText(instance);
                 if (output == null)
                     continue;
-                GKInstance lastIE = InstanceUtilities.getLatestIEFromInstance(instance);
+                GKInstance lastIE = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
                 report.addLine(instance.getDBID().toString(),
                                instance.getDisplayName(),
                                instance.getSchemClass().getName(),

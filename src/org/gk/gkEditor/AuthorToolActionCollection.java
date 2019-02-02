@@ -248,6 +248,20 @@ public class AuthorToolActionCollection {
         return wrapTextIntoNodesAction;
     }
     
+    public Action getResetNodeFeaturesAction() {
+        Action action = new AbstractAction("Reset Node Features") {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(pathwayEditor,
+                                              "This action is not implemented!",
+                                              "No Action",
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+        return action;
+    }
+    
     private void recordCompartmentInfo(List objects) {
         Renderable r = null;
         String localization = null;

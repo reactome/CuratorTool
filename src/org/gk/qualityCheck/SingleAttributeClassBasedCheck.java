@@ -7,6 +7,7 @@ package org.gk.qualityCheck;
 import java.awt.BorderLayout;
 import java.awt.Window;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +32,16 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 
+/**
+ * The base class for QA checks which validate all {@link #checkClsName}
+ * instance {@link #checkAttribute} values.
+ * 
+ * Subclasses are responsible for setting the {@link #checkClsName}.
+ * The subclass should set the {@link #checkAttribute} field if and
+ * only if a single attribute should be displayed in progress messages.
+ *
+ * @author Fred Loney <loneyf@ohsu.edu>
+ */
 public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCheck {
     
     /**
@@ -39,6 +50,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
      * @author wgm
      *
      */
+    @SuppressWarnings("serial")
     class ComponentTableModel extends ResultTableModel {
         
         protected List<GKInstance> components;
@@ -98,10 +110,15 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     protected String checkClsName;
-    protected String checkAttribute;
+    protected String checkAttribute = "";
     protected InstanceListPane listPane;
-    // Instances in those attributes should be loaded and checked QA
-    protected String[] followAttributes;
+    
+    /**
+     * The attributes which should be loaded and checked.
+     * The default is an empty array. Subclasses are
+     * responsible for setting this if necessary.
+     */
+    protected String[] followAttributes = {};
     
     /**
      * The actual place to do real checking.
@@ -121,7 +138,12 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         progressPane.setIndeterminate(false);
         progressPane.setMinimum(0);
         progressPane.setMaximum(instances.size());
-        progressPane.setText("Checking " + checkClsName + " " + checkAttribute + " ...");
+        // The message to display.
+        String msg = "Checking " + checkClsName;
+        if (checkAttribute != null) {
+            msg += " " + checkAttribute;
+        }
+        progressPane.setText(msg + " ...");
         // We need to get all levels PhysilcaEntities contained by a Complex
         // To see if we need to load attribute values first
         int c = 1;
@@ -154,26 +176,45 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         if (instances.size() > SIZE_TO_LOAD_ATTS) 
             loadAttributes(instances);
         for (GKInstance instance : instances) {
-            if (checkInstance(instance)) 
+            if (checkInstance(instance))
                 continue;
-            report.addLine(instance.getDBID().toString(),
-                    instance.getDisplayName(),
-                    InstanceUtilities.getLatestIEFromInstance(instance).getDisplayName(),
-                    getIssue(instance));
+            String[][] lines = getReportLines(instance);
+            for (String[] line: lines) {
+                report.addLine(line);
+
+            }
         }
-        report.setColumnHeaders("DB_ID",
-                "DisplayName",
-                "LastAuthor",
-                getIssueTitle());
+        report.setColumnHeaders(getColumnHeaders());
         return report;
     }
     
+    protected String[] getColumnHeaders() {
+        return new String[] {"DB_ID", "DisplayName", getIssueTitle(), "MostRecentAuthor"};
+    }
+    
+    protected String[][] getReportLines(GKInstance instance) throws Exception {
+        String[] line = new String[] {
+                instance.getDBID().toString(),
+                instance.getDisplayName(),
+                getIssue(instance),
+                InstanceUtilities.getLatestCuratorIEFromInstance(instance).getDisplayName()
+        };
+        return new String[][] { line };
+    }
+    
     /**
-     * Get a String describing the issue of the offended instance.
-     * @return
+     * Gets a String describing the issue of the offended instance.
+     * This is the issue column value.
+     * 
+     * @return the instance issue column value
+     * @see {@link #getIssueTitle()}
      */
     protected abstract String getIssue(GKInstance instance) throws Exception; 
     
+    /**
+     * @return the issue column heading
+     * @see {@link #getIssueTitle()}
+     */
     protected String getIssueTitle() {
         return "Issue";
     }
@@ -309,8 +350,10 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     /**
-     * Need to implement a class specific way to load attributes.
-     * @param instances
+     * Loads the {@link #checkClsName} attributes that will be
+     * referenced by the QA check.
+     * 
+     * @param instances the instances that will be checked
      */
     protected abstract void loadAttributes(Collection<GKInstance> instances) throws Exception;
 
@@ -389,11 +432,18 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     protected abstract ResultTableModel getResultTableModel() throws Exception;
 
     /**
-     * This method is used to grep all contained PhysicalEntities from a passed Complex.
-     * Entities in different levels will be returned.
+     * This method is used to grep all contained PhysicalEntities from a passed
+     * container instance. The {@link #followAttributes} hierarchy us
+     * visited to get the indirectly contained attributes.
+     * 
+     * <em>Note:</em>: {@link SingleAttributeClassBasedCheck} subclasses
+     * are responsible for setting the {@link #followAttributes} value. 
+     * 
      * @param container
      * @return
      * @throws Exception
+     * @throws NullPointerException if {@link #followAttributes} is not
+     *  set by the subclass
      */
     protected Set<GKInstance> getAllContainedEntities(GKInstance container) throws Exception {
         Set<GKInstance> components = new HashSet<GKInstance>();
@@ -495,9 +545,10 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
 
     protected Set<GKInstance> loadEntitySetMembers(Collection<GKInstance> instances,
                                                    MySQLAdaptor dba) throws Exception {
-        // Need to load all complexes in case some complexes are used by complexes for checking
+        // Need to load all constituent members and candidates in case
+        // constituents are used for checking.
         if (progressPane != null)
-            progressPane.setText("Load EntitySet attribute...");
+            progressPane.setText("Load EntitySet member and candidate attributes...");
         loadAttributes(instances,
                        ReactomeJavaConstants.EntitySet, 
                        ReactomeJavaConstants.hasMember, 

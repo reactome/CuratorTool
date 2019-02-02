@@ -22,6 +22,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.HyperEdge;
+import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.FileUtilities;
@@ -29,15 +30,29 @@ import org.junit.Test;
 
 
 /**
- * This class is used to check the usage of ReactionlikeEvent in ELVs. It will check if a ReactionlieEvent
- * has been used by a PathwayDiagram instance, by how many pathway diagram instances.
- * Note: This class will be used for command line checking or servlet only.
- * @author wgm
+ * This class is used to check the usage of ReactionlikeEvent in ELVs.
+ * It will build a report of which diagrams contain RLEs.
+ * There is one detail line in the report for every RLE in the database.
+ * The fields consist of the RLE db id, RLE name, release flag, species,
+ * disease flag, diagram count, diagram db ids, and diagram names.
+ * 
+ * <em>Note</em>: Unlike most QA checks, this check's report is a
+ * reference for informational purposes. The report does not consist of
+ * issues to address.
+ * 
+ * <em>Note</em>: This class will be used for command line checking or
+ * servlet only.
  *
+ * @author wgm
  */
 public class ReactionELVCheck extends AbstractQualityCheck {
-
+    
     private static Logger logger = Logger.getLogger(ReactionELVCheck.class);
+
+    private static final String[] HEADERS = {
+            "Reaction_DB_ID", "Reaction_Name", "_doRelease", "Species", "Is_in_Disease",
+            "Number_of_Diagrams", "Diagram_DB_IDs", "Diagram_Names"
+    };
     
     public ReactionELVCheck() {
     }
@@ -73,57 +88,78 @@ public class ReactionELVCheck extends AbstractQualityCheck {
         if (report == null)
             return null;
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        Map<GKInstance, Set<GKInstance>> reactionToDiagrams = checkEventUsageInELV(dba);
-        if (reactionToDiagrams.size() == 0)
-            return report;
-        String text = convertEventToDiagramMapToText(reactionToDiagrams);
-        convertTextToReport(text, report);
+        // The {reaction: diagrams} map.
+        Map<GKInstance, Set<GKInstance>> eventToDiagrams = checkEventUsageInELV(dba);
+        addEventToDiagramMapToReport(report, eventToDiagrams);
         return report;
     }
 
+    protected void addEventToDiagramMapToReport(QAReport report,
+            Map<GKInstance, Set<GKInstance>> eventToDiagrams) throws Exception {
+        if (eventToDiagrams.size() == 0)
+            return;
+        // Convert the map to a string of report lines.
+        String text = convertEventToDiagramMapToText(eventToDiagrams);
+        // Add the report content from the report lines string.
+        convertTextToReport(text, report);
+    }
+
     /**
-     * This method is used to check the usage of ReactionlikeEvent instances in a passed Database.
+     * This method is used to check the usage of ReactionlikeEvent instances
+     * in the given database.
+     * 
+     * The return value is the {RLE: diagrams} map which associates
+     * each ReactionlikeEvent instance with the diagrams which represent
+     * that RLE. The keys in the map consist of all RLE instances in the
+     * database. If a ReactionlikeEvent has not been used in any diagram,
+     * then the map value for that RLE is null. Otherwise, the map value is
+     * a set of PathwayDiagram instances. The members of this set are the
+     * diagrams which represent the RLE key.
+     * 
      * @param dba
-     * @return key should be all ReactionlikeEvent instance, while values is a list of PathwayDiagram
-     * instances that have used ReactionlikeEvent. If a ReactionlikeEvent has not been used in any place,
-     * the value in the map should be null. All instances of ReactionlikeEvent should be in the keys.
+     * @return the {RLE: diagrams} map
      * @throws Exception
      */
+    @SuppressWarnings("unchecked")
     public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(MySQLAdaptor dba) throws Exception {
         Map<GKInstance, Set<GKInstance>> reactionToDiagrams = new HashMap<GKInstance, Set<GKInstance>>();
         // Get all ReactionlikeEvent in the database
-        Collection reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
+        Collection<GKInstance> reactions =
+                dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         if (reactions == null || reactions.size() == 0)
             return reactionToDiagrams;
-        // Make sure all reactions can be returned
-        for (Iterator it = reactions.iterator(); it.hasNext();) {
-            GKInstance reaction = (GKInstance) it.next();
+        // Make sure the returned map includes all reactions in the key set.
+        for (GKInstance reaction: reactions) {
             reactionToDiagrams.put(reaction, null);
         }
         // Load all PathwayDiagrams in the database
-        Collection diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
+        Collection<GKInstance> diagrams =
+                dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         if (diagrams == null || diagrams.size() == 0)
             return reactionToDiagrams;
         DiagramGKBReader reader = new DiagramGKBReader();
-        for (Iterator it = diagrams.iterator(); it.hasNext();) {
-            GKInstance diagram = (GKInstance) it.next();
+        for (GKInstance diagram: diagrams) {
             String xml = (String) diagram.getAttributeValue(ReactomeJavaConstants.storedATXML);
-            if (xml == null || xml.length() == 0)
-                continue; // Not correct diagrams!!!
+            if (xml == null || xml.length() == 0) {
+                logger.error("Pathway diagram does not have XML: " +
+                        diagram.getDisplayName() + "(DB_ID " +
+                        diagram.getDBID() + ")");
+                continue;
+            }
             RenderablePathway renderableDiagram = reader.openDiagram(xml);
-            // Check with edges
-            List components = renderableDiagram.getComponents();
+            // Check the edges
+            List<Renderable> components = renderableDiagram.getComponents();
             if (components == null || components.size() == 0)
                 continue; // Just in case it is an empty!
-            for (Iterator it1 = components.iterator(); it1.hasNext();) {
-                Object r = it1.next();
+            for (Renderable r: components) {
                 if (r instanceof HyperEdge) {
                     HyperEdge edge = (HyperEdge) r;
                     if (edge.getReactomeId() == null)
                         continue;
                     GKInstance rxt = dba.fetchInstance(edge.getReactomeId());
                     if (rxt == null) {
-                        logger.error("DB_ID has no Reaction in the database for diagram " + diagram.getDisplayName() + ": " + edge.getReactomeId());
+                        logger.error("DB_ID has no Reaction in the database for diagram " +
+                                diagram.getDisplayName() + ": " + edge.getReactomeId());
                         continue; // Just in case
                     }
                     Set<GKInstance> set = reactionToDiagrams.get(rxt);
@@ -138,6 +174,13 @@ public class ReactionELVCheck extends AbstractQualityCheck {
         return reactionToDiagrams;
     }
     
+    /**
+     * Build the report.
+     * 
+     * @param text
+     * @param report
+     * @throws Exception
+     */
     private void convertTextToReport(String text, QAReport report) throws Exception {
         String[] lines = text.split("\n");
         // First line should be header
@@ -149,14 +192,15 @@ public class ReactionELVCheck extends AbstractQualityCheck {
     /**
      * This method is used to convert a Reaction to Diagrams map to a String.
      * @param reactionToDiagrams
-     * @return
+     * @return a string consisting of the report header and detail lines
      * @throws Exception
      */
     public String convertEventToDiagramMapToText(final Map<GKInstance, Set<GKInstance>> reactionToDiagrams) throws Exception {
         StringBuilder builder = new StringBuilder();
-        builder.append("Reaction_DB_ID\tReaction_Name\t_doRelease\tSpecies\tIs_in_Disease\tNumber_of_Diagrams\tDiagram_DB_IDs\tDiagram_Names");
-        List<GKInstance> instances = new ArrayList<GKInstance>(reactionToDiagrams.keySet());
-        Collections.sort(instances, new Comparator<GKInstance>() {
+        builder.append(String.join("\t", getHeaders()));
+        // Sort the reactions by db id.
+        List<GKInstance> reactions = new ArrayList<GKInstance>(reactionToDiagrams.keySet());
+        Collections.sort(reactions, new Comparator<GKInstance>() {
             public int compare(GKInstance rxt1, GKInstance rxt2) {
                 Set<GKInstance> set1 = reactionToDiagrams.get(rxt1);
                 int size1 = set1 == null ? 0 : set1.size();
@@ -168,7 +212,8 @@ public class ReactionELVCheck extends AbstractQualityCheck {
                 return rtn; 
             }
         });
-        for (GKInstance rxt : instances) {
+        // Add one line per reaction. 
+        for (GKInstance rxt : reactions) {
             builder.append("\n");
             builder.append(rxt.getDBID());
             builder.append("\t").append(rxt.getDisplayName());
@@ -210,6 +255,10 @@ public class ReactionELVCheck extends AbstractQualityCheck {
             }
         }
         return builder.toString();
+    }
+
+    protected String[] getHeaders() {
+        return HEADERS;
     }
     
     @Test

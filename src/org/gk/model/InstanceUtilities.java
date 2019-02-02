@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.gk.qualityCheck.QACheckProperties;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
@@ -959,7 +960,8 @@ public class InstanceUtilities {
     }
     
     /**
-     * Get event component (ReactionlikeEvent or Interaction) in a specified pathway instance. Complex is not included.
+     * Get event component (ReactionlikeEvent or Interaction) in a specified pathway instance recursively. 
+     * Complex is not included.
      * @param pathway
      * @return
      * @throws Exception
@@ -1154,6 +1156,24 @@ public class InstanceUtilities {
              latestIE = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
          }
          return latestIE;
+     }
+     
+     public static GKInstance getLatestCuratorIEFromInstance(GKInstance instance) throws Exception {
+         List list = instance.getAttributeValuesList(ReactomeJavaConstants.modified);
+         if (list != null) {
+             List<Long> developers = QACheckProperties.getDeveloperDbIds();
+             for (int index = list.size() - 1; index >= 0; index--) {
+                 GKInstance modIE = (GKInstance) list.get(list.size() - 1);
+                 GKInstance author = (GKInstance) modIE.getAttributeValue("author");
+                 // Skip modification instance for developers.
+                 if (author != null && !developers.contains(author.getDBID())) {
+                     return modIE;
+                 }
+
+             }
+         }
+         // Get the created one
+         return (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
      }
      
      /**
