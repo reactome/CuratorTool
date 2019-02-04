@@ -12,3 +12,5 @@ tmp/*
 /tmp/
 
 \.idea/
+
+*.iml
