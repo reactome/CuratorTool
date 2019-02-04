@@ -4,17 +4,30 @@
  */
 package org.gk.gkCurator.authorTool;
 
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.NodeAttachment;
 import org.gk.render.RenderableFeature;
+import org.gk.util.GKApplicationUtilities;
+import org.junit.Test;
+import org.w3c.dom.Document;
 
 public class ModifiedResidueHandler {
     
     public ModifiedResidueHandler() {
-        
     }
     
     /**
@@ -44,6 +57,9 @@ public class ModifiedResidueHandler {
      * @throws Exception
      */
    public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
+       // Work for ModifiedResidue only
+       if (!modifiedResidue.getSchemClass().isa(ReactomeJavaConstants.ModifiedResidue))
+           return null;
         // Need to convert to attachments
         Map<String, String> residues = AttributeEditConfig.getConfig().getModificationResidues();
         Map<String, String> modifications = AttributeEditConfig.getConfig().getModifications();
@@ -71,9 +87,15 @@ public class ModifiedResidueHandler {
             }
             // Need to check if psiMod has been assigned
             if (!isDone && modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.psiMod)) {
-                String displayName = modifiedResidue.getDisplayName();
-                // Need to do some parse
-                String[] tokens = displayName.split("(-| )");
+                String[] tokens = null;
+                GKInstance psiMod = (GKInstance) modifiedResidue.getAttributeValue(ReactomeJavaConstants.psiMod);
+                if (psiMod != null)
+                    tokens = getPsiModKeyWords(psiMod);
+                else {
+                    String displayName = modifiedResidue.getDisplayName();
+                    // Need to do some parse
+                    tokens = displayName.split("(-| )");
+                }
                 String psiResidue = searchPsiResidue(tokens);
                 feature.setResidue(psiResidue);
                 String psiModification = searchPsiModification(tokens);
@@ -88,6 +110,22 @@ public class ModifiedResidueHandler {
         setRandomPosition(feature);
         return feature;
     }
+   
+   @SuppressWarnings("unchecked")
+   private String[] getPsiModKeyWords(GKInstance psiMod) throws Exception {
+       Set<String> set = new HashSet<>();
+       String name = (String) psiMod.getAttributeValue(ReactomeJavaConstants.name);
+       if (name != null) {
+           String[] tokens = name.split("(-| )");
+           Stream.of(tokens).forEach(token -> set.add(token));
+       }
+       List<String> synonyms = psiMod.getAttributeValuesList(ReactomeJavaConstants.synonym);
+       for (String synonym : synonyms) {
+           String[] tokens = synonym.split("(-| )");
+           Stream.of(tokens).forEach(token -> set.add(token));
+       }
+       return set.toArray(new String[set.size()]);
+   }
     
     private String searchPsiResidue(String[] tokens) {
         Map<String, String> psiModificationResidues = AttributeEditConfig.getConfig().getPsiModificationResidues();
@@ -125,5 +163,33 @@ public class ModifiedResidueHandler {
         else 
             y = 1.0;
         attachment.setRelativePosition(x, y);
+    }
+    
+    
+    @Test
+    public void checkPsiModMappings() throws Exception {
+        AttributeEditConfig config = AttributeEditConfig.getConfig();
+        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = dbf.newDocumentBuilder();
+        Document document = builder.parse(metaConfig);
+        config.loadConfig(document);
+        
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_122118",
+                                            "root",
+                                            "macmysql01");
+        Collection<GKInstance> psiMods = dba.fetchInstancesByClass(ReactomeJavaConstants.PsiMod);
+        System.out.println("Total psimods: " + psiMods.size());
+        
+        System.out.println("\nPSI_MOD\tDB_ID\tResidue\tModification");
+        for (GKInstance psiMod : psiMods) {
+            String[] tokens = getPsiModKeyWords(psiMod);
+            String residue = searchPsiResidue(tokens);
+            String label = searchPsiModification(tokens);
+            System.out.println(psiMod.getDisplayName() + "\t" + psiMod.getDBID() + "\t" +
+                               residue + "\t" + 
+                               label);
+        }
     }
 }

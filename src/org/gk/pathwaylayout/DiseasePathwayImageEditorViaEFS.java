@@ -145,6 +145,20 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
         connectedNodes.removeAll(coveredNormalNodes);
         crossedObjects.addAll(connectedNodes);
     }
+    
+    private Map<GKInstance, Integer> getStoichiometries(Collection<GKInstance> diseasePEs) {
+        Map<GKInstance, Integer> instToStoi = new HashMap<>();
+        diseasePEs.forEach(pe -> {
+            instToStoi.compute(pe, (key, count) -> {
+                if (count == null)
+                    count = 1;
+                else
+                    count ++;
+                return count;
+            });
+        });
+        return instToStoi;
+    }
 
     private void handleDiseaseEntities(HyperEdge reactionCopy,
                                        GKInstance diseaseRLE,
@@ -156,10 +170,12 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                        Set<Node> coveredAllNodes) throws Exception {
         Set<Node> coveredNormalNodes = new HashSet<>();
         Set<GKInstance> inputSet = new HashSet<>(diseasePEs);
+        Map<GKInstance, Integer> instToStoi = getStoichiometries(diseasePEs);
         Map<Long, Node> normalIdToNode = new HashMap<>();
         normalNodes.stream().filter(n -> n.getReactomeId() != null).forEach(n -> normalIdToNode.put(n.getReactomeId(), n));
         for (Iterator<GKInstance> it = inputSet.iterator(); it.hasNext();) {
             GKInstance input = it.next();
+            Integer stoi = instToStoi.get(input);
             Node normalNode = normalIdToNode.get(input.getDBID());
             if (normalNode != null) {
                 // Great. Nothing needs to be done.
@@ -175,7 +191,8 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                                               input, 
                                                               lofInstances, 
                                                               reactionCopy,
-                                                              role);
+                                                              role,
+                                                              stoi);
                 if (diseaseNode == null)
                     continue; // To be handled by others.
                 it.remove();
@@ -203,7 +220,8 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                                input,
                                                lofInstances,
                                                reactionCopy,
-                                               role);
+                                               role,
+                                               instToStoi.get(input));
                     if (diseaseNode == null)
                         continue; // Cannot do anything. TODO: Probably an error should be generated here!
                     normalNodes.remove(normalNode); // We don't want to reuse normal node
@@ -247,7 +265,8 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                             GKInstance input, 
                                             Set<GKInstance> lofInstances,
                                             HyperEdge reactionCopy,
-                                            int role) {
+                                            int role,
+                                            Integer stoi) {
         Node diseaseNode = replaceNormalNode(normalNode, 
                                              input,
                                              contains(input, lofInstances));
@@ -258,8 +277,11 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
         List<?> widgets = connectInfo.getConnectWidgets();
         for (Object obj : widgets) {
             ConnectWidget widget = (ConnectWidget) obj;
-            if (widget.getConnectedNode() == normalNode && widget.getRole() == role)
+            if (widget.getConnectedNode() == normalNode && widget.getRole() == role) {
                 widget.replaceConnectedNode(diseaseNode);
+                if (stoi != null)
+                    widget.setStoichiometry(stoi);
+            }
         }
         return diseaseNode;
     }

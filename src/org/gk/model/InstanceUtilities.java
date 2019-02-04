@@ -960,7 +960,8 @@ public class InstanceUtilities {
     }
     
     /**
-     * Get event component (ReactionlikeEvent or Interaction) in a specified pathway instance. Complex is not included.
+     * Get event component (ReactionlikeEvent or Interaction) in a specified pathway instance recursively. 
+     * Complex is not included.
      * @param pathway
      * @return
      * @throws Exception

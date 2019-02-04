@@ -98,10 +98,12 @@ public class ElvEWASEditHandler extends ElvPhysicalEntityEditHandler {
         // Just create a new one
         ModifiedResidueHandler handler = new ModifiedResidueHandler();
         RenderableFeature newAttachment = handler.convertModifiedResidue(modifiedResidue);
-        // Use the same position to avoid a surprise
-        newAttachment.setRelativePosition(found.getRelativeX(), 
-                                          found.getRelativeY());
-        node.addFeatureLocally(newAttachment);
+        if (newAttachment != null) {
+            // Use the same position to avoid a surprise
+            newAttachment.setRelativePosition(found.getRelativeX(), 
+                                              found.getRelativeY());
+            node.addFeatureLocally(newAttachment);
+        }
     }
     
     private void hadModifiedResidueEdit(GKInstance instance) {
@@ -190,7 +192,8 @@ public class ElvEWASEditHandler extends ElvPhysicalEntityEditHandler {
             for (Iterator it = copy.iterator(); it.hasNext();) {
                 GKInstance hasModifiedResidue = (GKInstance) it.next();
                 RenderableFeature feature = handler.convertModifiedResidue(hasModifiedResidue);
-                node.addFeatureLocally(feature);
+                if (feature != null)
+                    node.addFeatureLocally(feature);
             }
         }
     }

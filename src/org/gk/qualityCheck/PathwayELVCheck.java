@@ -26,7 +26,7 @@ import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 
 /**
- * This QA check associates (sub)pathways with the diagrams which contain
+ * This QA check associations of (sub)pathways with diagrams which contain
  * them. There is one report line for each subpathway whose RLEs in its
  * event hierarchy are displayed as components of a diagram. The report
  * displays the subpathway and the diagrams which contain all of its
@@ -51,7 +51,7 @@ public class PathwayELVCheck extends ReactionELVCheck {
     protected String[] getHeaders() {
         String[] reactionCheckHdrs = super.getHeaders();
         return Stream.of(reactionCheckHdrs)
-                .map(hdr -> hdr.replace("Reaction", "Subpathway"))
+                .map(hdr -> hdr.replace("Reaction", "Pathway"))
                 .collect(Collectors.toList())
                 .toArray(new String[reactionCheckHdrs.length]);
     }
@@ -90,6 +90,8 @@ public class PathwayELVCheck extends ReactionELVCheck {
         // in that pathway's event hierarchy.
         for (Iterator<?> it = diagrams.iterator(); it.hasNext();) {
             GKInstance diagram = (GKInstance) it.next();
+//            if (!diagram.getDBID().equals(3878099L))
+//                continue;
             GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
             if (pathway == null)
                 continue;
@@ -104,15 +106,14 @@ public class PathwayELVCheck extends ReactionELVCheck {
                 if (!sub.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
                     continue;
                 }
-                // Here, "reactions" are the events (RLEs and pathways) in the
-                // subpathway event hierarchy.
-                Set<GKInstance> reactions = InstanceUtilities.getContainedEvents(sub);
-                if (reactions == null || reactions.size() == 0)
+                
+                Set<GKInstance> subEvents = InstanceUtilities.getContainedEvents(sub);
+                if (subEvents == null || subEvents.size() == 0)
                     continue; // No need to check
-                // If the db id of each RLE in the "reactions" variable is
+                // If the db id of each Event in the "subEvents" variable is
                 // contained in the db id set, then add the diagram to
                 // the diagrams value associated with the subpathway key.
-                boolean isContained = isContainedBy(reactions, dbIdsInELV);
+                boolean isContained = isContainedBy(subEvents, dbIdsInELV);
                 if (isContained) {
                     // Add the diagram to the subpathway diagrams set.
                     Set<GKInstance> set = pathwayToDiagrams.get(sub);
@@ -153,19 +154,18 @@ public class PathwayELVCheck extends ReactionELVCheck {
             if (r.getReactomeId() != null)
                 dbIds.add(r.getReactomeId());
         }
-        
         return dbIds;
     }
     
     /**
-     * @param reactions the events (RLEs and pathways) to check
+     * @param events the events (RLEs and pathways) to check
      * @param dbIds the db ids to check
      * @return whether the db id of each RLE in the <em>reactions</em>
      *  argument is contained in the given db ids
      */
-    private boolean isContainedBy(Set<GKInstance> reactions,
-                                  Set<Long> dbIds) {
-        for (GKInstance rxt : reactions) {
+    protected boolean isContainedBy(Set<GKInstance> events,
+                                    Set<Long> dbIds) throws Exception {
+        for (GKInstance rxt : events) {
             if (rxt.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
                 if (!dbIds.contains(rxt.getDBID()))
                     return false;
@@ -177,7 +177,7 @@ public class PathwayELVCheck extends ReactionELVCheck {
     @Test
     public void testCheckPathwaysInELVs() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_112410",
+                                            "gk_central_122118",
                                             "root",
                                             "macmysql01");
         long time1 = System.currentTimeMillis();

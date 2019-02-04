@@ -31,7 +31,6 @@ import org.gk.database.AttributeEditManager;
 import org.gk.database.DiagramDisplayHandler;
 import org.gk.database.HierarchicalEventPaneActions;
 import org.gk.database.InstanceSelectDialog;
-import org.gk.gkCurator.authorTool.PathwayDiagramHandler;
 import org.gk.gkEditor.AuthorToolActionCollection;
 import org.gk.gkEditor.PathwayEditorInsertActions;
 import org.gk.gkEditor.PopupMenuManager;
@@ -42,8 +41,6 @@ import org.gk.graphEditor.UndoableDeleteEdit;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.pathwaylayout.DiseasePathwayImageEditor;
-import org.gk.pathwaylayout.DiseasePathwayImageEditorViaEFS;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -943,6 +940,22 @@ public class ElvActionCollection extends AuthorToolActionCollection {
         else
             hideCompartmentInNameAction.putValue(Action.NAME, "Hide Compartment in Name");
         return hideCompartmentInNameAction;
+    }
+    
+    @Override
+    public Action getResetNodeFeaturesAction() {
+        Action action = new AbstractAction("Update Node Features") {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                resetNodeFeatures();
+            }
+        };
+        return action;
+    }
+    
+    private void resetNodeFeatures() {
+        elv.getZoomablePathwayEditor().resetNodeFeatures();
     }
     
     private void toggleCompartmentInName() {

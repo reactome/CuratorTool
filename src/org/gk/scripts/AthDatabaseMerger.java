@@ -16,6 +16,8 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.schema.GKSchemaClass;
+import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
 
@@ -41,6 +43,21 @@ public class AthDatabaseMerger {
     private List<GKInstance> newInstances;
     
     public AthDatabaseMerger() {
+    }
+    
+    public void test() throws Exception {
+        GKInstance instance = new GKInstance();
+        SchemaClass cls = instance.getSchemClass();
+        Collection<SchemaAttribute> attributes = cls.getAttributes();
+        for (SchemaAttribute att : attributes) {
+            if (!att.isInstanceTypeAttribute()) {
+                continue;
+            }
+            List<GKInstance> values = instance.getAttributeValuesList(att);
+            if (values.contains(instance)) {
+                
+            }
+        }
     }
     
     /**

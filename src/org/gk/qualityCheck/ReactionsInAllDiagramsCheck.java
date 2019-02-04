@@ -8,7 +8,8 @@ package org.gk.qualityCheck;
 
 /**
  * This QA check calls a program in the server-side to check the usage of all reactions in all diagrams
- * in order to find if any reaction has not been placed in any PathwayDiagram.
+ * in order to find if any reaction has not been placed in any PathwayDiagram. It calls the actual check
+ * deployed at server, ReactionELVCheck.
  * @author wgm
  *
  */

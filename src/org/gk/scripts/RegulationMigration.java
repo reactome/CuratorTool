@@ -11,6 +11,8 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.util.FileUtilities;
+import org.junit.Test;
 
 /**
  * This class is used to migrate Regulation instances directly under ReactionlikeEvent.
@@ -21,6 +23,189 @@ import org.gk.persistence.MySQLAdaptor;
 public class RegulationMigration {
     
     public RegulationMigration() {
+    }
+    
+    @Test
+    public void checkRegulationSummation() throws Exception {
+        MySQLAdaptor dba = getDBA();
+        // Fetch all human RLEs
+        Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+                ReactomeJavaConstants.species,
+                "=",
+                ScriptUtilities.getHomoSapiens(dba));
+        dba.loadInstanceAttributeValues(humanRLEs, new String[] {
+                ReactomeJavaConstants.regulatedBy,
+                ReactomeJavaConstants.inferredFrom,
+                ReactomeJavaConstants.summation
+        });
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        dba.loadInstanceAttributeValues(regulations, new String[] {
+                ReactomeJavaConstants.summation
+        });
+        
+        String output = "RLERegulationSummation.txt";
+        FileUtilities fu = new FileUtilities();
+        fu.setOutput(output);
+        fu.printLine("RLE_DB_ID\tRLE_DisplayName\tRegulation_DB_ID\tRegulation_DisplayName\t" + 
+                     "RLE_Summation\tRLE_Summation_Text\t" +
+                     "Regulation_Summation\tRegulation_Summation_Text\t" +
+                     "IsSummationSame\t" + 
+                     "RLE_Summation_Literature\tRegulation_Summation_Literature\t" + 
+                     "IsReferenceSame");
+        StringBuilder builder = new StringBuilder();
+        for (GKInstance humanRLE : humanRLEs) {
+            List<GKInstance> summations = collectRLEValues(humanRLE, ReactomeJavaConstants.summation);
+            List<GKInstance> rleRegulations = humanRLE.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+            for (GKInstance regulation : rleRegulations) {
+                List<GKInstance> rSummations = regulation.getAttributeValuesList(ReactomeJavaConstants.summation);
+                if (rSummations.size() == 0)
+                    continue;
+                if (summations.size() == 0) {
+                    for (GKInstance rSummation : rSummations) {
+                        builder.append(humanRLE.getDBID()).append("\t").append(humanRLE.getDisplayName());
+                        builder.append("\t").append(regulation.getDBID()).append("\t").append(regulation.getDisplayName());
+                        builder.append("\t").append("\t");
+                        String text = (String) rSummation.getAttributeValue(ReactomeJavaConstants.text);
+                        text = text.replaceAll("\n|\t", " ");
+                        builder.append("\t").append(rSummation.getDBID()).append("\t").append(text);
+                        builder.append("\t").append(Boolean.FALSE);
+                        builder.append("\t");
+                        builder.append("\t");
+                        List<GKInstance> rReferences = rSummation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                        for (GKInstance lit : rReferences) {
+                            builder.append(lit.getDBID()).append(";");
+                        }
+                        if (rReferences.size() > 0)
+                            builder.deleteCharAt(builder.length() - 1);
+                        builder.append("\t").append(rReferences.size() == 0);
+                        fu.printLine(builder.toString());
+                        builder.setLength(0);
+                    }
+                }
+                else {
+                    // For easy checking, we will permute all pair-wise
+                    for (GKInstance rleSummation : summations) {
+                        for (GKInstance rSummation : rSummations) {
+                            builder.append(humanRLE.getDBID()).append("\t").append(humanRLE.getDisplayName());
+                            builder.append("\t").append(regulation.getDBID()).append("\t").append(regulation.getDisplayName());
+                            String text = (String) rleSummation.getAttributeValue(ReactomeJavaConstants.text);
+                            text = text.replaceAll("\n|\t", " ");
+                            builder.append("\t").append(rleSummation.getDBID()).append("\t").append(text);
+                            text = (String) rSummation.getAttributeValue(ReactomeJavaConstants.text);
+                            text = text.replaceAll("\n|\t", " ");
+                            builder.append("\t").append(rSummation.getDBID()).append("\t").append(text);
+                            builder.append("\t").append(rleSummation == rSummation);
+                            List<GKInstance> literatures = rleSummation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                            builder.append("\t");
+                            for (GKInstance lit : literatures)
+                                builder.append(lit.getDBID()).append(";");
+                            if (literatures.size() > 0) // Need to delete the last extra character
+                                builder.deleteCharAt(builder.length() - 1);
+                            builder.append("\t");
+                            List<GKInstance> rReferences = rSummation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                            for (GKInstance lit : rReferences) {
+                                builder.append(lit.getDBID()).append(";");
+                            }
+                            if (rReferences.size() > 0)
+                                builder.deleteCharAt(builder.length() - 1);
+                            InstanceUtilities.sortInstances(literatures);
+                            InstanceUtilities.sortInstances(rReferences);
+                            builder.append("\t").append(literatures.equals(rReferences));
+                            fu.printLine(builder.toString());
+                            builder.setLength(0);
+                        }
+                    }
+                }
+            }
+        }
+        fu.close();
+    }
+    
+    private List<GKInstance> collectRLEValues(GKInstance rle, String attribute) throws Exception {
+        List<GKInstance> summations = rle.getAttributeValuesList(attribute);
+        Set<GKInstance> set = new HashSet<>(summations);
+        List<GKInstance> inferredFrom = rle.getAttributeValuesList(ReactomeJavaConstants.inferredFrom);
+        for (GKInstance inst : inferredFrom) {
+            summations = inst.getAttributeValuesList(attribute);
+            set.addAll(summations);
+        }
+        List<GKInstance> list = new ArrayList<>(set);
+        InstanceUtilities.sortInstances(list);
+        return list;
+    }
+    
+    @Test
+    public void checkRegulationLiteratureReference() throws Exception {
+        MySQLAdaptor dba = getDBA();
+        // Fetch all human RLEs
+        Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+                ReactomeJavaConstants.species,
+                "=",
+                ScriptUtilities.getHomoSapiens(dba));
+        dba.loadInstanceAttributeValues(humanRLEs, new String[] {
+                ReactomeJavaConstants.regulatedBy,
+                ReactomeJavaConstants.inferredFrom,
+                ReactomeJavaConstants.literatureReference
+        });
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        dba.loadInstanceAttributeValues(regulations, new String[] {
+                ReactomeJavaConstants.literatureReference
+        });
+        
+        String output = "RLERegulationReference.txt";
+        FileUtilities fu = new FileUtilities();
+        fu.setOutput(output);
+        fu.printLine("RLE_DB_ID\tRLE_DisplayName\tRegulation_DB_ID\tRegulation_DisplayName\t" + 
+                     "RLE_Literatures\tRegulation_Literatures\t" + 
+                     "Shared\tRLE_NotShared\tRegulation_NotShared");
+        StringBuilder builder = new StringBuilder();
+        for (GKInstance humanRLE : humanRLEs) {
+            List<GKInstance> literatures = collectRLEValues(humanRLE, ReactomeJavaConstants.literatureReference);
+            List<GKInstance> rleRegulations = humanRLE.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+            for (GKInstance regulation : rleRegulations) {
+                List<GKInstance> rReferences = regulation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                if (rReferences == null || rReferences.size() == 0)
+                    continue;
+                builder.append(humanRLE.getDBID()).append("\t").append(humanRLE.getDisplayName());
+                builder.append("\t").append(regulation.getDBID()).append("\t").append(regulation.getDisplayName());
+                builder.append("\t");
+                // Need to consider if there is no references in an RLE.
+                for (GKInstance lit : literatures)
+                    builder.append(lit.getDBID()).append(";");
+                if (literatures.size() > 0) // Need to delete the last extra character
+                    builder.deleteCharAt(builder.length() - 1);
+                builder.append("\t");
+                for (GKInstance lit : rReferences) {
+                    builder.append(lit.getDBID()).append(";");
+                }
+                builder.deleteCharAt(builder.length() - 1);
+                List<GKInstance> shared = getShared(literatures, rReferences);
+                builder.append("\t").append(shared.size());
+                List<GKInstance> copy = new ArrayList<>(literatures);
+                copy.removeAll(shared);
+                builder.append("\t").append(copy.size());
+                copy = new ArrayList<>(rReferences);
+                copy.removeAll(shared);
+                builder.append("\t").append(copy.size());
+                fu.printLine(builder.toString());
+                builder.setLength(0);
+            }
+        }
+        fu.close();
+    }
+    
+    private List<GKInstance> getShared(List<GKInstance> list1, List<GKInstance> list2) {
+        List<GKInstance> shared = new ArrayList<>(list1);
+        shared.retainAll(list2);
+        return shared;
+    }
+    
+    private MySQLAdaptor getDBA() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_101618",
+                "root",
+                "macmysql01");
+        return dba;
     }
     
     public static void main(String[] args) throws Exception {

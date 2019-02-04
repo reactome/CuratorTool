@@ -32,70 +32,16 @@ import org.gk.schema.SchemaClass;
 /**
  * This is the base class for diagram reaction checks. Subclasses
  * perform a diagram check by implementing the
- * {@link PathwayDiagramCheck#doCheck(GKInstance)} method.
+ * {@link AbstractPathwayDiagramCheck#doCheck(GKInstance)} method.
  * 
  * Checking a diagram does not check subpathways included in the
  * diagram which have their own diagram.
  * 
  * @author wgm
  */
-public abstract class DiagramReactionsCheck extends PathwayDiagramCheck {
+public abstract class DiagramReactionsCheck extends AbstractPathwayDiagramCheck {
+    
     protected DiagramReactionsCheck() {
-    }
-
-    /**
-     * Returns the released reactions represented in the given PathwayDiagram
-     * instance and diagram db ids.
-     * 
-     * @param instance the PathwayDiagram instance
-     * @param dbIds the diagram reaction <code>reactomeId</code> values
-     * @return the released reaction instances
-     * @throws Exception
-     */
-    protected Collection<GKInstance> getReactions(GKInstance instance, Collection<Long> dbIds)
-            throws InvalidAttributeException, Exception {
-        if (dbIds == null || dbIds.size() == 0) {
-            return Collections.emptySet(); // Nothing has been drawn yet in this diagram
-        }
-        if (!instance.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram))
-            throw new IllegalArgumentException(instance + " is not a PathwayDiagram instance!");
-        GKInstance pathway = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
-        if (pathway == null) {
-            return Collections.emptySet();
-        }
-        // Get all contained reactions
-        Set<GKInstance> reactions = InstanceUtilities.grepPathwayEventComponents(pathway);
-        filterOutDoNotReleaseEvents(reactions);
-        // Check DB_IDs to see if any Pathway there
-        GKInstance event = null;
-        for (Long dbId : dbIds) {
-            event = dataSource.fetchInstance(dbId);
-            if (event == null && parentComp != null) {
-                String msg = "Instance with DB_ID displayed in " + instance +
-                        "\ncannot be found: " + dbId;
-                JOptionPane.showMessageDialog(parentComp, msg, "Null Instance",
-                        JOptionPane.ERROR_MESSAGE);
-                continue;
-            }
-            if (event != null && event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-                Set<GKInstance> subPathwayRxns = InstanceUtilities.grepPathwayEventComponents(event);
-                reactions.removeAll(subPathwayRxns);
-            }
-        }
-
-        return reactions;
-    }
-
-    private void filterOutDoNotReleaseEvents(Set<GKInstance> events) throws Exception {
-        if (events == null || events.size() == 0)
-            return;
-        for (Iterator<GKInstance> it = events.iterator(); it.hasNext();) {
-            GKInstance event = it.next();
-            // Only need to check reactions having been released
-            Boolean _doRelease = (Boolean) event.getAttributeValue(ReactomeJavaConstants._doRelease);
-            if (_doRelease == null || !_doRelease)
-                it.remove();
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -134,15 +80,20 @@ public abstract class DiagramReactionsCheck extends PathwayDiagramCheck {
     protected Collection<Renderable> extractDiagramReactionLikeNodes(GKInstance instance)
             throws Exception {
         RenderablePathway diagram = getRenderablePathway(instance);
-        return extractDiagramReactionLikeNodes(diagram);
+        return getDisplayedEvents(diagram);
     }
 
-    protected Collection<Renderable> extractDiagramReactionLikeNodes(
-            RenderablePathway diagram) {
+    /**
+     * Both RLEs and Pathways, which are drawn as ProcessNodes, are returned
+     * from this method.
+     * @param diagram
+     * @return
+     */
+    protected Collection<Renderable> getDisplayedEvents(RenderablePathway diagram) {
+        Set<Renderable> rtn = new HashSet<>();
         List<?> list = diagram.getComponents();
         if (list == null || list.size() == 0)
-            return null;
-        Set<Renderable> rtn = new HashSet<Renderable>();
+            return rtn; // To avoid null exception in the clients' code
         for (Iterator<?> it = list.iterator(); it.hasNext();) {
             Object obj = it.next();
             if (obj instanceof HyperEdge || obj instanceof ProcessNode) {
@@ -155,16 +106,15 @@ public abstract class DiagramReactionsCheck extends PathwayDiagramCheck {
     }
 
     /**
-     * Returns the <code>reactomeId</code> values of HyperEdge and ProcessNode
-     * renderables in the given diagram.
+     * Returns the <code>DB_IDs</code> values of event objects in the given diagram.
      * 
      * @param instance the PathwayDiagram instance
      * @return the db ids
      */
-    protected Collection<Long> extractDiagramReactionLikeDbIds(RenderablePathway diagram)
-            throws Exception {
-        return extractDiagramReactionLikeNodes(diagram).stream()
-                .map(Renderable::getReactomeId).collect(Collectors.toSet());
+    protected Collection<Long> getDisplayedEventIds(RenderablePathway diagram) throws Exception {
+        return getDisplayedEvents(diagram).stream()
+                                          .map(Renderable::getReactomeId)
+                                          .collect(Collectors.toSet());
     }
 
     /**
@@ -173,9 +123,8 @@ public abstract class DiagramReactionsCheck extends PathwayDiagramCheck {
      * @param instance the PathwayDiagram instance
      * @return the ReactomeRenderable objects
      */
-    protected Collection<RenderableReaction> extractReactionRenderables(RenderablePathway diagram)
-            throws Exception {
-        return extractDiagramReactionLikeNodes(diagram).stream()
+    protected Collection<RenderableReaction> getDisplayedRLEes(RenderablePathway diagram) throws Exception {
+        return getDisplayedEvents(diagram).stream()
                 .filter(RenderableReaction.class::isInstance)
                 .map(RenderableReaction.class::cast)
                 .collect(Collectors.toSet());
