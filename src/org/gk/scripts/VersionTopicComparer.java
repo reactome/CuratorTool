@@ -8,9 +8,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -22,13 +25,13 @@ import java.util.stream.Collectors;
  * @author Joel Weiser
  */
 public class VersionTopicComparer {
+	private static final Pattern VERSION_TOPIC_FILE_PATTERN = Pattern.compile("^ver(\\d+)_topics.txt$");
 
 	public static void main(String[] args) {
-		String newTopicFile = args[0];
-		String previousTopicFile = args[1];
+		String[] topicFiles = getTopicFiles(args);
 
-		List<String> newTopics = getFileLines(newTopicFile);
-		List<String> previousTopics = getFileLines(previousTopicFile);
+		List<String> newTopics = getFileLines(topicFiles[0]);
+		List<String> previousTopics = getFileLines(topicFiles[1]);
 
 		List<String> removedTopics = foundOnlyInFirstList(previousTopics, newTopics);
 		List<String> addedTopics = foundOnlyInFirstList(newTopics, previousTopics);
@@ -37,12 +40,53 @@ public class VersionTopicComparer {
 		reportTopics(addedTopics, "added");
 	}
 
+	private static String[] getTopicFiles(String[] args) {
+		final long numOfFilesToCompare = 2;
+
+		String[] topicFiles = args.length == numOfFilesToCompare ?
+			getTopicFilesFromArgs(args) :
+			getTopicFilesFromCurrentDirectory();
+		if (topicFiles.length == numOfFilesToCompare) {
+			return topicFiles;
+		} else {
+			throw new RuntimeException("Could not find two version topic files\n");
+		}
+	}
+
+	private static String[] getTopicFilesFromArgs(String[] args) {
+		return Arrays.stream(args)
+			.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
+			.sorted(newestVersionFirst())
+			.toArray(String[]::new);
+	}
+
+	private static String[] getTopicFilesFromCurrentDirectory() {
+		String currentWorkingDirectory = System.getProperty("user.dir");
+		try {
+			return Files.walk(Paths.get(currentWorkingDirectory))
+				.filter(Files::isRegularFile)
+				.map(file -> file.getFileName().toString())
+				.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
+				.sorted(newestVersionFirst())
+				.toArray(String[]::new);
+		} catch (IOException e) {
+			throw new RuntimeException("Could not get version topic files in dir: " + currentWorkingDirectory, e);
+		}
+	}
+
+	private static Comparator<String> newestVersionFirst() {
+		return Comparator.comparing(VersionTopicComparer::getVersion);
+	}
+
+	private static Long getVersion(String topicFile) {
+		return Long.parseLong(VERSION_TOPIC_FILE_PATTERN.matcher(topicFile).group(1));
+	}
+
 	private static List<String> getFileLines(String file) {
 		try {
 			return Files.readAllLines(Paths.get(file), StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			System.err.println("Unable to read file contents for " + file);
-			throw new RuntimeException(e);
+			throw new RuntimeException("Unable to read file contents for " + file, e);
 		}
 	}
 
@@ -51,10 +95,8 @@ public class VersionTopicComparer {
 		Predicate<String> inFirstList = (element -> new HashSet<>(firstList).contains(element));
 
 		return secondList.stream()
-				.filter(inFirstList.negate())
-				.collect(Collectors.toList());
-
-
+			.filter(inFirstList.negate())
+			.collect(Collectors.toList());
 	}
 
 	private static void reportTopics(List<String> topics, String actionPerformed) {
