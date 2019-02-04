@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This class compares the current and previous release version topic files
@@ -54,24 +55,27 @@ public class VersionTopicComparer {
 	}
 
 	private static String[] getTopicFilesFromArgs(String[] args) {
-		return Arrays.stream(args)
-			.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
-			.sorted(newestVersionFirst())
-			.toArray(String[]::new);
+		return filterAndSortVersionTopicFiles(Arrays.stream(args));
 	}
 
 	private static String[] getTopicFilesFromCurrentDirectory() {
 		String currentWorkingDirectory = System.getProperty("user.dir");
 		try {
-			return Files.walk(Paths.get(currentWorkingDirectory))
-				.filter(Files::isRegularFile)
-				.map(file -> file.getFileName().toString())
-				.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
-				.sorted(newestVersionFirst())
-				.toArray(String[]::new);
+			return filterAndSortVersionTopicFiles(
+				Files.walk(Paths.get(currentWorkingDirectory))
+					.filter(Files::isRegularFile)
+					.map(file -> file.getFileName().toString())
+			);
+
 		} catch (IOException e) {
 			throw new RuntimeException("Could not get version topic files in dir: " + currentWorkingDirectory, e);
 		}
+	}
+
+	private static String[] filterAndSortVersionTopicFiles(Stream<String> fileNames) {
+		return fileNames.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
+			.sorted(newestVersionFirst())
+			.toArray(String[]::new);
 	}
 
 	private static Comparator<String> newestVersionFirst() {
