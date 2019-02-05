@@ -62,7 +62,7 @@ public class VersionTopicComparer {
 		String currentWorkingDirectory = System.getProperty("user.dir");
 		try {
 			return filterAndSortVersionTopicFiles(
-				Files.walk(Paths.get(currentWorkingDirectory))
+				Files.list(Paths.get(currentWorkingDirectory))
 					.filter(Files::isRegularFile)
 					.map(file -> file.getFileName().toString())
 			);
