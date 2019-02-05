@@ -8,11 +8,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,9 +80,14 @@ public class VersionTopicComparer {
 	}
 
 	private static String[] filterAndSortVersionTopicFiles(Stream<String> fileNames) {
-		return fileNames.filter(fileName -> VERSION_TOPIC_FILE_PATTERN.matcher(fileName).matches())
+		return fileNames
+			.filter(fileName -> getVersionTopicMatcher(fileName).matches())
 			.sorted(newestVersionFirst())
 			.toArray(String[]::new);
+	}
+
+	private static Matcher getVersionTopicMatcher(String filePath) {
+		return VERSION_TOPIC_FILE_PATTERN.matcher(Paths.get(filePath).getFileName().toString());
 	}
 
 	private static Comparator<String> newestVersionFirst() {
@@ -92,7 +95,12 @@ public class VersionTopicComparer {
 	}
 
 	private static Long getVersion(String topicFile) {
-		return Long.parseLong(VERSION_TOPIC_FILE_PATTERN.matcher(topicFile).group(1));
+		Matcher versionMatcher = getVersionTopicMatcher(topicFile);
+		if (versionMatcher.matches()) {
+			return Long.parseLong(versionMatcher.group(1));
+		} else {
+			throw new IllegalStateException("Topic file " + topicFile + " has no version number");
+		}
 	}
 
 	private static List<String> getFileLines(String file) {
