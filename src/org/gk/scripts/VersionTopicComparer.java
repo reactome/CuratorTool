@@ -30,6 +30,7 @@ public class VersionTopicComparer {
 
 	public static void main(String[] args) {
 		String[] topicFiles = getTopicFiles(args);
+		System.out.println("Topic files: " + Arrays.toString(topicFiles));
 
 		List<String> newTopics = getFileLines(topicFiles[0]);
 		List<String> previousTopics = getFileLines(topicFiles[1]);
@@ -37,8 +38,16 @@ public class VersionTopicComparer {
 		List<String> removedTopics = foundOnlyInFirstList(previousTopics, newTopics);
 		List<String> addedTopics = foundOnlyInFirstList(newTopics, previousTopics);
 
-		reportTopics(removedTopics, "removed");
-		reportTopics(addedTopics, "added");
+		if (removedTopics.isEmpty() && addedTopics.isEmpty()) {
+			System.out.println("No differences found between topic files: " + topicFiles[0] + " and " + topicFiles[1]);
+		} else {
+			if (!removedTopics.isEmpty()) {
+				reportTopics(removedTopics, "removed");
+			}
+			if (!addedTopics.isEmpty()) {
+				reportTopics(addedTopics, "added");
+			}
+		}
 	}
 
 	private static String[] getTopicFiles(String[] args) {
