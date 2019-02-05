@@ -59,7 +59,7 @@ public class VersionTopicComparer {
 		if (topicFiles.length == numOfFilesToCompare) {
 			return topicFiles;
 		} else {
-			throw new RuntimeException("Could not find two version topic files\n");
+			throw new RuntimeException("Could not find two version topic files. Found " + Arrays.toString(topicFiles));
 		}
 	}
 
