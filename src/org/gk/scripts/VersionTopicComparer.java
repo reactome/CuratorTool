@@ -65,13 +65,13 @@ public class VersionTopicComparer {
 	}
 
 	private static String[] getTopicFilesFromArgs(String[] args) {
-		return filterAndSortVersionTopicFiles(Arrays.stream(args));
+		return filterAndSortVersionTopicFileNames(Arrays.stream(args));
 	}
 
 	private static String[] getTopicFilesFromCurrentDirectory() {
 		String currentWorkingDirectory = System.getProperty("user.dir");
 		try {
-			return filterAndSortVersionTopicFiles(
+			return filterAndSortVersionTopicFileNames(
 				Files.list(Paths.get(currentWorkingDirectory))
 					.filter(Files::isRegularFile)
 					.map(file -> file.getFileName().toString())
@@ -82,7 +82,7 @@ public class VersionTopicComparer {
 		}
 	}
 
-	private static String[] filterAndSortVersionTopicFiles(Stream<String> fileNames) {
+	private static String[] filterAndSortVersionTopicFileNames(Stream<String> fileNames) {
 		return fileNames
 			.filter(fileName -> getVersionTopicMatcher(fileName).matches())
 			.sorted(newestVersionFirst())
