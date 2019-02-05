@@ -58,7 +58,9 @@ public class VersionTopicComparer {
 		if (topicFiles.length == numOfFilesToCompare) {
 			return topicFiles;
 		} else {
-			throw new RuntimeException("Could not find two version topic files. Found " + Arrays.toString(topicFiles));
+			throw new IllegalStateException(
+				"Could not find two version topic files. Found " + Arrays.toString(topicFiles)
+			);
 		}
 	}
 
@@ -100,7 +102,7 @@ public class VersionTopicComparer {
 		if (versionMatcher.matches()) {
 			return Long.parseLong(versionMatcher.group(1));
 		} else {
-			throw new IllegalStateException("Topic file " + topicFile + " has no version number");
+			throw new IllegalArgumentException("Topic file " + topicFile + " has no version number");
 		}
 	}
 
