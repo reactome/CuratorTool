@@ -33,8 +33,8 @@ public class VersionTopicComparer {
 		List<String> newTopics = getFileLines(topicFiles[0]);
 		List<String> previousTopics = getFileLines(topicFiles[1]);
 
-		List<String> removedTopics = foundOnlyInFirstList(previousTopics, newTopics);
-		List<String> addedTopics = foundOnlyInFirstList(newTopics, previousTopics);
+		List<String> removedTopics = dbIDFoundOnlyInFirstList(previousTopics, newTopics);
+		List<String> addedTopics = dbIDFoundOnlyInFirstList(newTopics, previousTopics);
 
 		if (removedTopics.isEmpty() && addedTopics.isEmpty()) {
 			System.out.println("No differences found between topic files: " + topicFiles[0] + " and " + topicFiles[1]);
@@ -42,6 +42,7 @@ public class VersionTopicComparer {
 			if (!removedTopics.isEmpty()) {
 				reportTopics(removedTopics, "removed");
 			}
+
 			if (!addedTopics.isEmpty()) {
 				reportTopics(addedTopics, "added");
 			}
@@ -105,19 +106,38 @@ public class VersionTopicComparer {
 
 	private static List<String> getFileLines(String file) {
 		try {
-			return Files.readAllLines(Paths.get(file), StandardCharsets.UTF_8);
+			return Files.readAllLines(Paths.get(file), StandardCharsets.UTF_8)
+				.stream()
+				.filter(line -> !line.isEmpty())
+				.collect(Collectors.toList());
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to read file contents for " + file, e);
 		}
 	}
 
 	// Adapted from https://stackoverflow.com/a/47163707
-	private static List<String> foundOnlyInFirstList(List<String> firstList, List<String> secondList) {
-		Predicate<String> inFirstList = (element -> new HashSet<>(firstList).contains(element));
+	private static List<String> dbIDFoundOnlyInFirstList(List<String> firstList, List<String> secondList) {
+		Predicate<String> dbIDInFirstList = (element ->
+			new HashSet<>(getDBIDsFromFileLines(firstList)).contains(getDBIDFromFileLine(element))
+		);
 
 		return secondList.stream()
-			.filter(inFirstList.negate())
+			.filter(dbIDInFirstList.negate())
 			.collect(Collectors.toList());
+	}
+
+	private static List<Long> getDBIDsFromFileLines(List<String> fileLines) {
+		return fileLines.stream().map(VersionTopicComparer::getDBIDFromFileLine).collect(Collectors.toList());
+	}
+
+	private static Long getDBIDFromFileLine(String line) {
+		Pattern DBIDPattern = Pattern.compile("^(\\d+).*");
+		Matcher DBIDMatcher = DBIDPattern.matcher(line);
+		if (DBIDMatcher.matches()) {
+			return Long.parseLong(DBIDMatcher.group(1));
+		} else {
+			throw new IllegalArgumentException("File line '" + line + "' must start with a db id");
+		}
 	}
 
 	private static void reportTopics(List<String> topics, String actionPerformed) {
