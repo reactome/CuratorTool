@@ -5,26 +5,16 @@
 package org.gk.qualityCheck;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.util.StringUtils;
 
 /**
  * This QA check verifies that the <code>reactomeId</code> values
@@ -35,7 +25,7 @@ import org.gk.util.StringUtils;
  *
  * @author Fred Loney <loneyf@ohsu.edu>
  */
-public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
+public class DiagramMissingInstanceCheck extends AbstractPathwayDiagramCheck {
 
     @Override
     public String getDisplayName() {
@@ -97,7 +87,7 @@ public class DiagramMissingInstanceCheck extends PathwayDiagramCheck {
     }
 
     @Override
-    protected String getResultTableModelTitle() {
+    protected String getResultTableIssueDBIDColName() {
         return "DB_IDs without Instances";
     }
 
