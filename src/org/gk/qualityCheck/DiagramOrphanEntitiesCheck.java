@@ -2,8 +2,6 @@ package org.gk.qualityCheck;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,35 +46,26 @@ public class DiagramOrphanEntitiesCheck extends DiagramReactionsCheck {
         RenderablePathway pathway = getRenderablePathway(pathwayDiagramInst);
         // Collect the isolated nodes.
         @SuppressWarnings("unchecked")
-        Collection<Renderable> cmpnts = pathway.getComponents();
-        if (cmpnts == null || cmpnts.size() == 0)
+        Collection<Renderable> components = pathway.getComponents();
+        if (components == null || components.size() == 0)
             return Collections.emptySet();
-        Set<Long> connectedNodeIds = getConnectedNodeIds(pathway);
-        return cmpnts.stream()
+        Set<Integer> connectedNodeIds = getConnectedNodeIds(components);
+        
+        return components.stream()
                      .filter(component -> isPhysicalEntityNode(component))
+                     .filter(component -> !connectedNodeIds.contains(component.getID()))
                      .map(Renderable::getReactomeId)
-                     .filter(componentId -> !connectedNodeIds.contains(componentId))
                      .collect(Collectors.toSet());
     }
     
-    private Set<Long> getConnectedNodeIds(RenderablePathway diagram) {
-        // First get DB_IDs for all entities connected to ReactionlikeEvent edges
-        Set<Node> connectedNodes = new HashSet<>();
-        List<Renderable> components = diagram.getComponents();
-        if (components != null) {
-            for (Renderable r : components) {
-                if (r instanceof HyperEdge) {
-                    HyperEdge edge = (HyperEdge) r;
-                    List<Node> nodes = edge.getConnectedNodes();
-                    connectedNodes.addAll(nodes);
-                }
-            }
-        }
-        Set<Long> nodeIds = connectedNodes.stream()
-                                          .filter(node -> node.getReactomeId() != null)
-                                          .map(node -> node.getReactomeId())
-                                          .collect(Collectors.toSet());
-        return nodeIds;
+    private Set<Integer> getConnectedNodeIds(Collection<Renderable> components) {
+        return components.stream()
+                .filter(HyperEdge.class::isInstance)
+                .map(HyperEdge.class::cast)
+                .map(HyperEdge::getConnectedNodes)
+                .flatMap(Collection::stream)
+                .map(Node::getID)
+                .collect(Collectors.toSet());
     }
 
     @Override
