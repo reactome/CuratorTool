@@ -90,8 +90,6 @@ public class PathwayELVCheck extends ReactionELVCheck {
         // in that pathway's event hierarchy.
         for (Iterator<?> it = diagrams.iterator(); it.hasNext();) {
             GKInstance diagram = (GKInstance) it.next();
-//            if (!diagram.getDBID().equals(3878099L))
-//                continue;
             GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
             if (pathway == null)
                 continue;
