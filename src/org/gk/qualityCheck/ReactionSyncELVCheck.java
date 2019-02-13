@@ -61,6 +61,11 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     public ReactionSyncELVCheck() {
     }
     
+    @Override
+    public String getDisplayName() {
+        return "Diagram_Unsynchronized_Reactions";
+    }
+
     /**
      * This method overrides {@link ReactionELVCheck#checkEventUsageInELV(MySQLAdaptor)}
      * to build the database instance {diagram: unmatched reactions} map.
