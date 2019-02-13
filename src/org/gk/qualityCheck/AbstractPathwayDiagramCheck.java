@@ -130,7 +130,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
     protected String getIssueDbIdsColumnValue(GKInstance instance) throws Exception {
         return getIssueDbIds(instance).stream()
                 .map(Object::toString)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(", "));
     }
 
     protected Collection<Long> getIssueDbIds(GKInstance instance) {
