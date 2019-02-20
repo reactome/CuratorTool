@@ -76,6 +76,8 @@ public class VersionTopicComparer {
 		if (args.length >= NUMBER_OF_FILES_TO_COMPARE) {
 			return getTopicFilesFromArgs(args);
 		} else {
+			System.out.println("Not enough arguments provided to specify explicit files to compare.");
+			System.out.println("Searching current directory for version topic files.");
 			return getTopicFilesFromCurrentDirectory();
 		}
 	}
