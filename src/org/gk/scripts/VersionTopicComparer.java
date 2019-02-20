@@ -3,11 +3,9 @@ package org.gk.scripts;
 /*
  * Created February 3rd, 2019
  */
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -27,10 +25,12 @@ public class VersionTopicComparer {
 	private static final int NUMBER_OF_FILES_TO_COMPARE = 2;
 	private static final Pattern VERSION_TOPIC_FILE_PATTERN = Pattern.compile("^ver(\\d+)_topics.txt$");
 
+	public static void main(String[] args) throws IOException {
+		Path fileOutputPath = Paths.get(VersionTopicComparer.class.getSimpleName() + ".out");
+		Files.deleteIfExists(fileOutputPath);
 
-	public static void main(String[] args) {
 		String[] topicFiles = getTopicFiles(args);
-		System.out.println("Topic files: " + Arrays.toString(topicFiles));
+		writeToScreenAndFile("Topic files: " + Arrays.toString(topicFiles), fileOutputPath);
 
 		List<String> newTopics = getFileLines(topicFiles[0]);
 		List<String> previousTopics = getFileLines(topicFiles[1]);
@@ -39,14 +39,16 @@ public class VersionTopicComparer {
 		List<String> addedTopics = dbIDFoundOnlyInFirstList(newTopics, previousTopics);
 
 		if (removedTopics.isEmpty() && addedTopics.isEmpty()) {
-			System.out.println("No differences found between topic files: " + topicFiles[0] + " and " + topicFiles[1]);
+			writeToScreenAndFile(
+				"No differences found between topic files: " + topicFiles[0] + " and " + topicFiles[1], fileOutputPath
+			);
 		} else {
 			if (!removedTopics.isEmpty()) {
-				reportTopics(removedTopics, "removed");
+				reportTopics(removedTopics, "removed", fileOutputPath);
 			}
 
 			if (!addedTopics.isEmpty()) {
-				reportTopics(addedTopics, "added");
+				reportTopics(addedTopics, "added", fileOutputPath);
 			}
 		}
 	}
@@ -208,13 +210,33 @@ public class VersionTopicComparer {
 		}
 	}
 
-	private static void reportTopics(List<String> topics, String actionPerformed) {
-		System.out.println("The following topics have been " + actionPerformed + " in the new version topic file");
+	private static void reportTopics(List<String> topics, String actionPerformed, Path fileOutputPath) {
+		writeToScreenAndFile(
+			"The following topics have been " + actionPerformed + " in the new version topic file",
+			fileOutputPath
+		);
 
 		for (String topic : topics) {
-			System.out.println(topic);
+			writeToScreenAndFile(topic, fileOutputPath);
 		}
 
-		System.out.println(); // Buffer space between reports
+		writeToScreenAndFile("\n", fileOutputPath); // Buffer space between reports
+	}
+
+	// Appends a new line with each output
+	private static void writeToScreenAndFile(String output, Path fileOutputPath) {
+		try {
+			Files.write(
+				fileOutputPath,
+				output.concat("\n").getBytes(),
+				StandardOpenOption.CREATE, StandardOpenOption.APPEND
+			);
+		} catch (IOException e) {
+			throw new RuntimeException(
+				"Unable to write " + output + " to file " + fileOutputPath.getFileName().toString(),
+				e
+			);
+		}
+		System.out.println(output);
 	}
 }
