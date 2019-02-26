@@ -41,8 +41,8 @@ import org.w3c.dom.Document;
 
 /**
  * This check is to make sure hasModified values in EntityWithAccessionedSequence instances
- * are correctly displayed in pathway diagrams. The output should be similar to one from
- * T114 and T115 in the diagram-converter.
+ * are correctly displayed in pathway diagrams. The output should be similar to that of the
+ * diagram-converter T114 and T115 checks.
  * 
  * @author Fred Loney <loneyf@ohsu.edu> & Guanming Wu <wug@ohsu.edu>
  */
