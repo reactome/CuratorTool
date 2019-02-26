@@ -10,3 +10,7 @@ tmp/*
 /.classpath
 /temp/
 /tmp/
+
+\.idea/
+
+*.iml

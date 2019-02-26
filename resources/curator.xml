@@ -45,7 +45,7 @@
             <QAChecker name="Pathway" class="org.gk.qualityCheck.PathwaySpeciesCheck"></QAChecker>
         </Group>
         <Group name="Pathway Diagram Check" dbOnly="true">
-            <QAChecker name="Deleted Objects in Diagram" class="org.gk.qualityCheck.DiagramMissingInstanceCheck"></QAChecker>
+            <QAChecker name="Deleted Objects in Diagram" class="org.gk.qualityCheck.DigramInstanceDeletionCheck"></QAChecker>
             <QAChecker name="Missing Reactions in Diagram" class="org.gk.qualityCheck.DiagramMissingReactionsCheck"></QAChecker>
             <QAChecker name="Unsynchronized Reactions in Diagram" class="org.gk.qualityCheck.DiagramReactionSyncCheck"></QAChecker>
 	        <QAChecker name="Reactions in All Diagrams" class="org.gk.qualityCheck.ReactionsInAllDiagramsCheck"></QAChecker>
