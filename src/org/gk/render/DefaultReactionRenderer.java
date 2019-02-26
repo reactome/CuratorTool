@@ -22,7 +22,7 @@ import org.gk.util.DrawUtilities;
  * @author  wgm
  */
 public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants {
-    protected final int CIRCLE_SIZE = 5;
+    public final int CIRCLE_SIZE = 5;
     // Rendering info
     protected HyperEdge reaction;
 
