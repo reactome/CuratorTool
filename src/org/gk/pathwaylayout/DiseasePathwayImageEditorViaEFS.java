@@ -219,7 +219,20 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
             Integer stoi = instToStoi.get(input);
             Node normalNode = normalIdToNode.get(input.getDBID());
             if (normalNode != null) {
-                // Great. Nothing needs to be done.
+                // Great. Nothing needs to be done except the stoichiometry
+                // which may be different
+                // Re-link to diseaseNode
+                if (stoi != null) {
+                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
+                    List<?> widgets = connectInfo.getConnectWidgets();
+                    for (Object obj : widgets) {
+                        ConnectWidget widget = (ConnectWidget) obj;
+                        if (widget.getConnectedNode() == normalNode && widget.getRole() == role) {
+                            widget.setStoichiometry(stoi);
+                            break;
+                        }
+                    }
+                }
                 it.remove();
                 normalNodes.remove(normalNode);
                 coveredNormalNodes.add(normalNode);
