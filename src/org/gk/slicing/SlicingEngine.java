@@ -1319,6 +1319,8 @@ public class SlicingEngine {
                                                       user,
                                                       pwd,
                                                       Integer.parseInt(dbPort));
+            // To keep this connection consistent to avoid time out
+            sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
 //            MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
 //                                                      "pre_ver12",
 //                                                      "wgm",
