@@ -31,6 +31,34 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
     public DiseasePathwayImageEditorViaEFS() {
     }
     
+    private Map<Long, GKInstance> createDBIdToMapForDiseasePEs(GKInstance diseaseReation) throws Exception {
+        Map<Long, GKInstance> dbIdToPE = new HashMap<>();
+        Set<GKInstance> participants = InstanceUtilities.getReactionParticipants(diseaseReation);
+        for (GKInstance participant : participants)
+            dbIdToPE.put(participant.getDBID(), participant);
+        return dbIdToPE;
+    }
+    
+    private List<GKInstance> normalizeList(List<GKInstance> list,
+                                           Map<Long, GKInstance> dbIdToInstance) {
+        List<GKInstance> copy = new ArrayList<>();
+        for (GKInstance inst : list) {
+            GKInstance tmp = dbIdToInstance.get(inst.getDBID());
+            copy.add(tmp);
+        }
+        return copy;
+    }
+    
+    private Set<GKInstance> normalizeSet(Set<GKInstance> set,
+                                         Map<Long, GKInstance> dbIdToInstance) {
+        Set<GKInstance> copy = new HashSet<>();
+        for (GKInstance inst : set) {
+            GKInstance tmp = dbIdToInstance.get(inst.getDBID());
+            copy.add(tmp);
+        }
+        return copy;
+    }
+    
     /**
      * Overlay a single disease reaction onto a normal reaction.
      * @param normalReaction
@@ -41,6 +69,11 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
     @SuppressWarnings("unchecked")
     protected void overlayDiseaseReaction(HyperEdge normalReaction,
                                           GKInstance diseaseReaction) throws Exception {
+        // In a servlet, cache may not be used. Therefore, a list of inputs may be different even though
+        // they are the same instances (e.g. multiple ATP). The following mapping is used to normalize
+        // these values in a no-cache environment. One DB_ID has only one copy of GKInstance.
+        Map<Long, GKInstance> dbIdToInstance = createDBIdToMapForDiseasePEs(diseaseReaction);
+        
         HyperEdge reactionCopy = normalReaction.shallowCopy();
         reactionCopy.setReactomeId(diseaseReaction.getDBID());
         reactionCopy.setDisplayName(diseaseReaction.getDisplayName());
@@ -54,12 +87,16 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                                                                normalReaction,
                                                                                lofInstances);
         Map<GKInstance, Node> diseaseToNormalEntity = new HashMap<>();
-        normalToDiseaseEntity.forEach((n, d) -> diseaseToNormalEntity.put(d, n));
+        normalToDiseaseEntity.forEach((n, d) -> {
+            d = dbIdToInstance.get(d.getDBID());
+            diseaseToNormalEntity.put(d, n);
+        });
         Set<Node> coveredNormalNodes = new HashSet<>();
         // Handle disease inputs
         List<GKInstance> inputs = diseaseReaction.getAttributeValuesList(ReactomeJavaConstants.input);
         List<Node> normalInputNodes = normalReaction.getInputNodes();
         if (inputs.size() > 0 || normalInputNodes.size() > 0) {
+            inputs = normalizeList(inputs, dbIdToInstance);
             handleDiseaseEntities(reactionCopy, 
                                   diseaseReaction,
                                   lofInstances,
@@ -72,6 +109,7 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
         List<GKInstance> outputs = diseaseReaction.getAttributeValuesList(ReactomeJavaConstants.output);
         List<Node> normalOutputNodes = normalReaction.getOutputNodes();
         if (outputs.size() > 0 || normalOutputNodes.size() > 0) {
+            outputs = normalizeList(outputs, dbIdToInstance);
             handleDiseaseEntities(reactionCopy,
                                   diseaseReaction,
                                   lofInstances,
@@ -86,6 +124,7 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
         List<GKInstance> catalysts = new ArrayList<>(set);
         List<Node> normalCatalystNodes = normalReaction.getHelperNodes();
         if (catalysts.size() > 0 || normalCatalystNodes.size() > 0) {
+            catalysts = normalizeList(catalysts, dbIdToInstance);
             handleDiseaseEntities(reactionCopy,
                                   diseaseReaction,
                                   lofInstances,
@@ -111,6 +150,7 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
             }
         }
         if (activators.size() > 0 || normalReaction.getActivatorNodes().size() > 0) {
+            activators = normalizeSet(activators, dbIdToInstance);
             handleDiseaseEntities(reactionCopy,
                                   diseaseReaction,
                                   lofInstances,
@@ -121,6 +161,7 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
                                   coveredNormalNodes);
         }
         if (inhibitors.size() > 0 || normalReaction.getInhibitorNodes().size() > 0) {
+            inhibitors = normalizeSet(inhibitors, dbIdToInstance);
             handleDiseaseEntities(reactionCopy,
                                   diseaseReaction,
                                   lofInstances, 
@@ -178,7 +219,20 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
             Integer stoi = instToStoi.get(input);
             Node normalNode = normalIdToNode.get(input.getDBID());
             if (normalNode != null) {
-                // Great. Nothing needs to be done.
+                // Great. Nothing needs to be done except the stoichiometry
+                // which may be different
+                // Re-link to diseaseNode
+                if (stoi != null) {
+                    ConnectInfo connectInfo = reactionCopy.getConnectInfo();
+                    List<?> widgets = connectInfo.getConnectWidgets();
+                    for (Object obj : widgets) {
+                        ConnectWidget widget = (ConnectWidget) obj;
+                        if (widget.getConnectedNode() == normalNode && widget.getRole() == role) {
+                            widget.setStoichiometry(stoi);
+                            break;
+                        }
+                    }
+                }
                 it.remove();
                 normalNodes.remove(normalNode);
                 coveredNormalNodes.add(normalNode);
