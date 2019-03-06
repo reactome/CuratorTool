@@ -69,7 +69,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
     
     @Override
     public String getDisplayName() {
-        return "Diagram_Entity_Modification_Mismatch";
+        return "Diagram_EWAS_Modification_Mismatch";
     }
 
     @Override
