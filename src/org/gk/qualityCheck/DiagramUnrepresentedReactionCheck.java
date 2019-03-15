@@ -1,5 +1,6 @@
 package org.gk.qualityCheck;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -10,7 +11,14 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
 
+/**
+ * This QA check reports human, normal reactions which are not
+ * represented in a diagram.
+ *
+ * @author Fred Loney <loneyf@ohsu.edu>
+ */
 public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
 
     private static final String HUMAN = "Homo sapiens";
@@ -18,6 +26,11 @@ public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
     private static final String[] HEADERS = {
             "DB_ID", "Display_Name", "MostRecentAuthor"
     };
+
+    @Override
+    public String getDisplayName() {
+        return "Diagram_Unrepresented_Reactions";
+    }
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -32,9 +45,7 @@ public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
             Set<GKInstance> diagrams = usage.getValue();
             if (diagrams == null) {
                 GKInstance reaction = usage.getKey();
-                GKInstance species =
-                        (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.species);
-                if (HUMAN.equals(species.getDisplayName())) {
+                if (isHumanNonDisease(reaction)) {
                     GKInstance ie = InstanceUtilities.getLatestCuratorIEFromInstance(reaction);
                     String ieName = ie == null ? "None" : ie.getDisplayName();
                     report.addLine(reaction.getDBID().toString(), reaction.getDisplayName(), ieName);
@@ -45,6 +56,19 @@ public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
         report.setColumnHeaders(HEADERS);
         
         return report;
+    }
+
+    private boolean isHumanNonDisease(GKInstance reaction)
+            throws InvalidAttributeException, Exception {
+        @SuppressWarnings("unchecked")
+        List<GKInstance> species =
+                reaction.getAttributeValuesList(ReactomeJavaConstants.species);
+        if (species.size() == 1 && HUMAN.equals(species.get(0).getDisplayName())) {
+            GKInstance normal =
+                    (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.normalReaction);
+            return normal == null;
+        }
+        return false;
     }
 
     @Override
