@@ -11,6 +11,12 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
+/**
+ * QA check which detects <em>diseaseEntity</em> instances which
+ * are either empty or are not a disease reaction participant.
+ *
+ * @author wug
+ */
 public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalStatusCheck {
     
     public EntityFunctionalStatusDiseaseEntityCheck() {
@@ -18,6 +24,11 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
         followAttributes = new String[] {ReactomeJavaConstants.diseaseEntity};
     }
     
+    @Override
+    public String getDisplayName() {
+        return "Disease Entity Inconsistent";
+    }
+
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         GKInstance diseaseEntity = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
@@ -32,7 +43,7 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
         for (GKInstance rle : referrers) {
             Set<GKInstance> rleParticipants = InstanceUtilities.getReactionLHSParticipants(rle);
             if (!rleParticipants.contains(diseaseEntity)) {
-                instToIssue.put(instance, "DiseaseEntity not an RLE's parcipant");
+                instToIssue.put(instance, "DiseaseEntity not an RLE's participant");
                 return false; // false is not passed
             }
         }

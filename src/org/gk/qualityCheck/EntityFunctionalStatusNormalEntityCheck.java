@@ -12,6 +12,12 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
+/**
+ * QA check which detects <em>normalEntity</em> instances which
+ * are either empty or are not a normal reaction participant.
+ *
+ * @author wug
+ */
 public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalStatusCheck {
 
     public EntityFunctionalStatusNormalEntityCheck() {
@@ -20,10 +26,14 @@ public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalSta
     }
     
     @Override
+    public String getDisplayName() {
+        return "Normal Entity Inconsistent";
+    }
+    
+    @Override
     protected ResultTableModel getResultTableModel() throws Exception {
         return new NormalEntityTableModel();
     }
-    
 
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {

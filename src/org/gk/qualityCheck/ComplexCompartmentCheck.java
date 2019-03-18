@@ -1,5 +1,5 @@
 /*
- * Created on Mar 31, 2008
+0 * Created on Mar 31, 2008
  *
  */
 package org.gk.qualityCheck;
@@ -22,15 +22,17 @@ import org.gk.persistence.MySQLAdaptor;
  *     subunits' compartment values.</li>
  * </ul>
  * 
- * The following constraints are also validated, but reporting is disabled
- * until curators are ready to address them:
+ * The following constraints are not validated until curators are ready to
+ * address them:
  * <ul>
- * <li>There should not be more than two compartment values in all subunits.
- * If two compartments in subunits, these two compartments should be adjacent.</li>
- * <li>includedLocation is not checked.</li>
+ * <li>There should not be more than two compartment values in all subunits.</li>
+ * <li>If there are two compartments in subunits, these two compartments
+ * should be adjacent.</li>
+ * 
+ * The <em/>includedLocation</em> slot is not checked.
  * </ul>
+ * 
  * @author gwu
- *
  */
 public class ComplexCompartmentCheck extends CompartmentCheck {
     
