@@ -26,7 +26,7 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
     
     @Override
     public String getDisplayName() {
-        return "Disease Entity Inconsistent";
+        return "Disease_Entity_Inconsistent";
     }
 
     @Override

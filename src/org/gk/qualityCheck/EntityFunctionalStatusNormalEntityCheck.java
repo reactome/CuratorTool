@@ -27,7 +27,7 @@ public class EntityFunctionalStatusNormalEntityCheck extends EntityFunctionalSta
     
     @Override
     public String getDisplayName() {
-        return "Normal Entity Inconsistent";
+        return "Normal_Entity_Inconsistent";
     }
     
     @Override
