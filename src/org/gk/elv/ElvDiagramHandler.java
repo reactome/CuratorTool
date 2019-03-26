@@ -375,7 +375,7 @@ public class ElvDiagramHandler {
     /**
      * This method is used to create a complex new pathway diagram. In this new diagram, pathways
      * are represented as ProcessNodes, but reactions have been represented as RendearbleReactions.
-     * @param pathway
+     * @param embedder
      * @return
      */
     private RenderablePathway createNewDiagram(GKInstance instance,

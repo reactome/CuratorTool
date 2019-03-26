@@ -17,9 +17,9 @@ import org.gk.persistence.MySQLAdaptor;
 import org.junit.Test;
 
 /**
- * This QA check reports pathways that don't have diagrams associated. A pathway is regarded
- * having a diagram associated if it has its own PathwayDiagram or its contained RLEs are drawn
- * in its ancestor pathway diagrarm.
+ * This QA check reports pathways without an associated diagram. A pathway is regarded
+ * having an associated diagram if it has its own PathwayDiagram or its contained RLEs
+ * are drawn in its ancestor pathway diagram.
  *
  * @author Fred Loney <loneyf@ohsu.edu> & Guaning Wu <wug@ohsu.edu>
  */
@@ -51,7 +51,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
 
     @Override
     public String getDisplayName() {
-        return "Pathway_Has_No_Diagram";
+        return "Pathway_Without_Diagram";
     }
     
     /**

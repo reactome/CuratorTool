@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -60,6 +61,11 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     public ReactionSyncELVCheck() {
     }
     
+    @Override
+    public String getDisplayName() {
+        return "Diagram_Unsynchronized_Reactions";
+    }
+
     /**
      * This method overrides {@link ReactionELVCheck#checkEventUsageInELV(MySQLAdaptor)}
      * to build the database instance {diagram: unmatched reactions} map.
