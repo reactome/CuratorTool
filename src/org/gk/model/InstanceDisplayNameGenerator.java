@@ -100,6 +100,9 @@ public class InstanceDisplayNameGenerator {
             if (schemaClass.isa(ReactomeJavaConstants.EntityFunctionalStatus)){
                 return generateEntityFunctionalStatusName(instance);
             }
+            if (schemaClass.isa(ReactomeJavaConstants.ControlReference)) {
+                return generateControlReferenceName(instance);
+            }
             if (schemaClass.isValidAttribute("name")) {
                 java.util.List list = instance.getAttributeValuesList("name");
                 if (list != null && list.size() > 0) 
@@ -108,7 +111,11 @@ public class InstanceDisplayNameGenerator {
             Collection definingAttributes = schemaClass.getDefiningAttributes();
             if (definingAttributes != null && definingAttributes.size() > 0) {
                 StringBuffer buffer = new StringBuffer();
-                for (Iterator it = definingAttributes.iterator(); it.hasNext();) {
+                // Need to make sure the output is the same always. Therefore, we need an order
+                // of these attributes
+                List<SchemaAttribute> attributes = new ArrayList<>(definingAttributes);
+                attributes.sort((att1, att2) -> att1.getName().compareTo(att2.getName()));
+                for (Iterator it = attributes.iterator(); it.hasNext();) {
                     SchemaAttribute att = (SchemaAttribute) it.next();
                     java.util.List list = instance.getAttributeValuesList(att);
                     if (list != null && list.size() > 0) {
@@ -134,6 +141,22 @@ public class InstanceDisplayNameGenerator {
         }
         // Return an empty String for the name
         return "";
+    }
+    
+    private static String generateControlReferenceName(GKInstance instance) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        if (instance.getSchemClass().isa(ReactomeJavaConstants.RegulationReference)) {
+            GKInstance regulation = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.regulation);
+            builder.append(regulation.getDisplayName());
+        }
+        else if (instance.getSchemClass().isa(ReactomeJavaConstants.CatalystActivityReference)) {
+            GKInstance ca = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.catalystActivity);
+            builder.append(ca.getDisplayName());
+        }
+        GKInstance reference = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.literatureReference);
+        if (reference != null)
+            builder.append(" ").append(reference.getDisplayName());
+        return builder.toString();
     }
     
     private static String generateStableIdentifierName(GKInstance instance) throws Exception {

@@ -11,7 +11,10 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
+import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
 
 /**
@@ -23,6 +26,176 @@ import org.junit.Test;
 public class RegulationMigration {
     
     public RegulationMigration() {
+    }
+    
+    @Test
+    public void testHandleCAReferences() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "test_gk_central_schema_update_gw",
+                                            "root",
+                                            "macmysql01");
+        handleCatalystActivityRefereces(dba);
+    }
+    
+    public void handleCatalystActivityRefereces(MySQLAdaptor dba) throws Exception {
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.CatalystActivity);
+        dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.literatureReference});
+        dba.loadInstanceReverseAttributeValues(regulations,  new String[] {ReactomeJavaConstants.catalystActivity});
+        Set<GKInstance> toBeHandled = handleControlReferences(regulations, ReactomeJavaConstants.catalystActivity);
+        System.out.println("\nTotal to be handled CatalystActivities: " + toBeHandled.size());
+        handleCatalystActivityReferences(toBeHandled, dba);
+    }
+    
+    private void handleCatalystActivityReferences(Set<GKInstance> cas,
+                                                  MySQLAdaptor dba) throws Exception {
+        if (dba.supportsTransactions())
+            dba.startTransaction();
+        GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+        System.out.println("Total to be handled: " + cas.size());
+        Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
+        System.out.println("\nStarting to handling CatalystActivities: ");
+        for (GKInstance ca : cas) {
+            System.out.println("Handling " + ca + "...");
+            // Create a RegulationReference
+            GKInstance catalystActivityReference = createInstance(ReactomeJavaConstants.CatalystActivityReference,
+                                                            defaultIE,
+                                                            dba);
+            catalystActivityReference.setAttributeValue(ReactomeJavaConstants.catalystActivity, ca);
+            List<GKInstance> references = ca.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+            catalystActivityReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
+                                                  new ArrayList<>(references));
+            Collection<GKInstance> rles = ca.getReferers(ReactomeJavaConstants.catalystActivity);
+            for (GKInstance rle : rles) {
+                rle.addAttributeValue(ReactomeJavaConstants.catalystActivityReference, catalystActivityReference);
+                toBeUpdatedRLEs.add(rle);
+            }
+            InstanceDisplayNameGenerator.setDisplayName(catalystActivityReference);
+            dba.storeInstance(catalystActivityReference);
+        }
+        System.out.println("\nStarting to updating ReactionlikeEvents: ");
+        for (GKInstance rle : toBeUpdatedRLEs) {
+            System.out.println("Updating " + rle + "...");
+            dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivityReference);
+            ScriptUtilities.addIEToModified(rle, defaultIE, dba);
+        }
+        if (dba.supportsTransactions())
+            dba.commit();
+    }
+    
+    @Test
+    public void testHandleRegulationReferences() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "test_gk_central_schema_update_gw",
+                                            "root",
+                                            "macmysql01");
+        handleRegulationReferences(dba);
+    }
+    
+    public void handleRegulationReferences(MySQLAdaptor dba) throws Exception {
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.literatureReference});
+        dba.loadInstanceReverseAttributeValues(regulations,  new String[] {ReactomeJavaConstants.regulatedBy});
+        Set<GKInstance> toBeHandled = handleControlReferences(regulations, ReactomeJavaConstants.regulatedBy);
+        handleRegulationReferences(toBeHandled, dba);
+    }
+
+    private Set<GKInstance> handleControlReferences(Collection<GKInstance> controls,
+                                                    String rleAttributeName) throws Exception {
+        Set<GKInstance> notToBeHandled = new HashSet<>();
+        Set<GKInstance> toBeHandled = new HashSet<>();
+        for (GKInstance control : controls) {
+            List<GKInstance> references = control.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+            if (references == null || references.size() == 0)
+                continue;
+            // Check if this regulation is used in more than one RLE
+            Collection<GKInstance> rles = control.getReferers(rleAttributeName);
+            if (rles == null || rles.size() == 0)
+                continue;
+            if (rles.size() > 1 && references.size() > 1) {
+                System.out.println("Referred by more than 1 RLE and having more than 1 reference: " + control);
+                // In this case, we also want to check if RLE instances have covered all Regulation's references
+                boolean notBeHandled = false;
+                for (GKInstance rle : rles) {
+                    List<GKInstance> rleReferences = rle.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                    if (rleReferences.containsAll(references))
+                        continue;
+                    notBeHandled = true;
+                    break;
+                }
+                if (notBeHandled)
+                    notToBeHandled.add(control);
+                else
+                    toBeHandled.add(control);
+            }
+            else
+                toBeHandled.add(control);
+        }
+        System.out.println("\nTotal not to be handled: " + notToBeHandled.size());
+        // Get a nice output
+        StringBuilder builder = new StringBuilder();
+        System.out.println("DB_ID\tDisplayName\tClassName\tTotalReferences\tTotalReferringRLEs\tLastIE");
+        for (GKInstance control : notToBeHandled) {
+            List<GKInstance> references = control.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+            Collection<GKInstance> rles = control.getReferers(rleAttributeName);
+            GKInstance lastIE = InstanceUtilities.getLatestCuratorIEFromInstance(control);
+            builder.append(control.getDBID() + "\t" +
+                           control.getDisplayName() + "\t" + 
+                           control.getSchemClass().getName() + "\t" +
+                           references.size() + "\t" + 
+                           rles.size() + "\t" + 
+                           lastIE.getDisplayName());
+            System.out.println(builder.toString());
+            builder.setLength(0);
+        }
+        return toBeHandled;
+    }
+    
+    private void handleRegulationReferences(Set<GKInstance> regulations,
+                                            MySQLAdaptor dba) throws Exception {
+        if (dba.supportsTransactions())
+            dba.startTransaction();
+        GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+        System.out.println("Total to be handled: " + regulations.size());
+        Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
+        System.out.println("\nStarting to handling Regulations: ");
+        for (GKInstance regulation : regulations) {
+            System.out.println("Handling " + regulation + "...");
+            // Create a RegulationReference
+            GKInstance regulationReference = createInstance(ReactomeJavaConstants.RegulationReference,
+                                                            defaultIE,
+                                                            dba);
+            regulationReference.setAttributeValue(ReactomeJavaConstants.regulation, regulation);
+            List<GKInstance> references = regulation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+            regulationReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
+                                                  new ArrayList<>(references));
+            Collection<GKInstance> rles = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
+            for (GKInstance rle : rles) {
+                rle.addAttributeValue(ReactomeJavaConstants.regulationReference, regulationReference);
+                toBeUpdatedRLEs.add(rle);
+            }
+            InstanceDisplayNameGenerator.setDisplayName(regulationReference);
+            dba.storeInstance(regulationReference);
+        }
+        System.out.println("\nStarting to updating ReactionlikeEvents: ");
+        for (GKInstance rle : toBeUpdatedRLEs) {
+            System.out.println("Updating " + rle + "...");
+            dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulationReference);
+            ScriptUtilities.addIEToModified(rle, defaultIE, dba);
+        }
+        if (dba.supportsTransactions())
+            dba.commit();
+    }
+    
+    private GKInstance createInstance(String clsName,
+                                      GKInstance defaultIE,
+                                      MySQLAdaptor dba) throws Exception {
+        GKInstance instance = new GKInstance();
+        instance.setDbAdaptor(dba);
+        // Should not call fetchSchema(). Otherwise, a new schema will be created.
+        SchemaClass cls = dba.getSchema().getClassByName(clsName);
+        instance.setSchemaClass(cls);
+        instance.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+        return instance;
     }
     
     @Test

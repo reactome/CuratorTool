@@ -337,4 +337,13 @@ public class ReactomeJavaConstants {
     public static final String normalEntity = "normalEntity";
     
     public static final String TranslationalModification = "TranslationalModification";
+    
+    // New classes and attributes introduced in March, 2019
+    public static final String label = "label";
+    public static final String RegulationReference = "RegulationReference";
+    public static final String regulationReference = "regulationReference";
+    public static final String CatalystActivityReference = "CatalystActivityReference";
+    public static final String catalystActivityReference = "catalystActivityReference";
+    public static final String regulation = "regulation";
+    public static final String ControlReference = "ControlReference";
 }
