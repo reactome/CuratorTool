@@ -10,17 +10,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,9 +26,38 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
-import org.gk.database.*;
+import org.gk.database.AttributeEditConfig;
+import org.gk.database.AttributeEditManager;
+import org.gk.database.CheckOutProgressDialog;
+import org.gk.database.EventCentricViewPane;
+import org.gk.database.FrameManager;
+import org.gk.database.GKDBBrowserPopupManager;
+import org.gk.database.GKDatabaseBrowser;
+import org.gk.database.InstanceComparer;
+import org.gk.database.InstanceComparisonPane;
+import org.gk.database.InstanceDeletion;
+import org.gk.database.InstanceListDialog;
+import org.gk.database.InstanceMerger;
+import org.gk.database.NewInstanceDialog;
+import org.gk.database.ReverseAttributePane;
+import org.gk.database.SchemaDisplayPane;
+import org.gk.database.SchemaViewPane;
+import org.gk.database.SynchronizationManager;
+import org.gk.database.WSInfoHelper;
 import org.gk.database.util.MODReactomeAnalyzer;
 import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
 import org.gk.elv.EntityLevelView;
@@ -117,8 +141,6 @@ public class CuratorActionCollection {
     // Rebuild project based on an old project from previous schema.
     // The database will be queired from fetch instances
     private Action rebuildProjectAction;
-    // A feature to deploy a pathway diagram via a servlet deployed in the server side
-    private Action deployDiagramAction;
 	// Used to launch the browser for the PSI-MOD ontology browser
     private Action launchPsiModBrowserAction;
     // Used to launch the disease browser from EBI
@@ -255,180 +277,6 @@ public class CuratorActionCollection {
 	        };
 	    }
 	    return launchDiseaseBrowserAction;
-	}
-	
-	public Action getDeployPathwayDiagramAction() {
-	    if (deployDiagramAction == null) {
-	        deployDiagramAction = new AbstractAction("Deploy Pathway Diagram") {
-	            public void actionPerformed(ActionEvent e) {
-	                deployPathwayDiagram();
-	            }
-	        };
-	    }
-	    return deployDiagramAction;
-	}
-	
-	private void deployPathwayDiagram() {
-	    try {
-	        // Get the MySQLAdaptor first to get some connection information
-	        final MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(curatorFrame);
-	        if (dba == null) {
-	            JOptionPane.showMessageDialog(curatorFrame,
-	                                          "Cannot connect to the database!",
-	                                          "Error in DB Connection",
-	                                          JOptionPane.ERROR_MESSAGE);
-	            return;
-	        }
-	        // Get the list of pathway diagram from the connected database
-	        Collection diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
-	        // As of March 1, 2010, all diagrams instances can be deployed. However, a warning diagram will appear
-	        List<GKInstance> list = new ArrayList<GKInstance>(diagrams);
-	        if (diagrams != null && diagrams.size() > 0) {
-////	            // Want to make sure only top-level Pathway can be displayed
-////	            SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram).getAttribute(ReactomeJavaConstants.representedPathway);
-////	            dba.loadInstanceAttributeValues(diagrams, att);
-////	            Collection c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
-////	            GKInstance frontPage = (GKInstance) c.iterator().next();
-////	            List frontPageItem = frontPage.getAttributeValuesList(ReactomeJavaConstants.frontPageItem);
-//	            list = new ArrayList<GKInstance>();
-//	            for (Iterator it = diagrams.iterator(); it.hasNext();) {
-//	                GKInstance pd = (GKInstance) it.next();
-//	                GKInstance pathway = (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.representedPathway);
-//	                if (frontPageItem.contains(pathway)) {
-//	                    list.add(pd);
-//	                }
-//	            }
-	        }
-	        if (list == null || list.size() == 0) {
-                JOptionPane.showMessageDialog(curatorFrame,
-                                              "There are no PathwayDiagram instances in the connected database. Make sure you have checked in\n" +
-                                              "your PathwayDiagram instances.",
-                                              "No PathwayDiagram Instance",
-                                              JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            InstanceUtilities.sortInstances(list);
-	        // Show these instances in a diagram so that the user can choose one
-	        InstanceListDialog dialog = new InstanceListDialog(curatorFrame,
-	                                                           "Choose a PathwayDiagram",
-	                                                           true);
-	        dialog.setDisplayedInstances(list);
-	        dialog.getInstanceListPane().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-	        dialog.setLocationRelativeTo(curatorFrame);
-	        dialog.setSubTitle("Please select one PathwayDiagram instance for deployment:");
-	        dialog.setSize(800, 400);
-	        dialog.setModal(true);
-	        dialog.setVisible(true);
-	        if (!dialog.isOKClicked()) {
-	            return; // Do nothing. Aborted!
-	        }
-	        List selection = dialog.getInstanceListPane().getSelection();
-	        if (selection == null || selection.size() == 0)
-	            return;
-	        final GKInstance selected = (GKInstance) selection.get(0);
-	           // A confirmation diagram
-            int reply = JOptionPane.showConfirmDialog(curatorFrame,
-                                                      "Are you sure you want to deploy \"" + selected.getDisplayName() + "\"?",
-                                                      "Diagram Deploying Confirmation",
-                                                      JOptionPane.YES_NO_OPTION);
-            if (reply != JOptionPane.YES_OPTION)
-                return;
-	        // Use a URL to send out these information to the server by using post.
-            final String serviceUrl = AttributeEditConfig.getConfig().getPDUrl();
-            if (serviceUrl == null) {
-                JOptionPane.showMessageDialog(curatorFrame,
-                                              "No pathway diagram deployment service URL configured!",
-                                              "No Service URL",
-                                              JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            // Use another thread to make service call
-	        Thread t = new Thread() {
-	            public void run() {
-	                ProgressPane progressPane = new ProgressPane();
-	                progressPane.setText("Deploying pathway diagram...");
-	                progressPane.setIndeterminate(true);
-	                curatorFrame.setGlassPane(progressPane);
-	                curatorFrame.getGlassPane().setVisible(true);
-	                try {
-	                    URL url = new URL(serviceUrl);
-	                    URLConnection connection = url.openConnection();
-	                    connection.setDoOutput(true);
-	                    OutputStream os = connection.getOutputStream();
-	                    ObjectOutputStream oos = new ObjectOutputStream(os);
-	                    Map<String, Object> info = new HashMap<String, Object>();
-	                    info.put("pdId", selected.getDBID());
-	                    GKInstance latestIE = InstanceUtilities.getLatestIEFromInstance(selected);
-	                    info.put("pdIE", latestIE.getDBID());
-	                    // Use char array for some security
-	                    info.put("user", dba.getDBUser().toCharArray());
-	                    info.put("dbName", dba.getDBName().toCharArray());
-	                    oos.writeObject(info);
-	                    oos.close();
-	                    os.close();
-	                    // Now waiting for reply from the server
-	                    InputStream is = connection.getInputStream();
-	                    // Get the response
-	                    BufferedReader bd = new BufferedReader(new InputStreamReader(is));
-	                    StringBuilder builder = new StringBuilder();
-	                    String line = null;
-	                    while ((line = bd.readLine()) != null) {
-	                        builder.append(line).append("\n");
-	                    }
-	                    bd.close();
-	                    is.close();
-	                    curatorFrame.getGlassPane().setVisible(false);
-	                    String message = builder.toString();
-	                    if (message.startsWith("The selected pathway diagram has been deployed successfully!")) {
-	                        int reply = JOptionPane.showConfirmDialog(curatorFrame, 
-	                                                                  message + "Do you want to view the deployed diagram at the following URL?\n" + 
-	                                                                  AttributeEditConfig.getConfig().getDevWebELV(), 
-	                                                                  "Deploying Pathway Diagram", 
-	                                                                  JOptionPane.YES_NO_OPTION);
-	                        if (reply == JOptionPane.NO_OPTION)
-	                            return;
-	                        else {
-	                            String webELVUrl = constructWebELVUrl(selected);
-	                            BrowserLauncher.displayURL(webELVUrl, 
-	                                                       curatorFrame);
-	                        }
-	                    }
-	                    else {
-	                        JOptionPane.showMessageDialog(curatorFrame,
-	                                                      message,
-	                                                      "Deploying Pathway Diagram",
-	                                                      JOptionPane.INFORMATION_MESSAGE);
-	                    }
-	                }
-	                catch(Exception e) {
-	                    curatorFrame.getGlassPane().setVisible(false);
-	                    System.err.println("CuratorActionCollection.deployPathwayDiagram(): " + e);
-	                    e.printStackTrace();
-	                    JOptionPane.showMessageDialog(curatorFrame,
-	                                                  "Error in deploying pathway diagram: " + e,
-	                                                  "Error in Deploying Pathway Diagram",
-	                                                  JOptionPane.ERROR_MESSAGE);
-	                }
-	            }
-	        };
-	        t.start();
-	    }
-	    catch(Exception e) {
-	        JOptionPane.showMessageDialog(curatorFrame,
-	                                      "Error in deploying a pathway diagram: " + e, 
-	                                      "Error", 
-	                                      JOptionPane.ERROR_MESSAGE);
-	        System.err.println("CuratorActionCollection.deployPathwayDiagram(): " + e);
-	        e.printStackTrace();
-	    }
-	}
-	
-	private String constructWebELVUrl(GKInstance diagram) throws Exception {
-	    String url = AttributeEditConfig.getConfig().getDevWebELV();
-	    GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
-	    GKInstance species = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
-	    MySQLAdaptor dba = (MySQLAdaptor) diagram.getDbAdaptor();
-	    return url + "#DB=" + dba.getDBName() + "&FOCUS_SPECIES_ID=" + species.getDBID() + "&FOCUS_PATHWAY_ID=" + pathway.getDBID();
 	}
     
 	public Action getRebuildProjectAction() {

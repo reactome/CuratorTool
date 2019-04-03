@@ -64,7 +64,6 @@ public class AttributeEditConfig {
     private String allowableAminoAcids;
     // For pathway diagram deployment
     private String pdURL;
-    private String devWebELV;
     public static final String HIDE_POPUP_MSG = "Do not show this message again";
 	
 	/**
@@ -136,10 +135,6 @@ public class AttributeEditConfig {
 	
 	public String getPDUrl() {
 	    return this.pdURL;
-	}
-	
-	public String getDevWebELV() {
-	    return this.devWebELV;
 	}
 	
 	/**
@@ -285,10 +280,6 @@ public class AttributeEditConfig {
             else if (node.getNodeName().equals("pdURL")) {
                 Element elm = (Element) node;
                 pdURL = elm.getAttribute("value");
-            }
-            else if (node.getNodeName().equals("devWebELV")) {
-                Element elm = (Element) node;
-                devWebELV = elm.getAttribute("value");
             }
             else if (node.getNodeName().equals("allowableAminoAcids")) {
                 // Text wrapped by this element

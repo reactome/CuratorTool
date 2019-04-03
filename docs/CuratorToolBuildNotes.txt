@@ -1,3 +1,7 @@
+Build 96 (Version 3.3) notes (April 4, 2019)
+
+A maintenance build to support display name generation for new ControlReference classes, new gk_central data model updates, and switch to the new curator.reactome.org at Amazon AWS.
+
 Build 95 (Version 3.3) notes (December 11, 2018)
 
 The version number has increased to 3.3. New features are added in this build:
