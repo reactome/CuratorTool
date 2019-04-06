@@ -33,6 +33,9 @@ public class ModifiedResidueHandler {
     /**
      * Returns the feature representing the given residue.
      * 
+     * As of April, 2019, the feature label is determined by the label slot in PsiMod
+     * instances used to describe ModifiedResidue. All others are not considred any more.
+     * 
      * The feature label is determined as follows:
      * <ul>
      * <li>If the residue has a <em>modification</em> value which maps
@@ -58,48 +61,19 @@ public class ModifiedResidueHandler {
      */
    public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
        // Work for ModifiedResidue only
-       if (!modifiedResidue.getSchemClass().isa(ReactomeJavaConstants.ModifiedResidue))
+       // Switch to TranslationalModification as of April, 2019
+       if (!modifiedResidue.getSchemClass().isa(ReactomeJavaConstants.TranslationalModification))
            return null;
-        // Need to convert to attachments
-        Map<String, String> residues = AttributeEditConfig.getConfig().getModificationResidues();
-        Map<String, String> modifications = AttributeEditConfig.getConfig().getModifications();
         RenderableFeature feature = new RenderableFeature();
         feature.setReactomeId(modifiedResidue.getDBID());
         try {
-            boolean isDone = false;
-            if (modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.residue)) {
-                GKInstance residue = (GKInstance) modifiedResidue.getAttributeValue(ReactomeJavaConstants.residue);
-                if (residue != null) {
-                    String shortName = residues.get(residue.getDisplayName());
-                    if (shortName != null)
-                        feature.setResidue(shortName);
-                }
-                isDone = true;
-            }
-            if (modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.modification)) {
-                GKInstance modification = (GKInstance) modifiedResidue.getAttributeValue(ReactomeJavaConstants.modification);
-                if (modification != null) {
-                    String shortName = modifications.get(modification.getDisplayName());
-                    if (shortName != null)
-                        feature.setLabel(shortName);
-                }
-                isDone = true;
-            }
-            // Need to check if psiMod has been assigned
-            if (!isDone && modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.psiMod)) {
-                String[] tokens = null;
+            // This is a just sanity check: All TranslationModifications should have this attribute
+            if (modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.psiMod)) {
                 GKInstance psiMod = (GKInstance) modifiedResidue.getAttributeValue(ReactomeJavaConstants.psiMod);
-                if (psiMod != null)
-                    tokens = getPsiModKeyWords(psiMod);
-                else {
-                    String displayName = modifiedResidue.getDisplayName();
-                    // Need to do some parse
-                    tokens = displayName.split("(-| )");
+                if (psiMod.getSchemClass().isValidAttribute(ReactomeJavaConstants.label)) {
+                    String label = (String) psiMod.getAttributeValue(ReactomeJavaConstants.label);
+                    feature.setLabel(label);
                 }
-                String psiResidue = searchPsiResidue(tokens);
-                feature.setResidue(psiResidue);
-                String psiModification = searchPsiModification(tokens);
-                feature.setLabel(psiModification);
             }
         }
         catch(Exception e) {

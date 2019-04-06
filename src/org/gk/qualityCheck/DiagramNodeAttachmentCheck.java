@@ -4,7 +4,6 @@
  */
 package org.gk.qualityCheck;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,10 +15,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.gk.database.AttributeEditConfig;
 import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -34,10 +29,7 @@ import org.gk.render.RenderableGene;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableProtein;
 import org.gk.render.RenderableRNA;
-import org.gk.schema.InvalidAttributeException;
-import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
-import org.w3c.dom.Document;
 
 /**
  * This check is to make sure hasModified values in EntityWithAccessionedSequence instances
@@ -137,8 +129,6 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
      */
     private void checkAttachments(Collection<Node> nodes) throws Exception {
         Map<Long, GKInstance> dbIdToInstMap = loadInstances(nodes);
-        // Load the config containing the attachment short names.
-        loadAttributeEditConfig();
         // Check each EWAS node.
         for (Node node: nodes) {
             Long ewasDbId = node.getReactomeId();
@@ -161,7 +151,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
         ewasDbIdToInst.put(instance.getDBID(), instance);
     }
 
-    public Set<String> checkNodeFeatures(Node node, GKInstance instance) throws InvalidAttributeException, Exception {
+    public Set<String> checkNodeFeatures(Node node, GKInstance instance) throws Exception {
         List<NodeAttachment> attachments = node.getNodeAttachments();
         if (attachments == null)
             attachments = new ArrayList<>(); // For easy comparison for avoid null check
@@ -316,22 +306,10 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
         return dbIdToInstMap;
     }
     
-    private AttributeEditConfig loadAttributeEditConfig() throws Exception {
-        AttributeEditConfig config = AttributeEditConfig.getConfig();
-        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
-        if (metaConfig == null)
-            return config;
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = dbf.newDocumentBuilder();
-        Document document = builder.parse(metaConfig);
-        config.loadConfig(document);
-        return config;
-    }
-    
     @Test
     public void testCheckInCommand() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_122118",
+                                            "gk_central_040519",
                                             "root",
                                             "macmysql01");
         super.testCheckInCommand(dba);
@@ -340,7 +318,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
     @Test
     public void testCheckOneDiagram() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_122118",
+                                            "gk_central_040519",
                                             "root",
                                             "macmysql01");
         setDatasource(dba);
