@@ -4,38 +4,52 @@
  */
 package org.gk.qualityCheck;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
 /**
- * The logic for Complex.compartment check is implemented as following:
+ * This Complex Compartment QA check detects Complex compartment
+ * inconsistency according to the following criteria:
  * <ul>
- * <li>The complex should have a non-empty container compartment value.</li>
- * <li>There should be only one container compartment value in Complex,
+ * <li>There should be exactly one container compartment value in Complex,
  *     even though the attribute is defined as multi-valued.</li>
- * <li>The Complex container compartment should be one of its contained
- *     subunits' compartment values.</li>
+ * <li>If there is a non-empty Complex includedLocation value set,
+ *     then the the included locations should equal the set of
+ *     contained subunits compartments without the complex compartment.
+ * </li>
+ * <li>Otherwise, the Complex container compartment should be the
+ *     same as each contained subunit compartment.</li>
+ * <li>The complex compartment and includedLocations should be
+ *     adjacent in a celluar region, as determined by the
+ *     surroundedBy compartment slot.</li>
  * </ul>
- * 
+ *
  * The following constraints are not validated until curators are ready to
  * address them:
  * <ul>
  * <li>There should not be more than two compartment values in all subunits.</li>
- * <li>If there are two compartments in subunits, these two compartments
- * should be adjacent.</li>
- * 
- * The <em/>includedLocation</em> slot is not checked.
  * </ul>
  * 
  * @author gwu
  */
 public class ComplexCompartmentCheck extends CompartmentCheck {
-    
+
+    private final static String MISSING_COMPLEX_COMPARTMENT = "Complex compartment not a subunit compartment";
+    private final static String TOO_MANY_COMPLEX_COMPARTMENTS = "More than one complex compartment";
+    private final static String INCLUDED_NOT_IN_CONTAINED = "Extra included location";
+    private final static String CONTAINED_NOT_IN_INCLUDED = "Missing included location";
+    private final static String TOO_MANY_SUBUNIT_COMPARTMENTS = "More than two subunit compartments";
+    private static final String COMPARTMENTS_MISMATCH = "Compartments mismatch";
+    private static final String COMPARTMENTS_NOT_ADJACENT = "Noncontiguous compartments";
+   
     public ComplexCompartmentCheck() {
         checkClsName = ReactomeJavaConstants.Complex;
         followAttributes = new String[] {
@@ -62,6 +76,10 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
                        ReactomeJavaConstants.PhysicalEntity,
                        ReactomeJavaConstants.compartment,
                        dba);
+        loadAttributes(toBeLoaded,
+                ReactomeJavaConstants.Complex,
+                ReactomeJavaConstants.includedLocation,
+                dba);
     }
     
     @Override
@@ -70,79 +88,101 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
     }
     
     @Override
-    protected String getIssue(GKInstance container) throws Exception {
-        // Recapitulate the check to get the issue.
-        // TODO - eliminate this redundancy by collecting issue details
-        //   as is done in other checks.
-        // TODO - add Complex and Compartment db id and name columns.
-        Set<GKInstance> contained = getAllContainedEntities(container);
-        Set<GKInstance> containedCompartments = getContainedCompartments(contained);
-        @SuppressWarnings("unchecked")
-        List<GKInstance> containerCompartments =
-                container.getAttributeValuesList(ReactomeJavaConstants.compartment);
-
-        // The following code is adapted from EntitySetCompartmentCheck.
-        if (containerCompartments == null)
-            containerCompartments = EMPTY_LIST;
-        if (containerCompartments.isEmpty() || containerCompartments.size() > 1)
-            return "Extra compartments";
-        GKInstance complexCompartment = (GKInstance) containerCompartments.get(0);
-        // The sole container value should be one of the subunit values.
-        if (!containedCompartments.contains(complexCompartment)) {
-            return "Compartment is not a subunit compartment";
-        }
-        // That's all for now; modify when new comparison conditions are checked.
-        // This is a fatal exception because the QA check is inconsistent and
-        // should be addressed.
-        throw new IllegalStateException("QA check issue could not be determined");
-    }
-   
-    @SuppressWarnings("rawtypes")
-    protected boolean compareCompartments(Set containedCompartments,
-                                          List containerCompartments) throws Exception {
-//         This condition is not yet reported per the class javadoc.
-//         if (containedCompartments.size() > 2)
-//             return false;
+    protected Issue getIssue(GKInstance complex, Set<GKInstance> containedCompartments,
+                           List<GKInstance> containerCompartments) throws Exception {
         // To make compare easier
         if (containerCompartments == null)
             containerCompartments = EMPTY_LIST;
-        if (containerCompartments.isEmpty() || containerCompartments.size() > 1)
-            return false;
-        GKInstance complexCompartment = (GKInstance) containerCompartments.get(0);
-        // The sole container value should be one of the subunit values.
-        if (!containedCompartments.contains(complexCompartment)) {
-            return false;
+        if (containerCompartments.isEmpty()) {
+            return new Issue(MISSING_COMPLEX_COMPARTMENT);
         }
-// TODO - is this a requirement?
-//          // Components and complex should have the same numbers of compartments used.
-//          if (containerCompartments.size() != containedCompartments.size())
-//              return false;
-//
-// The adjacency condition is not yet reported per the class javadoc.
-//      if (containedCompartments.size() == 2) {
-//            // Make sure two compartments are adjacent if there are two compartments
-//            Iterator it = containedCompartments.iterator();
-//            GKInstance compartment1 = (GKInstance) it.next();
-//            GKInstance compartment2 = (GKInstance) it.next();
-//            Map neighborMap = getNeighbors();
-//            List neighbors = (List) neighborMap.get(compartment1.getDBID());
-//            if (neighbors == null ||
-//                !neighbors.contains(compartment2.getDBID()))
-//                return false; // The used two compartments are not adjacent. This should be an error.
-//            if (!containerCompartments.contains(compartment1) ||
-//                !containerCompartments.contains(compartment2))
-//                return false; // At least one of compartment used by component is not listed.
-//        }
-//        else if (containedCompartments.size() == 1) { 
-//            // The  compartment
-//            GKInstance componentCompartment = (GKInstance) containedCompartments.get(0);
-//            GKInstance complexCompartment = (GKInstance) containerCompartments.get(0);
-//            if (componentCompartment != complexCompartment)
-//                return false;
-//        }
-        return true;
+        if (containerCompartments.size() > 1) {
+            return new Issue(TOO_MANY_COMPLEX_COMPARTMENTS, containerCompartments);
+        }
+//      This condition is not yet reported per the class javadoc.
+//      if (containedCompartments.size() > 2)
+//          return new Issue(Issue.Type.EXTRA_SUBUNIT_COMPARTMENTS);
+        
+        GKInstance complexCompartment = (GKInstance) containerCompartments.get(0);
+        @SuppressWarnings("unchecked")
+        List<GKInstance> includedLocations =
+                complex.getAttributeValuesList(ReactomeJavaConstants.includedLocation);
+        if (includedLocations.isEmpty()) {
+            // The sole container value should be the same as each subunit value.
+            if (containedCompartments.size() == 1) {
+                if (containedCompartments.contains(complexCompartment)) {
+                    return null;
+                } else {
+                    return new Issue(MISSING_COMPLEX_COMPARTMENT);
+                }
+            } else {
+                List<GKInstance> extra = containedCompartments.stream()
+                        .filter(cmpt -> cmpt != complexCompartment)
+                        .collect(Collectors.toList());
+                return new Issue(TOO_MANY_SUBUNIT_COMPARTMENTS, extra);
+            }
+        } else {
+            Set<GKInstance> includedSet = new HashSet<GKInstance>(includedLocations);
+            Set<GKInstance> containedSet = new HashSet<GKInstance>(containedCompartments);
+            containedSet.remove(complexCompartment);
+            if (!containedSet.equals(includedSet)) {
+                return createMismatchIssue(containedSet, includedSet);
+            }
+        }
+
+        // Check adjacency.
+        Collection<GKInstance> nonAdjacent = new ArrayList<GKInstance>();
+        List<GKInstance> complexCompartments =new ArrayList<GKInstance>(includedLocations);
+        complexCompartments.add(complexCompartment);
+        for (int i = 0; i < complexCompartments.size(); i++) {
+            GKInstance container = complexCompartments.get(i);
+            @SuppressWarnings("unchecked")
+            List<GKInstance> neighbors =
+                    container.getAttributeValuesList(ReactomeJavaConstants.surroundedBy);
+            for (int j = i + 1; j < complexCompartments.size(); j++) {
+                GKInstance other = complexCompartments.get(j);
+                if (!neighbors.contains(other)) {
+                    nonAdjacent.add(other);
+                }
+            }
+        }
+        if (!nonAdjacent.isEmpty()) {
+            return new Issue(COMPARTMENTS_NOT_ADJACENT, nonAdjacent);
+        }
+        
+        return null;
+    }    
+
+    private Issue createMismatchIssue(Collection<GKInstance> containedCompartments,
+            Collection<GKInstance> includedLocations) throws Exception {
+        Set<GKInstance> containedOnly = new HashSet<GKInstance>(containedCompartments);
+        containedOnly.removeAll(includedLocations);
+        Set<GKInstance> includedOnly = new HashSet<GKInstance>(includedLocations);
+        includedOnly.removeAll(containedCompartments);
+        if (containedOnly.isEmpty()) {
+            return new Issue(INCLUDED_NOT_IN_CONTAINED, includedOnly);
+        }
+        if (includedOnly.isEmpty()) {
+            return new Issue(CONTAINED_NOT_IN_INCLUDED, containedOnly);
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append(COMPARTMENTS_MISMATCH);
+        builder.append(" - ");
+        builder.append("Included Only:");
+        String includedStr = includedOnly.stream()
+                .map(GKInstance::getDisplayName)
+                .collect(Collectors.joining(", "));
+        builder.append(includedStr);
+        builder.append("; Contained Only:");
+        String containedStr = containedOnly.stream()
+                .map(GKInstance::getDisplayName)
+                .collect(Collectors.joining(", "));
+        builder.append(containedStr);
+        String text = builder.toString();
+        
+        return new Issue(text);
     }
-    
+
     protected ResultTableModel getResultTableModel() {
         ResultTableModel tableModel = new ComponentTableModel();
         tableModel.setColNames(new String[] {"Component", "Compartment"});
