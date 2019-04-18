@@ -346,4 +346,5 @@ public class ReactomeJavaConstants {
     public static final String catalystActivityReference = "catalystActivityReference";
     public static final String regulation = "regulation";
     public static final String ControlReference = "ControlReference";
+    public static final String surroundedBy = "surroundedBy";
 }
