@@ -45,7 +45,7 @@ import org.gk.schema.SchemaClass;
 
 /**
  * This QualityCheck implementation is used to check if required attributes are filled.
- * This checking should be gone after required attributes are defined in the schema.
+ * This checking should be done after required attributes are defined in the schema.
  * @author wgm
  *
  */
