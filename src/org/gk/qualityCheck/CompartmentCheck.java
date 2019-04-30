@@ -9,12 +9,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
@@ -24,10 +26,54 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
     private final String NEIGHBOR_FILE_NAME = "AdjacentCompartments.txt";
 
     protected final List<GKInstance> EMPTY_LIST = new ArrayList<GKInstance>();
+
+    /**
+     * Item reported in the QA check.
+     *
+     * @author Fred Loney <loneyf@ohsu.edu>
+     */
+    // TODO - this class and the issue collector mechanism should be pulled up
+    // into the superclass as the generic QA check mechanism. Ideally, issues
+    // should be streamed rather than collected. This would avoid the redundancy
+    // found in, e.g., SpeciesCheck.
+    protected static class Issue {
+         
+        private String text;
+        
+        private Collection<GKInstance> instances;
+        
+        Issue(String text, Collection<GKInstance> instances) {
+            this.text = text;
+            this.instances = instances;
+        }
+        
+        Issue(String text) {
+            this(text, null);
+        }
+        
+        public String toString() {
+            String message = text.toString();
+            if (instances == null || instances.isEmpty()) {
+                return message;
+            } else {
+                String dbIdsStr = instances.stream()
+                        .map(GKInstance::getDisplayName)
+                        .collect(Collectors.joining(", "));
+                return message + ": " + dbIdsStr;
+            }
+        }
+
+    }
+    
+    /**
+     * The container {instance: issue} map.
+     */
+    private Map<GKInstance, Issue> containerToIssue;
     protected Map<Long, List<Long>> neighbors = null;
     
     public CompartmentCheck() {
         checkAttribute = "compartment";
+        containerToIssue = new HashMap<GKInstance, Issue>();
     }
     
     protected Map<Long, List<Long>> getNeighbors() {
@@ -40,21 +86,31 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
     protected boolean checkInstance(GKInstance instance) throws Exception {
         return checkCompartment(instance);
     }
-
+    
+    /**
+     * Gets a String describing the issue of the offended instance.
+     * This is the issue column value.
+     * 
+     * @return the instance issue column value
+     * @see {@link #getIssueTitle()}
+     */
     @Override
     protected String getIssue(GKInstance instance) throws Exception {
-        return null;
+        Issue issue = containerToIssue.get(instance);
+        return issue == null ? null : issue.toString();
     }
 
     /**
      * The class specific way to check compartment values.
-     * @param containedCompartments
-     * @param containerCompartments
-     * @return
+     * @param container 
+     * 
+     * @param containedCompartments the contained entities compartments
+     * @param containerCompartments the container entity compartments
+     * @return the issue to report
      * @throws Exception
      */
-    protected abstract boolean compareCompartments(Set containedCompartments,
-                                                   List containerCompartments) throws Exception;
+    protected abstract Issue getIssue(GKInstance container, Set<GKInstance> containedCompartments,
+            List<GKInstance> containerCompartments) throws Exception;
     
     protected Map<Long, List<Long>> loadNeighbors() {
         Map<Long, List<Long>> map = new HashMap<Long, List<Long>>();
@@ -96,7 +152,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
      * @throws Exception
      */
     protected boolean checkCompartment(GKInstance container) throws Exception {
-        Set contained = getAllContainedEntities(container);
+        Set<GKInstance> contained = getAllContainedEntities(container);
         // Skip checking for shell instances
         if (containShellInstances(contained))
             return true;
@@ -107,19 +163,29 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
             return true;
         // Get the compartment setting: compartments should be a list since
         // it is used as a multiple value attribute.
-        Set containedCompartments = getContainedCompartments(contained);
-        List containerCompartments = container.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        Set<GKInstance> containedCompartments = getContainedCompartments(contained);
+        @SuppressWarnings("unchecked")
+        List<GKInstance> containerCompartments =
+                container.getAttributeValuesList(ReactomeJavaConstants.compartment);
         // To make compare easier
         if (containerCompartments == null)
             containerCompartments = EMPTY_LIST;
-        return compareCompartments(containedCompartments, containerCompartments);
+        Issue issue = getIssue(container, containedCompartments, containerCompartments);
+        if (issue == null) {
+            return true;
+        } else {
+            containerToIssue.put(container, issue);
+            return false;
+        }
     }
-    
+
     protected Set<GKInstance> getContainedCompartments(Set<GKInstance> contained) throws Exception {
-        Set containedCompartments = new HashSet();
-        for (Iterator it = contained.iterator(); it.hasNext();) {
+        Set<GKInstance> containedCompartments = new HashSet<GKInstance>();
+        for (Iterator<GKInstance> it = contained.iterator(); it.hasNext();) {
             GKInstance comp = (GKInstance) it.next();
-            List compartments = comp.getAttributeValuesList(ReactomeJavaConstants.compartment);
+            @SuppressWarnings("unchecked")
+            List<GKInstance> compartments =
+                    comp.getAttributeValuesList(ReactomeJavaConstants.compartment);
             if (compartments != null)
                 containedCompartments.addAll(compartments);
         }

@@ -22,6 +22,10 @@ import org.gk.persistence.MySQLAdaptor;
  */
 public class EntitySetCompartmentCheck extends CompartmentCheck {
     
+    private static final String TOO_MANY_MEMBER_COMPARTMENTS = "More than two compartments in members";
+    
+    private static final String COMPARTMENTS_MISMATCH = "Compartment mismatch";
+
     public EntitySetCompartmentCheck() {        
         checkClsName = ReactomeJavaConstants.EntitySet;
         followAttributes = new String[] {
@@ -40,33 +44,6 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
         return "Extra_Compartment_DisplayNames";
     }
     
-    @Override
-    protected String getIssue(GKInstance container) throws Exception {
-        Set<GKInstance> contained = getAllContainedEntities(container);
-        Set<GKInstance> containedCompartments = getContainedCompartments(contained);
-        if (containedCompartments.size() > 2)
-            return "More than two compartments in members";
-        List<GKInstance> containerCompartments = container.getAttributeValuesList(ReactomeJavaConstants.compartment);
-        Set<GKInstance> shared = new HashSet<GKInstance>(containedCompartments);
-        shared.retainAll(containerCompartments);
-        containedCompartments.removeAll(shared);
-        containerCompartments.removeAll(shared);
-        StringBuilder builder = new StringBuilder();
-        if (containerCompartments.size() > 0) {
-            builder.append("EntitySet:");
-            containerCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
-            builder.deleteCharAt(builder.length() - 1);
-        }
-        if (containedCompartments.size() > 0) {
-            if (builder.length() > 0)
-                builder.append("; ");
-            builder.append("Members:");
-            containedCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
-            builder.deleteCharAt(builder.length() - 1);
-        }
-        return builder.toString();
-    }
-    
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
@@ -83,33 +60,69 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
         return filterInstancesForProject(instances, ReactomeJavaConstants.EntitySet);
     }
     
+    @Override
     /**
-     * For EntitySet, compartments used by members should be the same as
-     * its container, EntitySet instance.
+     * Compartments used by an EntitySet's members should be the same as
+     * its container EntitySet instance.
+     * 
+     * @param container
      * @param containedCompartments
      * @param containerCompartments
      * @return
      */
-    protected boolean compareCompartments(Set containedCompartments,
-                                          List containerCompartments) throws Exception {
-        if (containedCompartments.size() > 2)
-            return false;
-        // Components and complex should have the same numbers of compartments used.
-        if (containerCompartments.size() != containedCompartments.size())
-            return false;
-        for (Iterator it = containedCompartments.iterator(); it.hasNext();) {
-            Object obj = it.next();
-            if (!containerCompartments.contains(obj)) // Make sure these two collections are the same.
-                return false;
+    protected Issue getIssue(GKInstance container, Set<GKInstance> containedCompartments,
+            List<GKInstance> containerCompartments) throws Exception {
+        // Check if there are more than two member compartments.
+        if (containedCompartments.size() > 2) {
+            return new Issue(TOO_MANY_MEMBER_COMPARTMENTS, containedCompartments);
         }
-        // It is OK if nothing has been assigned. The mandatory checking should
-        // handle this case
-        return true;
+        
+        // Components and container should have the same number of compartments used.
+        if (containerCompartments.size() != containedCompartments.size()) {
+            return createMismatchIssue(containedCompartments, containerCompartments);
+        }
+        // Make sure these two collections are the same.
+        for (Iterator<GKInstance> it = containedCompartments.iterator(); it.hasNext();) {
+            Object obj = it.next();
+            if (!containerCompartments.contains(obj)) {
+                return createMismatchIssue(containedCompartments, containerCompartments);
+            }
+        }
+        
+        // Note: it is OK if neither the container nor the members have been assigned
+        // a compartment. The mandatory checking should handle this case.
+        return null;
+    }
+
+    private Issue createMismatchIssue(Set<GKInstance> containedCompartments,
+            List<GKInstance> containerCompartments) throws Exception {
+        Set<GKInstance> shared = new HashSet<GKInstance>(containedCompartments);
+                shared.retainAll(containerCompartments);
+                containedCompartments.removeAll(shared);
+                containerCompartments.removeAll(shared);
+                StringBuilder builder = new StringBuilder();
+                builder.append(COMPARTMENTS_MISMATCH);
+                builder.append(": ");
+                if (containerCompartments.size() > 0) {
+                    builder.append("EntitySet:");
+                    containerCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+                    builder.deleteCharAt(builder.length() - 1);
+                }
+                if (containedCompartments.size() > 0) {
+                    if (builder.length() > 0)
+                        builder.append("; ");
+                    builder.append("Members:");
+                    containedCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+                    builder.deleteCharAt(builder.length() - 1);
+                }
+        String text = builder.toString();
+        
+        return new Issue(text);
     }
     
     protected void grepCheckOutInstances(GKInstance complex,
-                                         Set checkOutInstances) throws Exception {
-        Set components = getAllContainedEntities(complex);
+                                         Set<GKInstance> checkOutInstances) throws Exception {
+        Set<GKInstance> components = getAllContainedEntities(complex);
         checkOutInstances.addAll(components);
     }
     
