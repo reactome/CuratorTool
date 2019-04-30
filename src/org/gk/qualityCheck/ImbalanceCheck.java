@@ -203,7 +203,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
         if ((progressPane != null) && progressPane.isCancelled())
             return;
         if (progressPane != null)
-            progressPane.setText("Load attribtues for EntitiSets...");
+            progressPane.setText("Load attributes for EntitySets...");
         loadAttributes(ReactomeJavaConstants.EntitySet, 
                        ReactomeJavaConstants.hasMember, 
                        dba);
