@@ -112,7 +112,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
         for (GKInstance pathway : pathways) {
             GKInstance created =
                     (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.created);
-            GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pathway);
+            GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(pathway);
             GKInstance species = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
             report.addLine(pathway.getDBID() + "",
                            pathway.getDisplayName(),

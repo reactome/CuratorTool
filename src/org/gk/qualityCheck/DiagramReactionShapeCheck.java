@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.ReactionType;
@@ -75,7 +74,7 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
         Collection<Long> rxnDbIds = getIssueDbIds(instance);
         List<String[]> lines = new ArrayList<String[]>();
         GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
+        GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(instance);
         for (Long rxnDbId: rxnDbIds) {
             IssueDetail detail = rxnDbIdToDetail.get(rxnDbId);
             String[] line = {

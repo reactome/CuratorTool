@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 
 import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
@@ -98,7 +97,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
         Collection<Long> ewasDbIds = getIssueDbIds(pathwayDiagramInst);
         List<String[]> lines = new ArrayList<String[]>();
         GKInstance created = (GKInstance) pathwayDiagramInst.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pathwayDiagramInst);
+        GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(pathwayDiagramInst);
         for (Long ewasDBID : ewasDbIds) {
             GKInstance instance = ewasDbIdToInst.get(ewasDBID);
             String[] line = {

@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
@@ -46,7 +45,7 @@ public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
             if (diagrams == null) {
                 GKInstance reaction = usage.getKey();
                 if (isHumanNonDisease(reaction)) {
-                    GKInstance ie = InstanceUtilities.getLatestCuratorIEFromInstance(reaction);
+                    GKInstance ie = QACheckUtilities.getLatestCuratorIEFromInstance(reaction);
                     String ieName = ie == null ? "None" : ie.getDisplayName();
                     report.addLine(reaction.getDBID().toString(), reaction.getDisplayName(), ieName);
                 }

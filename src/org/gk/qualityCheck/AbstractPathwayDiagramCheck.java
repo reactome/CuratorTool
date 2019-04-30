@@ -18,7 +18,6 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
@@ -92,7 +91,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
         GKInstance pathway =
                 (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.representedPathway);
         GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
+        GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(instance);
         String[] line = new String[] {
                 instance.getDBID().toString(),
                 pathway.getDisplayName(),

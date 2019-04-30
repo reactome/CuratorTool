@@ -192,7 +192,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     
     protected String[][] getReportLines(GKInstance instance) throws Exception {
         GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
+        GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(instance);
         String[] line = new String[] {
                 instance.getDBID().toString(),
                 instance.getDisplayName(),

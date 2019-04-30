@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
@@ -277,7 +276,7 @@ public class DiagramSubpathwayCheck extends PathwayELVCheck {
         GKInstance diagram = getPathwayDiagram(detail.embedder);
         GKInstance created =
                 (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.created);
-        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(pathway);
+        GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(pathway);
         report.addLine(diagram.getDBID().toString(),
                 detail.embedder.getDisplayName(),
                 detail.embedder.getDBID().toString(),

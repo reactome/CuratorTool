@@ -11,6 +11,7 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.qualityCheck.QACheckUtilities;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
@@ -137,7 +138,7 @@ public class RegulationMigration {
         for (GKInstance control : notToBeHandled) {
             List<GKInstance> references = control.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
             Collection<GKInstance> rles = control.getReferers(rleAttributeName);
-            GKInstance lastIE = InstanceUtilities.getLatestCuratorIEFromInstance(control);
+            GKInstance lastIE = QACheckUtilities.getLatestCuratorIEFromInstance(control);
             builder.append(control.getDBID() + "\t" +
                            control.getDisplayName() + "\t" + 
                            control.getSchemClass().getName() + "\t" +

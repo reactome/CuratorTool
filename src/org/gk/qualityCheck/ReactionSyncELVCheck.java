@@ -106,7 +106,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
                     (GKInstance) pd.getAttributeValue(ReactomeJavaConstants.representedPathway);
             Set<GKInstance> rxts = pdToRxts.get(pd);
             for (GKInstance rle : rxts) {
-                GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(rle);
+                GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(rle);
                 GKInstance created = (GKInstance) rle.getAttributeValue(ReactomeJavaConstants.created);
                 String issue = dbIdsToIssue.get(pd.getDBID() + "." + rle.getDBID());
                 String[] colValues = new String[] {
