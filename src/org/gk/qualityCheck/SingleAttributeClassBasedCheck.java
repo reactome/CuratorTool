@@ -7,7 +7,6 @@ package org.gk.qualityCheck;
 import java.awt.BorderLayout;
 import java.awt.Window;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -181,7 +180,6 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             String[][] lines = getReportLines(instance);
             for (String[] line: lines) {
                 report.addLine(line);
-
             }
         }
         report.setColumnHeaders(getColumnHeaders());
@@ -189,15 +187,18 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
     
     protected String[] getColumnHeaders() {
-        return new String[] {"DB_ID", "DisplayName", getIssueTitle(), "MostRecentAuthor"};
+        return new String[] {"DB_ID", "DisplayName", getIssueTitle(), "Created", "Modified"};
     }
     
     protected String[][] getReportLines(GKInstance instance) throws Exception {
+        GKInstance created = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
+        GKInstance modified = InstanceUtilities.getLatestCuratorIEFromInstance(instance);
         String[] line = new String[] {
                 instance.getDBID().toString(),
                 instance.getDisplayName(),
                 getIssue(instance),
-                InstanceUtilities.getLatestCuratorIEFromInstance(instance).getDisplayName()
+                created == null ? "" : created.getDisplayName(),
+                modified == null ? "" : modified.getDisplayName()
         };
         return new String[][] { line };
     }
