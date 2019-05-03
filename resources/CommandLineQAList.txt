@@ -1,16 +1,16 @@
 # The list of QA checks to be run in the command line on
 # a slice database.
-org.gk.qualityCheck.ComplexCompartmentCheck
+#org.gk.qualityCheck.ComplexCompartmentCheck
 org.gk.qualityCheck.ComplexSpeciesCheck
 org.gk.qualityCheck.DiagramInstanceDeletionCheck
 org.gk.qualityCheck.DiagramMissingReactionsCheck
 #org.gk.qualityCheck.DiagramNodeAttachmentCheck
-org.gk.qualityCheck.DiagramOrphanEntitiesCheck
-org.gk.qualityCheck.DiagramReactionShapeCheck
-org.gk.qualityCheck.DiagramSubpathwayCheck
-org.gk.qualityCheck.DiagramUnrepresentedReactionCheck
-org.gk.qualityCheck.EntityFunctionalStatusDiseaseEntityCheck
-org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck
+#org.gk.qualityCheck.DiagramOrphanEntitiesCheck
+#org.gk.qualityCheck.DiagramReactionTypeCheck
+#org.gk.qualityCheck.DiagramSubpathwayCheck
+#org.gk.qualityCheck.DiagramUnrepresentedReactionCheck
+#org.gk.qualityCheck.EntityFunctionalStatusDiseaseEntityCheck
+#org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck
 org.gk.qualityCheck.EntitySetCompartmentCheck
 org.gk.qualityCheck.EntitySetSpeciesCheck
 #org.gk.qualityCheck.EntitySetTypeCheck
@@ -22,6 +22,6 @@ org.gk.qualityCheck.PathwayHasNoDiagramCheck
 #org.gk.qualityCheck.ReactionCompartmentCheck
 #org.gk.qualityCheck.ReactionELVCheck
 #org.gk.qualityCheck.ReactionSpeciesCheck
-org.gk.qualityCheck.ReactionSyncELVCheck
+#org.gk.qualityCheck.ReactionSyncELVCheck
 #org.gk.qualityCheck.RequiredAttributesCheck
 org.gk.qualityCheck.StableIdentifierCheck
