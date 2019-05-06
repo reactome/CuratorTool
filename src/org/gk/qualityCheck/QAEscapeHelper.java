@@ -195,7 +195,7 @@ public class QAEscapeHelper {
             if (cutoffDate != null) {
                 try {
                     // Check if the latest IEs is later than the cutoff date
-                    GKInstance latestIE = InstanceUtilities.getLatestIEFromInstance(inst);
+                    GKInstance latestIE = QACheckUtilities.getLatestCuratorIEFromInstance(inst);
                     // Just in case
                     if (latestIE == null)
                         return true;
