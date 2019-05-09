@@ -4,7 +4,9 @@
  */
 package org.gk.gkCurator.authorTool;
 
+import java.awt.Graphics;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -19,7 +21,9 @@ import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.render.Node;
 import org.gk.render.NodeAttachment;
+import org.gk.render.Renderable;
 import org.gk.render.RenderableFeature;
 import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
@@ -139,6 +143,35 @@ public class ModifiedResidueHandler {
         attachment.setRelativePosition(x, y);
     }
     
+    @SuppressWarnings("unchecked")
+    public void convertModifiedResiduesToNodeFeatures(GKInstance instance, 
+                                                      Renderable r,
+                                                      Graphics g) throws Exception {
+        if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasModifiedResidue))
+            return;
+        // Just in case
+        if (!(r instanceof Node))
+            return;
+        // Want to convert ModifieredResidue
+        List<GKInstance> list = instance.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
+        if (list == null || list.size() == 0)
+            return;
+        // Need to convert to attachments
+        List<NodeAttachment> features = new ArrayList<NodeAttachment>();
+        for (GKInstance modifiedResidue : list) {
+            RenderableFeature feature = convertModifiedResidue(modifiedResidue);
+            if (feature == null)
+                continue;
+            if (g != null)
+                feature.validateBounds(r.getBounds(), g);
+            features.add(feature);
+        }
+        Node node = (Node) r;
+        node.setNodeAttachmentsLocally(features);
+        // If there is no graphics context, we cannot validate bounds and cannot do autolayout
+        if (g != null)
+            node.layoutNodeAttachemtns();
+    }
     
     @Test
     public void checkPsiModMappings() throws Exception {

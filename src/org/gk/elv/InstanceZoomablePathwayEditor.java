@@ -1036,19 +1036,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private void updateNodeFeatures(Node node, GKInstance instance) throws Exception {
         ModifiedResidueHandler handler = new ModifiedResidueHandler();
-        List<GKInstance> residues = instance.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
-        // Features that are supposed to be displayed
-        List<NodeAttachment> features = new ArrayList<>();
         Graphics g = pathwayEditor.getGraphics();
-        for (GKInstance residue : residues) {
-            RenderableFeature feature = handler.convertModifiedResidue(residue);
-            if (feature == null)
-                continue;
-            feature.validateBounds(node.getBounds(), g);
-            features.add(feature);
-        }
-        node.setNodeAttachmentsLocally(features);
-        node.layoutNodeAttachemtns();
+        handler.convertModifiedResiduesToNodeFeatures(instance, node, g);
     }
     
     public void setDoNotReleaseEventVisible(boolean visible) {

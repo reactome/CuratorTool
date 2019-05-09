@@ -29,6 +29,7 @@ import javax.swing.JFrame;
 
 import org.gk.gkCurator.authorTool.InstanceHandler;
 import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
+import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.gkEditor.ZoomablePathwayEditor;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
@@ -437,6 +438,11 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             //TODO: Need to support this. Currently it is not supported!!! See example
             // in PI3/AKT cancer pathway.
             //diseaseNode.setNodeAttachmentsLocally(node.getNodeAttachments());
+            // Update to support node attachments for disease entities on May 9, 2019
+            ModifiedResidueHandler modifiedResidueHandler = new ModifiedResidueHandler();
+            modifiedResidueHandler.convertModifiedResiduesToNodeFeatures(diseaseEntity,
+                                                                         diseaseNode,
+                                                                         getGraphics());
             diseaseNode.setDisplayName(diseaseEntity.getDisplayName());
             diseaseNode.setReactomeId(diseaseEntity.getDBID());
             diseaseNode.invalidateBounds();
