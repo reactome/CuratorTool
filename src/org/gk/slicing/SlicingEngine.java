@@ -948,7 +948,10 @@ public class SlicingEngine {
                         continue;
                 pushToMap(tmp, sliceMap);
                 // Load all instances
-                sourceDBA.loadInstanceAttributeValues(tmp);
+//                sourceDBA.loadInstanceAttributeValues(tmp);
+                // Use this version to increase the performance hopefully
+                sourceDBA.fastLoadInstanceAttributeValues(tmp);
+                
                 for (Iterator it1 = tmp.getSchemaAttributes().iterator(); it1.hasNext();) {
                     att = (GKSchemaAttribute) it1.next();
                     if (!att.isInstanceTypeAttribute())
