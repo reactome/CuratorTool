@@ -5,6 +5,9 @@ package org.reactome.test;
 
 import java.awt.Color;
 import java.io.File;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,14 +34,40 @@ import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.SwingImageCreator;
 import org.junit.Test;
 
+import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ResultTreeType;
+
 /**
  * 
  * @author wugm
  */
+@SuppressWarnings("unchecked")
 public class MySQLAdaptorTest {
     private MySQLAdaptor adaptor = null;
     
     public MySQLAdaptorTest() {
+    }
+    
+    @Test
+    public void testSSLConnection() throws Exception {
+//        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+//                                            "gk_central",
+//                                            "authortool",
+//                                            "T001test");
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "reactome_67_plus_i", 
+                                            "root", 
+                                            "macmysql01");
+        Collection<GKInstance> pathways = dba.fetchInstancesByClass(ReactomeJavaConstants.Pathway);
+        System.out.println("Total pathways: " + pathways.size());
+        Connection connection = dba.getConnection();
+        Statement stat = connection.createStatement();
+        ResultSet result = stat.executeQuery("show session status like 'Ssl%'");
+        while (result.next()) {
+            System.out.println(result.getString(1) + ": " + result.getString(2));
+        }
+        result.close();
+        stat.close();
+        connection.close();
     }
     
     @Test 

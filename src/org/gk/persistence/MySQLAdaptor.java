@@ -151,6 +151,18 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 //		prop.put("logSlowQueries", "true");
 //		prop.put("explainSlowQueries", "true");
 		
+		// Enable ssl connection
+		// To test if ssl connection is enabled, run test method testSSLConnection in
+		// class org.reactome.test.MySQLAdaptorTest and make sure the following two rows are not empty:
+		// Ssl_cipher: DHE-RSA-AES256-SHA (this may be difficult, but should not be empty)
+		// Ssl_cipher_list: DHE-RSA-AES256-SHA:...... (many more)
+		prop.put("requireSSL", "false"); // To make sure MySQLAdaptor can be connect to server without ssl enabled,
+		                                 // this option should not be set to true!
+		prop.put("verifyServerCertificate", "false"); // Add this to make sure certificate check is not needed
+		                                              // since we just want to use encrypted connection. Authentication
+		                                              // will be handled by user name and password as usual.
+		prop.put("useSSL", "true"); // If ssl is not enabled, useSSL will just fall back to non-encrypted connection
+		
 		conn = DriverManager.getConnection(connectionStr, prop);
 		//conn = DriverManager.getConnection(connectionStr, username, password);
 	}
