@@ -1,3 +1,10 @@
+Build 97 (Version 3.3) notes (May 24, 2019)
+
+1. Enable ssl secure connection for the curator tool. 
+
+2. Enable display node features (i.e. node decorations showing protein modifications) for overlaid entities in the disease diagram view.
+
+
 Build 96 (Version 3.3) notes (April 4, 2019)
 
 A maintenance build to support display name generation for new ControlReference classes, new gk_central data model updates, and switch to the new curator.reactome.org at Amazon AWS.

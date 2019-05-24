@@ -94,12 +94,14 @@ public class LiteratureReferenceAttributeAutoFiller extends AbstractAttributeAut
         Collection<?> c = adaptor.fetchInstanceByAttribute("Person", 
                                                            "surname",
                                                            "=", 
-                                                           person.getLastName());
+                                                           // Just in case a person doesn't have last name
+                                                           // e.g. an organization like in https://www.ncbi.nlm.nih.gov/pubmed/21794845
+                                                           person.getLastName() == null ? "" : person.getLastName());
         if (c != null && c.size() > 0) {
             for (Iterator<?> it = c.iterator(); it.hasNext();) {
                 GKInstance personInst = (GKInstance) it.next();
                 String initial = (String) personInst.getAttributeValue("initial");
-                // For easy comparion
+                // For easy comparison
                 if (initial == null)
                     initial = "";
                 String firstName = (String) personInst.getAttributeValue(ReactomeJavaConstants.firstname);
