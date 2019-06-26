@@ -18,7 +18,7 @@ import org.junit.Test;
 
 /**
  * This QA check reports pathways without an associated diagram. A pathway is regarded
- * having an associated diagram if it has its own PathwayDiagram or its contained RLEs
+ * as having an associated diagram if it has its own PathwayDiagram or its contained RLEs
  * are drawn in its ancestor pathway diagram.
  *
  * @author Fred Loney <loneyf@ohsu.edu> & Guaning Wu <wug@ohsu.edu>
@@ -87,8 +87,9 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
             Collection<GKInstance> diagrams = pathway.getReferers(ReactomeJavaConstants.representedPathway);
             if (diagrams != null && diagrams.size() > 0)
                 continue;
-            // If a pathway doesn't have its own diagram, report. The super class checks should
-            // catch pathways that embedded in other diagrams.
+            // If a pathway doesn't have its own diagram, then report it.
+            // The super class checks should catch pathways that are embedded
+            // in other diagrams.
             rtn.put(pathway, Collections.EMPTY_SET);
         }
         return rtn;
@@ -141,7 +142,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
         }
         if (copy.size() == 0)
             return true;
-        // In case there are something left
+        // In case there is something left
         for (GKInstance inst : copy) {
             if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
                 return false; // We have to make sure all RLEs are drawn

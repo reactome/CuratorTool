@@ -26,7 +26,7 @@ import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 
 /**
- * This QA check associations of (sub)pathways with diagrams which contain
+ * This QA check associates (sub)pathways with diagrams which contain
  * them. There is one report line for each subpathway whose RLEs in its
  * event hierarchy are displayed as components of a diagram. The report
  * displays the subpathway and the diagrams which contain all of its
