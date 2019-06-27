@@ -49,14 +49,14 @@ public class MySQLAdaptorTest {
     
     @Test
     public void testSSLConnection() throws Exception {
-//        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-//                                            "gk_central",
-//                                            "authortool",
-//                                            "T001test");
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "reactome_67_plus_i", 
-                                            "root", 
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test");
+//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+//                                            "reactome_67_plus_i", 
+//                                            "root", 
+//                                            "macmysql01");
         Collection<GKInstance> pathways = dba.fetchInstancesByClass(ReactomeJavaConstants.Pathway);
         System.out.println("Total pathways: " + pathways.size());
         Connection connection = dba.getConnection();

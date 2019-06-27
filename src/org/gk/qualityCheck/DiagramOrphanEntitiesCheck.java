@@ -25,7 +25,7 @@ public class DiagramOrphanEntitiesCheck extends DiagramReactionsCheck {
     @Test
     public void testCheckInCommand() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_122118",
+                                            "gk_central_041919",
                                             "root",
                                             "macmysql01");
         super.testCheckInCommand(dba);
