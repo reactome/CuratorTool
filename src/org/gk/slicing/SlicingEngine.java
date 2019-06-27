@@ -1324,19 +1324,12 @@ public class SlicingEngine {
                                                       Integer.parseInt(dbPort));
             // To keep this connection consistent to avoid time out
             sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
-//            MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
-//                                                      "pre_ver12",
-//                                                      "wgm",
-//                                                      "wgm",
-//                                                      3310);
-//            String fpIDStr = "158541";
             engine.setSource(sourceDBA);
             engine.setTargetDbName(targetdbName);
             engine.setTargetDbHost(targetDbHost);
             engine.setTargetDbUser(targetDbUser);
             engine.setTargetDbPwd(targetDbPwd);
             engine.setTargetDbPort(new Integer(targetDbPort));
-            //engine.setFrontPageID(new Long(fpIDStr));
             engine.setProcessFileName(fileName);
             engine.setReleaseNumber(releaseNumber);
             engine.setReleaseDate(releaseDate);
@@ -1348,10 +1341,11 @@ public class SlicingEngine {
             engine.slice();
             long time2 = System.currentTimeMillis();
             logger.info("Total time for slicing: " + (time2 - time1) / (1000 * 60.0d) + " minutes");
+            System.exit(0); // We have a background thread running from sourceDBA. Need to call this method to close it!
         }
         catch (Exception e) {
             logger.error("SlicingEngine.main(): " + e, e);
-            System.exit(1);
+            System.exit(1); // Need to call this since we have a background thread running
         }
     }
 

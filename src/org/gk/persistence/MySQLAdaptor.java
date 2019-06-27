@@ -131,7 +131,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	private void connect() throws SQLException {
 		String connectionStr = "jdbc:mysql://" + host + ":" + port + "/" + database;
 			 //+ "?autoReconnect=true";
-		Properties prop = new Properties();
+		Properties prop = getConnectionProps();
+		conn = DriverManager.getConnection(connectionStr, prop);
+		//conn = DriverManager.getConnection(connectionStr, username, password);
+	}
+
+    protected Properties getConnectionProps() {
+        Properties prop = new Properties();
 		prop.setProperty("user", username);
 		prop.setProperty("password", password);
 		prop.setProperty("autoReconnect", "true");
@@ -162,10 +168,8 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		                                              // since we just want to use encrypted connection. Authentication
 		                                              // will be handled by user name and password as usual.
 		prop.put("useSSL", "true"); // If ssl is not enabled, useSSL will just fall back to non-encrypted connection
-		
-		conn = DriverManager.getConnection(connectionStr, prop);
-		//conn = DriverManager.getConnection(connectionStr, username, password);
-	}
+        return prop;
+    }
 
 	/**
 	 * There is a time-out problem. When the tool idles for a while, the established
