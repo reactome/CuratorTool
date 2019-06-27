@@ -131,7 +131,8 @@
 			</fileset>
 			<zipgroupfileset dir="${libDir}">
 				<include name="*.jar"/>
-				<exclude name="mysql-connector-java-5.1.28-bin.jar" />
+				<!-- the version we will use is 5.1.28 to support ssl connection -->
+				<exclude name="mysql-connector-java-5.0.8-bin.jar" />
 				<include name="batik/**.jar" />
 				<include name="jdom/**.jar" />
 				<include name="junit/**.jar" />
