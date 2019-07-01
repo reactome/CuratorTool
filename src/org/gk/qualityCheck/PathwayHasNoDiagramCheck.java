@@ -21,7 +21,7 @@ import org.junit.Test;
  * as having an associated diagram if it has its own PathwayDiagram or its contained RLEs
  * are drawn in its ancestor pathway diagram.
  *
- * @author Fred Loney <loneyf@ohsu.edu> & Guaning Wu <wug@ohsu.edu>
+ * @author Fred Loney <loneyf@ohsu.edu> & Guanming Wu <wug@ohsu.edu>
  */
 public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
 
@@ -84,6 +84,10 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
         for (GKInstance pathway: pathways) {
             // We want to check all pathways regardless their species
             // Check if a pathway has its own diagram
+            // As of July 1, 2019, check human pathways only
+            GKInstance species = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
+            if (!species.getDisplayName().equals("Homo sapiens"))
+                continue;
             Collection<GKInstance> diagrams = pathway.getReferers(ReactomeJavaConstants.representedPathway);
             if (diagrams != null && diagrams.size() > 0)
                 continue;
@@ -163,7 +167,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
     @Test
     public void testCheckInCommand() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_current_67",
+                                            "test_slice",
                                             "root",
                                             "macmysql01");
         super.testCheckInCommand(dba);

@@ -171,7 +171,8 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         }
         // Check Catalysts
         List<GKInstance> cas = instance.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
-        List<GKInstance> catalysts = new ArrayList<GKInstance>();
+        // Since there is no stoichiometry for catalysts, use set here
+        Set<GKInstance> catalysts = new HashSet<GKInstance>();
         for (GKInstance ca : cas) {
             GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
             if (catalyst != null)
@@ -180,15 +181,16 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
         List<Node> catalystNodes = rxt.getHelperNodes();
         // Just an empty map in order to use the refactored method
         Map<Renderable, Integer> emptyMap = new HashMap<Renderable, Integer>();
-        if (!checkValuesAndNodes(catalysts, catalystNodes, emptyMap)) {
+        if (!checkValuesAndNodes(catalysts, catalystNodes, emptyMap)) { 
             dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
                     "catalyst out of sync");
             return false;
         }
         // Check activators
         Collection<GKInstance> regulations = InstanceUtilities.getRegulations(instance);
-        List<GKInstance> activators = new ArrayList<GKInstance>();
-        List<GKInstance> inhibitors = new ArrayList<GKInstance>();
+        // Sets for regulators since there is no stoichiometry for them
+        Set<GKInstance> activators = new HashSet<GKInstance>();
+        Set<GKInstance> inhibitors = new HashSet<GKInstance>();
         if (regulations != null && regulations.size() > 0) {
             for (GKInstance regulation : regulations) {
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
@@ -201,7 +203,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
             }
         }
         List<Node> activatorNodes = rxt.getActivatorNodes();
-        if (!checkValuesAndNodes(activators, activatorNodes, emptyMap)) {
+        if (!checkValuesAndNodes(activators, activatorNodes, emptyMap)) { 
             dbIdsToIssue.put(pd.getDBID() + "." + instance.getDBID(),
                     "activator out of sync");
             return false;
@@ -223,7 +225,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
      *  both occurence and count
      * @throws Exception
      */
-    private boolean checkValuesAndNodes(List<GKInstance> values,
+    private boolean checkValuesAndNodes(Collection<GKInstance> values,
                                         List<Node> nodes,
                                         Map<Renderable, Integer> nodeToStoi) throws Exception {
         // Easy comparison using DB_IDs. Also avoid caching issue by using DB_IDs.
@@ -286,7 +288,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     @Test
     public void testCheckInCommand() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "test_slice_67",
+                                            "test_slice",
                                             "root",
                                             "macmysql01");
         super.testCheckInCommand(dba);
