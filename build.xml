@@ -1,0 +1,15 @@
+<project default="compile">
+    <path id="build.classpath">
+        <fileset dir="lib">
+            <include name="**/*.jar"/>
+            <include name="**/*.zip"/>
+        </fileset>
+    </path>
+    <target name="compile">
+        <mkdir dir="bin"/>
+        <javac destdir="classes" includeantruntime="false">
+            <src path="src"/>
+            <classpath refid="build.classpath"/>
+        </javac>
+    </target>
+</project>
