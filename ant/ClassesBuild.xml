@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="ClassesBuild" default="compile" basedir="..">
+    <description>
+        Use files in "lib" to build classes into the "classes" directory.
+    </description>
+    <path id="build.classpath">
+        <fileset dir="${basedir}/lib">
+            <include name="${basedir}/**/*.jar"/>
+            <include name="${basedir}/**/*.zip"/>
+        </fileset>
+    </path>
+    <target name="compile">
+        <mkdir dir="bin"/>
+        <mkdir dir="classes"/>
+        <javac destdir="classes" includeantruntime="false">
+            <src path="src"/>
+            <classpath refid="build.classpath"/>
+        </javac>
+    </target>
+</project>
