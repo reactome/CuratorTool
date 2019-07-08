@@ -8,4 +8,5 @@ before_install:
 - sudo apt-get install ant
 
 script:
-- ant compile
+- ant -buildfile ant/ClassesBuild.xml
+
