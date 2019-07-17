@@ -9,8 +9,8 @@ This is the cvs module for the Java authoring tool.
 		- [images](./images): icons
 		- [uml](./uml): poseidon files for OO analysis and design
 	- files
-		- [readme](./readme.txt): this files
-		- [compile](./compile.bat): a Windows batch file for compiling Java source files
-		- [run](./run.bat): a Windows batch file for running this tool.
+		- [readme.md](./readme.md): this files
+		- [compile.bat](./compile.bat): a Windows batch file for compiling Java source files
+		- [run.bat](./run.bat): a Windows batch file for running this tool.
 		
 2) How to Use: After get this module from cvs, run compile.bat for compiling. Use run.bat for launching this tool.
