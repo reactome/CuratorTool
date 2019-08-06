@@ -16,7 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class ReferenceTherapeuticAutoFiller extends AbstractAttributeAutoFiller {
-    private final String BASE_URL = "http://www.guidetopharmacology.org/services/";
+    private final String BASE_URL = "https://www.guidetopharmacology.org/services/";
     private final String LIGAND_URL = BASE_URL + "ligands/"; // ID should be after
 
     public ReferenceTherapeuticAutoFiller() {
