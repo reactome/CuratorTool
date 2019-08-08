@@ -81,7 +81,7 @@ public class SingleEventTreeView extends JPanel {
 	/**
 	 * Set the event object to be displayed. The slots "componentOf" and "instanceOf"
 	 * should be filled already before event is passed.
-	 * @param event
+	 * @param event Event to be displayed as tree view
 	 */
 	public void setEvent(GKInstance event) {
 		this.event = event;

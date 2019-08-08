@@ -168,7 +168,7 @@ public class EventCheckOutHandler {
     
     /**
      * Get all instances that should be placed into the local project.
-     * @param eventNode
+     * @param events
      * @return
      * @throws Exception
      */
@@ -439,8 +439,9 @@ public class EventCheckOutHandler {
     
     /**
      * A helper method to check if instances in the database to be stored into the local project exist.
-     * @param schemaMap
-     * @param fileAdaptor
+     * @param schemaMap Map of class type to instances
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instances
+     * @param parentFrame Parent GUI element in which to show messages
      */
     public void checkExistence(Map<SchemaClass, Set<GKInstance>> schemaMap, 
                                XMLFileAdaptor fileAdaptor, 
@@ -478,8 +479,8 @@ public class EventCheckOutHandler {
     /**
      * Check out an dbEvent from the database and an event hierarchy rooted at this event. The first 
      * level of referred instances should be checked out too.
-     * @param dbEvent
-     * @param fileAdaptor
+     * @param dbEvent Instance (event) to check out
+     * @param fileAdaptor XMLFileAdaptor in which to store checked out instances
      * @throws Exception
      */
     public void checkOutEvent(GKInstance dbEvent, 
@@ -492,7 +493,7 @@ public class EventCheckOutHandler {
     /**
      * Check out a set of GKInstance events.
      * @param dbEvents instances in this set should be Events.
-     * @param fileAdaptor
+     * @param fileAdaptor XMLFileAdaptor in which to store checked out instances
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
@@ -508,8 +509,8 @@ public class EventCheckOutHandler {
 
     /**
      * Get all events for checking out.
-     * @param dbEvent
-     * @return
+     * @param dbEvent instance (event) for checking out
+     * @return Set of checked out instances for the dbEvent instance
      * @throws Exception
      */
     public Set<GKInstance> getAllEventsForCheckout(GKInstance dbEvent) throws Exception {
@@ -520,8 +521,8 @@ public class EventCheckOutHandler {
     
     /**
      * Get all events to be checked out in full.
-     * @param dbEvents
-     * @return
+     * @param dbEvents Set of instances (events) for checking out
+     * @return Set of checked out instances for the dbEvents sets
      * @throws Exception
      */
     public Set<GKInstance> getAllEventsForCheckout(Set<GKInstance> dbEvents) throws Exception {

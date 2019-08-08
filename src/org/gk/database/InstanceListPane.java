@@ -310,7 +310,7 @@ public class InstanceListPane extends JPanel {
 	/**
 	 * Set the SchemaClass for this InstanceListPane. A list of Instances
 	 * will be loaded by using another thread.
-	 * @param class1
+	 * @param class1 SchemaClass to set
 	 */
 	public void setSchemaClass(SchemaClass class1) {
 		if (this.schemaClass == class1)
@@ -396,8 +396,8 @@ public class InstanceListPane extends JPanel {
 	 * done.
 	 * This method is synchronzied so that no two threads can access it at the same time
 	 * to avoid the conflicting and unpredicated behaviors.
-	 * @param class1
-	 * @see setSchemaClass(SchemaClass)
+	 * @param class1 Class for which to load instances
+	 * @see #setSchemaClass(SchemaClass)
 	 */
 	public synchronized void loadInstancesFor(GKSchemaClass class1) {
 		this.schemaClass = class1;
@@ -518,7 +518,7 @@ public class InstanceListPane extends JPanel {
 	
 	/**
 	 * Make the specified list of GKInstances selected.
-	 * @param instances
+	 * @param instances List of instances to set as selected
 	 */
 	public void setSelection(java.util.List instances) {
 	    list.clearSelection();
@@ -549,8 +549,8 @@ public class InstanceListPane extends JPanel {
 	
 	/**
 	 * A viewable InstanceListPane is like this: Double clicking an Instance
-	 * will popup a frame to display the properties of the clicked intance.
-	 * @param isViewable
+	 * will popup a frame to display the properties of the clicked instance.
+	 * @param isViewable true/false value to set as viewable
 	 */
 	public void setIsViewable(boolean isViewable) {
 		this.isViewable = isViewable;
@@ -606,7 +606,7 @@ public class InstanceListPane extends JPanel {
 	/**
 	 * Set the selected instances so that the selected instances can be kept
 	 * during switching.
-	 * @param instancesMap
+	 * @param instancesMap Map of instances to set
 	 */
 	public void setSelectedInstances(Map instancesMap) {
 		this.selectedInstances = instancesMap;
@@ -635,7 +635,8 @@ public class InstanceListPane extends JPanel {
 	}
 	
 	/**
-	 * Delete the selected GKInstances.
+	 * Delete the selected GKInstance.
+	 * @param Instance to delete
 	 * @return true for a successful delete.
 	 */
 	public boolean deleteInstance(Instance instance) {
@@ -667,6 +668,7 @@ public class InstanceListPane extends JPanel {
 	
 	/**
 	 * Delete a list of GKInstance objects.
+	 * @param instances Instances to delete
 	 */
 	public void deleteInstances(java.util.List instances) {
 		if (instances == null || instances.size() == 0)

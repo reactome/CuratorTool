@@ -197,7 +197,7 @@ public class BookmarkView extends JPanel {
 	
 	/**
 	 * Delete a Bookmark for the specified GKInstance object.
-	 * @param instance
+	 * @param instance Instance for which to bookmark will be deleted
 	 */
 	public void deleteBookmark(GKInstance instance) {
 		int index = bookmarks.deleteBookmark(instance);
@@ -210,7 +210,7 @@ public class BookmarkView extends JPanel {
 	/**
 	 * Set the bookmarks for displaying. Sorting is not performed. The supplied
 	 * list should be sorted already.
-	 * @param newBookmarks
+	 * @param bks New bookmarks
 	 */
 	public void setBookmarks(Bookmarks bks) {
 		bookmarks = bks;

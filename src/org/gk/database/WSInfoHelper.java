@@ -39,7 +39,9 @@ public class WSInfoHelper {
     /**
      * Return a two element String array: the first one is WSUser
      * and the second WSKey.
-     * @return
+     * @param parentComp Parent Component GUI from which to get the owning window for creation of a Dialog box for WSUser info
+     * @return String array of WSUser and WSKey
+     * @throws UnsupportedEncodingException thrown if URL encoding of WSUser or WSKey fails
      */
     public String[] getWSInfo(Component parentComp) throws UnsupportedEncodingException {
         String wsUser = GKApplicationUtilities.getApplicationProperties().getProperty("wsUser");

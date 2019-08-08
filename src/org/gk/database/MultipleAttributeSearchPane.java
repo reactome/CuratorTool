@@ -165,7 +165,7 @@ public class MultipleAttributeSearchPane extends SearchPane {
     
     /**
      * Check if a search can be done based on current selection.
-     * @return
+     * @return true if search is possible
      */
     public boolean isSearchable() {
         List<GKSchemaAttribute> attributes = getAttributes();

@@ -62,8 +62,8 @@ public class StableIdentifierGenerator {
 
     /**
 	 * Check if a GKInstance needs to have a stable id.
-	 * @param instance
-	 * @return
+	 * @param instance Instance to check
+	 * @return true if stable id is needed
 	 */
 	public boolean needStid(GKInstance instance) {
 	    Set<String> classNames = getClassNamesWithStableIds(instance.getDbAdaptor());

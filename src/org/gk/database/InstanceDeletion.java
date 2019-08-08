@@ -44,8 +44,8 @@ public class InstanceDeletion {
     
     /**
      * Delete a list of GKInstance.
-     * @param list
-     * @param parentFrame
+     * @param list List of instances to delete
+     * @param parentFrame Parent GUI frame in which to show messages 
      */
     public void delete(List<GKInstance> list,
                        JFrame parentFrame) {

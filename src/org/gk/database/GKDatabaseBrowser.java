@@ -360,7 +360,7 @@ public class GKDatabaseBrowser extends JFrame {
 	/**
 	 * Set the popup type. The type should be one of STANDALONE_TYPE, CURATOR_TOOL_TYPE
 	 * and AUTHOR_TOOL_TYPE in GKDBBrowserPopupManager.
-	 * @param type
+	 * @param type Popup type
 	 */
 	public void setPopupType(int type) {
 		this.popupType = type;

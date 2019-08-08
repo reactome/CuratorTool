@@ -66,9 +66,9 @@ public class DefaultInstanceEditHelper {
     }
 	
 	/**
-	 * Get the default InstanceEdit. If null, null will be returned.
-	 * @return 
-	 * @see getDefaultInstanceEdit(Window)
+	 * Get the default InstanceEdit. 
+	 * @return Default InstanceEdit. If null, null will be returned.
+	 * @see #getDefaultInstanceEdit(Window)
 	 */
 	public GKInstance getDefaultInstanceEdit() {
 		return instanceEdit;
@@ -76,10 +76,10 @@ public class DefaultInstanceEditHelper {
 	
 	/**
 	 * Get the default InstanceEdit. If null, this method will try to
-	 * construct one and cach it if successfully.
-	 * @param parentWindow
-	 * @return
-	 * @see getDefaultInstance()
+	 * construct one and cache it if successful.
+	 * @param parentWindow Parent GUI element for where to display messages
+	 * @return Default InstanceEdit (either cached or newly created)
+	 * @see #getDefaultInstanceEdit()
 	 */
 	public GKInstance getDefaultInstanceEdit(Window parentWindow) {
 		if (instanceEdit != null)
@@ -94,7 +94,8 @@ public class DefaultInstanceEditHelper {
 	/**
 	 * Create a default IE based on a default Person instance. The returned 
 	 * GKInstance has not filled.
-	 * @param person
+	 * @param person Person Instance that will be attached to the created InstanceEdit
+	 * @return Default InstanceEdit
 	 */
 	public GKInstance createDefaultInstanceEdit(GKInstance person) {
 	    GKInstance instanceEdit = new GKInstance();
@@ -118,7 +119,7 @@ public class DefaultInstanceEditHelper {
 	 * created InstanceEdit with the current date/time is returned.
 	 * Returns null if there were any problems.
 	 * 
-	 * @param instanceEdit
+	 * @param instanceEdit InstanceEdit to check to see if it is fresh
 	 * @return Returns an up-to-date InstanceEdit.
 	 */
 	public GKInstance refreshInstanceEdit(GKInstance instanceEdit) {
@@ -274,8 +275,8 @@ public class DefaultInstanceEditHelper {
 	 * InstanceEdit.  The new value has date and name set to nice values and
 	 * also has a DB_ID assigned to it.
 	 * 
-	 * @param defaultInstanceEdit
-	 * @return
+	 * @param defaultInstanceEdit InstanceEdit used as a template
+	 * @return New default InstanceEdit
 	 */
 	public GKInstance createActiveDefaultInstanceEdit(GKInstance defaultInstanceEdit) {
 		if (defaultInstanceEdit == null)
@@ -301,6 +302,8 @@ public class DefaultInstanceEditHelper {
 	 * Attach the default InstanceEdit GKInstnce to the GKInstance objects
 	 * @param localSet the list of newly created GKInstance objects
 	 * @param dbList the list of modified GKInstance objects.
+	 * @param attachingIE InstanceEdit to attach
+	 * @throws Exception
 	 * @return the attached GKInstance object for InstanceEdit.
 	 */
 	public GKInstance attachDefaultInstanceEdit(Collection localSet, 

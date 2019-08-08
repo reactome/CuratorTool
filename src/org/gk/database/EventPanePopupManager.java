@@ -55,9 +55,8 @@ public class EventPanePopupManager {
 	/**
 	 * Get a JPopupMenu for a specified type.
 	 * @param type one of CURATOR_TOOL_TYPE, AUTHOR_TOOL_TYPE in GKDBBrowserPopupManager; 
-
-	 * @param eventPane
-	 * @return
+	 * @param eventPane HierarchicalEventPane from which actions are taken
+	 * @return PopUpMenu containing the actions available for the specified type
 	 */
 	public JPopupMenu getPopupMenu(int type, final HierarchicalEventPane eventPane) {
 		if (eventPane.getTree().getSelectionCount() != 1)

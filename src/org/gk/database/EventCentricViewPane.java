@@ -374,7 +374,7 @@ public class EventCentricViewPane extends JPanel {
 	
 	/**
 	 * Delete an event.
-	 * @param event
+	 * @param event Instance to delete
 	 */
 	public void deleteInstance(Instance event) {
 		if (event.getSchemClass().isa("Event"))
@@ -405,7 +405,7 @@ public class EventCentricViewPane extends JPanel {
 	/**
 	 * Update the tree view on the account of the changes in a specified
 	 * event Instance.
-	 * @param event
+	 * @param editingEvent Event for editing attribute value
 	 */
 	public void updateInstance(AttributeEditEvent editingEvent) {
 		GKInstance instance = editingEvent.getEditingInstance();
