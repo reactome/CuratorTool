@@ -16,7 +16,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
 
-import uk.ac.ebi.demo.ols.soap.Query;
+import uk.ac.ebi.ols.soap.Query;
 
 /**
  * This method is used to auto fill values for ReferenceMolecule based on ChEBI.
