@@ -95,7 +95,7 @@ public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFil
      * with identifier specified. 
      * Note: This method should NOT be used in the curator tool to avoid losing of ReferenceIsoform
      * instances.
-     * @param instance
+     * @param instance Instance for which to fetch information
      * @throws Exception
      */
     public void process(GKInstance instance) throws Exception {

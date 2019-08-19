@@ -127,11 +127,11 @@ public class LiteratureReferenceAttributeAutoFiller extends AbstractAttributeAut
     
     /**
      * Get a Person instance. If no matched is found, a new GKInstance will be created!
-     * @param adaptor
-     * @param lastName
-     * @param initial
-     * @param autoCreatedInstance
-     * @return
+     * @param adaptor XMLFileAdaptor in which to store checked out instance
+     * @param lastName Person's last name
+     * @param initial Person's initials
+     * @param autoCreatedInstances List to which to add newly created Person instance if no existing instance found
+     * @return Found or newly created Person instance
      * @throws Exception
      */
     public GKInstance queryPerson(XMLFileAdaptor adaptor,

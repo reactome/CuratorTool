@@ -157,7 +157,6 @@ public class MODReactomeAnalyzer {
      * Create a new curator tool project from newly created MOD instances and
      * modified instances. This method should be called after checkMODInstance.
      * Otherwise, nothing will be checked out.
-     * @return
      * @throws Exception
      */
     public void checkOutAsNewProject() throws Exception {
