@@ -636,7 +636,7 @@ public class InstanceListPane extends JPanel {
 	
 	/**
 	 * Delete the selected GKInstance.
-	 * @param Instance to delete
+	 * @param instance Instance to delete
 	 * @return true for a successful delete.
 	 */
 	public boolean deleteInstance(Instance instance) {

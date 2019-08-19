@@ -319,7 +319,7 @@ public class SchemaDisplayPane extends JPanel {
 	
 	/**
 	 * Delete an GKInstance in a specified GKSchemaClass.
-	 * @param cls
+	 * @param schemaClass
 	 */
 	public void deleteInstance(GKSchemaClass schemaClass) {
 		updateCounter(schemaClass, false);
