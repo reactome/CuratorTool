@@ -53,8 +53,8 @@ public abstract class InstanceHandler {
     
     /**
      * Use this method to convert a GKInstance to Renderable object without considering shortcuts.
-     * @param instance
-     * @return
+     * @param instance Instance to convert
+     * @return Renderable object converted from instance
      * @throws Exception
      */
     public Renderable simpleConvert(GKInstance instance) throws Exception {

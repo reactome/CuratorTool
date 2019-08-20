@@ -32,9 +32,9 @@ public class CuratorToolToAuthorToolConverter {
     
     /**
      * This method is used to convert a passed pathway instance to an author tool project.
-     * @param instance
-     * @param parentComp
-     * @return
+     * @param instance Pathway instance for which to retrieve a project
+     * @param parentComp Parent component GUI object to display messages
+     * @return Project created from pathway instance
      * @throws Exception
      */
     public Project convert(GKInstance instance,
@@ -60,9 +60,9 @@ public class CuratorToolToAuthorToolConverter {
     /**
      * This method is used to convert a passed pathway instance to an author tool project.
      * If no curator tool coordinates could be found, returns a null project.
-     * @param instance
-     * @param parentComp
-     * @return
+     * @param instance Pathway instance for which to retrieve a project
+     * @param parentComp Parent component GUI object to display messages
+     * @return Project created from pathway instance (null if no diagram found)
      * @throws Exception
      */
     public Project convertNullReturn(GKInstance instance,
