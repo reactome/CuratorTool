@@ -245,7 +245,8 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
     /**
      * A helper method to make sure reaction's inputs, outputs, catalysts and modifiers
      * are still correct after a detach or attach event.
-     * @param edge
+     * @param edge Edge to validate
+     * @throws Exception
      */
     public void validateReactionAttributes(HyperEdge edge) throws Exception {
         if (!(edge instanceof RenderableReaction))

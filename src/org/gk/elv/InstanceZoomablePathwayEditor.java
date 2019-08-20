@@ -158,7 +158,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Control if this pathway editor is used as a pure drawing tool for pathway layout. If it is used
      * as a drawing tool, editing features related to local project will be disabled.
-     * @param value
+     * @param value true if used as a drawing tool only; false otherwise
      */
     public void setUsedAsDrawingTool(boolean value) {
         this.usedAsDrawingTool = value;
@@ -328,7 +328,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Since a diagram can be mapped to more than one Pathway instance. Please also see
      * another method {@link #getDisplayedPathwayDiagram()} should be used.
-     * @return
+     * @return List of displayed pathways
+     * @throws Exception
      */
     public List<GKInstance> getDisplayedPathways() throws Exception {
         RenderablePathway r = (RenderablePathway) pathwayEditor.getRenderable();
@@ -391,7 +392,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     /**
      * Call this method if an instance has been deleted from the local project.
-     * @param instance
+     * @param instance Instance to delete from local project
      */
     public void deleteInstance(GKInstance instance) {
         // Check if the displayed PathwayDiagram has been deleted
@@ -455,8 +456,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     /**
      * Search a list of Renderable objects converted from the passed GKInstance object.
-     * @param instance
-     * @return
+     * @param instance Instance to search for among the Renderable objects
+     * @return List of Renderable objects
      */
     public List<Renderable> searchConvertedRenderables(GKInstance instance) {
         return searchConvertedRenderables(instance.getDBID());
@@ -464,8 +465,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     /**
      * Search a list of Renderable objects having reactomeIds as the passed DB_ID.
-     * @param dbId
-     * @return
+     * @param dbId Instance database id to search for among the Renderable objects
+     * @return List of Renderable objects
      */
     public List<Renderable> searchConvertedRenderables(Long dbId) {
         List<Renderable> list = new ArrayList<Renderable>();
@@ -479,7 +480,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     /**
      * Call this method if any attribute editing has occurred.
-     * @param editEvent
+     * @param editEvent Event for editing attribute value
      */
     public void updateInstance(AttributeEditEvent editEvent) {
         if (changeFromEditor)
@@ -595,14 +596,13 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         return null;
     }
     
-    public void switchedType(GKSchemaClass oldCls,
-                             GKInstance instance) {
+    public void switchedType(GKInstance instance) {
         reInsertInstance(instance);
     }
     
     /**
      * Call this method if the type of instance has been changed.
-     * @param instance
+     * @param instance Instance to re-insert
      */
     public void reInsertInstance(GKInstance instance) {
         List<Renderable> renderables = searchConvertedRenderables(instance);

@@ -401,9 +401,8 @@ public class ElvDiagramHandler {
     /**
      * Create a RenderablePathway by converting objects contained by passed pathway GKInstance into
      * a RenderablePathway.
-     * @param instance
-     * @param pathway
-     * @return
+     * @param instance Pathway for which to obtain events
+     * @param pathway RenderablePathway to send objects obtained from the instance
      * @throws Exception
      */
     public void createNewDiagram(GKInstance instance,
@@ -533,7 +532,9 @@ public class ElvDiagramHandler {
     
     /**
      * Clone a pathway diagram.
-     * @param diagram
+     * @param diagram RenderablePathway diagram instance to clone
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instance data
+     * @return Cloned RenderablePathway object instance of the RenderablePathway to the method
      * @throws Exception
      */
     public RenderablePathway cloneDiagram(RenderablePathway diagram,

@@ -32,7 +32,8 @@ public class EntityInstanceListPane extends InstanceTreePane {
     
     /**
      * Set the list of SchemaClasses to be displayed in this EntityInstanceListPane.
-     * @param classes
+     * @param classes Classes to display
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instances for each class
      * @throws Exception
      */
     public void setSchemaClasses(List<GKSchemaClass> classes,

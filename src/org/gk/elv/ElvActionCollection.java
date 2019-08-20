@@ -644,7 +644,7 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     
     /**
      * A helper method used to create a JToolbar.
-     * @return
+     * @return Toolbar with available actions
      */
     public JToolBar createToolbar() {
         JToolBar toolbar = new JToolBar();
@@ -732,7 +732,7 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     
     /**
      * Set the target editor these actions will be applied to.
-     * @param editor
+     * @param editor Pathway Editor to set
      */
     public void setPathwayEditor(PathwayEditor editor) {
         this.pathwayEditor = editor;

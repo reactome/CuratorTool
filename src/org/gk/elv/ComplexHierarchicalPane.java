@@ -34,7 +34,7 @@ public class ComplexHierarchicalPane extends InstanceTreePane {
     
     /**
      * Set the top level complex instances to be displayed in this ComplexHierarchicalPane.
-     * @param complexes
+     * @param complexes Complexes to display
      * @throws Exception
      */
     public void setComplexes(List<GKInstance> complexes) throws Exception {
@@ -51,8 +51,8 @@ public class ComplexHierarchicalPane extends InstanceTreePane {
     
     /**
      * A recursive method to build a tree.
-     * @param complex
-     * @param parentNode
+     * @param complex Complex for which to build tree
+     * @param parentNode Parent node into which to insert new complex node
      * @throws Exception
      */
     private void buildTree(GKInstance complex,

@@ -53,7 +53,7 @@ public abstract class InstanceTreePane extends JPanel {
     
     /**
      * Get the selected GKInstance only.
-     * @return
+     * @return List of selected instances
      */
     public List<GKInstance> getSelectedInstances() {
         List<GKInstance> list = new ArrayList<GKInstance>();
@@ -94,7 +94,7 @@ public abstract class InstanceTreePane extends JPanel {
     
     /**
      * Delete an instance from the list.
-     * @param instance
+     * @param instance Instance to delete from list
      */
     public void deleteInstance(GKInstance instance) {
         if (!isDisplayable(instance))
@@ -111,7 +111,7 @@ public abstract class InstanceTreePane extends JPanel {
     
     /**
      * Add a new GKInstance to this list view.
-     * @param instance
+     * @param instance Instance to add to list
      */
     public abstract void addInstance(GKInstance instance); 
     
