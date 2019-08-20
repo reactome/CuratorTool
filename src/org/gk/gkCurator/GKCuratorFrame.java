@@ -1392,7 +1392,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	
 	/**
 	 * Add an action so that it can be launched in the application.
-	 * @param checkUpdateAction
+	 * @param checkUpdateAction Action to be added to the tool menu
 	 */
 	public void addCheckUpdateAction(Action checkUpdateAction) {
 	    // Add this action under tools menu

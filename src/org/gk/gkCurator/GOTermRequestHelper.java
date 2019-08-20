@@ -59,7 +59,7 @@ public class GOTermRequestHelper {
     
     /**
      * Display the tracker of a request to GO in the web browser.
-     * @param parentComp
+     * @param parentComp Parent Component GUI element to display messages
      * @param prop provide a list of ID history.
      */
     public void trackRequest(Component parentComp, Properties prop) {

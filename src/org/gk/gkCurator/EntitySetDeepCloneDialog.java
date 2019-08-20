@@ -585,8 +585,8 @@ public class EntitySetDeepCloneDialog extends NewInstanceDialog {
      * Make sure the passed DefinedSet instance can be used in this utility. Only DefinedSet
      * having EWAS instances as its members can be used in this utility since only EWAS can 
      * have hasModifiedResidue value.
-     * @param inst
-     * @return
+     * @param inst EntitySet to validate
+     * @return true if valid; false otherwise
      */
     public boolean validEntitySet(GKInstance inst) {
         // Make sure this is a DefinedSet
