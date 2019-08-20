@@ -399,7 +399,7 @@ public class SchemaViewPane extends JPanel {
 	/**
 	 * Return the locations for the used JSplitPanes. 
 	 * @return int array of locations
-	 * @see setJSPDividerLocations(int, int, int)
+	 * @see #setJSPDividerLocations(int, int, int)
 	 */
 	public int[] getJSPDividerLocations() {
 		int[] locations = new int[]{listAttributeJSP.getDividerLocation(),

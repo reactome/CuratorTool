@@ -98,8 +98,10 @@ public class StableIdentifierGenerator {
 	
 	/**
 	 * Create a StableIdentifier instance for the passed GKInstance object.
-	 * @param instance
-	 * @return
+	 * @param instance Instance for which to create stable id instance
+	 * @param created Created instance edit instance to attach to newly created stable id instance
+	 * @param fileAdaptor XMLFileAdaptor to which to save newly created stable id instance
+	 * @return Stable identifier instance
 	 * @throws Exception
 	 */
 	public GKInstance generateStableId(GKInstance instance,
@@ -128,9 +130,9 @@ public class StableIdentifierGenerator {
 
 	/**
 	 * The actual method to generate a stable identifier for a GKInstance.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * @param instance Instance for which to generate a stable identifier
+	 * @return String containing the generated stable identifier value
+	 * @throws Exception Thrown if unable to get species abbreviation for instance
 	 */
     public String generateIdentifier(GKInstance instance) throws Exception {
         String species = getSpeciesForSTID(instance);
