@@ -9,7 +9,7 @@ import java.util.EventObject;
  * An event generated from actions in this package.
  * @author wgm
  */
-public class GraphEditorActionEvent extends EventObject{
+public class GraphEditorActionEvent extends EventObject {
     
     /**
      * Predefined action types
@@ -156,7 +156,7 @@ public class GraphEditorActionEvent extends EventObject{
 	/**
 	 * Check if this GraphEditorActionEvent is something that
 	 * make the content dirty.
-	 * @return
+	 * @return true if the event is savable; false otherwise
 	 */
 	public boolean isSavableEvent() {
 	    return eventID.isSavable();
@@ -164,7 +164,7 @@ public class GraphEditorActionEvent extends EventObject{
 	
 	/**
 	 * Check if this GraphEditorActionEvent is a repaintable event.
-	 * @return
+	 * @return true if the event is repaintable; false otherwise
 	 */
 	public boolean isRepaintableEvent() {
 	    return eventID.isRepaintable();

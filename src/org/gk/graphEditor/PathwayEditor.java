@@ -359,8 +359,8 @@ public class PathwayEditor extends GraphEditorPane {
     /**
      * Call this method to find a suitable RenderableComplex that can have the passed
      * Node object as its direct (first level) component.
-     * @param node
-     * @return
+     * @param node Node for which to search for a RenderableComplex as its direct parent
+     * @return RenderableComplex object that can have the node as a direct component
      */
     public RenderableComplex pickUpComplex(Node node) {
         if (isComplexComponentEditDisabled) 
@@ -389,8 +389,8 @@ public class PathwayEditor extends GraphEditorPane {
     
     /**
      * Get the appropriate compartment for the passed Renderable object.
-     * @param r
-     * @return
+     * @param r Renderable for which to find its compartment
+     * @return RenderableCompartment for the Renderable object
      */
     public RenderableCompartment pickUpCompartment(Renderable r) {
         List<RenderableCompartment> compartments = getCompartmentsInHierarchy();
@@ -408,8 +408,8 @@ public class PathwayEditor extends GraphEditorPane {
      * Get a list of Renderable objects that can be contained by the passed
      * RenderableCompartment. This method has not considered the compartment
      * hierarchy.
-     * @param compartment
-     * @return
+     * @param compartment Compartment to find Renderable objects it can contain
+     * @return List of Renderable objects that can be contained by the compartment
      */
     public List<Renderable> pickUpCompartmentComponents(RenderableCompartment compartment) {
         List<Renderable> list = new ArrayList<Renderable>();
@@ -423,8 +423,8 @@ public class PathwayEditor extends GraphEditorPane {
     
     /**
      * Gather a list of Nodes that can be components of the passed complex.
-     * @param complex
-     * @return
+     * @param complex Complex for which to find nodes that can be its components
+     * @return List of nodes that can be components of the passed complex
      */
     public List<Node> pickUpComplexComponents(RenderableComplex complex) {
         List<Node> nodes = new ArrayList<Node>();
@@ -777,7 +777,8 @@ public class PathwayEditor extends GraphEditorPane {
     
     /**
      * Check if the specified Point is contained in a link widget.
-     * @param p
+     * @param x X-coordinate of point
+     * @param y Y-coordinate of point
      * @return one value of: LINK_WIDGET_NONE, LINK_WIDGET_EAST, LINK_WIDGET_SOUTH,
      * LINK_WIDGET_NORTH, LINK_WIDGET_WEST.
      */

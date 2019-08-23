@@ -13,6 +13,7 @@ package org.gk.graphEditor;
 public interface GraphEditorAction {
     /**
      * Do something here.
+     * @param e MouseEvent object
      */
     public void doAction(java.awt.event.MouseEvent e);
 }

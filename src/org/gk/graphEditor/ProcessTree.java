@@ -202,7 +202,7 @@ public class ProcessTree extends JTree {
 	
 	/**
 	 * Use this method to delete a Renderable object from the view and take care of the data structure.
-	 * @param renderable
+	 * @param renderable Renderable to delete
 	 */
 	public void delete(Renderable renderable) {
 		DefaultMutableTreeNode node = TreeUtilities.searchNode(renderable, this);
@@ -273,7 +273,7 @@ public class ProcessTree extends JTree {
 	 * However, the view might not be changed if there is still another same name
 	 * renderable is contained by renderable's container. This same name Renderable 
 	 * might be the target or a Shortcut.
-	 * @param renderable
+	 * @param renderable Renderable to remove
 	 */
 	public void remove(Renderable renderable) {
 		DefaultMutableTreeNode node = TreeUtilities.searchNode(renderable, this);
@@ -434,7 +434,7 @@ public class ProcessTree extends JTree {
 	 * Refresh a TreeNode corresponding to a specified Renderable object. This method
 	 * should be called if the property for tree display is changed (e.g. displayName).
 	 * However, the child nodes will not be taken care of here.
-	 * @param renderable
+	 * @param renderable Renderable object corresponding to a TreeNode to refresh
 	 */
 	public void refresh(Renderable renderable) {
 		//Find all TreeNode for renderable and refresh it.
@@ -470,7 +470,7 @@ public class ProcessTree extends JTree {
 	/**
 	 * Update a branch rooted at the specified Renderable object. Call this method if
 	 * the components of a Renderable object is changed.
-	 * @param r
+	 * @param r Renderable object for which to update its branch
 	 */
 	public void updateChildrenRemove(Renderable r) {
 	    java.util.List nodes = searchNodes(r);
@@ -502,8 +502,8 @@ public class ProcessTree extends JTree {
 	 * Switch the type from ReactionNode to RenderablePathway or vice versa. The
 	 * data structure in both source and target are not taken care of here. This method
 	 * is trying to make display correct.
-	 * @param source
-	 * @param target
+	 * @param source Renderable used as source
+	 * @param target Renderable used as target
 	 */
 	public void switchType(Renderable source, Renderable target) {
 		// Point to targets
@@ -582,8 +582,8 @@ public class ProcessTree extends JTree {
 	/**
 	 * A shortcut Renderable object can be changed to its target Renderable object because 
 	 * the target is deleted. Call this method to make necessary display change.
-	 * @param shortcut
-	 * @param target
+	 * @param shortcut Renderable object to update to target
+	 * @param target Renderable object that was previously the target
 	 */
 	public void updateShortcutToTarget(Renderable shortcut, Renderable target) {
 		// Have to change the userObject in the treeNode
@@ -599,6 +599,7 @@ public class ProcessTree extends JTree {
 	/**
 	 * Search Renderable objects with the specified name
 	 * @param name the name to be searched.
+	 * @return List of renderable objects with the name
 	 */
 	public java.util.List search(String name) {
 		Renderable renderable = RenderableRegistry.getRegistry().getSingleObject(name);
