@@ -231,7 +231,7 @@ public class GKEditorManager {
 	
 	/**
 	 * Update a display name for a Renderable object.
-	 * @param renderable
+	 * @param renderable Renderable object to update
 	 */
 	public void updateName(Renderable renderable) {
 		//editorFrame.getProcessPane().refresh(renderable);

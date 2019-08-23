@@ -64,7 +64,7 @@ public class PathwayOverviewPane extends PathwayEditor {
     
     /**
      * Set the parent editor this overview pane monitors.
-     * @param editor
+     * @param editor Parent editor to set
      */
     public void setParentEditor(PathwayEditor editor) {
         this.parentEditor = editor;
@@ -104,7 +104,7 @@ public class PathwayOverviewPane extends PathwayEditor {
     /**
      * Call this method to synchronize the scroll views between two displays of 
      * a RenderablePathway.
-     * @param zoomableEditor
+     * @param newZoomableEditor
      */
     public void syncrhonizeScroll(ZoomablePathwayEditor newZoomableEditor) {
         if (this.zoomableEditor != null && viewChangeListener != null)

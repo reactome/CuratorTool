@@ -85,7 +85,7 @@ public class ComplexPropertyEditorTree extends RenderableListTree {
 
     /**
      * Open a list of RenderbaleComplex objects in this list.
-     * @param complexes
+     * @param complexes List of Renderable Complex objects to open
      */
     public void open(List<RenderableComplex> complexes) {
         for (RenderableComplex complex : complexes) {

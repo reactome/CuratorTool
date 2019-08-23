@@ -70,10 +70,10 @@ public class CoordinateSerializer {
     
     /**
      * This is the entry point to store coordinates for a project.
-     * @param project
-     * @param width
-     * @param height
-     * @param comp
+     * @param project Project in which to store co-ordinates
+     * @param width Width of pathway diagram to store
+     * @param height Height of pathway diagram to store
+     * @param comp Component GUI object to display messages
      * @throws Exception
      */
     public void storeCoordinates(Project project,

@@ -30,7 +30,7 @@ public abstract class NodeAttachmentAddingDialog extends JDialog {
     
     /**
      * Set the Node object that will contain the created NodeAttachment object.
-     * @param node
+     * @param node Node to set
      */
     public void setNode(Node node) {
         this.node = node;

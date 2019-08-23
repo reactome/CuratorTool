@@ -300,8 +300,8 @@ public class AuthorToolActionCollection {
     
     /**
      * A helper method to remove compartment from name.
-     * @param objects
-     * @return
+     * @param objects Renderable objects for which compartment should be removed from display names
+     * @return true if one of more objects name changed and update is needed; false otherwise
      */
     public boolean removeCompartmentFromName(List objects) {
         // Make sure this action will work only on Nodes.

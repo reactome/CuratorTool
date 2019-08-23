@@ -270,7 +270,7 @@ public class AuthorToolPanel extends JPanel {
     
     /**
      * Open a Renderable object in a new GraphEditorPane.
-     * @param renderable
+     * @param renderable Renderable object to open
      */
     public void open(Renderable renderable) {
         graphicView.open(renderable);

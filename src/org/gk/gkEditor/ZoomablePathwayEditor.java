@@ -68,7 +68,7 @@ public class ZoomablePathwayEditor extends JPanel {
     
     /**
      * Add a toolbar to this ZoomablePathwayEditor.
-     * @param toolbar
+     * @param toolbar Toolbar to add
      */
     public void installToolbar(JToolBar toolbar) {
         remove(titleLabel);

@@ -119,7 +119,7 @@ public class PathwayEditorInsertActions {
     
     /**
      * Get a group of insert actions defined in this object.
-     * @return
+     * @return List of insert actions
      */
     public List<Action> getInsertActions() {
         List<Action> actions = new ArrayList<Action>();

@@ -111,7 +111,7 @@ public class PropertyObjectListPane extends AccordionPane {
     
     /**
      * Refresh the display of a Node. The structure of the tree will not change.
-     * @param r
+     * @param r Renderable object to refresh
      */
     public void refresh(Renderable r) {
         if (isEvent(r))
