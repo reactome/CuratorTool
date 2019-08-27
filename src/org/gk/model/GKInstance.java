@@ -97,7 +97,8 @@ public class GKInstance implements Instance, Cloneable {
     
     /**
      * Remove all values from the specified attribute slot.
-     * @param attributeName
+     * @param attributeName Name of attribute for which to remove values
+     * @throws InvalidAttributeException thrown if the attribute name is not valid for this instance object
      */
     public void emptyAttributeValues(String attributeName) throws InvalidAttributeException {
         ((GKSchemaClass)schemaClass).isValidAttributeOrThrow(attributeName);
@@ -190,8 +191,8 @@ public class GKInstance implements Instance, Cloneable {
 	 * nor value. null value causes the attribute value to be set to an empty List
 	 * (thus indicating that the value has been set to empty).
 	 * 
-	 * @param attribute
-	 * @param value
+	 * @param attribute Attribute for which to (re)set a value
+	 * @param value Value to set
 	 * @return List containing the previous value(s) of this attribute or null
 	 * if the attribute hasn't been set or added to before.
 	 */
@@ -528,14 +529,14 @@ public class GKInstance implements Instance, Cloneable {
 	}
 	
 	/**
-	 * @return
+	 * @return DBAdaptor object
 	 */
 	public PersistenceAdaptor getDbAdaptor() {
 		return dbAdaptor;
 	}
 
 	/**
-	 * @param adaptor
+	 * @param adaptor DbAdaptor object to set
 	 */
 	public void setDbAdaptor(PersistenceAdaptor adaptor) {
 		dbAdaptor = adaptor;
@@ -545,7 +546,7 @@ public class GKInstance implements Instance, Cloneable {
 	 * Mark this GKInstance isInflated. An instance has all its attributes are filled
 	 * is called "inflated" instance. It should not mark as inflated if only part of 
 	 * attributes are filled.
-	 * @param inflated
+	 * @param inflated true if to marked as inflated; false otherwise
 	 */
 	public void setIsInflated(boolean inflated) {
 		this.isInflated = inflated;
@@ -558,16 +559,16 @@ public class GKInstance implements Instance, Cloneable {
 		return this.isInflated;
 	}
 	
-	public void setIsShell(boolean isShell) {
-		this.isShell = isShell;
-	}
-
 	/**
 	 * Mark this GKInstance isShell. An GKInstance is a shell instance if it has
 	 * only DB_ID and display name, and all its attributes should be loaded from
 	 * only database.
-	 * @param inflated
+	 * @param isShell true if it is a shell instance; false otherwise
 	 */	
+	public void setIsShell(boolean isShell) {
+		this.isShell = isShell;
+	}
+
 	public boolean isShell() {
 		return this.isShell;
 	}
@@ -575,6 +576,7 @@ public class GKInstance implements Instance, Cloneable {
 	/**
 	 * Clone this GKInstance. This is a deep clone. All attributes are cloned.
 	 * Note: DB_ID is null for the returned, cloned object.
+	 * @return Cloned GKInstance object
 	 */
 	public Object clone() {
 		GKInstance clone = new GKInstance();
@@ -615,7 +617,7 @@ public class GKInstance implements Instance, Cloneable {
     
     /**
      * Set if this object is touched by editing.
-     * @param isDirty
+     * @param isDirty true if edited; false otherwise
      */
     public void setIsDirty(boolean isDirty) {
         this.isDirty = isDirty;
@@ -623,7 +625,7 @@ public class GKInstance implements Instance, Cloneable {
     
     /**
      * Check if this GKInstance object is touched by editing.
-     * @return
+     * @return true if edited; false otherwise
      */
     public boolean isDirty() {
         return this.isDirty;
@@ -632,8 +634,8 @@ public class GKInstance implements Instance, Cloneable {
     /**
      * This method should only be called upon creation of a new instance from scratch
      * and not when getting the instance from db.
-     * @throws InvalidAttributeException
-     * @throws InvalidAttributeValueException
+     * @throws InvalidAttributeException thrown if an attribute is not valid for this instance
+     * @throws InvalidAttributeValueException if the value for an attribute is not valid for this instance
      */
     public void setDefaultValues() throws InvalidAttributeException, InvalidAttributeValueException {
     	for (Iterator it = getSchemaAttributes().iterator(); it.hasNext();) {

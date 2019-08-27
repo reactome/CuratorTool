@@ -57,6 +57,8 @@ public class InstanceUtilities {
 	 * @param instance - given instance to be followed
 	 * @param instructions - List of ClassAttributeFollowingInstruction
 	 * @return Map of found instances
+	 * @throws InvalidAttributeException Thrown if, for an instance's attributes in the instructions, retrieval of a value is attempted for an invalid attribute
+	 * @throws Exception Thrown if unable to load attribute values or get referrers for an instance while following the instructions
 	 */
 	public static Map followInstanceAttributes(GKInstance instance, Collection instructions) throws InvalidAttributeException, Exception {
 		List current = new ArrayList();
@@ -251,9 +253,9 @@ public class InstanceUtilities {
 	
 	/**
 	 * List all referred instances for the specified instance.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * @param instance Instance to retrieve downloadable/referred instances
+	 * @return Map of referred instances (schema class of the referred instance to the referred instance object)
+	 * @throws Exception Thrown if unable to get attribute values of the instance parameter
 	 */
 	public static Map<SchemaClass, List<GKInstance>> listDownloadableInstances(GKInstance instance) throws Exception {
 	    Map<SchemaClass, List<GKInstance>> rtn = new HashMap<SchemaClass, List<GKInstance>>();
@@ -313,7 +315,7 @@ public class InstanceUtilities {
 	
 	/**
 	 * Get all SchemaClasses in the specified list of top-level SchemaClasses.
-	 * @param topLevelClasses
+	 * @param topLevelClasses List of top-level SchemaClass objects
 	 * @return a list of SchemaClasses.
 	 */
 	public static java.util.List getAllSchemaClasses(Collection topLevelClasses) {
@@ -329,8 +331,8 @@ public class InstanceUtilities {
 	/**
 	 * Pull all descendent classes into the specified list. It also includes the specified
 	 * GKSchemaClass object.
-	 * @param list
-	 * @param schemaClass
+	 * @param list List of SchemaClass objects to which to be added
+	 * @param schemaClass SchemaClass object for which to find the descendent classes
 	 */
 	public static void getDescendentClasses(java.util.List list, GKSchemaClass schemaClass) {
 		if (!list.contains(schemaClass))
@@ -407,7 +409,7 @@ public class InstanceUtilities {
     
     /**
      * Group changed instances together and sort them alphabetically based on displayNames.
-     * @param instances
+     * @param instances List of GKInstance objects to be grouped and sorted
      */
     public static void groupInstances(java.util.List instances) {
         Collections.sort(instances, new Comparator() {
@@ -437,13 +439,13 @@ public class InstanceUtilities {
     }
     
     /**
-     * Compare if two InstanceEdit are the same. If two InstanceEdits have the same
-     * DB_IDs and same dateTime, they will be treated the same. The author is not
-     * used in comparsion, since these two attributes should be strong enough.
-     * @param ie1
-     * @param ie2
-     * @return
-     * @throws Exception
+     * Compare if two InstanceEdit are the same. If two InstanceEdits are both shell instance or
+     * have the same DB_IDs and same dateTime, they will be treated the same. The author is not
+     * used in comparison, since these two attributes should be strong enough.
+     * @param ie1 First InstanceEdit object
+     * @param ie2 Second InstanceEdit object
+     * @return true if the InstanceEdits are both shell instance OR db ids and date times values are the same; false otherwise
+     * @throws Exception Thrown if unable to get the value for an InstanceEdit in the dateTime attribute
      */
     public static boolean compareInstanceEdits(GKInstance ie1,
                                                GKInstance ie2) throws Exception {
@@ -481,9 +483,9 @@ public class InstanceUtilities {
 	
 	/**
 	 * Compare if two GKInstance objects are the same. These two objects should be from
-	 * the same SchemaClass. Otherwise an IllegalArgumentException will be thrown.
-	 * @param instance1
-	 * @param instance2
+	 * the same SchemaClass.
+	 * @param instance1 First GKInstance object
+	 * @param instance2 Second GKInstance object
 	 * @return true if the specified two Instance objects have the same set attribute values.
 	 */
 	public static boolean compare(GKInstance instance1, GKInstance instance2) {
@@ -492,9 +494,9 @@ public class InstanceUtilities {
 	
 	/**
 	 * Compare if two GKInstance objects are the same. These two objects should be from
-	 * the same SchemaClass. Otherwise an IllegalArgumentException will be thrown.
-	 * @param instance1
-	 * @param instance2
+	 * the same SchemaClass.
+	 * @param instance1 First GKInstance object
+	 * @param instance2 Second GKInstance object
 	 * @param escapeInstanceEdit true for no considering InstanceEdit values in slots "created"
 	 * and "modified"
 	 * @return true if the specified two Instance objects have the same set attribute values.
@@ -530,9 +532,9 @@ public class InstanceUtilities {
 	
 	/**
 	 * Compare two instances.
-	 * @param instance1
-	 * @param instance2
-	 * @return one of IS_SAVE, IS_GREATER, IS_LESSS, IS_CONFLICTING.
+	 * @param instance1 First GKInstance object
+	 * @param instance2 Second GKInstance object
+	 * @return one of IS_SAME, IS_GREATER, IS_LESS, IS_CONFLICTING.
 	 */
 	public static int compareInstances(GKInstance instance1, GKInstance instance2) {
 		SchemaClass cls1 = instance1.getSchemClass();
@@ -662,15 +664,14 @@ public class InstanceUtilities {
 	}
 	
 	/**
-	 * Check if two instances are mergable. In other words, if two instances are identifical.
+	 * Check if two instances are mergable. In other words, if two instances are identical.
 	 * This method is different from another method areReasonablyIdentical(GKInstance, GKINstance),
 	 * which is based on a much weaker condition.
 	 * Note: this method can be used for two instances in the same repository.
-	 * @param instance1
-	 * @param instance2
-	 * @return
-	 * @throws Exception
-	 * @see areReasonablyIdentical(GKInstance, GKInstance)
+	 * @param instance1 First GKInstance object
+	 * @param instance2 Second GKInstance object
+	 * @return true if the instances' class and attribute values are all identical; false otherwise
+	 * @throws Exception Thrown if unable to get values for any attributes of the instances
 	 */
 	public static boolean areMergable(GKInstance instance1,
 	                                  GKInstance instance2) throws Exception {
@@ -701,10 +702,10 @@ public class InstanceUtilities {
 
 	/**
 	 * Replace an instance with another one for a GKInstance.
-	 * @param referrer
-	 * @param oldReference
-	 * @param newReference
-	 * @throws Exception
+	 * @param referrer GKInstance in which the old reference is used
+	 * @param oldReference GKInstance reference to be replaced
+	 * @param newReference GKInstance reference to be used
+	 * @throws Exception Thrown if unable to get values for any attributes of the referrer instance
 	 */
 	public static void replaceReference(GKInstance referrer, GKInstance oldReference, GKInstance newReference)
             throws Exception {
@@ -730,10 +731,11 @@ public class InstanceUtilities {
 	
 	   /**
      * Replace an instance with another one for a GKInstance for a specific attribute.
-     * @param referrer
-     * @param oldReference
-     * @param newReference
-     * @throws Exception
+     * @param referrer GKInstance in which the old reference is used
+     * @param oldReference GKInstance reference to be replaced
+     * @param newReference GKInstance reference to be used
+     * @param attributeName Attribute name in which the old reference is used
+     * @throws Exception Thrown if the attribute is invalid or unable to get values for the attribute of the referrer instance
      */
     public static void replaceReference(GKInstance referrer, 
                                         GKInstance oldReference, 
@@ -760,7 +762,7 @@ public class InstanceUtilities {
 	 * in a hierarchical structure.
 	 * @param checkingInstance the instance to be checked for
 	 * @param instance the instance to be checked against
-	 * @return
+	 * @return true if descendent; false otherwise
 	 */
 	public static boolean isDescendentOf(GKInstance checkingInstance, GKInstance instance) {
 	    Set next = new HashSet();
@@ -810,11 +812,11 @@ public class InstanceUtilities {
 	}
 	
 	/**
-	 * Grep the top level events from the specified collection of events. An top level
-	 * event is an event 
-	 * @param events
-	 * @return
-	 * @throws Exception
+	 * Grep the top level events from the specified collection of events. A top level
+	 * event is one which is not contained within another event in the collection
+	 * @param events Collection of (GKInstance) events to check
+	 * @return List of (GKInstance) top level events
+	 * @throws Exception Thrown if unable to get attribute values for any events being checked
 	 */
 	public static List grepTopLevelEvents(Collection events) throws Exception {
 	    // Grep all events that are contained by other events
@@ -857,9 +859,10 @@ public class InstanceUtilities {
      * Some attributes in ReferenceSequencePeptide can be directly used by its
      * EntityWithAccessionedSequence referrers. Use this method to copy these
      * common attributes.
-     * @param ewas
-     * @param refPepSeq
-     * @throws Exception
+     * @param ewas EntityWithAccessionedSequence instance
+     * @param instance ReferenceSequencePeptide instance
+     * @throws Exception Thrown if unable to retrieve attribute values from the ReferenceSequencePeptide instance or 
+     * unable to set attribute values for the EntityWithAccessionedSequence
      */
     public static void copyAttributesFromRefPepSeqToEwas(GKInstance ewas,
                                                          GKInstance instance) throws Exception {
@@ -935,9 +938,9 @@ public class InstanceUtilities {
     
     /**
      * Get entity components in a specified pathway instance.
-     * @param pathway
-     * @return
-     * @throws Exception
+     * @param pathway Pathway for which to get participants
+     * @return Set of participants (GKInstance objects)
+     * @throws Exception Thrown if unable to retrieve events in the pathway or the participants in the retrieved events
      */
     public static Set<GKInstance> grepPathwayParticipants(GKInstance pathway) throws Exception {
         // First load all PhysicalEntities involved in Reactions
@@ -961,9 +964,9 @@ public class InstanceUtilities {
     /**
      * Get event component (ReactionlikeEvent or Interaction) in a specified pathway instance recursively. 
      * Complex is not included.
-     * @param pathway
-     * @return
-     * @throws Exception
+     * @param pathway Pathway for which to get contained events
+     * @return Set of events (GKInstance objects)
+     * @throws Exception Thrown if unable to get values for attributes of contained events
      */
     public static Set<GKInstance> grepPathwayEventComponents(GKInstance pathway) throws Exception {
         // Load all pathway events, not including complexes
@@ -1006,9 +1009,10 @@ public class InstanceUtilities {
     /**
      * Get reactions participants without outputs. However, if an output is used as input, catalyst,
      * or regulator, it will be in the returned set.
-     * @param reaction
-     * @return
-     * @throws Exception
+     * @param reaction Reaction for which to get participants
+     * @return Set of reaction participants (GKInstance objects)
+     * @throws Exception Thrown if the instance passed is not a ReactionlikeEvent or if unable to get values for
+     * attributes when searching for reaction participants
      */
     public static Set<GKInstance> getReactionLHSParticipants(GKInstance reaction) throws Exception {
         return _getReactionParticipants(reaction, false);
@@ -1016,9 +1020,10 @@ public class InstanceUtilities {
     
     /**
      * Grep all PhysicalEntities participating in a specified reaction
-     * @param reaction
-     * @return
-     * @throws Exception
+     * @param reaction Reaction for which to get participants
+     * @return Set of reaction participants (GKInstance objects)
+     * @throws Exception Thrown if the instance passed is not a ReactionlikeEvent or if unable to get values for
+     * attributes when searching for reaction participants
      */
     public static Set<GKInstance> getReactionParticipants(GKInstance reaction) throws Exception {
         return _getReactionParticipants(reaction, true);
@@ -1082,8 +1087,8 @@ public class InstanceUtilities {
      
      /**
       * Get events (ReactionlikeEvent, Pathways) in a specified Pathway instance.
-      * @param pathway
-      * @return
+      * @param pathway Pathway for which to find contained events
+      * @return Set of pathway's contained events (GKInstance objects)
       */
      public static Set<GKInstance> getContainedEvents(GKInstance pathway) {
          Set<GKInstance> set = null;
@@ -1159,9 +1164,9 @@ public class InstanceUtilities {
      
      /**
       * Get a set of RefPepSeq instances from a passed Pathway instance.
-      * @param pathway
-      * @return
-      * @throws Exception
+      * @param pathway Pathway for which to find RefPepSeq instances
+      * @return Set of RefPepSeq instances (GKInstance objects)
+      * @throws Exception Thrown if unable to get values from attributes in searching for reference peptide sequences
       */
      public static Set<GKInstance> grepRefPepSeqsFromPathway(GKInstance pathway) throws Exception {
          Set<GKInstance> participants = grepPathwayParticipants(pathway);
@@ -1175,11 +1180,11 @@ public class InstanceUtilities {
      }
      
      /**
-      * This utilitiy method is used to pull out all ReferenceEntity instances related to the passed
+      * This utility method is used to pull out all ReferenceEntity instances related to the passed
       * PhyiscalEntity instance.
-      * @param pe
-      * @return
-      * @throws Exception
+      * @param pe Physical Entity (GKInstance object) to search for ReferenceEntity instances
+      * @return Set of ReferenceEntity instances (GKInstance objects)
+      * @throws Exception Thrown if unable to get values from attributes in searching for ReferenceEntity instances
       */
      public static Set<GKInstance> grepReferenceEntitiesForPE(GKInstance pe) throws Exception {
          if (!pe.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
@@ -1203,25 +1208,25 @@ public class InstanceUtilities {
      
      /**
       * Get a set of RefPepSeq instances from a passed PhysicalEntity.
-      * @param interactor
-      * @return
-      * @throws Exception
+      * @param physicalEntity Physical Entity (GKInstance object) to search for RefPepSeq instances
+      * @return Set of RefPepSeq instances (GKInstance objects)
+      * @throws Exception Thrown if unable to get values from attributes in searching for reference peptide sequences
       */
-     public static Set<GKInstance> grepRefPepSeqsFromPhysicalEntity(GKInstance interactor) throws Exception {
+     public static Set<GKInstance> grepRefPepSeqsFromPhysicalEntity(GKInstance physicalEntity) throws Exception {
          Set<GKInstance> refPepSeq = new HashSet<GKInstance>();
-         if (interactor.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
-             GKInstance ref = (GKInstance) interactor.getAttributeValue(ReactomeJavaConstants.referenceEntity);
+         if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
+             GKInstance ref = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.referenceEntity);
              if (ref != null) {
                  if (ref.getSchemClass().isa(ReactomeJavaConstants.ReferencePeptideSequence) ||
                      ref.getSchemClass().isa(ReactomeJavaConstants.ReferenceGeneProduct))
                      refPepSeq.add(ref);
              }
          }
-         else if (interactor.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-             grepRefPepSeqFromInstanceRecursively(interactor, refPepSeq);
+         else if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
+             grepRefPepSeqFromInstanceRecursively(physicalEntity, refPepSeq);
          }
-         else if (interactor.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-             grepRefPepSeqFromInstanceRecursively(interactor, refPepSeq);
+         else if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
+             grepRefPepSeqFromInstanceRecursively(physicalEntity, refPepSeq);
          }
          return refPepSeq;
      }
@@ -1276,10 +1281,10 @@ public class InstanceUtilities {
      
      /**
       * Check if two instances are member and set relationship.
-      * @param set
-      * @param member
-      * @return
-      * @throws Exception
+      * @param set Set to check if it contains the member
+      * @param member Member to check if it is contained in the set
+      * @return true if the member is in the set/set contains the member; false otherwise
+      * @throws Exception Thrown if unable to find the values in attributes of the set to find its members
       */
      public static boolean isEntitySetAndMember(GKInstance set, GKInstance member) throws Exception {
          if (set.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasMember)) {
@@ -1303,10 +1308,9 @@ public class InstanceUtilities {
       * are checked if any. The checking is recursively, which means that if an EntitySet uses another 
       * EntitySet as its member, the members of another EntitySet will be checked. Also if these two
       * EntitySets have isEntitySetAndMember relationship, false will be returned.
-      * @param inst1
-      * @param inst2
-      * @return
-      * @throws Exception
+      * @param inst1 First GKInstance object
+      * @param inst2 Second GKInstance object
+      * @return true if the GKInstance objects share members/candidates; false otherwise
       */
      public static boolean hasSharedMembers(GKInstance inst1, GKInstance inst2) {
          // If these two instances are the same, false should be returned
@@ -1338,11 +1342,13 @@ public class InstanceUtilities {
       * a gene whose names is in the gene name is regarded as matched. The check
       * is done recursively. For example, if a PE is a complex, its components 
       * will be checked.
-      * @param dbIds
-      * @param geneNames
-      * @param dba
-      * @return
-      * @throws Exception
+      * @param dbIds List of dbIds for physical entities
+      * @param geneNames List of gene names
+      * @param dba DBAdaptor used to fetch instances based on passed dbIds
+      * @return List of dbIds which represent instances with a reference entity that has a gene name matching any 
+      * value in the gene name list
+      * @throws Exception Thrown if unable to retrieve instance for a dbId or if unable to retrieve an instance's 
+      * reference entities or their gene names
       */
      public static List<Long> checkMatchEntityIds(List<Long> dbIds, 
                                            List<String> geneNames,

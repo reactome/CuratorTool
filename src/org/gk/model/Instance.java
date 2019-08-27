@@ -26,8 +26,9 @@ public interface Instance extends Serializable {
 	/**
 	 * Get the value of the attribute. If there is more than one values,
 	 * the first value should be returned.
-	 * @param attributeName
-	 * @return
+	 * @param attributeName Name of attribute
+	 * @return Value of attribute
+	 * @throws Exception Thrown if unable to get attribute value
 	 */
 	public Object getAttributeValue(String attributeName) throws Exception;
 	
@@ -46,8 +47,9 @@ public interface Instance extends Serializable {
 	
 	/**
 	 * For a multiple attribute.
-	 * @param attributeName
-	 * @param value
+	 * @param attributeName Name of attribute for which to add a value
+	 * @param value Value to add for the attribute
+	 * @throws Exception Thrown if unable to add value for attribute name
 	 */
 	public void addAttributeValue(String attributeName, Object value) throws Exception;
 	
@@ -55,8 +57,9 @@ public interface Instance extends Serializable {
 	
 	/**
 	 * Get the list of Instances that refer to this Instance.
-	 * @param attributeName
-	 * @return
+	 * @param attributeName Name of attribute used by other instances to refer to this instance
+	 * @return List of Instances that refer to this instance by the attribute name
+	 * @throws Exception Thrown if unable to get referrers for attribute name
 	 */
 	public java.util.Collection getReferers(String attributeName) throws Exception;
 	public java.util.Collection getReferers(SchemaAttribute attribute) throws Exception;

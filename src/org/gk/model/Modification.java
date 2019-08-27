@@ -35,56 +35,56 @@ public class Modification implements Serializable {
 	}
 	
 	/**
-	 * @return
+	 * @return Numeric coordinate of modification
 	 */
 	public int getCoordinate() {
 		return coordinate;
 	}
 
 	/**
-	 * @return
+	 * @return Modification dbId as String
 	 */
 	public String getModificationDbID() {
 		return modificationDbId;
 	}
 
 	/**
-	 * @return
+	 * @return Modification description
 	 */
 	public String getModification() {
 		return modification;
 	}
 
 	/**
-	 * @return
+	 * @return Residue description
 	 */
 	public String getResidue() {
 		return residue;
 	}
 
 	/**
-	 * @param i
+	 * @param i Numeric coordinate of modification
 	 */
 	public void setCoordinate(int i) {
 		coordinate = i;
 	}
 
 	/**
-	 * @param string
+	 * @param string Modification dbId as String 
 	 */
 	public void setModificationDbID(String string) {
 		modificationDbId = string;
 	}
 
 	/**
-	 * @param string
+	 * @param string Modification description
 	 */
 	public void setModification(String string) {
 		modification = string;
 	}
 
 	/**
-	 * @param string
+	 * @param string Residue description
 	 */
 	public void setResidue(String string) {
 		residue = string;
