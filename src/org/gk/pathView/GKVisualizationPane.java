@@ -10,7 +10,7 @@ package org.gk.pathView;
  * @author vastrik
  *
  * To change the template for this generated type comment go to
- * Window>Preferences>Java>Code Generation>Code and Comments
+ * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments
  */
 
 import java.awt.*;
@@ -550,42 +550,42 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			instance = reaction;
 		}
 		/**
-		 * @return
+		 * @return Source Vertex
 		 */
 		public Vertex getSourceVertex() {
 			return sourceVertex;
 		}
 		
 		/**
-		 * @return
+		 * @return Target Vertex
 		 */
 		public Vertex getTargetVertex() {
 			return targetVertex;
 		}
 		
 		/**
-		 * @param vertex
+		 * @param vertex Source Vertex to set
 		 */
 		public void setSourceVertex(Vertex vertex) {
 			sourceVertex = vertex;
 		}
 
 		/**
-		 * @param vertex
+		 * @param vertex Target Vertex to set
 		 */
 		public void setTargetVertex(Vertex vertex) {
 			targetVertex = vertex;
 		}
 
 		/**
-		 * @return
+		 * @return Preferred length of edge
 		 */
 		public int getPreferredLength() {
 			return preferredLength;
 		}
 
 		/**
-		 * @param i
+		 * @param i Preferred length of edge to set
 		 */
 		public void setPreferredLength(int i) {
 			preferredLength = i;
@@ -610,29 +610,30 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 
 		/**
-		 * @return
+		 * @return Color of edge
 		 */
 		public Color getColor() {
 			return color;
 		}
 
 		/**
-		 * @param color
+		 * @param color Color of edge to set
 		 */
 		public void setColor(Color color) {
 			this.color = color;
 		}
 
 		protected boolean isFixed = false;
+		
 		/**
-		* @return
+		* @return true if edge is fixed; false otherwise
 		*/
 		public boolean isFixed() {
 			return isFixed;
 		}
 
 		/**
-		* @param b
+		* @param b true/false to set edge as fixed
 		*/
 		public void setFixed(boolean b) {
 			isFixed = b;
@@ -754,28 +755,28 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		
 		/**
-		 * @return
+		 * @return true if ReactionEdge is loaded; false otherwise
 		 */
 		public boolean isLoaded() {
 			return isLoaded;
 		}
 
 		/**
-		 * @param b
+		 * @param b true/false to set ReactionEdge as loaded
 		 */
 		public void setLoaded(boolean b) {
 			isLoaded = b;
 		}
 
 		/**
-		 * @return
+		 * @return Coordinates instance (GKInstance object)
 		 */
 		public GKInstance getCoordinatesInstance() {
 			return coordinatesInstance;
 		}
 
 		/**
-		 * @return
+		 * @return Reaction instance (GKInstance object)
 		 */
 		public GKInstance getReactionInstance() {
 			GKInstance ri = null;
@@ -790,7 +791,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 
 		/**
-		 * @param instance
+		 * @param instance Coordinates instance (GKInstance object) to set
 		 */
 		public void setCoordinatesInstance(GKInstance instance) {
 			coordinatesInstance = instance;
@@ -903,8 +904,9 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			buf.append(" [" + x + "," + y + "]");
 			return buf.toString();
 		}
+		
 		/**
-		 * @return
+		 * @return Map of Connection Edges
 		 */
 		public Map getConnectionEdges() {
 			return connectionEdges;
@@ -1225,9 +1227,9 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
     
     /**
      * Select a displayed ReactionEdge based on the specified coordinates.
-     * @param x
-     * @param y
-     * @return
+     * @param x X-coordinate of ReactionEdge
+     * @param y Y-coordinate of ReactionEdge
+     * @return ReactionEdge selected (if any); null otherwise
      */
     public ReactionEdge selectEdge(int x, int y) {
     	if (edges.size() > 0) {
@@ -1245,7 +1247,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
     
     /**
      * Use a Rectangle to select ReactionEdges.
-     * @param rect
+     * @param rect Rectangle boundaries to select edges
      */
     public void selectEdges(Rectangle rect) {
     	selected.clear();
@@ -1911,14 +1913,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	/**
-	 * @return
+	 * @return Location context instance (GKInstance object)
 	 */
 	public GKInstance getLocationContext() {
 		return locationContext;
 	}
 
 	/**
-	 * @param instance
+	 * @param instance Location context instance (GKInstance object) to set
 	 */
 	public void setLocationContext(GKInstance instance) {
 		locationContext = instance;
@@ -1926,21 +1928,21 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	/**
-	 * @return
+	 * @return Hierarchy panel PathwayBrowserPanel instance
 	 */
 	public PathwayBrowserPanel getHierarchyPanel() {
 		return hierarchyPanel;
 	}
 
 	/**
-	 * @return
+	 * @return MySQLAdaptor instance
 	 */
 	public MySQLAdaptor getDba() {
 		return dba;
 	}
 
 	/**
-	 * @param adaptor
+	 * @param adaptor MySQLAdaptor instance to set
 	 */
 	public void setDba(MySQLAdaptor adaptor) {
 		dba = adaptor;
@@ -2048,14 +2050,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	/**
-	 * @return
+	 * @return Schema object
 	 */
 	public Schema getSchema() {
 		return schema;
 	}
 
 	/**
-	 * @param schema
+	 * @param schema Schema object to set
 	 */
 	public void setSchema(Schema schema) {
 		this.schema = schema;
@@ -2094,7 +2096,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	
 	/**
 	 * Synchronized the tree selection with graph pane selection.
-	 * @param tse
+	 * @param tse TreeSelectionEvent instance
 	 * @param needValidate true to make sure the correct reaction instances are selected.
 	 */
 	public void handleTreeSelection(TreeSelectionEvent tse, boolean needValidate) {
@@ -2159,7 +2161,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
   
   /**
    * Check if reaction coordinates can be written to the database.
-   * @return
+   * @return true if reaction coordinates can be written to the database; false otherwise
    */
   public boolean isCoordinatesWritable() {
     return this.isWritable;
