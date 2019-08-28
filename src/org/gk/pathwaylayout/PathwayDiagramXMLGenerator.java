@@ -46,9 +46,10 @@ public class PathwayDiagramXMLGenerator {
     
     /**
      * Generate an XML file for a specified PathwayDiagram instance.
-     * @param pd
-     * @param file
-     * @throws Exception
+     * @param pd PathwayDiagram instance for which to generate the XML
+     * @param file File to which to write the XML for the PathwayDiagram instance
+     * @throws Exception Thrown if unable to get values from the PathwayDiagram instance or its represented pathway or
+     * if there is an error during file IO
      */
     public void generateXMLForPathwayDiagram(GKInstance pd, 
                                              File file) throws Exception {
@@ -57,9 +58,10 @@ public class PathwayDiagramXMLGenerator {
     
     /**
      * Generate an XML for a specified PathwayDiagram to an OutputStream object.
-     * @param pd
-     * @param os
-     * @throws Exception
+     * @param pd PathwayDiagram instance for which to generate the XML
+     * @param os OutputStream to which to write the XML for the PathwayDiagram instance
+     * @throws Exception Thrown if unable to get values from the PathwayDiagram instance or its represented pathway or
+     * if there is an error during file IO
      */
     public void generateXMLForPathwayDiagram(GKInstance pd, 
                                               OutputStream os) throws Exception {
@@ -107,9 +109,10 @@ public class PathwayDiagramXMLGenerator {
     
     /**
      * Generate an XML String object for a specified PathwayDiagram instance.
-     * @param pd
-     * @return
-     * @throws Exception
+     * @param pd PathwayDiagram instance for which to generate the XML
+     * @return The XML text generated from the PathwayDiagram instance
+     * @throws Exception Thrown if unable to get values from the PathwayDiagram instance or its represented pathway or
+     * if there is an error during file IO
      */
     public String generateXMLForPathwayDiagram(GKInstance pd) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

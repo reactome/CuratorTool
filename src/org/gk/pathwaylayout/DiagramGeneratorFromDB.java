@@ -104,9 +104,10 @@ public class DiagramGeneratorFromDB {
     /**
      * Generate image files. Client should call this method to generate image files
      * to be used by Web ELV.
-     * @return true if images have been generated successfully. Otherwise images should be
+     * @param pathwayId DbId of pathway for which to generate images
+     * @return true if images have been generated successfully. Otherwise false and images should be
      * created already.
-     * @throws Exception
+     * @throws Exception Thrown if unable generate images
      */
     @SuppressWarnings("rawtypes")
     public boolean generateImages(Long pathwayId) throws Exception {
@@ -149,11 +150,10 @@ public class DiagramGeneratorFromDB {
     
     /**
      * Generate all necessary files and instances that are used by web ELV for 
-     * the passed pathway and its diagram 
-     * instances.
-     * @param pathway
-     * @param diagram
-     * @throws Exception
+     * the passed pathway and its diagram instances.
+     * @param pathway Pathway (GKInstance object) for which to generate files and instances
+     * @param diagram Diagram (GKInstance object) for which to generate files and instances
+     * @throws Exception Thrown if unable to generate any files or instances
      */
     public void generateELVInstancesAndFiles(GKInstance pathway,
                                              GKInstance diagram) throws Exception {
@@ -166,10 +166,10 @@ public class DiagramGeneratorFromDB {
     /**
      * The actual method to generate all necessary files and instances for 
      * the web ELV.
-     * @param pathway
-     * @param diagram
-     * @param pathwayDir
-     * @throws Exception
+     * @param pathway Pathway (GKInstance object) for which to generate files and instances
+     * @param diagram Diagram (GKInstance object) for which to generate files and instances
+     * @param pathwayDir Directory in which to write files
+     * @throws Exception Thrown if unable to generate any files or instances
      */
     protected void generateELVInstancesAndFiles(GKInstance pathway,
                                                 GKInstance diagram,
@@ -196,9 +196,10 @@ public class DiagramGeneratorFromDB {
      * by PathwayDigram's representedPathway slot. But for a disease pathway, a PathwayDiagram can
      * be linked via its normalPathway, which links to a PathwayDiagram. This change has been made
      * as of November, 2014.
-     * @param pathway
-     * @return
-     * @throws Exception
+     * @param pathway Pathway for which to retrieve the pathway diagram
+     * @return PathwayDiagram instane (GKInstance object)
+     * @throws Exception Thrown if unable to retrieve pathway diagram instance using the database adaptor
+     * or if unable to retrieve a normal pathway for a disease pathway instance due to an error
      */
     @SuppressWarnings("unchecked")
     public GKInstance getPathwayDiagram(GKInstance pathway) throws Exception {
@@ -340,9 +341,10 @@ public class DiagramGeneratorFromDB {
      * This method is used to check if a PathwayDiagram instance is related to a disease pathway. 
      * A disease related PathwayDiagram instance should have one and only one normal pathway, and
      * at least one disease pathway used as its representedPathway attribute.
-     * @param pdInst
-     * @return
-     * @throws Exception
+     * @param pdInst Pathway Diagram instance
+     * @return true if the pathway diagram instance is used by normal and disease pathways; false otherwise
+     * @throws Exception Thrown if unable to retrieve pathway instances from the pathway diagram instance or unable
+     * to retrieve disease information from a pathway instance
      */
     public boolean isDiseaseRelatedPDInstance(GKInstance pdInst) throws Exception {
         List<?> pathways = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
@@ -738,12 +740,14 @@ public class DiagramGeneratorFromDB {
     
     /**
      * Prepare an appropriate PathwayEditor object for drawing the diagram.
-     * @param diagram
-     * @param pathway
-     * @param rPathway
-     * @return
-     * @throws Exception
-     * @throws InvalidAttributeException
+     * @param diagram Pathway diagram instance to check if the pathway represented is disease related
+     * @param pathway Pathway instance to retrieve disease information
+     * @param rPathway RenderablePathway instance which is used to fine tune the diagram
+     * @return PathwayEditor instance
+     * @throws Exception Thrown if unable to retrieve pathway instances from the pathway diagram instance or unable
+     * to retrieve disease information from a pathway instance
+     * @throws InvalidAttributeException Thrown if the disease attribute is invalid for the pathway instance passed to
+     * the method
      */
     public PathwayEditor preparePathwayEditor(GKInstance diagram,
                                               GKInstance pathway,
@@ -861,9 +865,9 @@ public class DiagramGeneratorFromDB {
      * topicFile: a list of DB_IDs for top-level pathways having diagrams drawn. The format is similar to file
      * ver**_topcis.txt as following:
      * DB_ID    Pathway_Name (tab delimited)
-     * @param args
+     * @param args Command-line arguments
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         if (args.length < 6) {
             System.err.println("Usage: java -Xmx512m DiagramGeneratorFromDB dbHost dbName dbUser dbPwd dbPort imageBaseDir (topicFile)\n" +
             		            "The topicFile name is optional. If no topicFile name is provided, images for all PathwayDiagram instances\n" +
