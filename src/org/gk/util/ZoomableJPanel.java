@@ -22,9 +22,9 @@ public class ZoomableJPanel extends JPanel {
     
     /**
      * This method is used to set scale of this pane without repaint.
-     * @param scaleX
-     * @param scaleY
-     * @see zoom(double, double)
+     * 
+     * @param scaleX Scale (zoom factor) for the x-axis
+     * @param scaleY Scale (zoom factor) for the y-axis
      */
     public void setScale(double scaleX, double scaleY) {
         this.scaleX = scaleX;

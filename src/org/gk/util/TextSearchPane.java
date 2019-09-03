@@ -102,9 +102,10 @@ public class TextSearchPane extends JPanel {
 	
 	/**
 	 * Wrap this TextSearchPane in a JDialog.
-	 * @param parentComp
-	 * @param title
-	 * @return true for OK is clicked while false for clicking cancel.
+	 * 
+	 * @param parentComp ParentComponent for which to create the JDialog
+	 * @param title Title of the JDialog
+	 * @return true for OK is clicked while false for clicking cancel
 	 */
 	public boolean showSearchDialog(Component parentComp, String title) {
 		// Creat a Dialog

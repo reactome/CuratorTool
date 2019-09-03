@@ -12,9 +12,9 @@ import java.util.Iterator;
 
 /**
  * This class implements a hierarchical layout based on the book "Graph Drawing"
- * by Battista, G., Eades, P., Tamassia, R & Tollis, I.G. The last step,
+ * by Battista, G., Eades, P., Tamassia, R &amp; Tollis, I.G. The last step,
  * assignment of x coordinates is based on the paper "A Technique for Drawing Directed
- * Graphs" by Gansner, E.R., Koutsofios, E., North, S.C. & Vo, KP.
+ * Graphs" by Gansner, E.R., Koutsofios, E., North, S.C. &amp; Vo, KP.
  * @author wgm
  */
 public class HierarchicalLayout {

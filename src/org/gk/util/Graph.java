@@ -42,7 +42,8 @@ public class Graph {
 	/**
 	 * Add an Edge. Adding an Edge will add in or out Vertex to the out or in
 	 * Vertex's neighbor list.
-	 * @param edge
+	 * 
+	 * @param edge Edge object to add to the graph's edges
 	 */
 	public void addEdge(Edge edge) {
 		if (edges == null)

@@ -61,6 +61,7 @@ public class RecentProjectHelper {
     
     /**
      * Set a list of project names.
+     * 
      * @param projects a list of file names.
      */
     public void setRecentProjects(List projects) {
@@ -162,8 +163,9 @@ public class RecentProjectHelper {
     }
     
     /**
-     * Switch the project specied by index to the top.
-     * @param index
+     * Switch the project specified by index to the top.
+     * 
+     * @param index Index of the project
      */
     public void switchToTop(int index) {
         if (projectNames == null)

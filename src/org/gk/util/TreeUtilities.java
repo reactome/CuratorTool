@@ -20,12 +20,14 @@ import javax.swing.tree.TreePath;
  * @author wgm
  */
 public class TreeUtilities {
+	
 	/**
 	 * Remove a TreeNode containing the specified obj from a JTree. It is assumed
 	 * that all TreeNodes in the specified tree are DefaultMutableTreeNodes and its 
 	 * TreeModel should be a DefaultTreeModel.
-	 * @param obj the contained 
-	 * @param tree the JTree whose TreeNodes are DefaultMutableTreeNodes.
+	 * 
+	 * @param obj The contained object
+	 * @param tree The JTree whose TreeNodes are DefaultMutableTreeNodes
 	 */
 	public static void removeNode(Object obj, JTree tree) {
 		DefaultMutableTreeNode treeNode = searchNode(obj, tree);
@@ -35,9 +37,10 @@ public class TreeUtilities {
 	
 	/**
 	 * Search a DefaultMutableTreeNode whose userObject is the specified obj.
-	 * @param obj the userObject.
-	 * @param tree the JTree whose TreeNodes are DefaultMutableTreeNodes.
-	 * @return a DefaultMuatbleTreeNode whose userObject is obj.
+	 * 
+	 * @param obj The userObject for which to search
+	 * @param tree The JTree whose TreeNodes are DefaultMutableTreeNodes
+	 * @return DefaultMutableTreeNode whose userObject is obj
 	 */
 	public static DefaultMutableTreeNode searchNode(Object obj, JTree tree) {
 		TreeModel model = tree.getModel();
@@ -49,10 +52,13 @@ public class TreeUtilities {
 	
 	/**
 	 * A recursive method to search a DefaultMutableTreeNode that displays
-	 * an Object obj. 
+	 * an Object obj.
+	 * 
+	 * @param obj The userObject for which to search
+	 * @param parentNode DefaultMutableTreeNode to search for the userObject passed in obj
+	 * @return DefaultMutableTreeNode that has the userObject passed in obj
 	 */ 
-	public static DefaultMutableTreeNode searchNode(Object obj, 
-                                                    DefaultMutableTreeNode parentNode) {
+	public static DefaultMutableTreeNode searchNode(Object obj, DefaultMutableTreeNode parentNode) {
 		DefaultMutableTreeNode treeNode = null;
 		int size = parentNode.getChildCount();
 		// A list of nodes with children
@@ -74,9 +80,10 @@ public class TreeUtilities {
 	
 	/**
 	 * Search all TreeNodes that use the specified obj as its UserObject.
-	 * @param obj
-	 * @param tree a JTree whose TreeNode is DefaultMutableTreeNode.
-	 * @return a List of DefaultMutableTreeNodes. An empty list will be returned
+	 * 
+	 * @param obj The userObject for which to search
+	 * @param tree a JTree whose TreeNode is DefaultMutableTreeNode
+	 * @return a List of DefaultMutableTreeNodes that have the userObject passed in obj. An empty list will be returned
 	 * if no TreeNode is found.
 	 */
 	public static java.util.List searchNodes(Object obj, JTree tree) {
@@ -99,8 +106,9 @@ public class TreeUtilities {
 	
 	/**
 	 * Expand all tree nodes under the specified DefaultMutableTreeNode object.
-	 * @param treeNode
-	 * @param tree a JTree with DefaultTreeModel as its model.
+	 * 
+	 * @param treeNode DefaultMutableTreeNode under which to expand all nodes
+	 * @param tree a JTree with DefaultTreeModel as its model
 	 */
 	public static void expandAllNodes(DefaultMutableTreeNode treeNode, JTree tree) {
 		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
@@ -115,8 +123,9 @@ public class TreeUtilities {
 	}
 	
 	/**
-	 * Collpase all tree nodes under the specified DefaultMutableTreeNode object.
-	 * @param treeNode
+	 * Collapse all tree nodes under the specified DefaultMutableTreeNode object.
+	 * 
+	 * @param treeNode DefaultMutableTreeNode under which to collapse all nodes
 	 * @param tree a JTree with DefaultTreeModel as its model.
 	 */
 //	public static void collapseAllNodes(DefaultMutableTreeNode treeNode, JTree tree) {

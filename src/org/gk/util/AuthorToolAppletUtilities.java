@@ -43,7 +43,8 @@ public class AuthorToolAppletUtilities {
     /**
      * Set the file name for the local schema. This file should be in the local
      * resources folder. Otherwise, it will not be loaded.
-     * @param fileName
+     * 
+     * @param fileName File name for the local schema
      */
     public static void setSchemaFileName(String fileName) {
         SCHEMA_FILE_NAME = fileName;
@@ -154,7 +155,9 @@ public class AuthorToolAppletUtilities {
      *  local resources folder, .reactome folder, and JWS 
      *  cached resources folder that is in a jar. So the
      *  schema class will be searched according the above order.
-     *  @return a loaded object. The client should cast it to a schema.
+     *  
+     *  @return a loaded object. The client should cast it to a schema
+     *  @throws Exception Thrown if unable to read local schema file
      */
     public static Object fetchLocalSchema() throws Exception {
         InputStream io = null;
@@ -179,10 +182,11 @@ public class AuthorToolAppletUtilities {
     }
     
     /**
-     * The passed schema object will be tried to save into resources folder, 
+     * The passed schema object will try to be saved into the resources folder, 
      * if there is no resource folder as in JWS, .reactome will be used.
-     * @param schema
-     * @throws Exception
+     * 
+     * @param schema Schema object to save
+     * @throws IOException Thrown if unable to write schema to local schema file
      */
     public static void saveLocalSchema(Object schema) throws IOException {
         // Check if resources folder existing
@@ -209,8 +213,9 @@ public class AuthorToolAppletUtilities {
     
     /**
      * This method is copied from {@link GKApplicationUtilities}.
-     * @param value
-     * @return
+     * 
+     * @param value String value to decrypt
+     * @return Decrypted String
      */
     public static String decrypt(String value) {
         java.util.List list = new ArrayList();
