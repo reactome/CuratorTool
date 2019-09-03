@@ -109,6 +109,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         
     /**
      * Default constructor.
+     * 
      * @throws Exception an Exception might be thrown during schema loading from
      * a local file.
      */
@@ -130,12 +131,13 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * Register a pathway layout stored in RenderablePathway. 
      * Use {@link #addDiagramForPathwayDiagram(GKInstance, RenderablePathway)} instead.
      * The implementation of this method has been delegated to addDiagramForPathwayDiagram().
+     * 
      * @param pathway pathway has a layout information.
      * @param diagram layout contained in RenderablePathway.
+     * @throws Exception Thrown if unable to fetch PathwayDiagram instances for the pathway passed
      */
     @Deprecated
-    public void addDiagram(GKInstance pathway,
-                           RenderablePathway diagram) throws Exception {
+    public void addDiagram(GKInstance pathway, RenderablePathway diagram) throws Exception {
         // Get the PathwayDigram instance of this pathway
         Collection<?> c = fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
                                                    ReactomeJavaConstants.representedPathway,
@@ -149,12 +151,11 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Register a RenderablePathway for its corresponding PathwayDiagram instance.
-     * @param pdInst
-     * @param diagram
-     * @throws Exception
+     * 
+     * @param pdInst PathwayDiagram instance (GKInstance object)
+     * @param diagram RenderablePathway instance corresponding to the PathwayDiagram instance
      */
-    public void addDiagramForPathwayDiagram(GKInstance pdInst,
-                                            RenderablePathway diagram) throws Exception {
+    public void addDiagramForPathwayDiagram(GKInstance pdInst, RenderablePathway diagram) {
         if (pdInstToDiagram == null)
             pdInstToDiagram = new HashMap<GKInstance, RenderablePathway>();
         boolean isReplace = pdInstToDiagram.containsKey(pdInst);
@@ -170,10 +171,13 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /**
-     * A helper method to get pathways represented by a RenderablePathway, which may have more than one pathway.
-     * @param embedder
-     * @return
-     * @throws Exception
+     * A helper method to get pathways represented by a RenderablePathway, which may have more than one pathway
+     * (including disease pathways).
+     * 
+     * @param diagram RenderablePathway instance from which to retrieve represented pathway(s)
+     * @return List of pathways (GKInstance objects) the RenderablePathway object represents
+     * @throws Exception Thrown if unable to retrieve represented pathways or if unable to get referrers from any
+     * represented pathways when searching for disease pathway counterparts
      */
     public List<GKInstance> getRepresentedPathwaysInDiagram(RenderablePathway diagram) throws Exception {
         Set<GKInstance> pathways = new HashSet<GKInstance>();
@@ -204,8 +208,10 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     /**
      * Get the diagram for the passed pathway instance. It may be null if a pathway
      * has not be laid out.
-     * @param pathway
-     * @return
+     * 
+     * @param pathway GKInstance object for which to retrieve the RenderablePathway instance representing it
+     * @return RenderablePathway instance representing the pathway; null if none available
+     * @throws Exception Thrown if unable to retrieve represented pathways from the RenderablePathway instance
      */
     public RenderablePathway getDiagram(GKInstance pathway) throws Exception {
         // Search for diagram from pdInstanceToDiagram map
@@ -219,11 +225,11 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Get the PathwayDiagram instance for a RenderablePathway diagram.
-     * @param diagram
-     * @return
-     * @throws Exception
+     * 
+     * @param diagram RenderablePathway instance for which to retrieve the PathwayDiagram instance
+     * @return PathwayDiagram instance (GKInstance object) associated with the RenderablePathway instance
      */
-    public GKInstance getPathwayDiagramInstance(RenderablePathway diagram) throws Exception {
+    public GKInstance getPathwayDiagramInstance(RenderablePathway diagram) {
         for (GKInstance pdInst : pdInstToDiagram.keySet()) { 
             RenderablePathway diagram1 = pdInstToDiagram.get(pdInst);
             if (diagram1 == diagram)
@@ -235,6 +241,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     /**
      * An overloaded constructor.
      * @param source the xml file name.
+     * @throws Exception Thrown if unable to load the contents of the source file
      */
     public XMLFileAdaptor(String source) throws Exception {
         this();
@@ -608,7 +615,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     /**
      * Usually the client should call save() first to avoid losing the changes. 
      * Otherwise, an IllegalStateException will be thrown.
-     * @throws Exception
+     * 
+     * @throws Exception Thrown if there are changes to be saved, if unable to load the local schema, or if unable to
+     * load the source file's data
      */
     public void refresh() throws Exception {
         if (isDirty())
@@ -623,8 +632,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Create a new GKInstance located in the local repository.
-     * @param clsName
-     * @return
+     * 
+     * @param clsName Name of the class for which an instance should be created
+     * @return Newly created GKInstance object of the class type specified
      */
     public GKInstance createNewInstance(String clsName) {
         GKInstance instance = createInstance(getNextLocalID(), clsName);
@@ -634,7 +644,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Register a newly created Instance.
-     * @param newInstance
+     * 
+     * @param newInstance New GKInstance object to register
      */
     public void addNewInstance(GKInstance newInstance) {
         SchemaClass cls = newInstance.getSchemClass();
@@ -663,8 +674,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * Make sure the old slot values are valid in the new schemaclass context, mimic the deleting 
      * operation for the instance, mimic the adding operation for the instance. Mimicing is used
      * to make data structure correct.
-     * @param instance
-     * @param newCls
+     * 
+     * @param instance GKInstance object for which the type is to be switched
+     * @param newCls GKSchemaClass object representing the new type
      */
     public void switchType(GKInstance instance, GKSchemaClass newCls) {
         GKSchemaClass oldCls = (GKSchemaClass) instance.getSchemClass();
@@ -711,7 +723,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Remove the dirty flag from the specify GKInstance object.
-     * @param instance
+     * 
+     * @param instance GKInstance object for which to remove the dirty flag
      */
     public void removeDirtyFlag(GKInstance instance) {
         if (!instance.isDirty())
@@ -723,8 +736,10 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Check if any of the GKInstance in the specified GKSchemaClass is dirty.
-     * @param cls
-     * @return 
+     * 
+     * @param cls GKSchemaClass object for which to retrieve instances for checking
+     * @return true if any instances of the class passed are dirty; false otherwise
+     * @throws Exception Thrown if unable to retrieve instances for the class passed
      */
     public boolean isDirty(GKSchemaClass cls) throws Exception {
         Collection<?> instances = fetchInstancesByClass(cls.getName());
@@ -755,7 +770,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * instance is a new instance, it will not be marked. However, marking
      * a dirty instance will trigger a markAsDirty property event without
      * any values.
-     * @param instance
+     * 
+     * @param instance GKInstance object to mark as dirty
      */
     public void markAsDirty(Instance instance) {
         if (((GKInstance)instance).isDirty()) {
@@ -786,11 +802,12 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Delete a specified GKInstance object from the repository.
-     * @param instance
+     * 
+     * @param instance GKInstance object to delete
      */
     public void deleteInstance(GKInstance instance) {
         SchemaClass schemaClass = instance.getSchemClass();
-        // Have to null other instances' attribute values that refer to this instance.                                                            
+        // Have to null other instances' attribute values that refer to this instance.
         try {
             // Use a fast way
             java.util.List referrers = getReferers(instance);
@@ -994,6 +1011,12 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
 
     /**
      * A helper to fetch instance by class name and its id.
+     * 
+     * @param className Name of the class for the instance to be retrieved
+     * @param dbID DbId value for the instance to be retrieved
+     * @return GKInstance object corresponding to the class name and db id passed; null if no instance matches the 
+     * db id for the type (i.e. class name) passed
+     * @throws Exception Thrown if unable to retrieve instances by class name
      */
     public GKInstance fetchInstance(String className, Long dbID) throws Exception {
         Collection c = fetchInstancesByClass(className);
@@ -1010,8 +1033,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Fetch a GKInstance based on its DB_ID.
-     * @param dbID
-     * @return
+     * 
+     * @param dbID DbId value for which to retrieve the corresponding instance
+     * @return GKInstance object corresponding to the dbId; null if none found or if dbId is null
      */
     public GKInstance fetchInstance(Long dbID) {
         if (dbID == null)
@@ -1076,10 +1100,10 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Remove the delete record for a list of DB_IDs.
+     * 
      * @param dbIDs a list of DB_IDs.
-     * @throws IOException
      */
-    public void clearDeleteRecord(List<Long> dbIDs) throws IOException {
+    public void clearDeleteRecord(List<Long> dbIDs) {
         if (dbIDs == null || dbIDs.size() == 0)
             return;
         // Remove the specified DB_IDs from the deleteMaps
@@ -1184,17 +1208,19 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Use this method to load all attributes.
-     * @param instance
+     * 
+     * @param instance GKInstance object for which to load attributes
      */
-    public void loadInstanceAttributes(GKInstance instance) throws Exception {
+    public void loadInstanceAttributes(GKInstance instance) {
         // Do nothing. Everything is loaded.
     }
     
     /**
      * Return a map of referrers to the specified GKInstance object.
-     * @param instance 
-     * @return key: attribute name; value: a list of GKInstances.
-     * @throws Exception
+     * 
+     * @param instance GKInstance object for which to get its referrers map
+     * @return Referrers map - key: attribute name; value: a list of GKInstances.
+     * @throws Exception Thrown if unable to load attribute values for potential referrer instances
      */
     public Map<String, List<GKInstance>> getReferrersMap(GKInstance instance) throws Exception {
         SchemaClass cls = instance.getSchemClass();
@@ -1301,8 +1327,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * Use this method to save the contents only without make any changes in the
      * states of the current XMLFileAdaptor. For example, this method should be
      * used in auto-saving to another temp file to keep all GUIs correct.
-     * @param destName
-     * @throws Exception
+     * 
+     * @param destName Temporary file name
+     * @throws Exception Thrown if unable if unable to write the contents to the file specified
      */
     public void saveAsTemp(String destName) throws Exception {
         FileOutputStream fos = new FileOutputStream(destName);
@@ -1391,7 +1418,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     /**
 	 * Save all changes.
 	 * 
-	 * @throws Exception
+	 * @throws Exception Thrown if no source name has been previously set or if unable
+	 * to write contents to the source name
 	 */
     public void save() throws Exception {
     	if (sourceName != null)
@@ -1468,7 +1496,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Check if there is any unsaved changes.
-     * @return
+     * 
+     * @return true if there are changes (this object is dirty); false otherwise
      */
     public boolean isDirty() {
         return this.isDirty;
@@ -1478,7 +1507,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * Save a collection of instances from the database to the local file system. 
      * @param instanceMap Keys: SchemaClass Values: a list of GKInstances that belong to
      * the SchemaClass in key.
-     * @throws Exception
+     * @throws Exception Thrown if the local schema is incompatible with db schema or if unable
+     * to copy database instances' attributes to local instances
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void store(Map<SchemaClass, Set<GKInstance>> instanceMap) throws Exception {
@@ -1713,6 +1743,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     
     /**
      * Update all data structures because of the DB_ID change.
+     * 
+     * @param oldDBID previous dbId value of the instance
      * @param instance whose DB_ID has been changed to new value.
      */
     public void dbIDUpdated(Long oldDBID, GKInstance instance) {
@@ -1753,9 +1785,13 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /**
+     * Fetches instances of the class specified as well as the class' descendants.
      * The returned Collection is not sorted.
+     * 
+     * @param class1 SchemaClass object of the class for which to fetch instances
+     * @return Collection of GKInstance objects of the class passed
      */
-    public Collection fetchInstancesByClass(SchemaClass class1) throws Exception {
+    public Collection fetchInstancesByClass(SchemaClass class1) {
         List clsList = new ArrayList();
         InstanceUtilities.getDescendentClasses(clsList, (GKSchemaClass)class1);
         List rtn = new ArrayList();
@@ -1773,14 +1809,14 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /**
-     * An overloaded method. Fetch the instances in the specifed SchemaClass object. The descendent classes will 
-     * not be considered. The returned Collection is not sorted.
-     * @param cls
-     * @param needDescdent
-     * @return
-     * @throws Exception
+     * An overloaded method. Fetch the instances in the specified SchemaClass object. The descendent classes will 
+     * not be considered unless needDescdent is true. The returned Collection is not sorted.
+     * 
+     * @param cls SchemaClass object of the class for which to fetch instances
+     * @param needDescdent true if classes descended from cls should be included in fetching instances; false otherwise
+     * @return Collection of GKInstance objects of the class passed
      */
-    public Collection fetchInstancesByClass(SchemaClass cls, boolean needDescdent) throws Exception {
+    public Collection fetchInstancesByClass(SchemaClass cls, boolean needDescdent) {
         if (needDescdent)
             return fetchInstancesByClass(cls);
         else
@@ -1788,12 +1824,13 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /**
+     * Fetches instances of the class specified as well as the class' descendants.
      * The returned Collection is not sorted.
-     * @param className
-     * @return
-     * @throws Exception
+     * 
+     * @param className Name of the class for which to fetch instances
+     * @return Collection of GKInstance objects of the class passed
      */
-    public Collection fetchInstancesByClass(String className) throws Exception {
+    public Collection fetchInstancesByClass(String className) {
         SchemaClass cls = schema.getClassByName(className);
         return fetchInstancesByClass(cls);
     }

@@ -128,7 +128,8 @@ public class Bookmarks {
 
 	/**
 	 * Delete a Bookmark for the specified GKInstance object.
-	 * @param instance
+	 * @param instance GKInstance for which to delete a bookmark
+	 * @return index value of Bookmark object deleted from the bookmarks list or -1 if nothing is deleted 
 	 */
 	public int deleteBookmark(GKInstance instance) {
 		Bookmark bookmark = null;

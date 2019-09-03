@@ -42,10 +42,10 @@ public class DiagramGKBWriter extends GKBWriter {
     }
     
     /**
-     * Generate XML text for the passed RenderabelPathway object.
-     * @param pathway
-     * @return
-     * @throws Exception
+     * Generate XML text for the passed RenderablePathway object.
+     * @param pathway RenderablePathway for which to generate an XML String
+     * @return XML String describing the RenderablePathway instance
+     * @throws Exception Thrown if unable to generate the XML String from the RenderablePathway
      */
     public String generateXMLString(RenderablePathway pathway) throws Exception {
         Project project = new Project(pathway);

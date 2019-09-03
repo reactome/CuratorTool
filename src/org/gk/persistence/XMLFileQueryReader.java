@@ -29,8 +29,9 @@ public class XMLFileQueryReader {
     
     /**
      * The main method to parse a curator tool project.
-     * @param fileName the full file name including the whole path.
-     * @throws Exception
+     * 
+     * @param file the file object representing the file name including the whole path.
+     * @throws Exception Thrown if unable to parse the passed file
      */
     public void read(File file) throws Exception {
         if (dbIds == null)
