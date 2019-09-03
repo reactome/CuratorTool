@@ -105,7 +105,8 @@ public class GOTerm {
 	
 	/**
 	 * Set the first parent for this GOTerm.
-	 * @param parent
+	 * 
+	 * @param parent GOTerm to set as parent to this term
 	 */
 	public void setParent(GOTerm parent) {
 		this.firstParent = parent;
@@ -113,6 +114,7 @@ public class GOTerm {
 	
 	/**
 	 * Get the first parent for this GOTerm.
+	 * 
 	 * @return the first parent.
 	 */
 	public GOTerm getParent() {
@@ -120,7 +122,9 @@ public class GOTerm {
 	}
 	
 	/**
-	 * Do a shallow clone.
+	 * Do a shallow clone (name, id, and type fields only).
+	 * 
+	 * @return Cloned object of this GOTerm
 	 */
 	public Object clone() {
 		GOTerm clone = new GOTerm();
@@ -131,14 +135,16 @@ public class GOTerm {
 	}
 
 	/**
-	 * @return the type of this GOTerm.
+	 * @return the type of this GOTerm; either GOTerm.IS_A (0) or GOTerm.PART_OF (1).
 	 */
 	public int getType() {
 		return type;
 	}
 
 	/**
-	 * Set the type. Type is one of GOTerm.IS_A or GOTerm.PART_OF.
+	 * Set the type. Type is one of GOTerm.IS_A (0) or GOTerm.PART_OF (1).
+	 * 
+	 * @param type of this GO Term to set
 	 */
 	public void setType(int type) {
 		this.type = type;
