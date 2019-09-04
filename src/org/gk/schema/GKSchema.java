@@ -191,6 +191,7 @@ public class GKSchema implements Schema, Serializable {
 	 * as they 1st occur on a class in given class hierarchy. If a subclass
 	 * over-rides it's inherited attribute, the over-ridden attribute will
 	 * not be returned. 
+	 * 
 	 * @return Set of SchemaAttributes
 	 */
 	public Set getOriginalAttributes() {
@@ -211,7 +212,8 @@ public class GKSchema implements Schema, Serializable {
      * Returns original attributes which have the name as attName. E.g.
      * called with "instanceOf" the method will return instanceOf attributes
      * of PhysicalEntity, Event, GO_BiologicalProcess etc.
-     * @param String attName
+     * 
+     * @param attName Attribute name for which to return original attribute with a matching name
      * @return Set of SchemaAttributes with name as attName
      */
 	public Set getOriginalAttributesByName(String attName) {

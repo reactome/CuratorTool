@@ -117,8 +117,7 @@ public class GKSchemaAttribute implements SchemaAttribute, Serializable {
 		} else if (definingType.toLowerCase().equals("any")) {
 			setDefiningType(ANY_DEFINING);
 		} else {
-			System.err.println(
-				"Unknown SchemaAttribute's definingType " + definingType);
+			System.err.println("Unknown SchemaAttribute's definingType " + definingType);
 		}
 	}
 
@@ -191,14 +190,18 @@ public class GKSchemaAttribute implements SchemaAttribute, Serializable {
 	}
 	
 	/**
-	 * @return
+	 * Retrieve this attribute's id
+	 * 
+	 * @return String value of this attribute's id 
 	 */
 	public String getId() {
 		return id;
 	}
 
 	/**
-	 * @param string
+	 * Set this attribute's id
+	 * 
+	 * @param string This attribute's id
 	 */
 	private void setId(String string) {
 		id = string;
@@ -245,8 +248,9 @@ public class GKSchemaAttribute implements SchemaAttribute, Serializable {
 	/**
 	 * Check a specified SchemaClass is a valid class for this
 	 * GKSchemaAttribute object.
-	 * @param cls
-	 * @return
+	 * 
+	 * @param cls SchemaClass object to check for validity for this attribute
+	 * @return true if the specified class is valid; false otherwise
 	 */
 	public boolean isValidClass(SchemaClass cls) {
 	    SchemaClass sc;
@@ -280,25 +284,33 @@ public class GKSchemaAttribute implements SchemaAttribute, Serializable {
 	}
 
 	/**
-	 * @return Returns the defaultValue.
+	 * Retrieve this attribute's default value
+	 * 
+	 * @return This attribute's defaultValue.
 	 */
 	public Object getDefaultValue() {
 		return defaultValue;
 	}
 	/**
-	 * @param defaultValue The defaultValue to set.
+	 * Set this attribute's default value
+	 * 
+	 * @param defaultValue The defaultValue to set
 	 */
 	public void setDefaultValue(Object defaultValue) {
 		this.defaultValue = defaultValue;
 	}
 	/**
-	 * @return Returns the category.
+	 * Retrieve this attribute's category
+	 * 
+	 * @return This attribute's category
 	 */
 	public int getCategory() {
 		return category;
 	}
 	/**
-	 * @param category The category to set.
+	 * Set this attribute's category
+	 * 
+	 * @param category The category to set
 	 */
 	public void setCategory(int category) {
 		this.category = category;
@@ -314,8 +326,7 @@ public class GKSchemaAttribute implements SchemaAttribute, Serializable {
 		} else if (category.equalsIgnoreCase("NOMANUALEDIT")) {
 			setCategory(SchemaAttribute.NOMANUALEDIT);
 		} else {
-			System.err.println(
-				"Unknown SchemaAttribute's category " + category);
+			System.err.println("Unknown SchemaAttribute's category " + category);
 		}	
 	}
 }

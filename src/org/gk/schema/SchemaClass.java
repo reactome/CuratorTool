@@ -10,9 +10,10 @@ import java.io.Serializable;
  * @author wgm
  */
 public interface SchemaClass extends Serializable {
+	
 	/**
 	 * A list of SchemaAttributes.
-	 * @return
+	 * @return Collection of SchemaAttribute objects for this class
 	 */
 	public java.util.Collection getAttributes();
 	
@@ -26,7 +27,8 @@ public interface SchemaClass extends Serializable {
 	
 	/**
 	 * Return a list of all ancestors with the root as the first.
-	 * @return
+	 * 
+	 * @return List of SchemaClass objects representing the ancestors of this class
 	 */
 	public java.util.List getOrderedAncestors();
 	
@@ -40,7 +42,9 @@ public interface SchemaClass extends Serializable {
 	
 	/**
 	 * For testing if the current class is an instance of another class
-	 * @return
+	 * 
+	 * @param schemaClass class to check to see if it is the same class or an ancestor of this class
+	 * @return true if the schemaClass passed matches or is an ancestor of this class; false otherwise
 	 */
 	public boolean isa(SchemaClass schemaClass);
 	

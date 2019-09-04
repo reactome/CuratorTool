@@ -33,28 +33,31 @@ public interface SchemaAttribute extends Serializable {
 	
 	/**
 	 * Get the name of the Attribute.
-	 * @return
+	 * @return The name of this attribute
 	 */
 	public String getName();
 	
 	/**
-	 * Get the owner SchemaClass for the Attribute.
-	 * @return
+	 * Get the list owner SchemaClass objects for the Attribute.
+	 * 
+	 * @return List of SchemaClass objects which own this attribute
 	 */
 	public java.util.Collection getSchemaClass();
 	
 	/**
 	 * Get the inverse SchemaAttribute. A inverse SchemaAttribute is another
-	 * attribute whose valuse is the inverse of this attribute value, e.g., Reaction is
+	 * attribute whose values is the inverse of this attribute value, e.g., Reaction is
 	 * a Component of Pathway. Attribute isComponentOf in Reaction is the inverse attribute of
 	 * hasComponent in Pathway.
+	 * 
 	 * @return the inverse SchemaAttribute
 	 */
 	public SchemaAttribute getInverseSchemaAttribute();
 	
 	/**
 	 * Get the topmost schema class containing this attribute.
-	 * @return
+	 * 
+	 * @return SchemaClass object representing the origin of this attribute
 	 */
 	public SchemaClass getOrigin();
 	
@@ -72,7 +75,8 @@ public interface SchemaAttribute extends Serializable {
 	
 	/**
 	 * Strictness means all values in a list should be the same.
-	 * @return one of ALL_DEFINING, ANY_DEFINING, and NONE_DEFINING.
+	 * 
+	 * @return one of ALL_DEFINING, ANY_DEFINING, and NONE_DEFINING
 	 */
 	public int getDefiningType();
 	
