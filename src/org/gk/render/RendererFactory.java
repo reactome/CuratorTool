@@ -114,8 +114,9 @@ public class RendererFactory {
     
     /**
      * Register a new Renderer for a Renderable class.
-     * @param cls
-     * @param renderer
+     * 
+     * @param cls Renderable class used to register a renderer
+     * @param renderer Renderer object to register
      */
     public void registerRenderer(Class<? extends Renderable> cls,
                                  Renderer renderer) {

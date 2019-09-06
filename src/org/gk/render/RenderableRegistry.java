@@ -36,7 +36,8 @@ public class RenderableRegistry {
     /**
      * Call this method to get the next unused id. The current id will be increment
      * after this method call.
-     * @return
+     * 
+     * @return Next available id
      */
     public int nextId() {
         nextId ++;
@@ -68,7 +69,9 @@ public class RenderableRegistry {
 	/**
 	 * Reset the nextId from a RenderablePathway. This RenderablePathway should
 	 * contain all displayed Renderable objects.
-	 * @param pathway
+	 * 
+	 * @param pathway RenderablePathway to search components for the maximum id value used.  This value
+	 * is used to reset nextId
 	 */
 	public void resetNextIdFromPathway(RenderablePathway pathway) {
 	    int max = 0;
@@ -83,9 +86,11 @@ public class RenderableRegistry {
 	}
 	
 	/**
-	 * Reset all ids used by Renderable objects contained by the passed RenderablePathway.
+	 * Reset all ids (starting with 1) used by Renderable objects contained by the passed Renderable.
+	 * The nextId value is then reset to the highest value used for the objects in the passed Renderable.
 	 * All Renderable objects should be contained directly by the passed pathway.
-	 * @param pathway
+	 * 
+	 * @param pathway Renderable object for which to reset id for all its components
 	 */
 	public void resetAllIdsInPathway(Renderable pathway) {
 	    int id = 0;
@@ -99,6 +104,9 @@ public class RenderableRegistry {
 	
 	/**
      * Get a unique name for a specified Renderable in a container.
+     * 
+     * @param renderable Renderable object for which to generate the unique name
+     * @return Unique name for the Renderable object
      */
     public String generateUniqueName(Renderable renderable) {
         String name = renderable.getDisplayName();
@@ -114,8 +122,9 @@ public class RenderableRegistry {
     }
     
 	/**
-	 * Registry a Renderable Object.
-	 * @param renderable 
+	 * Registry a Renderable Object (nothing done if the Renderable object is blocked or already registered).
+	 * 
+	 * @param renderable Renderable object to register
 	 */
 	public void add(Renderable renderable) {
 	    // Don't register note so that it can have multiple copies having same display name.
@@ -128,8 +137,10 @@ public class RenderableRegistry {
 	}
 	
 	/**
-	 * De-register a Renderbale object.
-	 * @param renderable
+	 * De-register a Renderable object.
+	 * 
+	 * @param renderable Renderable object to de-register
+	 * @return true if removed since there are no shortcuts; false otherwise 
 	 */
 	public boolean remove(Renderable renderable) {
 	    renderable.removeShortcut(renderable);
@@ -158,8 +169,7 @@ public class RenderableRegistry {
 	    return false;
 	}
 
-	public void remove(Renderable renderable, 
-	                   boolean recursively) {
+	public void remove(Renderable renderable, boolean recursively) {
 		if (recursively) {
 			List current = new ArrayList();
 			List next = new ArrayList();
@@ -188,9 +198,10 @@ public class RenderableRegistry {
 	/**
 	 * Check if a passed Renderable object is a registered object. A
 	 * Renderable object may not be registered since another Renderable object
-	 * having same name has be registered first.
-	 * @param renderable
-	 * @return
+	 * having the same name has been registered first.
+	 * 
+	 * @param renderable Renderable object to check if it is registered
+	 * @return true if the Renderable object is registered; false otherwise
 	 */
 	public boolean isRegistered(Renderable renderable) {
 	    Renderable r = nameToObject.get(renderable.getDisplayName());
@@ -207,9 +218,10 @@ public class RenderableRegistry {
 	}
 	
 	/**
-	 * Change the name of a Renderable.
-	 * @param r the Renderable object that uses the new name. 
-	 * @param oldName
+	 * Change the name of a Renderable (unless it not a registerable Renderable).
+	 * 
+	 * @param r Renderable object that uses the new name. 
+	 * @param oldName The old name of the Renderable object to de-register
 	 */
 	public void changeName(Renderable r, 
 	                       String oldName) {
@@ -224,7 +236,8 @@ public class RenderableRegistry {
     /**
      * Use this method to register a pathway and its contained pathways and
      * reactions, and other descendents.
-     * @param pathway
+     * 
+     * @param pathway Pathway (Renderable object) to register along with its contained Renderable objects
      */
     public void registerAll(Renderable pathway) {
         // Register all Renderable objects in the process.
@@ -239,7 +252,8 @@ public class RenderableRegistry {
     
     /**
      * Un-register based on the passed name.
-     * @param name
+     * 
+     * @param name Name of the Renderable object to de-register
      */
     public void unregister(String name) {
         nameToObject.remove(name);
@@ -247,8 +261,9 @@ public class RenderableRegistry {
     
     /**
      * Check if there is any Renderable object with the passed name registered already.
-     * @param name
-     * @return
+     * 
+     * @param name Name to check for a registered Renderable object
+     * @return true if the name corresponds to a registered Renderable object; false otherwise
      */
     public boolean contains(String name) {
         return nameToObject.containsKey(name);
@@ -256,8 +271,9 @@ public class RenderableRegistry {
     
     /**
      * Get a Renderable object with the passed name.
-     * @param name
-     * @return
+     * 
+     * @param name Name of the Renderable object to retrieve
+     * @return Renderable object corresponding to the name passed or null if no Renderable object found
      */
     public Renderable getSingleObject(String name) {
         return nameToObject.get(name);
@@ -265,8 +281,9 @@ public class RenderableRegistry {
     
     /**
      * Check if a Renderable object should be blocked for registration.
-     * @param r
-     * @return
+     * 
+     * @param r Renderable object to check if it should be blocked for registration
+     * @return true if the Renderable object is a Note or FlowLine without a name; false otherwise
      */
     private boolean blockRegister(Renderable r) {
         if (r instanceof Note)
@@ -278,12 +295,13 @@ public class RenderableRegistry {
     }
     
 	/**
-	 * Add a propertyChangeListener to this registry. There are three PropertyChangeEvent can be 
+	 * Add a propertyChangeListener to this registry. There are three PropertyChangeEvent that can be 
 	 * fired from this object: "shortcutToTarget" with shortcut (Renderable object) as oldValue 
 	 * and target (another Renderable object) as newValue, "precedingEvent" with null oldValue 
 	 * and the changed Renderable object as newValue; "delete" with null as oldValue and deleted 
 	 * Renderable object as newValue.
-	 * @param l
+	 * 
+	 * @param l PropertyChangeListener to add
 	 */
 	public void addPropertyChangeListener(PropertyChangeListener l) {
 		propSupport.addPropertyChangeListener(l);

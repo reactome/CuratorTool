@@ -19,6 +19,8 @@ public interface Renderer extends Serializable {
     
     /**
      * Render method.
+     * 
+     * @param g Graphics object on which to render
      */
     public void render(Graphics g);
     

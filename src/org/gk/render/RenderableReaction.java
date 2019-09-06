@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 /**
  * This class describe the renderable Reactions.
  * @author  wgm
@@ -22,7 +23,9 @@ public class RenderableReaction extends HyperEdge {
     // Type of this reaction for drawing purposes
     private ReactionType type;
     
-    /** Creates a new instance of RenderableReaction */
+    /** 
+     * Creates a new instance of RenderableReaction 
+     */
     public RenderableReaction() {
         super();
         setNeedOutputArrow(true);
@@ -41,7 +44,8 @@ public class RenderableReaction extends HyperEdge {
 
     /**
      * Set the type of this Reaction.
-     * @param type
+     * 
+     * @param type ReactionType to set for this RenderableReaction
      */
     public void setReactionType(ReactionType type) {
         this.type = type;
@@ -49,7 +53,8 @@ public class RenderableReaction extends HyperEdge {
     
     /**
      * Get the type of this Reaction.
-     * @return
+     * 
+     * @return ReactionType for this RenderableReaction
      */
     public ReactionType getReactionType() {
         return this.type;
@@ -57,7 +62,8 @@ public class RenderableReaction extends HyperEdge {
     
     /**
      * To control if this RenderableReaction should be renderer as a Node.
-     * @param asNode
+     * 
+     * @param asNode True to draw this RenderableReaction as a Node; false otherwise
      */
     public void setDisplayAsNode(boolean asNode) {
     	this.drawAsNode = asNode;

@@ -27,19 +27,24 @@ public interface Editor {
 	
 	/**
 	 * Move the caret up to one line.
+	 * 
 	 * @return true if the moving actually happens otherwise false since 
-	 * the caret is already at the top of the lines.
+	 * the caret is already at the top of the lines
 	 */
 	public boolean moveCaretUp();
 	
 	/**
 	 * Move the caret down to one line.
+	 * 
 	 * @return true if the moving actually happens otherwise false since
-	 * the caret is already at the bottom of the lines.
+	 * the caret is already at the bottom of the lines
 	 */
 	public boolean moveCaretDown();
+	
 	/**
 	 * Render method.
+	 * 
+	 * @param g Graphics object on which to render
 	 */
 	public void render(Graphics g);
 	
@@ -66,7 +71,7 @@ public interface Editor {
 	
 	/**
 	 * Query if there is a change for the Renderable name.
-	 * @return
+	 * @return true if there is a change; false otherwise
 	 */
 	public boolean isChanged();
 }

@@ -8,9 +8,10 @@ package org.gk.render;
 
 import java.awt.Point;
 import java.io.Serializable;
+
 /**
  * This class contains information related to a reaction selection.
- * @author  wgm
+ * @author wgm
  */
 public class HyperEdgeSelectionInfo implements Serializable {
     Point selectPoint;
@@ -18,11 +19,15 @@ public class HyperEdgeSelectionInfo implements Serializable {
     int selectedType; // One of input, helper, and output.
     int selectedBranch;
     
-    /** Creates a new instance of ReactionSelectionInfo */
+    /** 
+     * Creates a new instance of ReactionSelectionInfo 
+     */
     public HyperEdgeSelectionInfo() {
     }
     
     /**
+     * Get type of HyperEdge selected
+     * 
      * @return one of Edge.INPUT, Edge.OUTPUT and Edge.HELPER.
      */
     public int getSelectedType() {
@@ -30,6 +35,8 @@ public class HyperEdgeSelectionInfo implements Serializable {
     }
     
     /**
+     * Get the selected branch of the HyperEdge
+     * 
      * @return the index of the selected branch.
      */
     public int getSelectedBranch() {
@@ -44,8 +51,9 @@ public class HyperEdgeSelectionInfo implements Serializable {
     }
     
     /**
-     * Set the selection point information. 
-     * @param p
+     * Set the selection point information.
+     * 
+     * @param p Point to set as selected
      */
     public void setSelectionPoint(Point p) {
         this.selectPoint = p;
@@ -53,7 +61,8 @@ public class HyperEdgeSelectionInfo implements Serializable {
     
     /**
      * Get the select point.
-     * @return
+     * 
+     * @return Point object set as selected
      */
     public Point getSelectPoint() {
         return this.selectPoint;

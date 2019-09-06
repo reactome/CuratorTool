@@ -19,13 +19,17 @@ import java.util.Map;
  */
 public class HyperEdgeConnectInfo extends ConnectInfo {
     
-    /** Creates a new instance of ReactionConnectInfo */
+    /** 
+     * Creates a new instance of ReactionConnectInfo 
+     */
     public HyperEdgeConnectInfo() {
         super();
     }
     
     /**
      * Get a list of ConnectWidgets that are used for input entities.
+     * 
+     * @return List of ConnectWidget objects representing the inputs
      */
     public java.util.List getInputWidgets() {
         java.util.List inputs = new ArrayList();
@@ -42,6 +46,8 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     
     /**
      * Get a list of ConnectWidgets that are used for output entities.
+     * 
+     * @return List of ConnectWidget objects representing the outputs
      */
     public java.util.List getOutputWidgets() {
         java.util.List outputs = new ArrayList();
@@ -58,6 +64,8 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     
     /**
      * Get a list of ConnectWidgets that are used for helper entities.
+     * 
+     * @return List of ConnectWidget objects representing the helpers (i.e. catalysts)
      */
     public java.util.List getHelperWidgets() {
         java.util.List helpers = new ArrayList();
@@ -74,7 +82,8 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     
  	/**
  	 * Get a list of ConnectWidgets that are used for inhibitors.
- 	 * @return
+ 	 * 
+ 	 * @return List of ConnectWidget objects representing the inhibitors
  	 */
     public java.util.List getInhibitorWidgets() {
     	java.util.List inhibitors = new ArrayList();
@@ -91,7 +100,8 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     
     /**
      * Get a list of ConnectWidgets for activators.
-     * @return
+     * 
+     * @return List of ConnectWidget objects representing the activators
      */
     public java.util.List getActivatorWidgets() {
     	java.util.List activators = new ArrayList();
@@ -108,8 +118,9 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     
     /**
      * Get the ConnectWidget that is used to connect renderable.
-     * @param renderable
-     * @return
+     * 
+     * @param renderable Renderable object for which to find the ConnectWidget object with an input role
+     * @return ConnectWidget object which is an input and connected to the renderable passed
      */
     public ConnectWidget getInputConnectWidget(Renderable renderable) {
     	if (connectWidgets != null) {
@@ -124,9 +135,10 @@ public class HyperEdgeConnectInfo extends ConnectInfo {
     }
     
     /**
-     * Get the ConnectWidget that is used to connect a specified ouput renderable.
-     * @param renderable
-     * @return
+     * Get the ConnectWidget that is used to connect a specified output renderable.
+     * 
+     * @param renderable Renderable object for which to find the ConnectWidget object with an output role
+     * @return ConnectWidget object which is an output and connected to the renderable
      */
     public ConnectWidget getOutputConnectWidget(Renderable renderable) {
     	if (connectWidgets != null) {

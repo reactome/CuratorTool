@@ -28,8 +28,11 @@ public class RenderableSwitchHelper {
 	 * Switch a RenderablePathway to a ReactionNode. An empty pathway can be switched to a 
 	 * reaction with the same name as the pathway bearing all properties from pathway. However
 	 * a non-empty pathway (containing other events) cannot be switched, an IllegalArgumentException will be thrown.
-	 * @param pathway
-	 * @return
+	 * 
+	 * @param pathway RenderablePathway object to switch to a ReactionNode object
+	 * @return ReactionNode object created from the RenderablePathway object passed
+	 * @throws IllegalArgumentException Thrown if the RenderablePathway contains ReactionNode objects or 
+	 * other RenderablePathway objects
 	 */
 	public ReactionNode switchPathwayToReaction(RenderablePathway pathway) throws IllegalArgumentException {
 		// Check to make sure pathway can be switched
@@ -110,12 +113,14 @@ public class RenderableSwitchHelper {
 	
 	/**
 	 * Switch a ReactionNode to a RenderablePathway. An empty reaction can be switched to pathway
-	 * with the same display name and properties. However, a non-empty reaction cannot switch to
-	 * pathway, a IllegaleArgument exception will be thrown.
-	 * @param node
-	 * @return
+	 * with the same display name and properties. However, a non-empty reaction cannot switch to a
+	 * pathway - an IllegalArgumentException will be thrown.
+	 * 
+	 * @param node ReactionNode objects to switch to a RenderablePathway object
+	 * @return RenderablePathway object created from the ReactionNode passed
+	 * @throws IllegalArgumentException Thrown if the ReactionNode object contains Node objects
 	 */
-	public RenderablePathway switchReactionToPathway(ReactionNode node) {
+	public RenderablePathway switchReactionToPathway(ReactionNode node) throws IllegalArgumentException {
 		// Check to make sure pathway can be switched
 		java.util.List components = node.getComponents();
 		if (components != null && components.size() > 0) {

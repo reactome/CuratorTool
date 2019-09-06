@@ -28,7 +28,13 @@ public class ConnectWidget implements Serializable {
     // a ratio to keep track fixed position
     private double ratio;
     
-    /** Creates a new instance of AttachWidget */
+    /** Creates a new instance of AttachWidget 
+     * 
+     * @param p Connecting point
+     * @param controlP Another point that decides the line segment with the connecting point
+     * @param role One of input, output, or helper
+     * @param index Index of inputs, outputs, or helpers
+     */
     public ConnectWidget(Point p, 
                          Point controlP, 
                          int role, 
@@ -42,7 +48,8 @@ public class ConnectWidget implements Serializable {
     /**
      * Create a ConnectWidget with the same rendering information but not linking to 
      * nodes and edges.
-     * @return
+     * 
+     * @return Copy of this ConnectWidget object
      */
     public ConnectWidget shallowCopy() {
         ConnectWidget clone = new ConnectWidget(new Point(point),
@@ -81,7 +88,8 @@ public class ConnectWidget implements Serializable {
     
     /**
      * Set the connected node. 
-     * @param node a Renderable that can be connected to a RenderableReaction.
+     * 
+     * @param node a Renderable that can be connected to a RenderableReaction
      */
     public void setConnectedNode(Node node) {
         connectedNode = node;
@@ -95,7 +103,8 @@ public class ConnectWidget implements Serializable {
     
     /**
      * Replace the connected Node with a passed Node object.
-     * @param node
+     * 
+     * @param node Node object with which to replace the connected Node
      */
     public void replaceConnectedNode(Node node) {
         if (connectedNode == null)
@@ -107,7 +116,8 @@ public class ConnectWidget implements Serializable {
     
     /**
      * The relative position of the link point at the node's bounds.
-     * @return
+     * 
+     * @return Ratio value
      */
     public double getLinkRatio() {
         return this.ratio;
@@ -130,7 +140,7 @@ public class ConnectWidget implements Serializable {
     }
     
     /**
-     * Mark this ConnectWidget as invalidat. An invalidate ConnectWidget should be validated before its information
+     * Mark this ConnectWidget as invalid. An invalid ConnectWidget should be validated before its information
      * is used for drawing.
      */
     public void invalidate() {
@@ -157,6 +167,10 @@ public class ConnectWidget implements Serializable {
 
     /**
      * Override the superclass method and let the contained point to determine the identity of ConnectWidget.
+     * 
+     * @param obj Object to check for equality with this ConnectWidget
+     * @return true if the object is an instance of ConnectWidget and its point is the same as this
+     * object's point or they are equivalent by the parent class' overridden equals method; false otherwise
      */
     public boolean equals(Object obj) {
         if (obj instanceof ConnectWidget) {
@@ -172,6 +186,9 @@ public class ConnectWidget implements Serializable {
     
     /**
      * Override superclass method and let the contained point to determine the identity of ConnectWidget.
+     * 
+     * @return The hash code value of this object's point if it exists or the value of the parent class' overridden
+     * hashCode value otherwise
      */
     public int hashCode() {
         if (point != null)

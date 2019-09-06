@@ -16,7 +16,7 @@ import java.io.Serializable;
 
 
 /**
- * This abstract class is used to describe informaition about Node states (open, close, active) or
+ * This abstract class is used to describe information about Node states (open, close, active) or
  * sequence features (Tyr phosphorylation).
  * @author wgm
  *
@@ -80,8 +80,9 @@ public abstract class NodeAttachment implements Serializable{
      * Set the relative position of this NodeAttachment object.
      * The reference point of the containing Node's bounds' up-left
      * corner.
-     * @param relativeX
-     * @param relativeY
+     * 
+     * @param relativeX Value for the relative X-axis position
+     * @param relativeY Value for the relative Y-axis position
      */
     public void setRelativePosition(double relativeX,
                                     double relativeY) {
@@ -98,9 +99,7 @@ public abstract class NodeAttachment implements Serializable{
         return this.relativeY;
     }
     
-    public void move(int dx,
-                     int dy,
-                     Rectangle nodeBounds) {
+    public void move(int dx, int dy, Rectangle nodeBounds) {
         // Find the original position
         int x = bounds.x + bounds.width / 2;
         int y = bounds.y + bounds.height / 2;
@@ -169,8 +168,9 @@ public abstract class NodeAttachment implements Serializable{
     
     /**
      * Check if this NodeAttachment is picked
-     * @param p
-     * @return
+     * 
+     * @param p Point to check
+     * @return true if this NodeAttachment has bounds and they contain the point; false otherwise
      */
     public boolean isPicked(Point p) {
         if (bounds == null)
@@ -188,7 +188,8 @@ public abstract class NodeAttachment implements Serializable{
     
     /**
      * This method is used to duplicate this NodeAttachment object.
-     * @return
+     * 
+     * @return Duplicate of this NodeAttachment object
      */
     public abstract NodeAttachment duplicate();
     
