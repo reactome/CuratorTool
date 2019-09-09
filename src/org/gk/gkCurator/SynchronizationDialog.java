@@ -191,18 +191,14 @@ public class SynchronizationDialog extends JDialog{
 		if (deleteList != null) {
 			java.util.List list = deleteList.getSelection();
 			if (list.size() > 0) {
-				try {
-					java.util.List dbIDs = new ArrayList(list.size());
-					for (Iterator it = list.iterator(); it.hasNext();) {
-						GKInstance instance = (GKInstance) it.next();
-						dbIDs.add(instance.getDBID());
-					}
-					fileAdaptor.clearDeleteRecord(dbIDs);	
+
+				java.util.List dbIDs = new ArrayList(list.size());
+				for (Iterator it = list.iterator(); it.hasNext();) {
+					GKInstance instance = (GKInstance) it.next();
+					dbIDs.add(instance.getDBID());
 				}
-				catch(IOException e) {
-					System.err.println("SynchronizationDialog.clearDeleteRecord(): " + e);
-					e.printStackTrace();
-				}
+				fileAdaptor.clearDeleteRecord(dbIDs);
+				
 				deleteList.deleteInstances(list);
 				// Check if deleteList needs to be removed
 				if (deleteList.getDisplayedInstances().size() == 0) {

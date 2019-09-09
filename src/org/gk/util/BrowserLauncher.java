@@ -96,15 +96,7 @@ public class BrowserLauncher {
 	}
 	
 	private static File getPropertyFile() {
-	    File file = null;
-	    try {
-	        file = GKApplicationUtilities.getPropertyFile(PROP_FILE);
-	    }
-	    catch(IOException e) {
-	        System.err.println("BrowserLauncher.getPropertyFile(): " + e);
-	        e.printStackTrace();
-	    }
-	    return file;
+		return GKApplicationUtilities.getPropertyFile(PROP_FILE);
 	}
 	
 	private static void locateBrowser(Component comp) {
