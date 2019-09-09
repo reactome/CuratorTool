@@ -267,7 +267,8 @@ public class EntityLevelView extends JPanel {
      * This method is used to display a selected event. If the passed event is a Reaction,
      * it will be selected in a pathway diagram.
      * @param event Event to display
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve represented pathways or if unable to get referrers from any
+     * represented pathways when searching for disease pathway counterparts
      */
     public void displayEvent(GKInstance event) throws Exception {
         displayEvent(event, false);

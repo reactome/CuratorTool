@@ -74,7 +74,9 @@ public class CoordinateSerializer {
      * @param width Width of pathway diagram to store
      * @param height Height of pathway diagram to store
      * @param comp Component GUI object to display messages
-     * @throws Exception
+     * @throws Exception Thrown if unable to connect to the database, unable to load schema if a new file adaptor 
+     * object is created, or if unable to create a pathway diagram object, retrieve or set the pathway diagram XML,
+     * set attribute values when converting nodes and edges, or save the pathway diagram object to the database
      */
     public void storeCoordinates(Project project,
                                  int width,

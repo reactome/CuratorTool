@@ -182,7 +182,7 @@ public class EventTreeBuildHelper {
 	 * Get the top-level events from the passed list of events.
 	 * @param events Events for which to find top-level events
 	 * @return List of top-level event instances
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to retrieve attribute values for events
 	 */
 	public List<GKInstance> getTopLevelEvents(List events) throws Exception {
 	       // To find the top level events
@@ -264,7 +264,7 @@ public class EventTreeBuildHelper {
 	/**
 	 * The attributes for "hasInstance", "hasComponent", "taxon" will be loaded.
 	 * @param events Events for which to load attributes
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to retrieve attribute values for the events passed
 	 */
 	public void loadAttribtues(Collection events) throws Exception {
         List equivalentEvents = new ArrayList();
@@ -339,7 +339,7 @@ public class EventTreeBuildHelper {
 	 * speed up the performance. This method should be called after a batch call for 
 	 * "hasComponent" and "hasInstance". Otherwise, the performance will be bad.
 	 * @param events  Events for which to cache values
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to retrieve attribute values for the events passed
 	 */
 	public void cacheOfTypeValues(Collection events) throws Exception {
 		// Cache componentOf values

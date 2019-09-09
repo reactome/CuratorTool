@@ -113,7 +113,8 @@ public class GraphvizDotGenerator {
      * Convert a Pathway object into a dot file format.
      * @param pathway Pathway object to convert
      * @return dot file format as String
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve attribute values for the pathway passed, any reaction within the
+     * pathway, any of a reaction's components, or if unable to retrieve regulation instances for any reaction
      */
     public String generateDot(GKInstance pathway) throws Exception {
         // Get all contained Reactions recursively

@@ -1440,7 +1440,8 @@ public class SynchronizationManager {
 	 * 
 	 * @param instances Instance to check out
 	 * @param parentDialog Window GUI to display messages
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to fetch instances from or store the checkOut map to the local file adaptor, 
+	 * if unable to show a message dialog, or if unable to fetch referrers for instances
 	 */
 	public synchronized void checkOut(java.util.List instances, Window parentDialog) throws Exception {
 		if (instances == null || instances.size() == 0)

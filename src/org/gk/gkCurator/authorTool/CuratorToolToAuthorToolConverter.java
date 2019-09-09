@@ -35,7 +35,9 @@ public class CuratorToolToAuthorToolConverter {
      * @param instance Pathway instance for which to retrieve a project
      * @param parentComp Parent component GUI object to display messages
      * @return Project created from pathway instance
-     * @throws Exception
+     * @throws Exception Thrown if the instance passed is not a pathway, if unable to retrieve pathway events, if
+     * unable to convert pathway events to Renderable objects, or if unable to convert the pathway or its events'
+     * properties
      */
     public Project convert(GKInstance instance,
                            Component parentComp) throws Exception {

@@ -102,7 +102,8 @@ public class StableIdentifierGenerator {
 	 * @param created Created instance edit instance to attach to newly created stable id instance
 	 * @param fileAdaptor XMLFileAdaptor to which to save newly created stable id instance
 	 * @return Stable identifier instance
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to generate an identifier for the instance or if unable to set attribute
+	 * values for the newly created StableIdentifier instance
 	 */
 	public GKInstance generateStableId(GKInstance instance,
 	                                   GKInstance created,

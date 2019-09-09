@@ -132,7 +132,9 @@ public class LiteratureReferenceAttributeAutoFiller extends AbstractAttributeAut
      * @param initial Person's initials
      * @param autoCreatedInstances List to which to add newly created Person instance if no existing instance found
      * @return Found or newly created Person instance
-     * @throws Exception
+     * @throws Exception Thrown if unable to fetch person instances, get the initial attribute value for a person
+     * instance, or set attribute values if a new person instance must be created and returned
+     * 
      */
     public GKInstance queryPerson(XMLFileAdaptor adaptor,
                                   String lastName,

@@ -55,7 +55,7 @@ public abstract class InstanceHandler {
      * Use this method to convert a GKInstance to Renderable object without considering shortcuts.
      * @param instance Instance to convert
      * @return Renderable object converted from instance
-     * @throws Exception
+     * @throws Exception Thrown if there is an issue during the conversion of the GKInstance to the Renderable
      */
     public Renderable simpleConvert(GKInstance instance) throws Exception {
         Renderable r = simpleConvertToRenderable(instance);

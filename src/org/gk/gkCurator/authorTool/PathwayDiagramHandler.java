@@ -89,7 +89,8 @@ public class PathwayDiagramHandler {
      * @param pathway
      * @param parentComp
      * @return
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve the pathwayDiagram instance or its XML from the pathway passed or
+     * if unable to show a message dialog
      */
     private Map<GKInstance, String> loadPathwayToXML(GKInstance pathway,
                                                     Component parentComp) throws Exception {
@@ -113,7 +114,7 @@ public class PathwayDiagramHandler {
      * @param pathway
      * @param parentComp
      * @param pathwayToXML
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve the pathwayDiagram instance or its XML from the pathway passed
      */
     private void loadPathwayToXML(GKInstance pathway, 
                                   Component parentComp,

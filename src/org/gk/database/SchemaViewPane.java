@@ -490,7 +490,7 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Get a list of selected Instance objects from the InstanceListPane.
-	 * @return
+	 * @return List of Instance objects that are selected in the InstanceListPane
 	 */
 	public java.util.List getSelection() {
 		return instancePane.getSelection();

@@ -269,7 +269,7 @@ public class ReverseAttributePane extends JPanel {
      * A helper method to fetch all referrers for a database GKInstance.
      * @param instance Instance for which to fetch referrers
      * @return Map of referrer attribute name to list of referrers
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve referrers for the instance
      */
     public Map<String, List<GKInstance>> getReferrersMapForDBInstance(GKInstance instance) throws Exception {
         Map<String, Set<GKInstance>> map = new HashMap<String, Set<GKInstance>>();

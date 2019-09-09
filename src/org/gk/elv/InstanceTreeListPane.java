@@ -161,7 +161,8 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
     /**
      * Set up the view for the passed local project.
      * @param fileAdaptor XMLFileAdaptor from which to extract data for viewing from the local project
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve attribute values for events or values for the 'hasComponent' 
+     * attribute of complexes retrieved from the fileAdaptor passed
      */
     public void showLocalView(XMLFileAdaptor fileAdaptor) throws Exception {
         rebuildEventTree(fileAdaptor);

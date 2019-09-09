@@ -61,8 +61,8 @@ public class EventAttributePropagator {
     /**
      * Returns whether the given event has at least one direct propagation target.
      * 
-     * @return whether there is a target event
-     * @throws Exception
+     * @return true if there is a target event; false otherwise
+     * @throws Exception Thrown if unable to get attribute values from the event
      */
     public boolean willProgagate() throws Exception {
         // The role attributes to follow recursively

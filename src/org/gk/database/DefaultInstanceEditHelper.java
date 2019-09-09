@@ -303,7 +303,7 @@ public class DefaultInstanceEditHelper {
 	 * @param localSet the list of newly created GKInstance objects
 	 * @param dbList the list of modified GKInstance objects.
 	 * @param attachingIE InstanceEdit to attach
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to get of add attribute values to instances
 	 * @return the attached GKInstance object for InstanceEdit.
 	 */
 	public GKInstance attachDefaultInstanceEdit(Collection localSet, 

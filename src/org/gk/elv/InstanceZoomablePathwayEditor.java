@@ -329,7 +329,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
      * Since a diagram can be mapped to more than one Pathway instance. Please also see
      * another method {@link #getDisplayedPathwayDiagram()} should be used.
      * @return List of displayed pathways
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve represented pathways or if unable to get referrers from any
+     * represented pathways when searching for disease pathway counterparts
      */
     public List<GKInstance> getDisplayedPathways() throws Exception {
         RenderablePathway r = (RenderablePathway) pathwayEditor.getRenderable();

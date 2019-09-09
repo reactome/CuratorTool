@@ -62,7 +62,9 @@ public class InstanceComparer {
      * @param dbInstance Instance in remote database
      * @return one of constants defined in this class: IS_IDENTICAL, NEW_CHANGE_IN_DB, NEW_CHANGE_IN_LOCAL,
      * CONFLICT_CHANGE.
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve modified instances or compare instance edits for the
+     * localInstance or dbInstance.  Also thrown if expected values are found in the modified attribute of the 
+     * dbInstance
      */
     public int compare(GKInstance localInstance, 
                        GKInstance dbInstance) throws Exception {

@@ -1122,7 +1122,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         // propertyChangeSupport.firePropertyChange("deleteInstance", null, instance);
     }
     
-    public List<?> fetchAllEvents() throws Exception {
+    public List<?> fetchAllEvents() {
     	return (List<?>) fetchInstancesByClass(ReactomeJavaConstants.Event);
     }
     

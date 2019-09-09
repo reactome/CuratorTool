@@ -281,7 +281,7 @@ public class SearchPane extends JPanel {
 	 * The actual method for doing search
 	 * @param persistenceAdaptor Adaptor to data source
 	 * @return Collection of instances found
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to retrieve instances during the search
 	 */
 	@SuppressWarnings("unchecked")
 	public Collection search(PersistenceAdaptor persistenceAdaptor) throws Exception {
