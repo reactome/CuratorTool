@@ -67,7 +67,7 @@ public class DefaultInstanceEditHelper {
 	
 	/**
 	 * Get the default InstanceEdit. 
-	 * @return Default InstanceEdit. If null, null will be returned.
+	 * @return Default InstanceEdit (or null if none exists).
 	 * @see #getDefaultInstanceEdit(Window)
 	 */
 	public GKInstance getDefaultInstanceEdit() {
