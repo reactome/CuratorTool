@@ -570,8 +570,8 @@ public class InstanceListPane extends JPanel {
 	
 	/**
 	 * Do an update because of the instance list changes in the specified 
-	 * SchemaClass.
-	 * @param schemaClass
+	 * instance.
+	 * @param instance Instance to add and display in this InstanceListPane
 	 */
 	public void addInstance(Instance instance) {
 		// Since instances in a subclass is also displayed. So have to check based on hierarchical tree.
