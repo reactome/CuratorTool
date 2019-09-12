@@ -15,7 +15,7 @@
             <zipfileset excludes="META-INF/*.SF" src="lib/javaws.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/jgraph.5.7.4.6.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/log4j-1.2.12.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="lib/osxAdapter.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="lib/AppleJavaExtensions-1.4.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/servlet-api.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/ant/ant.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/batik/batik-awt-util.jar"/>
@@ -65,7 +65,7 @@
             <zipfileset excludes="META-INF/*.SF" src="lib/uniprotjapi/spring.core.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/uniprotjapi/spring.web.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="lib/uniprotjapi/uniprotjapi.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="lib/mysql-connector-java-5.0.8-bin.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="lib/mysql-connector-java-5.1.47-bin.jar"/>
         </jar>
     </target>
 </project>
