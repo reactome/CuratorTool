@@ -2,11 +2,12 @@ language: java
 
 jdk:
 - openjdk8
+- oraclejdk8
 
-before_install:
-- sudo apt-get update
-- sudo apt-get install ant
+addons:
+  apt:
+    packages:
+      - ant
 
 script:
 - ant -buildfile ant/ClassesBuild.xml
-
