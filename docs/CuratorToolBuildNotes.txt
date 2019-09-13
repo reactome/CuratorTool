@@ -1,3 +1,7 @@
+Build 98 (Version 3.3) notes (August 9, 2019)
+
+Bug fix: https should be used for IUPHAR.
+
 Build 97 (Version 3.3) notes (May 24, 2019)
 
 1. Enable ssl secure connection for the curator tool. 
