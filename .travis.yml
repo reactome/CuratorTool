@@ -5,7 +5,7 @@ jdk:
 - oraclejdk8
 
 # used to work with oracle's jdk8 download.
-dist: bionic
+dist: trusty
 
 addons:
   apt:
