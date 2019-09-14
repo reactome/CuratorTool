@@ -4,6 +4,9 @@ jdk:
 - openjdk8
 - oraclejdk8
 
+# used to work with oracle's jdk8 download.
+dist: bionic
+
 addons:
   apt:
     packages:
