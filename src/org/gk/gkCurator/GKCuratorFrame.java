@@ -384,8 +384,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	                    GKInstance instance = (GKInstance) e.getNewValue();
 	                    GKSchemaClass oldCls = (GKSchemaClass) e.getOldValue();
 	                    schemaView.switchedType(oldCls, instance);
-	                    eventView.switchedType(instance);
-	                    entityView.switchedType(instance);
+	                    eventView.switchedType(oldCls, instance);
+	                    entityView.switchedType(oldCls, instance);
 	                    actionCollection.enableSaveAction(true);
 	                }
 	                else if (e.getPropertyName().equals("markAsDirty")) {

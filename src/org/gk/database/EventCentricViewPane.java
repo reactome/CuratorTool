@@ -522,9 +522,10 @@ public class EventCentricViewPane extends JPanel {
 	
 	/**
 	 * Call this method if an Instance's type (i.e. class) is changed.
+	 * @param oldCls the original GKSchemaClass.
 	 * @param instance the instance whose SchemaClass has been changed.
 	 */
-	public void switchedType(GKInstance instance) {
+	public void switchedType(GKSchemaClass oldCls, GKInstance instance) {
 	    // Check if the graph display is needed to updated.
 		GraphEditorPane graphPane = getDisplayGraphPane();
 		if (graphPane != null) {

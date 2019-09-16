@@ -473,9 +473,10 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Switch the type of a GKInstance.
+     * @param oldCls the original GKSchemaClass.
      * @param instance the instance whose schemaClass has been changed
      */
-    public void switchedType(GKInstance instance) {
+    public void switchedType(GKSchemaClass oldCls, GKInstance instance) {
         objectListPane.switchedType(instance);
         zoomableEditor.switchedType(instance);
         markAsDirty(instance);
