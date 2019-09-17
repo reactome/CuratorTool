@@ -51,6 +51,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.xml.parsers.DocumentBuilder;
@@ -1212,8 +1214,14 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		editMenu.addSeparator();
 		editMenu.add(actionCollection.getSearchInstanceAction());
 		editMenu.addSeparator();
+
+		// "Create Instance" menu item and keybinding.
 		JMenuItem newInstanceItem = editMenu.add(actionCollection.getCreateInstanceAction());
 		newInstanceItem.setAccelerator(KeyStroke.getKeyStroke('N', shortcutMask));
+
+		// Update the "Create Instance" menu item's enabled status.
+		editMenu.addMenuListener(new UpdateMenuItemEnabled(newInstanceItem));
+
 		JMenuItem cloneItem = editMenu.add(actionCollection.getCloneInstanceAction());
 		cloneItem.setAccelerator(KeyStroke.getKeyStroke('C', InputEvent.SHIFT_MASK | shortcutMask));
          JMenuItem switchTypeItem = editMenu.add(actionCollection.getSwitchTypeAction());
@@ -1290,6 +1298,38 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 			helpMenu.setMnemonic('H');
 		}
 		setJMenuBar(menuBar);
+	}
+	
+	/**
+	 * Update a given menu item's enabled status based on
+	 * return value of getCreateInstanceAction().
+	 * @param JMenuItem
+	 */
+	private class UpdateMenuItemEnabled implements MenuListener {
+		// private variables and constructor.
+		private JMenuItem newInstanceItem;
+		private Action instanceAction;
+
+		public UpdateMenuItemEnabled(JMenuItem newInstanceItem) {
+			this.newInstanceItem = newInstanceItem;
+		}
+
+		@Override
+		public void menuSelected(MenuEvent e) {
+			// temporary instance action with current enabled status.
+			instanceAction = actionCollection.getCreateInstanceAction();
+
+			// set instance item's enabled status.
+			newInstanceItem.setEnabled(instanceAction.isEnabled());
+		}
+
+		// We aren't concerned with deselected or canceled events, 
+		// but must implement them because we are inheriting abstract methods.
+		@Override
+		public void menuDeselected(MenuEvent e) {}
+
+		@Override
+		public void menuCanceled(MenuEvent e) {}	
 	}
 	
     protected void addRecentProject(String fileName) {

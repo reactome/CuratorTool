@@ -2169,10 +2169,41 @@ public class CuratorActionCollection {
 		}
 	}
 	
+	/**
+	 * Retrieve a "Create Instance" action for new entities.
+	 * 
+	 * @return Action with specific "SHORT_DESCRIPTION" and "enabled" status
+	 */
 	public Action getCreateInstanceAction() {
-		if (createInstanceAction == null) {
+		// list of constants that curators are not allowed to create new instances of.
+		ArrayList<String> nonCreatable = new ArrayList<String>();
+		nonCreatable.add(ReactomeJavaConstants.Species);
+		nonCreatable.add(ReactomeJavaConstants.Compartment);
+
+		// get selected class.
+		GKSchemaClass selectedClass = null;
+		if (curatorFrame.getFocusedComponent() instanceof SchemaViewPane) {
+			SchemaViewPane schemaViewPane = (SchemaViewPane) curatorFrame.getFocusedComponent();
+			selectedClass = schemaViewPane.getSchemaPane().getSelectedClass();
+		}
+
+		// if creation of instance is not allowed, then user is notified to contact editor.
+		if (selectedClass != null && nonCreatable.contains(selectedClass.getName())) {
+			// This is an information for blocking creating a new species and compartment:
+			String message = "You cannot create an instance for this type of class. Please ask Peter D’Eustachio to create one for you.";
+			createInstanceAction = new AbstractAction(message,
+					createIcon("CreateInstance.gif")) {
+				// no action performed.
+				public void actionPerformed(ActionEvent e) {}
+			};
+			createInstanceAction.putValue(Action.SHORT_DESCRIPTION, "Creation of class instance is currently disabled.");
+			createInstanceAction.setEnabled(false);
+		}
+
+		// else creation of instance is allowed.
+		else {	
 			createInstanceAction = new AbstractAction("Create Instance",
-			                                          createIcon("CreateInstance.gif")) {
+					createIcon("CreateInstance.gif")) {
 				public void actionPerformed(ActionEvent e) {
 					createInstance();
 				}
