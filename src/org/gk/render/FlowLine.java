@@ -33,6 +33,7 @@ public class FlowLine extends HyperEdge {
      * Use this method to check if some points used in the lines should
      * be removed. If points should be removed, they will be removed in 
      * this method.
+     * 
      * @return true for some points are removed false for no points removed.
      */
     protected boolean validatePointsForLayout() {
@@ -70,6 +71,7 @@ public class FlowLine extends HyperEdge {
     
     /**
      * Use this method to initialize the position info for a brand new RenderableReaction.
+     * 
      * @param p the position.
      */
     public void initPosition(Point p) {
@@ -88,8 +90,10 @@ public class FlowLine extends HyperEdge {
     
     /**
      * A position for a FlowLine object is the medium point from the list of backbone 
-     * points. If the total number of backbone points is even, the middile point is
+     * points. If the total number of backbone points is even, the middle point is
      * calculated on the fly for the two medium points.
+     * 
+     * @return Position for this FlowLine object as a Point
      */
     public Point getPosition() {
         Point p = new Point();
@@ -113,7 +117,9 @@ public class FlowLine extends HyperEdge {
     /**
      * Override the super class method to provide a simple implementation for
      * FlowLine objects.
-     * @param pos
+     * 
+     * @param pos Point object to initialize this FlowLine object's position (nothing done if the Point is null)
+     * @see #initPosition(Point)
      */
     public void layout(Point pos) {
         if (pos == null)

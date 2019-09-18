@@ -121,7 +121,7 @@ public class EventCellRenderer extends JPanel implements TreeCellRenderer {
 
 	/**
 	 * This flag is used for the entity-level view.
-	 * @param isOn
+	 * @param isOn true/false value for whether to enable gray
 	 */
 	public void enableGrayOn(boolean isOn) {
 	    this.isGrayOn = isOn;

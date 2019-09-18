@@ -47,6 +47,8 @@ public abstract class ContainerNode extends Node {
     /**
      * This method is used to ensure the text is still encapsulated 
      * by the bounds during resizing.
+     * 
+     * @param needValidate True if the text bounds need to be re-calculated; false otherwise
      */
     protected void ensureTextInBounds(boolean needValidate) {
         if (textBounds == null)
@@ -151,8 +153,9 @@ public abstract class ContainerNode extends Node {
     
     /**
      * Move contained components. This method should be called during moving.
-     * @param dx
-     * @param dy
+     * 
+     * @param dx Value to move along the x-axis
+     * @param dy Value to move along the y-axis
      */
     protected void moveComponents(int dx, int dy) {
         List components = getComponents();
@@ -232,15 +235,18 @@ public abstract class ContainerNode extends Node {
         
     /**
      * Check if a Renderable object can be assigned to this Container object.
-     * @param r
-     * @return
+     * 
+     * @param r Renderable object to check to see if it can be assigned
+     * @return true if the Renderable object can be assigned; false otherwise
      */
     public abstract boolean isAssignable(Renderable r);
     
     /**
-     * Check a list of Renderables to see if their container setting is correct
-     * against this ContainerNode.
-     * @param renderables
+     * Check a Renderable object to see if its container setting is correct
+     * against this ContainerNode. Re-assign it to the correct container if
+     * it is not.
+     * 
+     * @param r Renderable object to check
      */
     public void validateContainerSetting(Renderable r) {
         // A hidden complex cannot take anything
@@ -265,8 +271,9 @@ public abstract class ContainerNode extends Node {
     
     /**
      * Check if this Container contains the passed Renderable object.
-     * @param r
-     * @return
+     * 
+     * @param r Renderable to check to see if it is contained in this Container
+     * @return true if it is contained by this container (or one its ancestor containers); false otherwise
      */
     public boolean contains(Renderable r) {
         Renderable container = r.getContainer();
@@ -282,8 +289,9 @@ public abstract class ContainerNode extends Node {
     /**
      * A helper method to check if this complex is picked
      * up by checking a text bounds without boundsbuffer.
-     * @param p
-     * @return
+     * 
+     * @param p Point to check if it is within the text bounds
+     * @return true if the point is within the text bounds; false otherwise
      */
     protected boolean isTextPicked(Point p) {
         if (textBounds == null)

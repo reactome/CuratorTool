@@ -45,7 +45,7 @@ public class AttributeClassNotAllowedException extends Exception {
 	
 	/**
 	 * Get the GKInstance object that refers to a wrong instance.
-	 * @return
+	 * @return Instance that is referring to a wrong instance
 	 */
 	public GKInstance getInstance() {
 		return target;
@@ -53,7 +53,7 @@ public class AttributeClassNotAllowedException extends Exception {
 	
 	/**
 	 * Get the reference.
-	 * @return
+	 * @return Instance that is wrongly referred to
 	 */
 	public GKInstance getReference() {
 		return this.reference;
@@ -61,7 +61,7 @@ public class AttributeClassNotAllowedException extends Exception {
 	
 	/**
 	 * Get the GKSchemaAttribute object where reference is wrong.
-	 * @return
+	 * @return Attribute of an instance that refers to an instance of the wrong class type 
 	 */
 	public GKSchemaAttribute getSchemaAttribute() {
 		return this.att;

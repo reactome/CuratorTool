@@ -344,7 +344,8 @@ public class HyperEdge extends Renderable {
      * Use this method to check if some points used in the lines should
      * be removed. If points should be removed, they will be removed in 
      * this method.
-     * @return true for some points are removed false for no points removed.
+     * 
+     * @return true if some points are removed; false if no points removed
      */
     protected boolean validatePointsForLayout() {
         boolean rtn = false;
@@ -388,7 +389,8 @@ public class HyperEdge extends Renderable {
     
     /**
      * Automatically rearrange position of all input, output and catalyst positions.
-     * @param pos
+     * 
+     * @param pos Point object to set the new position of this HyperEdge
      */
     public void layout(Point pos) {
     	if (pos == null)
@@ -663,25 +665,34 @@ public class HyperEdge extends Renderable {
         return (Point) backbonePoints.get(backbonePoints.size() - 1);
     }
     
-    /** Getter for property helperPoints.
-     * @return Value of property helperPoints, which should be a list of list of Points.
+    /** 
+     * Getter for property helperPoints.
+     * 
+     * @return Value of property helperPoints, which should be a list of list of Points
      */
     public java.util.List<List<Point>> getHelperPoints() {
         return helperPoints;
     }
     
-    /** Setter for property helperPoints.
-     * @param helperPoints New value of property helperPoints, which should be a list of list of Points.
+    /**
+     * Setter for property helperPoints.
+     * 
+     * @param helperPoints New value of property helperPoints, which should be a list of list of Points
      */
     public void setHelperPoints(java.util.List helperPoints) {
         this.helperPoints = helperPoints;
     }
     
     /**
-     * Add a helper point to the helperPoint List.
-     * @param p the Point to be added
-     * @param helperIndex the index of helper
-     * @param pointIndex the point index.
+     * Add a helper point to the helperPoints List (nothing done if the list is null or the helperIndex is out of 
+     * bounds of the list). The helperPoints list is a 2d list (i.e. a list of lists).  The helperIndex will reference
+     * a list of points and the pointerIndex is the index to add the new point. 
+     * 
+     * @param p The Point to be added
+     * @param helperIndex The index of the helperPoints list
+     * @param pointIndex The index at which to add the new helper point in the list retrieved from the
+     * helperPoints list
+     * @see #removeHelperPoint(Point, int)
      */
     public void addHelperPoint(Point p, int helperIndex, int pointIndex) {
         if (helperPoints == null)
@@ -693,7 +704,13 @@ public class HyperEdge extends Renderable {
     }
     
     /**
-     * Remove a helper point in a specified helper branch.
+     * Remove a helper point in a specified helper branch (nothing done if the list is null or the helperIndex is out
+     * of bounds of the list). The helperPoint list is a 2d list (i.e. a list of lists).  The helperIndex will 
+     * reference a list of points. 
+     * 
+     * @param p The Point to be removed
+     * @param helperIndex The index of the helperPoint list (i.e. the point list from which to remove p)
+     * @see #addHelperPoint(Point, int, int)
      */
     public void removeHelperPoint(Point p, int helperIndex) {
         if (helperPoints == null || helperIndex < 0 || helperIndex >= helperPoints.size())
@@ -704,41 +721,54 @@ public class HyperEdge extends Renderable {
             helperPoints.remove(helperIndex);
     }
     
-    /** Getter for property inputPoints.
-     * @return Value of property inputPoints.
+    /** 
+     * Getter for property inputPoints.
+     * 
+     * @return Value of property inputPoints
      */
     public java.util.List<List<Point>> getInputPoints() {
         return inputPoints;
     }
     
-    /** Setter for property inputPoints.
-     * @param inputPoints New value of property inputPoints.
+    /** 
+     * Setter for property inputPoints.
+     * 
+     * @param inputPoints New value of property inputPoints
      */
     public void setInputPoints(java.util.List<List<Point>> inputPoints) {
         this.inputPoints = inputPoints;
     }
     
     /**
-     * Add a point to a specified input branch at the specified index.
+     * Add a point to a specified input branch at the specified index (nothing done if the inputPoints list is null 
+     * or the inputIndex is out of bounds of the inputPoints list). The inputPoints list is a 2d list (i.e. a list of
+     * lists).  The inputIndex will reference a list of points and the pointIndex is the index to add the new point. 
+     * 
+     * @param p Point to add
+     * @param inputIndex The index of the inputPoints list
+     * @param pointIndex The index at which to add the new input point in the list retrieved from the
+     * inputPoints list
      */
-    public void addInputPoint(Point p, 
-                              int inputIndex, 
-                              int pointIndex) {
+    public void addInputPoint(Point p, int inputIndex, int pointIndex) {
         if (inputPoints == null || inputIndex < 0 || inputIndex >= inputPoints.size())
             return;
         java.util.List list = (java.util.List)inputPoints.get(inputIndex);
         list.add(pointIndex, p);
     }
     
-    /** Getter for property outputPoints.
-     * @return Value of property outputPoints.
+    /** 
+     * Getter for property outputPoints.
+     * 
+     * @return Value of property outputPoints
      */
     public java.util.List<List<Point>> getOutputPoints() {
         return outputPoints;
     }
     
-    /** Setter for property outputPoints.
-     * @param outputPoints New value of property outputPoints.
+    /** 
+     * Setter for property outputPoints.
+     * 
+     * @param outputPoints New value of property outputPoints
      */
     public void setOutputPoints(java.util.List outputPoints) {
         this.outputPoints = outputPoints;
@@ -751,29 +781,37 @@ public class HyperEdge extends Renderable {
         list.add(pointIndex, p);
     }
     
-    /** Getter for property needInputArrow.
-     * @return Value of property needInputArrow.
+    /** 
+     * Getter for property needInputArrow.
+     * 
+     * @return True if an input arrow is needed; false otherwise
      */
     public boolean isNeedInputArrow() {
         return needInputArrow;
     }
     
-    /** Setter for property needInputArrow.
-     * @param needInputArrow New value of property needInputArrow.
+    /** 
+     * Setter for property needInputArrow.
+     * 
+     * @param needInputArrow True if an input arrow is needed; false otherwise
      */
     public void setNeedInputArrow(boolean needInputArrow) {
         this.needInputArrow = needInputArrow;
     }
     
-    /** Getter for property needOutputArrow.
-     * @return Value of property needOutputArrow.
+    /** 
+     * Getter for property needOutputArrow.
+     * 
+     * @return True if an output arrow is needed; false otherwise
      */
     public boolean isNeedOutputArrow() {
         return needOutputArrow;
     }
     
-    /** Setter for property needOutputArrow.
-     * @param needOutputArrow New value of property needOutputArrow.
+    /**
+     * Setter for property needOutputArrow.
+     * 
+     * @param needOutputArrow True if an output arrow is needed; false otherwise
      */
     public void setNeedOutputArrow(boolean needOutputArrow) {
         this.needOutputArrow = needOutputArrow;
@@ -1113,8 +1151,9 @@ public class HyperEdge extends Renderable {
      * The internal data structure will not be changed in this method. So a client
      * that should not make changes to the internal data structure should call this method.
      * For example, getToolTipText(MouseEvent)
-     * @param p
-     * @return
+     * 
+     * @param p Point to check
+     * @return true if the point can be picked; false otherwise
      */
     public boolean canBePicked(Point p) {
         if (!isVisible)
@@ -1192,9 +1231,10 @@ public class HyperEdge extends Renderable {
     
     /**
      * A helper method to check if a Point in a branch can be picked up.
-     * @param branches
-     * @param p
-     * @return
+     * 
+     * @param branches Branch list - List of list of Point objects
+     * @param p Point to check
+     * @return true if the point can be picked for any branch point; false otherwise
      */
     private boolean canBranchPointsBePicked(List branches, 
                                             Point p) {
@@ -1222,9 +1262,11 @@ public class HyperEdge extends Renderable {
     /**
      * A helper methods to check if a line segment in a branch can 
      * be picked up.
-     * @param branches
-     * @param p
-     * @return
+     * 
+     * @param branches Branch list - List of list of Point objects
+     * @param hub Point to use if there is only one Point in a branch
+     * @param p Point to check
+     * @return true if the point can be picked for any branch
      */
     private boolean canBranchBePicked(List branches,
                                       Point hub,
@@ -1314,6 +1356,8 @@ public class HyperEdge extends Renderable {
     
     /**
      * Get the selected Point. This selected Point is picked by method isPicked(Point).
+     * 
+     * @return The selected Point
      */
     public Point getSelectedPoint() {
         return selectionInfo.selectPoint;
@@ -1460,8 +1504,11 @@ public class HyperEdge extends Renderable {
     }
     
     /**
-     * Check if an selected Point can be removed. A position that
-     * is attached to helper branched cannot be removed.
+     * Check if a selected Point can be removed. A point that is a position attached to a helper branch, a point when 
+     * there are only two points in the backbone, or the point is the first or last in the backbone or a helper branch 
+     * cannot be removed.
+     * 
+     * @return true if there is a selected Point and it can be removed; false otherwise
      */
     public boolean isPointRemovable() {
         if (selectionInfo.selectPoint == null)
@@ -1556,8 +1603,9 @@ public class HyperEdge extends Renderable {
     }
     
     /**
-     * Add a new bending point to a selected branch or backbone.
-     * @param point
+     * Add a new bending point to a selected branch or backbone. The position is then validated.
+     * 
+     * @param point Point to add and set as the selected point
      */
     public void addPoint(Point point) {
         // Make a copy in case this point has been changed
@@ -1716,7 +1764,8 @@ public class HyperEdge extends Renderable {
     
     /**
      * Detach a Node from this HyperEdge.
-     * @param node
+     * 
+     * @param node Node to remove from this HyperEdge
      */
 	public void remove(Renderable node) {
 		java.util.List connectWidgets = connectInfo.getConnectWidgets();
@@ -1933,7 +1982,11 @@ public class HyperEdge extends Renderable {
     }
     
     /**
-     * @return return the removed inputBranch.
+     * Remove an input branch from the inputPoints 2d list at the specified index (if the inputPoints list is null or
+     * the index specified is out of bounds, nothing is done).
+     * 
+     * @param index Index value of the inputPoints list at which to remove the input branch
+     * @return The removed inputBranch.
      */
     public java.util.List removeInputBranch(int index) {
         if (inputPoints == null || index < 0 || index > inputPoints.size() - 1)
@@ -2091,7 +2144,8 @@ public class HyperEdge extends Renderable {
     /**
      * This method is used to remove a branch in this HyperEdge that is not connected
      * to other node.
-     * @param connectWidget
+     * 
+     * @param connectWidget ConnectWidget object for finding the type and index for removal
      */
     public void deleteUnAttachedBranch(ConnectWidget connectWidget) {
         int role = connectWidget.getRole();
@@ -2204,8 +2258,9 @@ public class HyperEdge extends Renderable {
 	}
 	
 	/**
-	 * Add 
-	 * @param node
+	 * Add inhibitor to this HyperEdge
+	 * 
+	 * @param node Node representing the inhibitor to add
 	 */
 	public void addInhibitor(Node node) {
 		java.util.List inhibitorWidgets = ((HyperEdgeConnectInfo)connectInfo).getInhibitorWidgets();
@@ -2357,7 +2412,8 @@ public class HyperEdge extends Renderable {
     
     /**
      * Use this method to initialize the position info for a brand new RenderableReaction.
-     * @param p the position.
+     * 
+     * @param p Point to use as the position
      */
     public void initPosition(Point p) {
         setPosition(p);
@@ -2451,9 +2507,9 @@ public class HyperEdge extends Renderable {
     }
     
     /**
-     * Create a shallow copy of this HyperEdge. All attributes in the returned copy are shared
-     * with this objects.
-     * @return
+     * Create a shallow copy of this HyperEdge. All attributes in the returned copy are shared with this objects.
+     * 
+     * @return Copy of this HyperEdge object
      */
     public HyperEdge shallowCopy() {
         return RenderUtility.copyHyperEdge(this);
@@ -2462,8 +2518,9 @@ public class HyperEdge extends Renderable {
     /**
      * This is a simple version of isPicked(Point) to check if the input or output hub is picked.
      * An input or output hub in the end point of a FlowLine object.
-     * @param p
-     * @return
+     * 
+     * @param p Point to check
+     * @return true if this HyperEdge object is selected and the point passed is picked; false otherwise
      */
     public boolean isPointPicked(Point p) {
         if (!isSelected()) // Make sure this edge is selected.

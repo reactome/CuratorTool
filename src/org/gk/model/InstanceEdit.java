@@ -22,28 +22,28 @@ public class InstanceEdit implements Serializable {
 	}
 
 	/**
-	 * @return
+	 * @return Name of the author of this instance edit
 	 */
 	public String getAuthorName() {
 		return authorName;
 	}
 
 	/**
-	 * @return
+	 * @return Date of this instance edit as a String
 	 */
 	public String getDate() {
 		return date;
 	}
 
 	/**
-	 * @param string
+	 * @param author Set the name of the author of this instance edit
 	 */
 	public void setAuthorName(String author) {
 		authorName = author;
 	}
 
 	/**
-	 * @param date
+	 * @param date Set the date of the author of this instance edit
 	 */
 	public void setDate(String date) {
 		this.date = date;

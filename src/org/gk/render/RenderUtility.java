@@ -47,8 +47,10 @@ public class RenderUtility {
     
     /**
      * Create a shallow copy of this HyperEdge. All attributes in the returned copy are shared
-     * with this objects.
-     * @return
+     * with this object.
+     * 
+     * @param edge HyperEdge object to copy
+     * @return Copy of the HyperEdge object passed
      */
     public static HyperEdge copyHyperEdge(HyperEdge edge) {
         try {
@@ -304,10 +306,11 @@ public class RenderUtility {
 	
 	/**
 	 * Get a named Renderable from the hierarchical tree that contains the specified renderable.
-	 * @param container a Renderable object that is contained in the hierarchical tree that
-	 * the search is performed againt.
-	 * @param name the name of the searching Renderable.
-	 * @return the Renderable whose displayName is name.
+	 * 
+	 * @param container A Renderable object that is contained in the hierarchical tree that
+	 * the search is performed against
+	 * @param name The name of the searching Renderable
+	 * @return The Renderable whose displayName is the same as name or null if none found
 	 */
 	public static Renderable getComponentByName(Renderable container, String name) {
 		Renderable topMost = getTopMostContainer(container);
@@ -367,12 +370,14 @@ public class RenderUtility {
 	
 	/**
 	 * Check if a specified property can be set for a Renderable. Some properties
-	 * should be checked before set. For example, if a pathway has homo sapiens as taxon
-	 * property, all descendents of this pathway should have home sapiens as its taxon property.
-	 * All other value setting will give rise a false return.
-	 * @param propName the property name
-	 * @param propValue the value of the property
-	 * @return true for the case the propValue can be set, while false for not.
+	 * should be checked before setting. For example, if a pathway has Homo sapiens as taxon
+	 * property, all descendents of this pathway should have Homo sapiens as its taxon property.
+	 * All other value setting will give rise to a false return.
+	 * 
+	 * @param renderable Renderable object to check for the specified property name and value
+	 * @param propName The property name
+	 * @param propValue The value of the property
+	 * @return true for the case the propValue can be set, while false for not
 	 */
 	public static boolean checkProperty(Renderable renderable, String propName, Object propValue) {
 		Renderable container = renderable.getContainer();
@@ -387,9 +392,10 @@ public class RenderUtility {
 	
 	/**
 	 * Set the property value for a container's descendent.
-	 * @param renderable the container
-	 * @param propName the name of the property
-	 * @param propValue the value of the property
+	 * 
+	 * @param renderable The container
+	 * @param propName The name of the property
+	 * @param propValue The value of the property
 	 */
 	public static void setPropertyForDescendents(Renderable renderable, String propName, Object propValue) {
 		if (renderable instanceof RenderableReaction)
@@ -416,10 +422,11 @@ public class RenderUtility {
 	}
 	
 	/**
-	 * A method to put all descendants of a Renderbale into a list. Shortcuts are not
+	 * A method to put all descendants of a Renderable into a list. Shortcuts are not
      * in the returned list.
-	 * @param container
-	 * @return a list of Renderable objects that are the descendants.
+     * 
+	 * @param container Renderable object for which to get descendants
+	 * @return List of Renderable objects that are the descendants.
 	 */
 	public static java.util.List getAllDescendents(Renderable container) {
 		Set descendants = new HashSet();
@@ -445,8 +452,9 @@ public class RenderUtility {
 	/**
 	 * Generate a shortcut to a RenderableComplex. All contained components will
 	 * be generated recursively.
-	 * @param complex
-	 * @return
+	 * 
+	 * @param complex RenderableComplex object for which to generate a shortcut
+	 * @return Shortcut (RenderableComplex object) to the complex passed
 	 */
 	public static RenderableComplex generateComplexShortcut(RenderableComplex complex) {
 	    RenderableComplex shortcut = (RenderableComplex) complex.generateShortcut();
@@ -477,8 +485,9 @@ public class RenderUtility {
 	
 	/**
 	 * Get all contained Renderable objects including shortcuts.
-	 * @param container
-	 * @return
+	 * 
+	 * @param container Renderable object for which to get contained objects
+	 * @return Set of Renderable objects contained in the passed Renderable object
 	 */
 	public static Set<Renderable> getAllContainedComponents(Renderable container) {
 	    Set<Renderable> all = new HashSet<Renderable>();
@@ -502,8 +511,9 @@ public class RenderUtility {
 	 * This method is used to get a list of complex components in a hierarchy. This 
 	 * basically uses an out-search for the tree: the index of a contained component
 	 * should be smaller than the index of its container component.
-	 * @param complex
-	 * @return
+	 * 
+	 * @param complex ContainerNode object for which to get components recursively
+	 * @return List of components (Renderable objects) in the ContainerNode passed
 	 */
 	public static List<Renderable> getComponentsInHierarchy(ContainerNode complex) {
 	    List<Renderable> allInHierachy = new ArrayList<Renderable>();
@@ -526,8 +536,9 @@ public class RenderUtility {
 	
 	/**
 	 * Register and assign unique IDs to a list of Renderable objects and their descendents.
-	 * @param nodes
-	 * @param process the topmost Renderable object.
+	 * 
+	 * @param nodes List of Renderable objects to register
+	 * @param process The topmost Renderable object.
 	 */
 	public static void registerNodes(java.util.List nodes, Renderable process) {
 		RenderableRegistry registry = RenderableRegistry.getRegistry();
@@ -553,11 +564,12 @@ public class RenderUtility {
 
 	/**
 	 * Convert a GKInstance object to a Renderable object. The contained instances will be handled recursively.
-	 * @param instance
+	 * 
+	 * @param instance GKInstance to covert
 	 * @param needProp true if the properties in GKInstance should be transferred to Renderable object. False for no
 	 * transferring. However, the specified instance will be used as model instance for the converted renderable object.
-	 * @return
-	 * @throws Exception
+	 * @return Renderable object created from converting the GKInstance passed
+	 * @throws Exception Thrown if unable to retrieve attribute values from the instance
 	 */
 	public static Renderable convertToNode(GKInstance instance, boolean needProp) throws Exception {
 		return InstanceToRenderableConverter.convertToNode(instance, needProp);
@@ -565,8 +577,9 @@ public class RenderUtility {
 	
 	/**
 	 * Copy properties from source object to target object.
-	 * @param source
-	 * @param target
+	 * 
+	 * @param source Renderable object from which to obtain properties
+	 * @param target Renderable object to which to copy properties
 	 */
 	public static void copyProperties(Renderable source, Renderable target) {
         target.setDisplayName(source.getDisplayName());
@@ -588,7 +601,8 @@ public class RenderUtility {
 	
 	/**
 	 * Sort a list of Renderable objects based on displayNames.
-	 * @param renderabls
+	 * 
+	 * @param renderables List of Renderable objects to sort
 	 */
 	public static void sort(java.util.List renderables) {
 		Comparator nameSorter = new Comparator() {
@@ -608,10 +622,11 @@ public class RenderUtility {
 	}
 	
 	/**
-	 * Search a Renderable object from a specified list matched the specified display name.
-	 * @param renderables
-	 * @param name
-	 * @return
+	 * Search for a Renderable object from a specified list matched by the specified display name.
+	 * 
+	 * @param renderables List of Renderable objects to search
+	 * @param name Name of the Renderable object to find
+	 * @return Renderable object found or null if none found
 	 */
 	public static Renderable searchNode(java.util.List renderables, String name) {
 		if (renderables == null || renderables.size() == 0)
@@ -627,8 +642,9 @@ public class RenderUtility {
 	
 	/**
 	 * Rename a Renderable object.
-	 * @param r
-	 * @param newName
+	 * 
+	 * @param renderable Renderable object to rename
+	 * @param newDisplayName New name to set for the Renderable object
 	 */
 	public static void rename(Renderable renderable, String newDisplayName) {
 		String oldName = renderable.getDisplayName();
@@ -691,10 +707,11 @@ public class RenderUtility {
     /**
      * Use this method to check whether a circular reference will be created if the contained is
      * inserted into the container.
-     * @param container the Renderable object containing contained.
-     * @param contained the Renderable object is contained by container.
-     * @return the offended Renderable name will be returned if a cirucular reference is found.
-     * Otherwise, null will be returned.
+     * 
+     * @param container The Renderable object containing contained
+     * @param contained The Renderable object is contained by container
+     * @return the offended Renderable name will be returned if a circular reference is found.
+     * Otherwise, null will be returned
      */
     public static String searchCircularRef(Renderable container, Renderable contained) {
         Renderable r = container;

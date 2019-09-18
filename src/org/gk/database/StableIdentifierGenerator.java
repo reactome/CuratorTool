@@ -62,8 +62,8 @@ public class StableIdentifierGenerator {
 
     /**
 	 * Check if a GKInstance needs to have a stable id.
-	 * @param instance
-	 * @return
+	 * @param instance Instance to check
+	 * @return true if stable id is needed
 	 */
 	public boolean needStid(GKInstance instance) {
 	    Set<String> classNames = getClassNamesWithStableIds(instance.getDbAdaptor());
@@ -98,9 +98,12 @@ public class StableIdentifierGenerator {
 	
 	/**
 	 * Create a StableIdentifier instance for the passed GKInstance object.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * @param instance Instance for which to create stable id instance
+	 * @param created Created instance edit instance to attach to newly created stable id instance
+	 * @param fileAdaptor XMLFileAdaptor to which to save newly created stable id instance
+	 * @return Stable identifier instance
+	 * @throws Exception Thrown if unable to generate an identifier for the instance or if unable to set attribute
+	 * values for the newly created StableIdentifier instance
 	 */
 	public GKInstance generateStableId(GKInstance instance,
 	                                   GKInstance created,
@@ -128,9 +131,9 @@ public class StableIdentifierGenerator {
 
 	/**
 	 * The actual method to generate a stable identifier for a GKInstance.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * @param instance Instance for which to generate a stable identifier
+	 * @return String containing the generated stable identifier value
+	 * @throws Exception Thrown if unable to get species abbreviation for instance
 	 */
     public String generateIdentifier(GKInstance instance) throws Exception {
         String species = getSpeciesForSTID(instance);

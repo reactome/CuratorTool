@@ -12,19 +12,21 @@ import java.io.Serializable;
 public interface Schema extends Serializable {
 	
 	/**
-	 * Some constants.
+	 * Some constants
 	 */
 	public static final String DB_ID_NAME = "DB_ID";
 	
 	/**
-	 * Get the whole list of all classes in the schema.
-	 * @return a list of SchemaClasses.
+	 * Get the whole list of all classes in the schema
+	 * 
+	 * @return a list of SchemaClasses
 	 */
 	public java.util.Collection getClasses();
 	
 	/**
-	 * Get the whole list of all class names.
-	 * @return a list of name Strings.
+	 * Get the whole list of all class names
+	 * 
+	 * @return a list of name Strings
 	 */
 	public java.util.Collection getClassNames();
 	
@@ -33,8 +35,9 @@ public interface Schema extends Serializable {
 	/**
 	 * Check is a class with the specified name is a valid (i.e. defined)
 	 * schema class.
-	 * @param name the class name.
-	 * @return 
+	 * 
+	 * @param name the class name
+	 * @return true if specified class is valid; false otherwise
 	 */
 	public boolean isValidClass(String name);
 	

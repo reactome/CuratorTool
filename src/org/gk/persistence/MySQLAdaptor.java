@@ -62,7 +62,15 @@ public class MySQLAdaptor implements PersistenceAdaptor {
     protected MySQLAdaptor() {
     }
     
-	/** Creates a new instance of MySQLAdaptor */
+	/** 
+	 * Creates a new instance of MySQLAdaptor with a default port of 3306 
+	 * 
+	 * @param host Database host
+	 * @param database Database name
+	 * @param username User name to connect to the database
+	 * @param password Password for the specified user name to connect to the database
+	 * @throws SQLException Thrown if unable to connect to the database
+	 */
 	public MySQLAdaptor(
 		String host,
 		String database,
@@ -72,6 +80,16 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		this(host,database,username,password,3306);
 	}
 
+	/** 
+	 * Creates a new instance of MySQLAdaptor
+	 * 
+	 * @param host Database host
+	 * @param database Database name
+	 * @param username User name to connect to the database
+	 * @param password Password for the specified user name to connect to the database
+	 * @param port Database port
+	 * @throws SQLException Thrown if unable to connect to the database
+	 */
 	public MySQLAdaptor(String host,String database,String username,String password,int port)
 		throws SQLException {
 		this.host = host;
@@ -176,10 +194,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * connection cannot be used anymore. About ten minutes are needed to re-create
 	 * a connection. A possible fix is to check the idle time, if the idle time is
 	 * longer than a certain number, re-create a connection.
-	 * @return
-	 * @throws SQLException
+	 * 
+	 * @return SQL connection
 	 */
-	public Connection getConnection() throws SQLException {
+	public Connection getConnection() {
 		return conn;
 	}
 	
@@ -188,6 +206,8 @@ public class MySQLAdaptor implements PersistenceAdaptor {
      * sever environment. A lower priority thread will call the database every
      * 4 hours to keep the connection active. For the future, a connection pool
      * should be used.
+     * 
+     * @param millsecond Number of milliseconds to sleep in the thread's loop
      */
 	public void initDumbThreadForConnection(final int millsecond) {
 	    Thread t = new Thread() {
@@ -261,7 +281,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * Reload everything from the database. The saved Schema will be not re-loaded.
 	 * The InstanceCache will be cleared.
 	 */
-	public void refresh() throws Exception {
+	public void refresh() {
 		instanceCache.clear();
 	}
 	
@@ -276,11 +296,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	}
 
 	/**
-	 * 
-	 * @param instance
-	 * @throws Exception
-	 * 
-	 * (Re)loads all attribute values from the database.
+	 * (Re)loads all attribute values from the database. 
+	 * @param instance GKInstance for which to load attribute values
+	 * @throws Exception Thrown if unable to load attribute values or if an attribute being
+	 * queried is invalid in the schema
 	 */
 	public void loadInstanceAttributeValues(GKInstance instance) throws Exception {
 		//for (Iterator ai = instance.getSchemaAttributes().iterator(); ai.hasNext();) {
@@ -409,6 +428,9 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * Should throws DBIDNotSetException if the instance the attributes of which are being loaded does
 	 * not have a DB_ID. However, In this point I've just put in the print statement in case this is too
 	 * radical change
+	 * @param instance GKInstance for which to load attributes
+	 * @param attribute SchemaAttribute for which to load value(s)
+	 * @throws Exception Thrown if the attribute is invalid or if there is a problem querying the database 
 	 */
 	public void loadInstanceAttributeValues(GKInstance instance, SchemaAttribute attribute) throws Exception {
 		//System.err.println("public void loadInstanceAttributeValues(GKInstance instance, SchemaAttribute attribute)");
@@ -428,9 +450,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * NOTE: This method (or rather loadSingleValueInstanceAttributeValues which is relied
 	 * upon) expects instances to be found in InstanceCache.
-	 * @param instances
-	 * @param attributes
-	 * @throws Exception
+	 * @param instances Collection of GKInstance objects for which to load attributes
+	 * @param attributes Collection of GKSchemaAttribute objects for which values should be loaded
+	 * @throws Exception Thrown if unable to load attribute values or if an attribute being
+	 * queried is invalid in the schema
 	 */
 	public void loadInstanceAttributeValues(Collection instances, Collection attributes) throws Exception {
 		Collection singleValueAtts = new HashSet();
@@ -732,7 +755,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * they are requested, which can be very time consuming, but you will reduce
 	 * the memory footprint.
 	 * 
-	 * @param useCache
+	 * @param useCache true if the cache should be used; false otherwise
 	 */
 	public void setUseCache(boolean useCache) {
 		this.useCache = useCache;
@@ -741,7 +764,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * Returns true if instance caching is active, false if not.
 	 * 
-	 * @return
+	 * @return true if the cache will be used; false otherwise
 	 */
 	public boolean isUseCache() {
 		return useCache;
@@ -753,19 +776,19 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * the given DB_ID.  This new instance will be cached even if caching is
 	 * switched off.
 	 * 
-	 * @param className
-	 * @param dbID
-	 * @return
-	 * @throws InstantiationException
-	 * @throws IllegalAccessException
-	 * @throws ClassNotFoundException
+	 * @param className Name of the class for the instance to retrieve or create
+	 * @param dbID DbId value for the instance to retrieve or create
+	 * @return Instance of the class name provided with the db id provided
+	 * @throws InstantiationException Thrown if unable to create a new instance for the class name
+	 * @throws IllegalAccessException Thrown if unable to access constructor for the class name
+	 * @throws ClassNotFoundException Thrown if unable to find the class for the class name
 	 */
 	public Instance getInstance(String className, Long dbID) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
 		GKInstance instance;
 		if (!useCache || (instance = instanceCache.get(dbID)) == null) {
 			if (classMap != null && classMap.containsKey(className)) {
 				String targetClassName = (String) classMap.get(className);
-				instance = (GKInstance) Class.forName(targetClassName).newInstance();				
+				instance = (GKInstance) Class.forName(targetClassName).newInstance();
 			} else {
 				instance = new GKInstance();
 			}
@@ -916,9 +939,9 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 
 	/**
 	 * Method for fetching instances with given DB_IDs
-	 * @param dbIDs
+	 * @param dbIDs Collection of dbId values for which to retrieve corresponding instances
 	 * @return Collection of instances
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to retrieve instances by dbId values from the database
 	 */
 	public Collection fetchInstance(Collection dbIDs) throws Exception {
 		return fetchInstanceByAttribute(((GKSchema) schema).getRootClass().getName(), "DB_ID", "=", dbIDs);
@@ -1073,11 +1096,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	}
 	
 	/**
-	 * Fetch instances from a specied class and a list of db ids in that class.
-	 * @param className
-	 * @param dbIds
-	 * @return
-	 * @throws Exception
+	 * Fetch instances from a specified class and a list of db ids in that class.
+	 * @param className Name of class for which to fetch instances
+	 * @param dbIds List of dbId values for which to retrieve the corresponding instances 
+	 * @return Collection of GKInstance objects (empty Collection if no dbIds are specified)
+	 * @throws Exception Thrown if the class name provided is invalid or if unable to retrieve any 
+	 * instances from the database
 	 */
 	public Collection fetchInstances(String className, List dbIds) throws Exception {
 	    if (dbIds == null || dbIds.size() == 0)
@@ -1322,56 +1346,78 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		protected Object value;
 		
 		/**
-		 * @return
+		 * Returns the SchemaAttribute object of the query request which defines which
+		 * instance attribute of a class to search
+		 * 
+		 * @return SchemaAttribute of the query request
 		 */
 		public SchemaAttribute getAttribute() {
 			return attribute;
 		}
 
 		/**
-		 * @return
+		 * Returns the SchemaClass object of the query request which defines which
+		 * class to search
+		 * 
+		 * @return SchemaClass of the query request
 		 */
 		public SchemaClass getCls() {
 			return cls;
 		}
 
 		/**
-		 * @return
+		 * Returns a String value of the operator of the query request which defines how
+		 * the search is restricted
+		 * 
+		 * @return Operator of the query request
 		 */
 		public String getOperator() {
 			return operator;
 		}
 
 		/**
-		 * @return
+		 * Returns the value of the search to check given the class, attribute and operator
+		 * restrictions defined
+		 * 
+		 * @return Value of the query request
 		 */
 		public Object getValue() {
 			return value;
 		}
 
 		/**
-		 * @param attribute
+		 * Set the SchemaAttribute object of the query request which defines which
+		 * instance attribute of a class to search
+		 * 
+		 * @param attribute SchemaAttribute of the query request
 		 */
 		public void setAttribute(SchemaAttribute attribute) {
 			this.attribute = attribute;
 		}
 
 		/**
-		 * @param class1
+		 * The SchemaClass object of the query request which defines which class to search
+		 * 
+		 * @param class1 SchemaClass of the query request
 		 */
 		public void setCls(SchemaClass class1) {
 			cls = class1;
 		}
 
 		/**
-		 * @param string
+		 * A String value of the operator of the query request which defines how the search is restricted
+		 * 
+		 * @param string Operator of the query request
 		 */
 		public void setOperator(String string) {
 			operator = string;
 		}
 
 		/**
-		 * @param object
+		 * The value of the search to check given the class, attribute and operator restrictions
+		 * defined
+		 * 
+		 * @param object Values of the query request
 		 */
 		public void setValue(Object object) {
 			value = object;
@@ -1415,12 +1461,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		
 		/**
 		 * An overloaded constructor with class and attributes specified so no checking is needed.
-		 * @param cls
-		 * @param att
-		 * @param operator
-		 * @param value
-		 * @throws InvalidClassException
-		 * @throws InvalidAttributeException
+		 * 
+		 * @param cls SchemaClass to query
+		 * @param att SchemaAttribute to query
+		 * @param operator Operator to use in query
+		 * @param value Attribute value to query
+		 * @throws InvalidAttributeException Thrown if the SchemaAttribute is invalid
 		 */
 		public ReverseAttributeQueryRequest(SchemaClass cls, SchemaAttribute att, String operator, Object value) 
 		                                    throws InvalidAttributeException {
@@ -1696,13 +1742,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 	}
 	/**
-	 * @return
+	 * @return Class map
 	 */
 	public Map getClassMap() {
 		return classMap;
 	}
 	/**
-	 * @param map
+	 * @param map Class map to set
 	 */
 	public void setClassMap(Map map) {
 		classMap = map;
@@ -1710,13 +1756,14 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Store a list of GKInstance objects that created from the application tool. These
-	 * objects might be referred to each other. 
+	 * objects might be referred to each other.
+	 * 
 	 * @param localInstances a list of GKInstance objects with negative DB_ID
 	 * @return a list of DB_IDs that are generated from the DB. The sequence of this list
 	 * is the same as localInstances.
+	 * @throws Exception Thrown if unable to store any of the local instances
 	 */
-	public java.util.List storeLocalInstances(java.util.List localInstances)
-            throws Exception {
+	public java.util.List storeLocalInstances(java.util.List localInstances) throws Exception {
         if (localInstances == null || localInstances.size() == 0)
             return new ArrayList(0);
         java.util.List dbIDs = new ArrayList(localInstances.size());
@@ -1750,18 +1797,30 @@ public class MySQLAdaptor implements PersistenceAdaptor {
         return dbIDs;
     }
 
+	/**
+	 * Store a GKInstance object into the database. The implementation of this method will store
+	 * all newly created, referred GKInstances by the specified GKInstance if they are not in the
+	 * database. 
+	 * 
+	 * @param instance GKInstance to store (it might be from the local file system)
+	 * @return dbId of the stored instance
+	 * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store 
+	 * the instance
+	 */
 	public Long storeInstance(GKInstance instance) throws Exception {
 		return storeInstance(instance, false);
 	}
 
 	/**
-	 * Store a GKInstance object into the database. The implementaion of this method will store
+	 * Store a GKInstance object into the database. The implementation of this method will store
 	 * all newly created, referred GKInstances by the specified GKInstance if they are not in the
 	 * database. 
-	 * @param instance it might be from the local file system.
-	 * @param forceStore
-	 * @return
-	 * @throws Exception
+	 * 
+	 * @param instance GKInstance to store (it might be from the local file system)
+	 * @param forceStore when true, store the instance even if already in the database
+	 * @return dbId of the stored instance
+	 * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store 
+	 * the instance
 	 */
 	public Long storeInstance(GKInstance instance, boolean forceStore) throws Exception {
 		Long dbID = null;
@@ -1888,10 +1947,27 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		return dbID;
 	}
 
+	/**
+	 * Update the database for a specific attribute of an instance by providing the local instance and the name of the
+	 * attribute to update
+	 * 
+	 * @param instance GKInstance containing the updated attribute
+	 * @param attribute SchemaAttribute object representing the attribute to update for the corresponding instance in
+	 * the database
+	 * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
+	 */
 	public void updateInstanceAttribute (GKInstance instance, SchemaAttribute attribute) throws Exception {
 		updateInstanceAttribute(instance, attribute.getName());
 	}
 
+	/**
+	 * Update the database for a specific attribute of an instance by providing the local instance and the name of the
+	 * attribute to update
+	 * 
+	 * @param instance GKInstance containing the updated attribute
+	 * @param attributeName Name of the attribute to update for the corresponding instance in the database
+	 * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
+	 */
 	public void updateInstanceAttribute (GKInstance instance, String attributeName) throws Exception {
 		if (instance.getDBID() == null) {
 			throw(new DBIDNotSetException(instance));
@@ -1907,8 +1983,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * Query the release number. If no release number information stored in the database, a null will 
 	 * returned.
-	 * @return
-	 * @throws Exception 
+	 * 
+	 * @return Reactome release version number
+	 * @throws Exception Thrown if unable to retrieve the _Release instance from the database or its
+	 * release number attribute
 	 */
 	public Integer getReleaseNumber() throws Exception {
 	    if (!getSchema().isValidClass(ReactomeJavaConstants._Release))
@@ -2016,6 +2094,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		return schema.getClassByName(fetchSchemaClassnameByDBID(dbID));
 	}	
 
+	/**
+	 * 
+	 * @param instance GKInstance to update in the database
+	 * @throws Exception Thrown if the instance has no dbId, there is a problem updating the instance or its 
+	 * referrers in the database, or there is a problem loading attribute values if the instance is in the instance 
+	 * cache
+	 */
 	public void updateInstance(GKInstance instance) throws Exception {
 		Long dbID = instance.getDBID();
 		if (dbID == null) {
@@ -2070,6 +2155,15 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 	}
 
+	/**
+	 * Deletes the instance with the supplied dbId from the database.  Also deletes the instance
+	 * from all referrers, in the sense that if the instance is referred to in
+	 * an attribute of a referrer, it will be removed from that attribute.
+	 * 
+	 * @param dbID DbId of the GKInstance to delete
+	 * @throws Exception Thrown if unable to retrieve the instance, attribute values for the instance or to delete the
+	 * instance from the database
+	 */
 	public void deleteByDBID(Long dbID) throws Exception {
 		GKInstance instance = fetchInstance(((GKSchema) schema).getRootClass().getName(), dbID);
 		deleteInstance(instance);
@@ -2079,10 +2173,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * Deletes the supplied instance from the database.  Also deletes the instance
 	 * from all referrers, in the sense that if the instance is referred to in
 	 * an attribute of a referrer, it will be removed from that attribute.
-	 * @param instance
-	 * @return Set of GKInstances which were referring to the
-	 * deleted instance.
-	 * @throws Exception
+	 * 
+	 * @param instance GKInstance to delete
+	 * @throws Exception Thrown if unable to retrieve attribute values for the instance or to delete the
+	 * instance from the database
 	 */
 	public void deleteInstance(GKInstance instance) throws Exception {
 		Long dbID = instance.getDBID();
@@ -2098,8 +2192,9 @@ public class MySQLAdaptor implements PersistenceAdaptor {
     /**
      * This method is used to cleanup the referrers cache for a reference to a deleted GKInstance.
      * If this method is not called, a deleted GKInstance might be stuck in the referrers map.
-     * @param instance
-     * @throws Exception
+     * 
+     * @param instance GKInstance for which to remove references held by other GKInstances
+     * @throws Exception Thrown if unable to retrieve attribute values from the instance
      */
     private void cleanUpReferences(GKInstance instance) throws Exception {
         SchemaAttribute att = null;
@@ -2143,8 +2238,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 
     /**
      * Check if a list of DB_IDs exist in the database.
-     * @param dbIds
-     * @return
+     * 
+     * @param dbIds DbIds to check if they exist in the database
+     * @return true if all dbIds in the passed list exist in the database; false otherwise
+     * @throws SQLException Thrown if there is a problem querying the database for the dbIds
      */
     public boolean exist(List dbIds) throws SQLException {
         @SuppressWarnings("unchecked")
@@ -2165,6 +2262,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
      * 
      * @param dbIds the db ids to check
      * @return the db ids which are in the database
+     * @throws SQLException Thrown if there is a problem querying the database for the dbIds
      */
     public Set<Long> existing(Collection<Long> dbIds) throws SQLException {
         Set<Long> existing = new HashSet<Long>(dbIds.size());
@@ -2204,9 +2302,8 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * in the database is older.  If there is no corresponding instance
 	 * in the database, returns true.
 	 * 
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * @param instance GKInstance to check to see if it is newer than its database counterpart
+	 * @return true if the passed instance is newer; false otherwise
 	 */
 	public boolean isInstanceNewerThanInDb(GKInstance instance) {
 		if (instance==null)
@@ -2254,10 +2351,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Check if there exists a GKInstance object with the specified DB_ID
-	 * in the database. This method will query the database directly. No 
+	 * in the database. This method will query the database directly.
 	 * InstanceCache is not used.
-	 * @param dbID
-	 * @return true if existing
+	 * 
+	 * @param dbID db id value to check to see if it exists in the database
+	 * @return true if existing; false otherwise
 	 */
 	public boolean exist(Long dbID) {
 		SchemaClass root = ((GKSchema)schema).getRootClass();
@@ -2292,9 +2390,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	}
 	
 	/**
+	 * Checks to see if transactions in the database are supported
 	 * 
 	 * @return true if all tables in the db have type 'InnoDB' and hence they all support
-	 * transactions.
+	 * transactions; false otherwise
+	 * @throws SQLException Thrown if there is a problem querying the database for transaction support information
 	 */
 	public boolean supportsTransactions() throws SQLException {
 	    if (! supportsTransactionsIsSet) {
@@ -2321,10 +2421,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * storeInstance wrapped in transaction. Instances referred by the instance
 	 * passed into this function are stored in the same transaction.
-	 * @param instance
-	 * @param forceStore
-	 * @return Long dbID
-	 * @throws Exception
+	 * 
+	 * @param instance GKInstance to store
+	 * @param forceStore when true, store the instance even if already in the database
+	 * @return dbId of the stored instance
+	 * @throws Exception Thrown if unable to retrieve attribute values from the instance, if unable to store 
+	 * the instance, or if there is a problem with the transaction
 	 */
 	public Long txStoreInstance(GKInstance instance, boolean forceStore) throws Exception {
 		startTransaction();
@@ -2341,9 +2443,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * updateInstance wrapped in transaction. Unstored instances referred
-	 *  by the instance being updated are stored in the same transaction.
-	 * @param instance
-	 * @throws Exception
+	 * by the instance being updated are stored in the same transaction.
+	 * 
+	 * @param instance GKInstance to update in the database
+	 * @throws Exception Thrown if the instance has no dbId, there is a problem updating the instance or its 
+	 * referrers in the database, there is a problem loading attribute values if the instance is in the instance 
+	 * cache, or if there is a problem with the transaction
 	 */
 	public void txUpdateInstance(GKInstance instance) throws Exception {
 		startTransaction();
@@ -2359,9 +2464,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * updateInstanceAttribute wrapped in transaction. Unstored instances referred
 	 * by the instance attribute being updated are stored in the same transaction.
-	 * @param instance
-	 * @param attributeName
-	 * @throws Exception
+	 * 
+	 * @param instance GKInstance containing the updated attribute
+	 * @param attributeName Name of the attribute to update for the corresponding instance in the database
+	 * @throws Exception Thrown if the instance has no dbId, if unable to update the specified attribute name, or if
+	 * there is problem with the transaction
 	 */
 	public void txUpdateInstanceAttribute (GKInstance instance, String attributeName) throws Exception {
 		startTransaction();
@@ -2374,6 +2481,16 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 	}
 
+	/**
+	 * updateInstanceAttribute wrapped in transaction. Unstored instances referred
+	 * by the instance attribute being updated are stored in the same transaction.
+	 * 
+	 * @param instance GKInstance containing the updated attribute
+	 * @param attribute SchemaAttribute object representing the attribute to update for the corresponding instance in
+	 * the database
+	 * @throws Exception Thrown if the instance has no dbId, if unable to update the specified attribute name, or if
+	 * there is a problem with the transaction
+	 */
 	public void txUpdateInstanceAttribute (GKInstance instance, SchemaAttribute attribute) throws Exception {
 		txUpdateInstanceAttribute(instance, attribute.getName());
 	}
@@ -2381,9 +2498,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * deleteInstance wrapped in transaction. Instances referring to the instance
 	 * being deleted are update in the same transaction.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * 
+	 * @param instance GKInstance to delete
+	 * @throws Exception Thrown if unable to retrieve attribute values for the instance, if unable to delete the
+	 * instance from the database or if there is a problem with the transaction
 	 */
 	public void txDeleteInstance(GKInstance instance) throws Exception {
 		startTransaction();
@@ -2399,9 +2517,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * deleteByDBID wrapped in transaction. Instances referring to the instance
 	 * being deleted are update in the same transaction.
-	 * @param dbID
-	 * @return
-	 * @throws Exception
+	 * 
+	 * @param dbID DbId of the GKInstance to delete
+	 * @throws Exception Thrown if unable to retrieve the instance, attribute values for the instance, to delete the
+	 * instance from the database, or if there is a problem with the transaction
 	 */
 	public void txDeleteByDBID(Long dbID) throws Exception {
 		startTransaction();
@@ -2417,7 +2536,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * IMPORTANT: this method updates only those instances in the given collection
 	 * and not those referred but not contained in the collection. Storage works for both.
-	 * @param instances
+	 * 
+	 * @param instances Collection of instances to store or update
+	 * @throws Exception Thrown if: 
+	 * -storing and unable to retrieve attribute values from the instance or if unable to store the instance. 
+	 * -updating and the instance has no dbId, if there is a problem updating the instance or its referrers in the 
+	 * database, or there is a problem loading attribute values if the instance is in the instance cache
+	 * -there is a problem with the transaction
 	 */
 	public void txStoreOrUpdate(Collection instances) throws Exception {
 		startTransaction();
@@ -2440,7 +2565,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	/**
 	 * IMPORTANT: this method updates only those instances in the given collection
 	 * and not those referred but not contained in the collection. Storage works for both.
-	 * @param instances
+	 * 
+	 * @param instances Collection of instances to store or update
+	 * @throws Exception Thrown if: 
+	 * -storing and unable to retrieve attribute values from the instance or if unable to store the instance. 
+	 * -updating and the instance has no dbId, if there is a problem updating the instance or its referrers in the 
+	 * database, or there is a problem loading attribute values if the instance is in the instance cache
 	 */
 	public void storeOrUpdate(Collection instances) throws Exception {
 		try {
@@ -2457,6 +2587,12 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 	}
 	
+	/**
+	 * Starts a transaction in the database
+	 * 
+	 * @throws SQLException Thrown if not able to start the transaction in the database
+	 * @throws TransactionsNotSupportedException Thrown if transactions have not been found to be supported 
+	 */
 	public void startTransaction() throws SQLException, TransactionsNotSupportedException {
 		if (! supportsTransactions()) {
 			throw(new TransactionsNotSupportedException(this));
@@ -2467,6 +2603,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		inTransaction = true;
 	}
 	
+	/**
+	 * Completes a transaction by committing changes to the database
+	 * 
+	 * @throws SQLException Thrown if not able to complete the transaction (i.e. commit) in the database
+	 */
 	public void commit() throws SQLException {
 		Statement st = getConnection().createStatement();
 		st.executeUpdate("COMMIT");
@@ -2474,6 +2615,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		getConnection().setAutoCommit(true);
 	}
 	
+	/**
+	 * Cancels a transaction by rolling back changes that were to be committed to the database
+	 * 
+	 * @throws SQLException Thrown if not able to cancel the transaction (i.e. rollback) in the database
+	 */
 	public void rollback() throws SQLException {
 		Statement st = getConnection().createStatement();
 		st.executeUpdate("ROLLBACK");
@@ -2481,6 +2627,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		getConnection().setAutoCommit(true);
 	}
 	
+	/**
+	 * Returns a boolean to determine if a transaction is currently open (i.e. started but not committed)
+	 * 
+	 * @return true if a transaction is active; false otherwise
+	 */
 	public boolean isInTransaction() {
 		return inTransaction;
 	}
@@ -2715,15 +2866,19 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	}
 
 	/**
-	 * Fetchies a Set of instances from db which look idential to the given instace
+	 * Fetches a Set of instances from db which look identical to the given instance
 	 * based on the values of defining attributes.
 	 * The method is recursive i.e. if a value instance of the given instance does
 	 * not have DB_ID (i.e. it hasn't been stored in db yet) fetchIdenticalInstance is
-	 * called on this instance. DB_IDs of identicals to the latter instance are then used
+	 * called on this instance. DB_IDs of identical instances to the latter instance are then used
 	 * to figure out if the given instance is identical so something else.
-	 * @param instance
-	 * @return
-	 * @throws Exception
+	 * 
+	 * @param instance Instance for which to fetch identical instances
+	 * @return Set of GKInstances which are identical to the passed instance
+	 * @throws Exception Thrown if unable to make attribute query request to fetch identical instances from the 
+	 * provided instance, if unable to fetch instances using the attribute query request, or if unable to retrieve
+	 * attributes of the instances fetched, using the attribute query request, to use in order to check if they are
+	 * identical instances
 	 */
 	public Set fetchIdenticalInstances(GKInstance instance) throws Exception {
 		Set identicals = null;
@@ -2874,12 +3029,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	}
 	
 	/**
-	 * Method which runs teh query as specifies by queryString and bindValues.
+	 * Method which runs the query as specifies by queryString and bindValues.
 	 * The latter can be null, i.e. if you don't have any bind values.
-	 * @param queryString
-	 * @param bindValues
+	 * 
+	 * @param queryString Query to create a prepared statement and execute
+	 * @param bindValues List of values to use in the prepare statement
 	 * @return ResultSet containing the query results
-	 * @throws SQLException
+	 * @throws SQLException Thrown if unable to prepare statement, bind values, or execute query
 	 */
 	public ResultSet executeQuery (String queryString, List bindValues) throws SQLException {
 		if (debug) System.out.println(queryString);

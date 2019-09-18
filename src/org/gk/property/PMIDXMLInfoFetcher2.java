@@ -23,7 +23,7 @@ import org.junit.Test;
 
 /**
  * This class is used to fetch XML from pubmed so that the full name can be fetched for an author.
- * The URL for this query is something like this: http://www.ncbi.nlm.nih.gov/pubmed/18276894?report=XML&format=text
+ * The URL for this query is something like this: http://www.ncbi.nlm.nih.gov/pubmed/18276894?report=XML&amp;format=text
  * @author gwu
  *
  */

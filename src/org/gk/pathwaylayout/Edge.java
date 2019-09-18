@@ -43,21 +43,21 @@ public class Edge extends DefaultEdge {
 	}
 	
 	/**
-	 * @return
+	 * @return Source Vertex instance
 	 */
 	public Vertex getSourceVertex() {
 		return sourceVertex;
 	}
 	
 	/**
-	 * @return
+	 * @return Target Vertex instance
 	 */
 	public Vertex getTargetVertex() {
 		return targetVertex;
 	}
 	
 	/**
-	 * @param vertex
+	 * @param vertex Source Vertex instance to set
 	 */
 	public void setSourceVertex(Vertex vertex) {
 		sourceVertex = vertex;
@@ -68,7 +68,7 @@ public class Edge extends DefaultEdge {
 	}
 
 	/**
-	 * @param vertex
+	 * @param vertex Target Vertex instance to set
 	 */
 	public void setTargetVertex(Vertex vertex) {
 		targetVertex = vertex;
@@ -79,14 +79,14 @@ public class Edge extends DefaultEdge {
 	}
 
 	/**
-	 * @return
+	 * @return Preferred length of edge
 	 */
 	public int getPreferredLength() {
 		return preferredLength;
 	}
 
 	/**
-	 * @param i
+	 * @param i Preferred length of edge to set
 	 */
 	public void setPreferredLength(int i) {
 		preferredLength = i;
@@ -115,22 +115,23 @@ public class Edge extends DefaultEdge {
 	}
 	
 	/**
-	 * @return
+	 * @return Color object for the edge
 	 */
 	public Color getColor() {
 		return color;
 	}
 
 	/**
-	 * @param color
+	 * @param color Color object for the edge to set
 	 */
 	public void setColor(Color color) {
 		this.color = color;
 	}
 
 	protected boolean isFixed = false;
+	
 	/**
-	* @return
+	* @return true if the edge is fixed; false otherwise
 	*/
 	public boolean isFixed() {
 		return isFixed;

@@ -31,10 +31,11 @@ public class AttributeEditValidator {
     
     /**
      * The actual method to validate the value.
-     * @param instance
-     * @param attributeName
-     * @param value
-     * @return
+     * @param instance Database instance
+     * @param attName Attribute name of instance
+     * @param value Value to validate
+     * @param parentComp Parent GUI component in which any validation error message will be displayed
+     * @return true if the value is valid
      */
     public boolean validate(GKInstance instance,
                             String attName,
@@ -145,9 +146,11 @@ public class AttributeEditValidator {
     
     /**
      * This method is used to check a list of values for a GKInstance object.
-     * @param attName
-     * @param newValues
-     * @return
+     * @param displayed GKInstance to check
+     * @param attName Attribute name to check on the instance
+     * @param newValues List of values to validate
+     * @param parentComp Parent GUI component in which any validation error message will be displayed
+     * @return true if values are valid
      */
     public boolean validate(GKInstance displayed, 
                             String attName,

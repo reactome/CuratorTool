@@ -108,7 +108,8 @@ public class Node extends Renderable {
 
     /**
      * Return a read-only property.
-     * @return
+     * 
+     * @return true if a multimer can be formed; false otherwise
      */
     public boolean isMultimerFormable() {
         return this.isMultimerFormable;
@@ -211,6 +212,9 @@ public class Node extends Renderable {
     
     /** 
      * Move this Renderable with a specified distance.
+     * 
+     * @param dx Value to move along the x-axis
+     * @param dy Value to move along the y-axis
      */
     public void move(int dx, int dy) {
         if (bounds == null)
@@ -270,7 +274,8 @@ public class Node extends Renderable {
     }
     
     /**
-     * Make sure this node is in the view.
+     * Make sure this node is in the view if the validation is enabled and the bounds are outside the top of left side
+     * padding
      */
     protected void validateBoundsInView() {
         if (!ensureBoundsInView)
@@ -329,7 +334,8 @@ public class Node extends Renderable {
      * This method is used to validate text bounds for nodes that can display
      * texts. This method should be called when the bounds of the node changes
      * resulting from resizing.
-     * @param g
+     * 
+     * @param g Graphics object for which to validate text
      */
     protected void validateTextBounds(Graphics g) {
         validateTextSize(g);
@@ -340,6 +346,8 @@ public class Node extends Renderable {
      * Recalculate the bounds.
      * TODO: Bounds and text bounds calculation should be handled by renderer in the future
      * since they should be involved in the rendering process.
+     * 
+     * @param g Graphics object for which to validate bounds
      */
     public void validateBounds(Graphics g) {
         // Have to make sure there is bounds available
@@ -388,6 +396,10 @@ public class Node extends Renderable {
     /**
      * When a new Node is first created, this method should be called to generate a bounds
      * based on encapsulated text.
+     * 
+     * @param g Graphics object for which to validate text
+     * @see #validateTextSize(Graphics)
+     * @see #validateTextSize(Graphics, String)
      */
     protected void initBounds(Graphics g) {
         validateTextSize(g);
@@ -406,7 +418,9 @@ public class Node extends Renderable {
     
     /**
      * Use this method to calculate the size of text bounds.
-     * @return
+     * 
+     * @param g Graphics object for which to validate text
+     * @see #validateTextSize(Graphics, String)
      */
     protected void validateTextSize(Graphics g) {
         String tmpName = getDisplayName();
@@ -437,7 +451,8 @@ public class Node extends Renderable {
     
     /**
      * Check if the wrapped text in a Node is overflowed.
-     * @return
+     * 
+     * @return true if text overflows boundaries; false otherwise
      */
     public boolean isTextOverflowed() {
         if (bounds == null || textBounds == null)
@@ -517,6 +532,8 @@ public class Node extends Renderable {
 
     /**
      * Return if the bounds is correct.
+     * 
+     * @return true if boundaries are validated; false otherwise
      */
     public boolean isBoundsValidate() {
         return !needCheckBounds;
@@ -583,7 +600,8 @@ public class Node extends Renderable {
 
     /**
 	 * Set this Renderable object to be on/off a editing mode.
-	 * @param editing true for being on a eding mode.
+	 * 
+	 * @param editing true for being on a editing mode.
 	 */
 	public void setIsEditing(boolean editing) {
 		this.isEditing = editing;
@@ -591,7 +609,8 @@ public class Node extends Renderable {
 	
 	/**
 	 * Query if this Renderable object is on editing mode.
-	 * @return
+	 * 
+	 * @return true if on editing mode; false otherwise
 	 */
 	public boolean isEditing() {
 		return this.isEditing;
@@ -615,7 +634,8 @@ public class Node extends Renderable {
 	
 	/**
 	 * Set the ratio of the width of the Node bounds to the wrapped text.
-	 * @param ratio
+	 * 
+	 * @param ratio Ratio value of Node width to text width
 	 */
 	public static void setWidthRatioOfBoundsToText(double ratio) {
 	    widthRatioOfBoundsToText = ratio;
@@ -627,7 +647,8 @@ public class Node extends Renderable {
 	
 	/**
 	 * Set the ratio of the height of the Node bounds to the wrapped text.
-	 * @param ratio
+	 * 
+	 * @param ratio Ratio value of Node height to text height
 	 */
 	public static void setHeightRatioOfBoundsToText(double ratio) {
 	    heightRatioOfBoundsToText = ratio;
@@ -638,10 +659,13 @@ public class Node extends Renderable {
 	}
 	
 	/**
-	 * To support seriazation.
+	 * To support serialization.
+	 * 
+	 * @param in ObjectInputStream from which to read the object
+	 * @throws IOException Thrown in an IO error occurs attempting to read
+	 * @throws ClassNotFoundException Thrown if the class of a serialized object can not be found
 	 */
-	private void readObject(java.io.ObjectInputStream in) throws IOException, 
-											ClassNotFoundException {
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
 		invalidateBounds();
 	}
@@ -697,7 +721,8 @@ public class Node extends Renderable {
     
     /**
      * A four element Point list: East, South, West and North.
-     * @return
+     * 
+     * @return List of link widget positions
      */
     public List getLinkWidgetPositions() {
         return linkWidgetPositions;
@@ -872,7 +897,8 @@ public class Node extends Renderable {
     
     /**
      * Set if a RenderableFeature can be attached to this Node object.
-     * @param isAddable
+     * 
+     * @param isAddable True if a RenderableFeature can be attached; false otherwise
      */
     public void setIsFeatureAddable(boolean isAddable) {
         this.isFeatureAddable = isAddable;
@@ -880,7 +906,8 @@ public class Node extends Renderable {
     
     /**
      * Check if a RenderableFeature can be attached to this Node object.
-     * @return
+     * 
+     * @return true if a RenderableFeature can be attached; false otherwise
      */
     public boolean isFeatureAddable() {
         return this.isFeatureAddable;
@@ -888,7 +915,8 @@ public class Node extends Renderable {
     
     /**
      * Add a RenderableFeature to this Node object.
-     * @param feature
+     * 
+     * @param feature RenderableFeature object to add
      */
     public void addFeature(RenderableFeature feature) {
         // Have to make sure a RenderableFeature can be added to this Node.
@@ -900,7 +928,8 @@ public class Node extends Renderable {
     /**
      * Add a feature to this Node only. If this Node has other shortcuts,
      * the added feature will not be propagated to other Nodes.
-     * @param feature
+     * 
+     * @param feature RenderableFeature object to add
      */
     public void addFeatureLocally(RenderableFeature feature) {
         if (!isFeatureAddable)
@@ -912,7 +941,8 @@ public class Node extends Renderable {
      * The values set in this method will not be popped up to shortcuts if this is
      * a target or to target or other shortcuts if this is a shortcut. This method is
      * basically used to do a simple setting.
-     * @param attachments
+     * 
+     * @param attachments List of NodeAttachment objects to set for this node
      */
     public void setNodeAttachmentsLocally(List<NodeAttachment> attachments) {
         this.attachments = attachments;
@@ -929,6 +959,8 @@ public class Node extends Renderable {
     
     /**
      * Remove the selected NodeAttachment.
+     * 
+     * @return true if there is a selected attachment and it is removed; false otherwise
      */
     public boolean removeSelectedAttachment() {
         // Find the selected feature index
@@ -975,7 +1007,8 @@ public class Node extends Renderable {
     /**
      * Remove the selected NodeAttachment in this Node only. Other shortcuts to this
      * Node should still keep the selected node.
-     * @return
+     * 
+     * @return true if there is a selected attachment and it is removed; false otherwise
      */
     public boolean removeSelectedAttachmentLocally() {
         for (Iterator<NodeAttachment> it = attachments.iterator();
@@ -1000,6 +1033,7 @@ public class Node extends Renderable {
     
     /**
      * Return the selection position of this Node object.
+     * 
      * @return one of values in enum SelectionPosition
      */
     public SelectionPosition getSelectionPosition() {
@@ -1026,9 +1060,10 @@ public class Node extends Renderable {
     }
     
     /**
-     * Add a RenderbleState to this Node object only. Any shortcuts to this Node
-     * will not get the passed RenderableState object.
-     * @param state
+     * Add a RenderbleState to this Node object only (if this node has a state set as addable). Any shortcuts to this 
+     * Node will not get the passed RenderableState object.
+     * 
+     * @param state RenderableState to add to this object
      */
     public void addStateLocally(RenderableState state) {
         if (!isStateAddable)
@@ -1038,7 +1073,8 @@ public class Node extends Renderable {
     
     /**
      * Use a method to add NodeAttachment esp to handle shortcuts.
-     * @param attachment
+     * 
+     * @param attachment NodeAttachment object to add
      */
     private void addNodeAttachment(NodeAttachment attachment) {
         int trackId = generateUniqueAttachmentId();
@@ -1063,12 +1099,14 @@ public class Node extends Renderable {
     
     /**
      * Search all NodeAttachments attached to the target and its shortcuts to
-     * find the maximum id.
-     * @return
+     * find the maximum id and return one more than that maximum id 
+     * 
+     * @return One more than the maximum id of NodeAttachments attached to the target or shortcuts or
+     * zero if there are no attached NodeAttachments
      */
     private int generateUniqueAttachmentId() {
         Node target = RenderUtility.getShortcutTarget(this);
-        int max = -1; // The minum should be 0
+        int max = -1; // The minimum should be 0
         if (target.attachments != null) {
             for (NodeAttachment attachment : target.attachments) {
                 if (attachment.getTrackId() > max)
@@ -1093,7 +1131,8 @@ public class Node extends Renderable {
     
     /**
      * A helper method to add a NodeAttachment to this Node only.
-     * @param attachment
+     * 
+     * @param attachment NodeAttachment to add to this node
      */
     private void addNodeAttachmentLocally(NodeAttachment attachment) {
         int trackId = generateUniqueAttachmentId();

@@ -329,6 +329,7 @@ public class AttributeEditConfig {
     /**
      * Some setting might be user's specific, which are from the user's properties. Use
      * this method to load these settings.
+     * @param prop User properties
      */
     public void loadProperties(Properties prop) {
         setDisabledAutoClsAttsMap(prop);
@@ -410,11 +411,11 @@ public class AttributeEditConfig {
 	}
 	
 	/**
-	 * Check if an attribute setting can be propagated from a ancestor to its descendant
+	 * Check if an attribute setting can be propagated from an ancestor to its descendant
 	 * in the hierarchical tree.
-	 * @param clsName 
-	 * @param attName
-	 * @return
+	 * @param cls Class name
+	 * @param attName Attribute name (of clsName)
+	 * @return true if attribute can be propagated
 	 */
 	public boolean isAutoPropagatable(GKSchemaClass cls, String attName) {
 	    // Check if cls can be propagated
@@ -457,7 +458,7 @@ public class AttributeEditConfig {
 	
 	/**
 	 * Takes the internal class variables and adds them to the properties list.
-	 *
+	 * @param prop Properties list
 	 */
 	public void commit(Properties prop) {
 		if (allowComboBoxEditor)

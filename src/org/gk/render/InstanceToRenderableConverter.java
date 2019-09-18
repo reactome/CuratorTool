@@ -31,12 +31,13 @@ public class InstanceToRenderableConverter {
     
     /**
      * Use this method to convert a GKInstance to a ReactionNode.
-     * @param instance an Instance of Reaction whose attribute values should be filled.
-     * @return a ReactionNode that can be displayed.
+     * 
+     * @param instance an Instance of Reaction whose attribute values should be filled
+     * @return a ReactionNode that can be displayed
+     * @throws Exception Thrown if unable to retrieve attribute values of the reaction
      */
-    private static ReactionNode convertToReactionNode(GKInstance instance, 
-                                                      boolean needProp,
-                                                      Map convertedMap) throws Exception {
+    private static ReactionNode convertToReactionNode(GKInstance instance, boolean needProp, Map convertedMap) 
+    		throws Exception {
         ReactionNode node = (ReactionNode) convertedMap.get(instance);
         if (node != null) {
             ReactionNode shortcut = (ReactionNode) node.generateShortcut();
@@ -181,14 +182,15 @@ public class InstanceToRenderableConverter {
     
     /**
      * Convert a GKInstance object to a Renderable object. The contained instances will be handled recursively.
-     * @param instance
+     * 
+     * @param instance GKInstance object to convert
      * @param needProp true if the properties in GKInstance should be transferred to Renderable object. False for no
-     * transferring. However, the specified instance will be used as model instance for the converted renderable object.
-     * @return
-     * @throws Exception
+     * transferring. However, the specified instance will be used as model instance for the converted renderable 
+     * object.
+     * @return Renderable object created from converting the passed instance
+     * @throws Exception Thrown if unable to retrieve attribute values from the instance
      */
-    public static Renderable convertToNode(GKInstance instance, 
-                                           boolean needProp) throws Exception {
+    public static Renderable convertToNode(GKInstance instance, boolean needProp) throws Exception {
         // To keep track the converted instances
         Map map = new HashMap();
         Renderable node = convertToNode(instance, needProp, map);
@@ -217,9 +219,7 @@ public class InstanceToRenderableConverter {
         return node;
     }
     
-    private static Node convertToNode(GKInstance instance, 
-                                      boolean needProp, 
-                                      Map map) throws Exception {
+    private static Node convertToNode(GKInstance instance, boolean needProp, Map map) throws Exception {
         GKSchemaClass schemaClass = (GKSchemaClass)instance.getSchemClass();
         Node node = null;
         if (schemaClass.isa("Complex")) {
@@ -267,7 +267,8 @@ public class InstanceToRenderableConverter {
         return entity;
     }
     
-    private static RenderableComplex convertToComplex(GKInstance instance, boolean needProp, Map convertedMap) throws Exception {
+    private static RenderableComplex convertToComplex(GKInstance instance, boolean needProp, Map convertedMap) 
+    		throws Exception {
         RenderableComplex complex = (RenderableComplex) convertedMap.get(instance);
         if (complex != null) {
             // Create a shortcut
@@ -304,10 +305,16 @@ public class InstanceToRenderableConverter {
      * Use this method to convert a GK Pathway to a RenderablePathway. This method is
      * used to convert three GKInstances, Pathway, ConceptualEvent, EquivalentEventSet
      * into Pathway. So correct attributes should be checked.
+     * 
+     * @param instance GKInstance object to convert
+     * @param needProp true if the properties in GKInstance should be transferred to Renderable object. False for no
+     * transferring. However, the specified instance will be used as model instance for the converted renderable 
+     * object.
+     * @return Renderable object created from converting the passed pathway instance
+     * @throws Exception Thrown if unable to retrieve attribute values from the pathway instance
      */
-    private static RenderablePathway convertToPathway(GKInstance instance, 
-                                                      boolean needProp,
-                                                      Map convertedMap) throws Exception {
+    private static RenderablePathway convertToPathway(GKInstance instance, boolean needProp, Map convertedMap) 
+    		throws Exception {
         RenderablePathway pathway = (RenderablePathway) convertedMap.get(instance);
         if (pathway != null) {
             PathwayShortcut shortcut = (PathwayShortcut) pathway.generateShortcut();
@@ -378,8 +385,9 @@ public class InstanceToRenderableConverter {
     /**
      * Extract properties that should be used in a Renderable object from
      * a specified instance.
-     * @param instance
-     * @param renderable
+     * 
+     * @param instance GKInstance object from which to get properties for the Renderable object
+     * @param renderable Renderable object to have its properties set with values from the GKInstance object
      */
     public static void getPropertiesForRenderable(GKInstance instance, Renderable renderable) {
         try {
@@ -483,10 +491,11 @@ public class InstanceToRenderableConverter {
     }
     
     /**
-     * Convert a list of GKInstance for hasModifiedResidue to Modifcation instances.
-     * @param hasModifiedResidue
-     * @return
-     * @throws Exception
+     * Convert a list of GKInstance for hasModifiedResidue to Modification instances.
+     * 
+     * @param hasModifiedResidue List of GKInstance objects to convert
+     * @return List of Modification instances
+     * @throws Exception Thrown if unable to get attribute values from any GKInstance object
      */
     public static List convertModifications(List hasModifiedResidue) throws Exception {
         if (hasModifiedResidue != null && hasModifiedResidue.size() > 0) {
@@ -532,10 +541,10 @@ public class InstanceToRenderableConverter {
     }
     
     /**
-     * Concever a list of LiteratureReference GKInstance to a list of Reference objects.
-     * @param values
-     * @return
-     * @throws Exception
+     * Convert a list of LiteratureReference GKInstance objects to a list of Reference objects.
+     * @param values List of literature references (GKInstance objects) to convert
+     * @return List of Reference objects
+     * @throws Exception Thrown if unable to retrieve attribute values for any GKInstance object
      */
     public static java.util.List extractReferences(java.util.List values) throws Exception{
         if (values == null || values.size() == 0)

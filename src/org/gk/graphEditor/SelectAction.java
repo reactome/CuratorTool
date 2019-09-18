@@ -29,7 +29,10 @@ public class SelectAction implements GraphEditorAction {
     // Parent Pane
     protected GraphEditorPane editorPane;
     
-    /** Creates a new instance of SelectAction */
+    /** 
+     * Creates a new instance of SelectAction
+     * @param editorPane GraphEditorPane to set 
+     */
     public SelectAction(GraphEditorPane editorPane) {
         this.editorPane = editorPane;
         pressPoint = new Point();

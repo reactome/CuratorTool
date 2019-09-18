@@ -462,8 +462,8 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
     
     /**
      * Return the Renderer object used for a Renderable object.
-     * @param r
-     * @return
+     * @param r Renderable object
+     * @return Renderer used for Renderable object
      */
     public Renderer getRenderer(Renderable r) {
     	return null;
@@ -656,7 +656,7 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
      * include the target and its all Shortcuts that are displayed.
      * @param renderable this Renderable object should not be a Shortcut.
      */
-    /**
+    /*
      * TODO: Rewrite this method to call deleteSelection(List<Renderable>) to avoid any
      * duplication code in the delete method.
      */
@@ -1224,7 +1224,7 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
 	 * If a GraphEditorPane is used as a drawing tool, no editing will be done.
 	 * This mode is different from !isEditable, in this mode, a reaction may be 
 	 * connected to another entities which is an alias to the original one.
-	 * @param value
+	 * @param value true or false for this GraphEditorPane is used as a drawing tool
 	 */
 	public void setUsedAsDrawingTool(boolean value) {
 	    this.usedAsDrawingTool = value;
@@ -1259,9 +1259,9 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
     
     /**
      * The client should call this method if it wants to repaint the whole pane.
-     * @param scaleX
-     * @param scaleY
-     * @see setScale(double, double)
+     * @param scaleX Scale on x-axis
+     * @param scaleY Scale on y-axis
+     * @see #setScale(double, double)
      */
     public void zoom(double scaleX, double scaleY) {
     	setScale(scaleX, scaleY);
@@ -1350,8 +1350,7 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
     
     /**
      * This method is used to select a node for editing name.
-     * @param editingNode
-     * @param editor
+     * @param editingNode Node to select
      */
     public void prepareForEditing(Node editingNode) {
         selectionModel.removeSelection();
@@ -1393,7 +1392,7 @@ public class GraphEditorPane extends ZoomableJPanel implements MouseMotionListen
     
     /**
      * To control if pathways should be drawn.
-     * @param isVisible
+     * @param isVisible true or false for if pathway should be visible
      */
     public void setPathwayVisible(boolean isVisible) {
     }

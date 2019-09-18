@@ -27,7 +27,7 @@ public class InstanceDisplayNameGenerator {
     
     /**
      * Set the display name for GKInstance object.
-     * @param instance
+     * @param instance Instance for which to set the display name
      */
     public static void setDisplayName(GKInstance instance) {
         instance.setDisplayName(generateDisplayName(instance));
@@ -35,7 +35,7 @@ public class InstanceDisplayNameGenerator {
     
 	/**
 	 * Generate a display name for a specified GKInstance object.
-	 * @param instance
+	 * @param instance Instance for which to generate a display name
 	 * @return display name
 	 */
     public static String generateDisplayName(GKInstance instance) {

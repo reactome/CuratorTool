@@ -38,20 +38,24 @@ public class ModifiedResidueHandler {
      * Returns the feature representing the given residue.
      * 
      * As of April, 2019, the feature label is determined by the label slot in PsiMod
-     * instances used to describe ModifiedResidue. All others are not considred any more.
+     * instances used to describe ModifiedResidue. All others are not considered any more.
      * 
      * The feature label is determined as follows:
      * <ul>
-     * <li>If the residue has a <em>modification</em> value which maps
+     * <li>
+     *     If the residue has a <em>modification</em> value which maps
      *     to a {@link AttributeEditConfig#getModifications()} short name,
      *     then that is the label.
-     * </ul>
-     * <li>Otherwise, if the residue has a <em>psiMod</em> value and the
+     * </li>
+     * <li>
+     *     Otherwise, if the residue has a <em>psiMod</em> value and the
      *     parsed residue display name contains a
      *     {@link AttributeEditConfig#getPsiModifications()} short name,
      *     then that is the label.
-     * </ul>
-     * <li>Otherwise, the label is null.
+     * </li>
+     * <li>
+     *     Otherwise, the label is null.
+     * </li>
      * </ul>
      * 
      * <em>Note</em>: this method catches exceptions and prints the
@@ -59,9 +63,8 @@ public class ModifiedResidueHandler {
      * feature might be incomplete and invalid. There is no definitive
      * way for the caller to detect that situation.
      * 
-     * @param modifiedResidue
-     * @return the feature
-     * @throws Exception
+     * @param modifiedResidue Modified residue instance to convert to a renderable
+     * @return Renderable Feature object from modified residue instance
      */
    public RenderableFeature convertModifiedResidue(GKInstance modifiedResidue) {
        // Work for ModifiedResidue only

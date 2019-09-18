@@ -10,7 +10,7 @@ package org.gk.schema;
  * @author vastrik
  *
  * To change the template for this generated type comment go to
- * Window>Preferences>Java>Code Generation>Code and Comments
+ * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments
  */
 public class InvalidAttributeException extends Exception {
 	public InvalidAttributeException(SchemaClass cls, SchemaAttribute att) {

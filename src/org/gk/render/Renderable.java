@@ -173,6 +173,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Get the bounding rectangle.
+     * 
+     * @return Boundaries of this Renderable object
      */
     public Rectangle getBounds() {
         return this.bounds;
@@ -180,7 +182,9 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Check if this Renderable should be picked at the specified Point p.
-     * @param p the checking Point.
+     * 
+     * @param p the Point to check
+     * @return true if the Renderable object is picked at the Point passed; false otherwise
      */
     public abstract boolean isPicked(Point p);
     
@@ -188,8 +192,9 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
      * Check if this Renderable object can be picked. This method is different from isPicked(Point)
      * for HyperEdge. This method will not make any changes to the internal states of a Renderable object.
      * For checking if a passed point can be picked by a Renderable object, this method should be used.
-     * @param p
-     * @return
+     * 
+     * @param p the Point to check
+     * @return true if the Renderable object can be picked at the Point passed; false otherwise
      */
     public boolean canBePicked(Point p) {
         return isPicked(p);
@@ -197,6 +202,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Check if this Renderable is selected.
+     * 
+     * @return true if the Renderable object is selected; false otherwise
      */
     public boolean isSelected() {
         return this.isSelected;
@@ -204,6 +211,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Mark if this Renderable is selected.
+     * 
+     * @param isSelected True if the Renderable object is selected; false otherwise
      */
     public void setIsSelected(boolean isSelected) {
         this.isSelected = isSelected;
@@ -213,7 +222,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
      * Use a Rectangle to select this Renderable. If this Renderable
      * can be selected, its isSelected flag will be true. Otherwise,
      * its isSelected flag will be false.
-     * @param rect
+     * 
+     * @param rect Rectangle object representing the selection area
      */
     public void select(Rectangle rect) {
         if (!isVisible)
@@ -231,13 +241,18 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Move this Renderable with a specified distance.
+     * 
+     * @param dx Value to move along the x-axis
+     * @param dy Value to move along the y-axis
      */
     public abstract void move(int dx, int dy);
     
     
     
     /**
-     * Add a ConnectWidget that containts a connect information.
+     * Add a ConnectWidget that contains connect information.
+     * 
+     * @param widget ConnectWidget object to add
      */
     public void addConnectWidget(ConnectWidget widget) {
         connectInfo.addConnectWidget(widget);
@@ -256,7 +271,7 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     }
     
     /**
-     * Use this method to invalidate the bounds of the node so that the bounds can be validated late.
+     * Use this method to invalidate the bounds of the node so that the bounds can be validated later.
      */
     public void invalidateBounds() {
         needCheckBounds = true;
@@ -288,8 +303,9 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     
     /**
      * Remove a specified Renderable.
-     * @param renderable the Renderable to be removed.
-     * @return the actual removed Object. It might be a Shortcut.
+     * 
+     * @param renderable The Renderable to be removed.
+     * @return The actual removed Object. It might be a Shortcut.
      */
     public Object removeComponent(Renderable renderable) {
     	return null;
@@ -397,7 +413,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 	/**
 	 * Set the unique id for this Renderable. The id of a Renderable object 
 	 * is unique in the whole process.
-	 * @param id
+	 * 
+	 * @param id Unique id to set
 	 */
 	public void setID(int id) {
 		this.id = id;
@@ -405,7 +422,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 	
 	/**
 	 * Get the unique id for this Renderable object.
-	 * @return
+	 * 
+	 * @return The unique id of this Renderable object
 	 */
 	public int getID() {
 		return this.id;
@@ -414,7 +432,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 	/**
 	 * The default implementaion always return 0. The topmost Renderable object
 	 * should implement this method to assign unique id to its descedants.
-	 * @return always return 0.
+	 * 
+	 * @return Always return 0
 	 */
 	public int generateUniqueID() {
 		return 0;
@@ -422,6 +441,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 	
 	/**
 	 * A type name. A subclass should implement this method.
+	 * 
+	 * @return Type of this renderable
 	 */
 	public abstract String getType();
 

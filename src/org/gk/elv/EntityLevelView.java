@@ -266,7 +266,9 @@ public class EntityLevelView extends JPanel {
     /**
      * This method is used to display a selected event. If the passed event is a Reaction,
      * it will be selected in a pathway diagram.
-     * @param event
+     * @param event Event to display
+     * @throws Exception Thrown if unable to retrieve represented pathways or if unable to get referrers from any
+     * represented pathways when searching for disease pathway counterparts
      */
     public void displayEvent(GKInstance event) throws Exception {
         displayEvent(event, false);
@@ -454,6 +456,7 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Add a list of new GKInstances.
+     * @param newInstances Instances to add
      */
     public void addInstances(List<GKInstance> newInstances) {
         objectListPane.addInstances(newInstances);
@@ -461,7 +464,7 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Delete a instance from the view.
-     * @param instance
+     * @param instance Instance to delete
      */
     public void deleteInstance(GKInstance instance) {
         zoomableEditor.deleteInstance(instance);
@@ -470,20 +473,18 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Switch the type of a GKInstance.
-     * @param cls
-     * @param instance
+     * @param oldCls the original GKSchemaClass.
+     * @param instance the instance whose schemaClass has been changed
      */
-    public void switchedType(GKSchemaClass oldCls,
-                             GKInstance instance) {
-        objectListPane.switchedType(oldCls,
-                                    instance);
-        zoomableEditor.switchedType(oldCls, instance);
+    public void switchedType(GKSchemaClass oldCls, GKInstance instance) {
+        objectListPane.switchedType(instance);
+        zoomableEditor.switchedType(instance);
         markAsDirty(instance);
     }
     
     /**
      * Mark a GKInstance as dirty because of changes.
-     * @param instance
+     * @param instance Instance to mark as dirty
      */
     public void markAsDirty(GKInstance instance) {
         objectListPane.markAsDirty(instance);
@@ -491,7 +492,7 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Remove a GKInstance.
-     * @param instance
+     * @param instance Instance to un-mark as dirty
      */
     public void removeDirtyFlag(GKInstance instance) {
         objectListPane.removeDirtyFlag(instance);
@@ -499,7 +500,7 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Set up the view for the passed local project.
-     * @param fileAdaptor
+     * @param fileAdaptor XMLFileAdaptor from which to extract data for viewing local project
      */
     public void setUpLocalView(XMLFileAdaptor fileAdaptor) {
         if (fileAdaptor == null)
@@ -518,7 +519,7 @@ public class EntityLevelView extends JPanel {
     
     /**
      * Call to update the display of an edited event
-     * @param editEvent
+     * @param editEvent Event for editing attribute value
      */
     public void updateInstance(AttributeEditEvent editEvent) {
         objectListPane.updateInstance(editEvent);

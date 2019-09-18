@@ -45,7 +45,7 @@ public class InstanceComparer {
     }
     
     /**
-     * The comparasion in this method is around modified slot in GKInstance. There are three cases:
+     * The comparison in this method is around modified slot in GKInstance. There are three cases:
      * 1). Both have this slot filled: a).If the last InstanceEdit is the same, the local has no change, 
      * the result should be the same? b).If the last InstanceEdit is the same, the local has changes, 
      * the change is assumed as new. c). If the last InstanceEdit in the db is newer than in the local, 
@@ -58,11 +58,13 @@ public class InstanceComparer {
      * has no change, the change in the db is new. b). If the local has changes, the changes are conflicting.
      * 4). No such a case: local has modified slot but db doesn't.
          
-     * @param localInstance
-     * @param dbInstance
+     * @param localInstance Instance checked out locally
+     * @param dbInstance Instance in remote database
      * @return one of constants defined in this class: IS_IDENTICAL, NEW_CHANGE_IN_DB, NEW_CHANGE_IN_LOCAL,
      * CONFLICT_CHANGE.
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve modified instances or compare instance edits for the
+     * localInstance or dbInstance.  Also thrown if expected values are found in the modified attribute of the 
+     * dbInstance
      */
     public int compare(GKInstance localInstance, 
                        GKInstance dbInstance) throws Exception {

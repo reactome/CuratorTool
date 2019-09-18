@@ -110,7 +110,7 @@ public class HierarchicalEventPane extends JPanel {
 	
 	/**
 	 * Persist the event tree to a XML Document object.
-	 * @return
+	 * @return XML Document
 	 */
 	public Document convertTreeToXML() {
 		DefaultTreeModel model = (DefaultTreeModel) eventTree.getModel();
@@ -181,6 +181,7 @@ public class HierarchicalEventPane extends JPanel {
 	 * This method is called for FileAdaptor usually. The toplevel events will be extracted out
 	 * from the list of events. For MySQLAdaptor, it is not needed since they can be queried directly
 	 * from the database.
+	 * @param events List of events from which to extract top-level events
 	 */
 	public void setAllEvents(java.util.List events) {
 		if (events == null || events.size() == 0) {
@@ -609,6 +610,7 @@ public class HierarchicalEventPane extends JPanel {
 	
 	/**
 	 * Set selection mode for event tree.
+	 * @param mode Mode integer value from javax.swing.tree.TreeSelectionModel 
 	 */
 	public void setSelectionMode(int mode) {
 	    eventTree.getSelectionModel().setSelectionMode(mode);
@@ -630,7 +632,7 @@ public class HierarchicalEventPane extends JPanel {
 	
 	/**
 	 * Select a collection of event Instance objects.
-	 * @param c
+	 * @param c Collection of event instances
 	 */
 	public void select(Collection c) {
 		doSelection(c, true);
@@ -675,7 +677,7 @@ public class HierarchicalEventPane extends JPanel {
 	
 	/**
 	 * Set the selected instances without popuping a dialog if nothing is found.
-	 * @param instances
+	 * @param instances Instances to set as selected
 	 */
 	public void setSelectedInstances(List<GKInstance> instances) {
 	    // Clear selection first
@@ -736,7 +738,7 @@ public class HierarchicalEventPane extends JPanel {
 	 * taken care of here. 
 	 * Need to check the existed events. If it is a project and should be removed from the 
 	 * project list if it is the specified event's components.
-	 * @param event
+	 * @param event Event instance to add
 	 */
 	public void addInstance(Instance event) {
 	    if (!event.getSchemClass().isa(ReactomeJavaConstants.Event))
@@ -796,7 +798,7 @@ public class HierarchicalEventPane extends JPanel {
 	/**
 	 * Update the tree view for the specified event because the attribute values
 	 * for slots "hasInstance", "hasMember" or "hasSpecialisedForm" or "hasComponent".
-	 * @param event
+	 * @param editingEvent Event of instance attribute being edited
 	 */
 	public void updateInstance(AttributeEditEvent editingEvent) {
         GKInstance instance = editingEvent.getEditingInstance();

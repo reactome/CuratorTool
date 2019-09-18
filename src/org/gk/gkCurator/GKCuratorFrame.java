@@ -127,9 +127,9 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	private boolean entityViewVisible = true;
     // For autosaving
     private AutoSaveThread autoSaveThread;
-    
+
     private JWindow window;
-	
+
 	public GKCuratorFrame() {
 		GKApplicationUtilities.enableMacFullScreen(this);
 		init();
@@ -253,7 +253,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		loadMetaProperties();
 		init1(); // Continue initialization
 	}
-	
+
 	private void showSplash() {
 	    Thread t = new Thread() {
 	        public void run() {
@@ -334,15 +334,15 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	    autoSaveThread = new AutoSaveThread();
 	    autoSaveThread.setPriority(autoSaveThread.getPriority() - 2);
 	    autoSaveChanged();
-	    
+
 	    if (window != null && window.isVisible()) {
 	        window.setVisible(false);
 	        window.dispose();
 	    }
 	    setVisible(true);
-	    
+
 	}
-	
+
 	private void initFileAdaptor() {
 		try {
 			XMLFileAdaptor adaptor = new XMLFileAdaptor();
@@ -375,9 +375,9 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	                    eventView.deleteInstance(instance);
 //	                    entityView.deleteInstance(instance);
 	                    actionCollection.enableSaveAction(true);
-	                    FrameManager.getManager().close(instance);          
+	                    FrameManager.getManager().close(instance);
 	                    // Make sure the bookmark view correct
-	                    schemaView.getBookmarkView().deleteBookmark(instance);  
+	                    schemaView.getBookmarkView().deleteBookmark(instance);
 	                    entityView.deleteInstance(instance);
 	                }
 	                else if (e.getPropertyName().equals("switchType")) {
@@ -385,7 +385,6 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	                    GKSchemaClass oldCls = (GKSchemaClass) e.getOldValue();
 	                    schemaView.switchedType(oldCls, instance);
 	                    eventView.switchedType(oldCls, instance);
-	                    entityView.switchedType(oldCls, instance);
 	                    entityView.switchedType(oldCls, instance);
 	                    actionCollection.enableSaveAction(true);
 	                }
@@ -459,7 +458,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		schemaView.getInstancePane().getInstanceList().addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent e) {
 				if (e.isPopupTrigger())
-					doInstanceListPopup(e);				
+					doInstanceListPopup(e);
 			}
 			public void mouseReleased(MouseEvent e) {
 				if (e.isPopupTrigger())
@@ -487,8 +486,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 				GKInstance instance = e.getEditingInstance();
 				// Check if the eventTree needs to be updated
 				String attName = e.getAttributeName();
-				if (attName == null || 
-				    attName.equals("hasInstance") || 
+				if (attName == null ||
+				    attName.equals("hasInstance") ||
                     attName.equals(ReactomeJavaConstants.hasEvent) ||
 				    attName.equals("hasComponent") ||
 				    attName.equals("hasMember") ||
@@ -521,17 +520,17 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		StableIdentifierUpdater stidUpdated = new StableIdentifierUpdater();
 		stidUpdated.setParentComp(this);
 		AttributeEditManager.getManager().addAttributeEditListener(stidUpdated);
-		
+
 //		RegulationDisplayNameUpdater regulationUpdater = new RegulationDisplayNameUpdater();
 //		regulationUpdater.setParentComponent(this);
 //		AttributeEditManager.getManager().addAttributeEditListener(regulationUpdater);
-		
+
 		// Add actions for converting to the authoring tool.
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getOpenInAuthoringToolAction());
 		eventView.getEventPane().addAdditionalPopupAction(actionCollection.getExportToAuthoringToolAction());
 		// Handle some property setttings
         AttributeEditConfig.getConfig().addPropertyChangeListener(new PropertyChangeListener() {
-           public void propertyChange(PropertyChangeEvent e) { 
+           public void propertyChange(PropertyChangeEvent e) {
                String propName = e.getPropertyName();
                if (propName.equals("AllowComboBoxEditor")) {
                    boolean newValue = ((Boolean)e.getNewValue()).booleanValue();
@@ -569,7 +568,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 			popup.show(tree, e.getX(), e.getY());
 		}
 	}
-	
+
 	private void doInstanceListPopup(MouseEvent e) {
 		final JList list = (JList) e.getSource();
 		if (list.getSelectedValue() != null) {
@@ -728,7 +727,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	    // Check auto setting list, and other properties
 	    AttributeEditConfig.getConfig().loadProperties(prop);
 	}
-	
+
 	private void loadMetaProperties() {
 	    try {
 	        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
@@ -744,16 +743,16 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	        e.printStackTrace();
 	    }
 	}
-	
+
 	private void initQAActions() {
 	    QAMenuHelper qaHelper = new QAMenuHelper();
-	    JMenu qaMenu = qaHelper.createQAMenu(schemaView, 
+	    JMenu qaMenu = qaHelper.createQAMenu(schemaView,
 	                                         PersistenceManager.getManager().getActiveFileAdaptor());
 	    toolMenu.add(qaMenu, 0);
 	    // Need a separator
 	    toolMenu.add(new JPopupMenu.Separator(), 1);
 	}
-	
+
 	/**
 	 * A helper method to check if save is needed if the file is dirty.
 	 * @return true for saving is done or not necessary while false for cancelling
@@ -795,10 +794,10 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	        else
 	            prop.setProperty("lastProject", adaptor.getSourceName());
 	    }
-	    
+
 	    // Save any outstanding changes.
 	    AttributeEditConfig.getConfig().commit(prop);
-	    
+
 	    // Save for the recent projects
 	    recentPrjHelper.storeProjects(prop);
 	    entityView.storeSystemProperties(prop);
@@ -853,7 +852,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	        e.printStackTrace();
 	    }
 	}
-	
+
 	private void loadBookmarks() {
 	    XMLFileAdaptor adaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 	    if (adaptor == null)
@@ -862,7 +861,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		if (bookmarks != null)
 			schemaView.getBookmarkView().setBookmarks(bookmarks);
 	}
-	
+
 	public void setSaveDefaultPerson(boolean needSave) {
 		needSaveDefaultPerson = needSave;
 	}
@@ -870,7 +869,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public JComponent getFocusedComponent() {
 		return this.focusedComponent;
 	}
-	
+
 	protected void prepareForNewProject(XMLFileAdaptor fileAdaptor) {
 		eventView.setUpLocalView();
 		if (entityViewVisible)
@@ -890,7 +889,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         try {
 			fileAdaptor.setSource(fileName);
 			prepareForNewProject(fileAdaptor);
-			// Last directory is logged when a file is selected regardless of 
+			// Last directory is logged when a file is selected regardless of
 			// this file cannot be opened.
 //			// Keep track the last directory
 //			File file = new File(fileName);
@@ -932,11 +931,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	    t.setPriority(Thread.currentThread().getPriority() - 2);
 	    t.start();
 	}
-    
+
     public boolean open(File file) {
     	return open(file.getAbsolutePath());
     }
-    
+
     public void autoSaveChanged() {
         String isEnabled = prop.getProperty("autoSave", "true");
         if (isEnabled.equals("false"))
@@ -953,7 +952,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
             // setting can take action.
         }
     }
-    
+
     /**
      * Create a new project.
      * @return true if a new project is created successfully.
@@ -961,7 +960,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
     public boolean createNewProject() {
         return createNewProject(true);
     }
-    
+
     public boolean createNewProject(boolean needDefaultPerson) {
         if (!checkSave())
             return false;
@@ -972,9 +971,9 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
             preparePersonForNewProject();
         return true;
     }
-    
+
     private void preparePersonForNewProject() {
-        PersonChooseDialog personDialog = new PersonChooseDialog(this);   
+        PersonChooseDialog personDialog = new PersonChooseDialog(this);
         Long defaultPersonId = getDefaultPersonId();
         if (defaultPersonId != null)
             personDialog.setUsedPersonId(defaultPersonId);
@@ -988,13 +987,13 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         SynchronizationManager.getManager().setDefaultPerson(dbId);
         PersistenceManager.getManager().getActiveFileAdaptor().setDefaultPersonId(dbId);
     }
-    
+
     private Long getDefaultPersonId() {
         Long dbId = SynchronizationManager.getManager().getDefaultPerson();
         if (dbId != null)
             return dbId;
         String defaultPerson = prop.getProperty("defaultPerson");
-        if (defaultPerson != null) 
+        if (defaultPerson != null)
             return new Long(defaultPerson);
         return null;
     }
@@ -1010,7 +1009,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public SchemaViewPane getSchemaView() {
 		return this.schemaView;
 	}
-	
+
 	public org.gk.elv.EntityLevelView getEntityLevelView() {
 	    return this.entityView;
 	}
@@ -1096,7 +1095,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		}
 		return toolbar;
 	}
-	
+
 	private void initMenuBar() {
 		if (isMac)
 			GKApplicationUtilities.macOSXRegistration(this);
@@ -1291,11 +1290,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		}
 		setJMenuBar(menuBar);
 	}
-	
+
     protected void addRecentProject(String fileName) {
         recentPrjHelper.addRecentProject(fileName);
     }
-	
+
 	private void loadRecentProjects(JMenu fileMenu) {
     	// Load the recent opened process files
         int totalProjectNumber = 4;
@@ -1309,7 +1308,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         		int i = Integer.parseInt(text.substring(0, index));
         		String projectSourceName = recentPrjHelper.getRecentProject(i - 1);
         		File file = new File(projectSourceName);
-        		if (file.exists() && open(projectSourceName)) 
+        		if (file.exists() && open(projectSourceName))
         		    recentPrjHelper.switchToTop(i - 1);
         		else
         		    recentPrjHelper.removeProject(i - 1);
@@ -1325,23 +1324,23 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         	}
         }
 	}
-	
+
 	public void exit() {
 		if (close())
 			System.exit(0);
 	}
-	
+
 	// The following three methods are used to hook to MacOS X's application menu.
 	public void about() {
 		ActionEvent e = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "exit");
 		actionCollection.getAboutAction().actionPerformed(e);
 	}
-    
+
 	public void preferences() {
 		ActionEvent e = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "options");
 		actionCollection.getOptionAction().actionPerformed(e);
 	}
-    
+
 	public void quit() {
 		exit();
 	}
@@ -1349,20 +1348,20 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public Properties getSystemProperties() {
 		return prop;
 	}
-	
+
 	public void launch() {
 		// Everything is handled by the default constructor.
 	}
-	
+
 	public String getApplicationName() {
 		return CURATOR_TOOL_NAME;
 	}
-	
+
     /**
      * Display a hue indicating an update is available.
      */
 	public void showUpdateAvailable(Action updateAction) {
-	    // Get the JToolBar 
+	    // Get the JToolBar
 	    JToolBar toolbar = null;
 	    int count = getContentPane().getComponentCount();
 	    for (int i = 0; i < count; i++) {
@@ -1379,7 +1378,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	    toolbar.invalidate();
 	    toolbar.validate();
 	}
-	
+
 	public void refreshTitle() {
 	    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 	    String sourceName = null;
@@ -1389,10 +1388,10 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	        sourceName = "Untitled";
 	    setTitle(sourceName + " - " + CURATOR_TOOL_NAME);
 	}
-	
+
 	/**
 	 * Add an action so that it can be launched in the application.
-	 * @param checkUpdateAction
+	 * @param checkUpdateAction Action to be added to the tool menu
 	 */
 	public void addCheckUpdateAction(Action checkUpdateAction) {
 	    // Add this action under tools menu
@@ -1413,7 +1412,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	    //toolMenu.addSeparator();
 	    toolMenu.add(checkUpdateAction);
 	}
-    
+
     /**
      * Required by Launchable interface to update schema.
      */
@@ -1435,7 +1434,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         toolMenu.addSeparator();
         toolMenu.add(action);
     }
-    
+
     /**
      * Required by Launchable interface to update schema. However,
      * the tool should be restarted to use the new schema. Restarting
@@ -1472,7 +1471,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
             return false;
         }
     }
-	
+
 	public Component getUserFrame() {
 	    return this;
 	}

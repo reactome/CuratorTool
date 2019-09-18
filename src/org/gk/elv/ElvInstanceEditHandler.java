@@ -38,12 +38,11 @@ public class ElvInstanceEditHandler {
     /**
      * Check if a GKInstance can be inserted into the assigned pathway editor. Default
      * is fine for any GKInstance. 
-     * @param instance
-     * @return
-     * @throws Exception
+     * @param instance Instance to be used to search if a renderable of it exists in the Zoomable Editor
+     * @param converted Object to be displayed/rendered
+     * @return true if it can be inserted and false otherwise
      */
-    public boolean isInsertable(GKInstance instance,
-                                Renderable converted) throws Exception {
+    public boolean isInsertable(GKInstance instance, Renderable converted) {
         if (converted.isTransferrable())
             return true;
         // Means alias is not allowed!
@@ -55,9 +54,9 @@ public class ElvInstanceEditHandler {
      * Do cleaning up job after a GKInstance is inserted. Default action is nothing.
      * @param instance GKInstance object that has been inserted
      * @param renderable Converted GKInstances inserted as is.
+     * @throws Exception No exception by default
      */
-    public void postInsert(GKInstance instance,
-                           Renderable renderable) throws Exception {
+    public void postInsert(GKInstance instance, Renderable renderable) throws Exception {
         
     }
     

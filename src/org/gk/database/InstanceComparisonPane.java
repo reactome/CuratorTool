@@ -136,6 +136,10 @@ public class InstanceComparisonPane extends JPanel {
 	
 	/**
 	 * An overloaded method to set the column titles.
+	 * @param instance1 First instance to compare
+	 * @param instance2 Second instance to compare
+	 * @param header1 First header value
+	 * @param header2 Second header value
 	 */
 	public void setInstances(GKInstance instance1, GKInstance instance2,
 	                         String header1, String header2) {
@@ -270,8 +274,8 @@ public class InstanceComparisonPane extends JPanel {
 	
 	/**
 	 * Check if two GKInstances can be merged.
-	 * @param instance1
-	 * @param instance2
+	 * @param instance1 First instance to check for merging
+	 * @param instance2 Second instance to check for merging
 	 * @return true for mergable.
 	 */
 	public boolean isMergable(GKInstance instance1, GKInstance instance2) {

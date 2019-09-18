@@ -82,7 +82,7 @@ public class PathwayDiagramGeneratorViaAT {
     
     /**
      * Test the method generateTilesForATDiagram
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve a test pathway or if unable to generate an image for the pathway
      */
     @Test
     public void testGenerateImageForATDiagram() throws Exception {
@@ -96,10 +96,10 @@ public class PathwayDiagramGeneratorViaAT {
     
     /**
      * Generate tiles directly from a pathway in GKInstance.
-     * @param pathway
+     * @param pathway Pathway instance for which to generate the image
      * @param useSimpleView true to use Imre's simplifying view from PathwayByPathway class. false to
      * use the direct output from GKInstance.
-     * @throws Exception
+     * @throws Exception Thrown if there is no defaultPersonId or if unable to generate the image
      */
     public void generateImageForAT(GKInstance pathway,
                                    boolean useSimpleView) throws Exception {
@@ -123,8 +123,8 @@ public class PathwayDiagramGeneratorViaAT {
      * Tries to generate the "best" image - if a curated pathway is available, that
      * will be used, otherwise, coordinates will be taken from the Sky and an image
      * will be generated with the help of layouting algorithms.
-     * @param pathway
-     * @throws Exception
+     * @param pathway Pathway instance for which to generate the image
+     * @throws Exception Thrown if unable to generate the image
      */
     public void generateBestImageForAT(GKInstance pathway) throws Exception {
 //        if (defaultPersonId == null)
@@ -176,8 +176,9 @@ public class PathwayDiagramGeneratorViaAT {
     
     /**
      * This method is used to generate tiles for an author tool project.
-     * @param project
-     * @throws Exception
+     * @param project Project for which to generate the image
+     * @param species Species instance used to find the location for saving the image
+     * @throws Exception Thrown if unable to save image or store project coordinates to the database
      */
     public void generateImageForAT(Project project,
                                    GKInstance species) throws Exception {
@@ -213,7 +214,7 @@ public class PathwayDiagramGeneratorViaAT {
     }
     
     /**
-     * Store the coordinates into the databas.
+     * Store the coordinates into the database.
      * @param project
      * @param editor
      * @throws Exception

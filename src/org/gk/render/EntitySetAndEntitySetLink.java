@@ -23,8 +23,9 @@ public class EntitySetAndEntitySetLink extends FlowLine {
     
     /**
      * Set two EntitySet nodes that should be linked together.
-     * @param set1
-     * @param set2
+     * 
+     * @param set1 Input node
+     * @param set2 Output node
      */
     public void setEntitySets(Node set1, Node set2) {
         addInput(set1);
@@ -33,7 +34,8 @@ public class EntitySetAndEntitySetLink extends FlowLine {
     
     /**
      * Get the two EntitySet nodes that are linked together by this object.
-     * @return
+     * 
+     * @return List of nodes (i.e. the input node and the output node)
      */
     public List<Node> getEntitySets() {
         List<Node> nodes = new ArrayList<Node>();

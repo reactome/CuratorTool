@@ -429,7 +429,7 @@ public class GKEditorFrame extends JFrame implements OSXApplication {
     
     /**
      * Open a Renderable object in a new GraphEditorPane.
-     * @param renderable
+     * @param renderable Renderable to open
      */
     public void open(Renderable renderable) {
         toolPane.open(renderable);

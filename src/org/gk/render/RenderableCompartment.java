@@ -55,6 +55,8 @@ public class RenderableCompartment extends ContainerNode {
     
     /**
      * Disable this method so that nothing is returned.
+     * 
+     * @return null
      */
     @Override
     public Renderable generateShortcut() {
@@ -101,8 +103,10 @@ public class RenderableCompartment extends ContainerNode {
      * the passed Renderable object. The checking is based on bounds. If the bounds
      * of the passed object is touched or contained by this compartment bounds,
      * true will be returned. Otherwise, false will be returned.
-     * @param r
-     * @return
+     * 
+     * @param r Renderable object to check
+     * @return true if the Renderable object's bounds are intersected (or fully contained in the case of
+     * it is another RenderableCompartment); false otherwise
      */
     public boolean isAssignable(Renderable r) {
         if (r == this)
@@ -370,6 +374,8 @@ public class RenderableCompartment extends ContainerNode {
      * by the selection rectangle, this compartment will be selected. Otherwise, it is 
      * not even by a touch or its position (the central point) is contained by the selection
      * rectangle.
+     * 
+     * @param rect Rectangle object representing the selection area
      */
     @Override
     public void select(Rectangle rect) {

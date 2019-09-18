@@ -12,7 +12,8 @@ import java.awt.Point;
 public interface Shortcut {
 	/**
 	 * Get the actual Renderable that this Shortcut refers to.
-	 * @return
+	 * 
+	 * @return Renderable object referred to by this shortcut
 	 */
 	public Renderable getTarget();
 	

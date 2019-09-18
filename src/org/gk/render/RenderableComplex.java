@@ -84,7 +84,7 @@ public class RenderableComplex extends ContainerNode {
     }
     
     /**
-     * Call this method to rebuild the internal hiearchy structure. This
+     * Call this method to rebuild the internal hierarchy structure. This
      * method should be called when the client has a doubt regarding the 
      * internal hierarchy structure of this complex.
      */
@@ -94,8 +94,9 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Remove a list of Objects from the contained components.
-     * @param deletion a list of Objects to be removed.
-     * @return a list of objects that are removed actually.
+     * 
+     * @param deletion a list of Objects to be removed
+     * @return a list of objects that are removed actually
      */
     public java.util.List removeAll(java.util.List deletion) {
         java.util.List list = new ArrayList();
@@ -180,6 +181,9 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Search for a suitable container in this complex for a Node.
+     * 
+     * @param node Node for which to find a RenderableComplex to which it can be assigned
+     * @return RenderableComplex to which the node can be assigned or null if none found
      */
     public RenderableComplex pickUpContainer(Node node) {
         if (componentsInHiearchy != null) {
@@ -196,7 +200,8 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Get the stoichiometries.
-     * @return key is Renderable object, while value is Integer for stoichiometry.
+     * 
+     * @return Map of stoichiometries: key is Renderable object, while value is Integer for stoichiometry
      */
     public Map getStoichiometries() {
         return stoichiometries;
@@ -204,8 +209,9 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Set the stoichiometry for a specified Renderable object.
-     * @param renderable the Renderable object.
-     * @param value the new stoichiometry.
+     * 
+     * @param renderable The Renderable object
+     * @param value The Renderable object's new stoichiometry
      */
     public void setStoichiometry(Renderable renderable, int value) {
         if (value <= 0)
@@ -234,6 +240,9 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Override the super class method to handle components if they have been hidden.
+     * 
+     * @param dx Value to move along the x-axis
+     * @param dy Value to move along the y-axis
      */
     @Override
     public void move(int dx, int dy) {
@@ -380,7 +389,8 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Get the old bounds for hidden components.
-     * @return
+     * 
+     * @return Map of component id to bounds
      */
     public Map<Integer, Rectangle> getOldBounds() {
         return this.oldIdToBounds;
@@ -388,7 +398,8 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Set the old bounds for hidden components.
-     * @param oldBounds
+     * 
+     * @param oldBounds Map of component id to bounds
      */
     public void setOldBounds(Map<Integer, Rectangle> oldBounds) {
         this.oldIdToBounds = oldBounds;
@@ -551,8 +562,9 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Get the stoichiometry for a specified Renderable object.
-     * @param renderable the query object.
-     * @return the stoichiometry.
+     * 
+     * @param renderable The query object
+     * @return The stoichiometry
      */
     public int getStoichiometry(Renderable renderable) {
         Integer value = (Integer) stoichiometries.get(getTarget(renderable));
@@ -585,13 +597,14 @@ public class RenderableComplex extends ContainerNode {
     
     /**
      * Check if a passed Renderable object can be a Complex's component.
-     * @param r
-     * @return
+     * 
+     * @param r Renderable object to be assigned
+     * @return true if the Renderable object passed is not this RenderableComplex, a RenderableCompartment, 
+     * RenderablePathway, or Note, and it is contained within this RenderableComplex's bounds; false otherwise 
      */
     @Override
     public boolean isAssignable(Renderable r) {
-        if (bounds == null ||
-            r == this) // Don't point it to itself
+        if (bounds == null || r == this) // Don't point it to itself
             return false; // This container has not be materialized
         if (r instanceof Node) {
             if (r instanceof RenderableCompartment ||

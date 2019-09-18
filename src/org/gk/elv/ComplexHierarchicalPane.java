@@ -34,8 +34,8 @@ public class ComplexHierarchicalPane extends InstanceTreePane {
     
     /**
      * Set the top level complex instances to be displayed in this ComplexHierarchicalPane.
-     * @param complexes
-     * @throws Exception
+     * @param complexes Complexes to display
+     * @throws Exception Thrown if unable to get components from the 'hasComponent' attribute of any complex passed
      */
     public void setComplexes(List<GKInstance> complexes) throws Exception {
         InstanceUtilities.sortInstances(complexes);
@@ -51,9 +51,9 @@ public class ComplexHierarchicalPane extends InstanceTreePane {
     
     /**
      * A recursive method to build a tree.
-     * @param complex
-     * @param parentNode
-     * @throws Exception
+     * @param complex Complex for which to build tree
+     * @param parentNode Parent node into which to insert new complex node
+     * @throws Exception Thrown if unable to get components from the 'hasComponent' attribute of the complex passed
      */
     private void buildTree(GKInstance complex,
                            DefaultMutableTreeNode parentNode) throws Exception {

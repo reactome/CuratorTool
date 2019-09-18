@@ -376,7 +376,7 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Call this method so that three sections of this view can share the same width.
-	 * @param width
+	 * @param width Width to distribute
 	 */
 	public void distributeWidthEvenly(int width) {
 	    int evenWidth = width / 3;
@@ -398,8 +398,8 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Return the locations for the used JSplitPanes. 
-	 * @return
-	 * @see setJSPDividerLocations(int, int, int)
+	 * @return int array of locations
+	 * @see #setJSPDividerLocations(int, int, int)
 	 */
 	public int[] getJSPDividerLocations() {
 		int[] locations = new int[]{listAttributeJSP.getDividerLocation(),
@@ -464,7 +464,7 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Add an Instance to the selection list.
-	 * @param instance
+	 * @param instance Instance to add to selection list
 	 */
 	public void addSelection(Instance instance) {
 		GKSchemaClass schemaClass = (GKSchemaClass) instance.getSchemClass();
@@ -476,7 +476,7 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Set the selection to the specified Instance.
-	 * @param instance
+	 * @param instance Instance to which to set selection
 	 */
 	public void setSelection(Instance instance) {
 		GKSchemaClass schemaClass = (GKSchemaClass) instance.getSchemClass();
@@ -490,7 +490,7 @@ public class SchemaViewPane extends JPanel {
 	
 	/**
 	 * Get a list of selected Instance objects from the InstanceListPane.
-	 * @return
+	 * @return List of Instance objects that are selected in the InstanceListPane
 	 */
 	public java.util.List getSelection() {
 		return instancePane.getSelection();

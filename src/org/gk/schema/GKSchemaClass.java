@@ -432,14 +432,18 @@ public class GKSchemaClass implements SchemaClass, Serializable {
 	}
 	
 	/**
-	 * @return
+	 * Retrieve this class' id
+	 * 
+	 * @return String value of this class' id
 	 */
 	public String getId() {
 		return id;
 	}
 
 	/**
-	 * @param string
+	 * Set this class' id
+	 * 
+	 * @param string This class' id
 	 */
 	private void setId(String string) {
 		id = string;
@@ -475,9 +479,9 @@ public class GKSchemaClass implements SchemaClass, Serializable {
 	
 	/**
 	 * Check against the whole list of ancestor classes.
-	 * @param className
-	 * @return
-	 * @see isa(String)
+	 * 
+	 * @param className Name of the class to check to see if it matches or is an ancestor of this class
+	 * @return true if the class name passed matches is an ancestor of this class; false otherwise
 	 */
 	public boolean isa(String className) {
 		if (getName().equals(className)) {
@@ -487,10 +491,12 @@ public class GKSchemaClass implements SchemaClass, Serializable {
 	}
 
 	/**
+	 * Retrieve the defining attributes for this class
 	 * 
-	 * @param defType
-	 * @return a Collection of GKSchemaAttributes with given defining type,
-	 * i.e. either ALL or ANY
+	 * @param defType Defining type - either org.gk.schema.SchemaAttribute.ALL_DEFINING or org.gk.schema.SchemaAttribute.ANY_DEFINING
+	 * @return a Collection of GKSchemaAttribute objects with given defining type,
+	 * i.e. either ALL or ANY; null a different defining type or if no defining attributes found
+	 * 
 	 * Rather than finding the appropriate attributes each time from all
 	 * attributes this method caches them in definingAttributes[] the 1st
 	 * time it is called.
@@ -518,9 +524,11 @@ public class GKSchemaClass implements SchemaClass, Serializable {
 	}
 
 	/**
+	 * Retrieve the defining attributes for this class
 	 * 
 	 * @return Collection of GKSchemaAttributes which are defining, i.e. with type
-	 * ALL or ANY.
+	 * ALL or ANY
+	 * @see #getDefiningAttributes(int)
 	 * Similarly to getDefiningAttributes(int) also this method caches the values
 	 * on definingAttributes[].
 	 */
@@ -553,9 +561,11 @@ public class GKSchemaClass implements SchemaClass, Serializable {
 	}
 	
 	/**
-	 * Returns a collection of SchemaAttributes in given category, i.e. MANDATORY, REQUIRED, OPTIONAL or NOMANUALEDIT
-	 * @param category
-	 * @return
+	 * Returns a collection of SchemaAttributes in given category, 
+	 * i.e. MANDATORY, REQUIRED, OPTIONAL or NOMANUALEDIT constants from the org.gk.schema.SchemaAttribute interface
+	 * 
+	 * @param category Category of the attributes to find in this class
+	 * @return Collection of GKSchemaAttribute objects for the class in the category passed
 	 */
 	public Collection getAttributesOfCategory(int category) {
 		HashSet attributes = new HashSet();

@@ -41,7 +41,7 @@ public class EventTreeBuildHelper {
 	/**
 	 * Get a list of attribute names that are related to tree building (e.g. hasComponent,
 	 * hasInstance, etc).
-	 * @return
+	 * @return Array of attribute names
 	 */
 	public static String[] getTreeAttributeNames() {
 	    String[] attNames = new String[]{
@@ -180,9 +180,9 @@ public class EventTreeBuildHelper {
 	
 	/**
 	 * Get the top-level events from the passed list of events.
-	 * @param events
-	 * @return
-	 * @throws Exception
+	 * @param events Events for which to find top-level events
+	 * @return List of top-level event instances
+	 * @throws Exception Thrown if unable to retrieve attribute values for events
 	 */
 	public List<GKInstance> getTopLevelEvents(List events) throws Exception {
 	       // To find the top level events
@@ -263,8 +263,8 @@ public class EventTreeBuildHelper {
 	
 	/**
 	 * The attributes for "hasInstance", "hasComponent", "taxon" will be loaded.
-	 * @param events
-	 * @throws Exception
+	 * @param events Events for which to load attributes
+	 * @throws Exception Thrown if unable to retrieve attribute values for the events passed
 	 */
 	public void loadAttribtues(Collection events) throws Exception {
         List equivalentEvents = new ArrayList();
@@ -336,10 +336,10 @@ public class EventTreeBuildHelper {
 	
 	/**
 	 * Cache "instanceOf" and "componentOf" values into non-valid attribute slots to
-	 * speed up the performace. This method should be called after a batch call for 
-	 * "hasComponent" and "hasInstance". Otherwise, the performace will be bad.
-	 * @param events
-	 * @throws Exception
+	 * speed up the performance. This method should be called after a batch call for 
+	 * "hasComponent" and "hasInstance". Otherwise, the performance will be bad.
+	 * @param events  Events for which to cache values
+	 * @throws Exception Thrown if unable to retrieve attribute values for the events passed
 	 */
 	public void cacheOfTypeValues(Collection events) throws Exception {
 		// Cache componentOf values
@@ -347,7 +347,7 @@ public class EventTreeBuildHelper {
 		java.util.List values = null;
 		for (Iterator it = events.iterator(); it.hasNext();) {
 			event = (GKInstance) it.next();
-            if (!event.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasEvent))
+			if (!event.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasEvent))
 				continue;
 			values = event.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
 			if (values == null || values.size() == 0)

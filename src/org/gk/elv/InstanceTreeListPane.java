@@ -160,8 +160,9 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
     
     /**
      * Set up the view for the passed local project.
-     * @param fileAdaptor
-     * @throws Exception
+     * @param fileAdaptor XMLFileAdaptor from which to extract data for viewing from the local project
+     * @throws Exception Thrown if unable to retrieve attribute values for events or values for the 'hasComponent' 
+     * attribute of complexes retrieved from the fileAdaptor passed
      */
     public void showLocalView(XMLFileAdaptor fileAdaptor) throws Exception {
         rebuildEventTree(fileAdaptor);
@@ -199,7 +200,7 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
     
     /**
      * Get the selected GKInstance displayed.
-     * @return
+     * @return List of selected instances
      */
     public List<GKInstance> getSelection() {
         List<GKInstance> selected = new ArrayList<GKInstance>();
@@ -269,7 +270,7 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
     
     /**
      * Add a new GKInstance to the list view.
-     * @param instance
+     * @param instance Instance to add to the list view
      */
     public void addInstance(GKInstance instance) {
         entityPane.addInstance(instance);
@@ -329,7 +330,7 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
     
     /**
      * Update the view of the passed GKInstance
-     * @param instance
+     * @param editEvent Event for editing attribute value
      */
     public void updateInstance(AttributeEditEvent editEvent) {
         entityPane.updateInstance(editEvent);
@@ -337,8 +338,7 @@ public class InstanceTreeListPane extends AccordionPane implements Selectable {
         eventPane.updateInstance(editEvent);
     }
     
-    public void switchedType(SchemaClass oldCls,
-                             GKInstance instance) {
+    public void switchedType(GKInstance instance) {
         entityPane.updateInstance(instance);
         complexPane.updateInstance(instance);
     }

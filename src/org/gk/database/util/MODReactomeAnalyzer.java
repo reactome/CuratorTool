@@ -55,7 +55,8 @@ public class MODReactomeAnalyzer {
      * an Instance whose created InstanceEdit or modified InstanceEdits are not in
      * gk_central. A modified instance in the MOD Reactome is an Instance whose create
      * InstanceEdit is in gk_central, but some of its modified InstanceEdits are not.
-     * @throws Exception
+     * @throws Exception Thrown if unable to fetch instances, referrers of instances, or note values for instance edits
+     * used for checking the instance edit purpose
      */
     public void checkMODInstances() throws Exception {
         GKInstance lastIE = fetchLastInstanceEdit();
@@ -66,10 +67,10 @@ public class MODReactomeAnalyzer {
                                             lastIE.getDBID());
         // This set is used to grep any IEs created by Esther, by used by MOD
         Set estherIEs = new HashSet();
-        // Intances related to these 
+        // Instances related to these 
         for (Iterator it = c.iterator(); it.hasNext();) {
             GKInstance ie = (GKInstance) it.next();
-            // Maybe a script has been used to change the schem. Remove them:
+            // Maybe a script has been used to change the schema. Remove them:
             String note = (String) ie.getAttributeValue(ReactomeJavaConstants.note);
             if (note != null) {
                 // Have to ask Esther to mark these InstanceEdits
@@ -157,8 +158,7 @@ public class MODReactomeAnalyzer {
      * Create a new curator tool project from newly created MOD instances and
      * modified instances. This method should be called after checkMODInstance.
      * Otherwise, nothing will be checked out.
-     * @return
-     * @throws Exception
+     * @throws Exception Thrown if unable to fetch remote instances or update local shell instances
      */
     public void checkOutAsNewProject() throws Exception {
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();

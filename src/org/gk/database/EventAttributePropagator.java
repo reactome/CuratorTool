@@ -23,7 +23,7 @@ import org.gk.schema.SchemaAttribute;
  * This class is used to help propagate the attribute assignment from one GKInstance
  * to other GKInstance objects.
  * 
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney {@literal <loneyf@ohsu.edu>}
  */
 public class EventAttributePropagator {
 	/** The attributes which reference children contained by the parent. */
@@ -61,10 +61,8 @@ public class EventAttributePropagator {
     /**
      * Returns whether the given event has at least one direct propagation target.
      * 
-     * @param event
-     * @param valueAttName the attribute whose value is to be propagated.
-     * @return whether there is a target event
-     * @throws Exception
+     * @return true if there is a target event; false otherwise
+     * @throws Exception Thrown if unable to get attribute values from the event
      */
     public boolean willProgagate() throws Exception {
         // The role attributes to follow recursively

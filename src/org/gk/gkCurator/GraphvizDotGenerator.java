@@ -52,8 +52,10 @@ public class GraphvizDotGenerator {
     /**
      * This method is used to add xlinks to a svg graph so that
      * the reactome web site can be displayed.
-     * @param svg
-     * @return
+     * @param svg SVG graph input
+     * @param reactomeUrl Reactome URL to add to link nodes
+     * @return String of XML for SVG graph with link nodes 
+     * @throws IOException Thrown if problem building XML output
      */
     public String addLinksToSvg(String svg, String reactomeUrl) throws IOException {
         if (nameToIdMap == null || nameToIdMap.size() == 0)
@@ -109,8 +111,10 @@ public class GraphvizDotGenerator {
     
     /**
      * Convert a Pathway object into a dot file format.
-     * @param pathway
-     * @return
+     * @param pathway Pathway object to convert
+     * @return dot file format as String
+     * @throws Exception Thrown if unable to retrieve attribute values for the pathway passed, any reaction within the
+     * pathway, any of a reaction's components, or if unable to retrieve regulation instances for any reaction
      */
     public String generateDot(GKInstance pathway) throws Exception {
         // Get all contained Reactions recursively

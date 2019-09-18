@@ -32,11 +32,10 @@ public class EntityInstanceListPane extends InstanceTreePane {
     
     /**
      * Set the list of SchemaClasses to be displayed in this EntityInstanceListPane.
-     * @param classes
-     * @throws Exception
+     * @param classes Classes to display
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instances for each class
      */
-    public void setSchemaClasses(List<GKSchemaClass> classes,
-                                 XMLFileAdaptor fileAdaptor) throws Exception {
+    public void setSchemaClasses(List<GKSchemaClass> classes, XMLFileAdaptor fileAdaptor) {
         DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
@@ -52,8 +51,7 @@ public class EntityInstanceListPane extends InstanceTreePane {
         model.nodeStructureChanged(root);
     }
     
-    private void buildTree(Collection instances, 
-                           DefaultMutableTreeNode parentNode) throws Exception {
+    private void buildTree(Collection instances, DefaultMutableTreeNode parentNode) {
         if (instances == null || instances.size() == 0)
             return;
         List list = new ArrayList(instances);

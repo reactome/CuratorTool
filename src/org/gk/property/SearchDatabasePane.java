@@ -498,7 +498,8 @@ public class SearchDatabasePane extends JPanel {
      * Have to initialize a database connection first. If a database connection
      * cannot be established, false will be returned. Otherwise, true will be 
      * returned.
-     * @return
+     * 
+     * @return true if connection established; false otherwise
      */
     public boolean initDatabaseConnection() {
         PersistenceManager.getManager().initDatabaseConnection(this);

@@ -37,9 +37,11 @@ public class VertexSearchableTermGenerator {
     
     /**
      * This method is used to generate VertexSearchableTerm instances for a specified PathwayDiagram instance.
-     * @param pathwayDiagram
-     * @return
-     * @throws Exception
+     * @param pathwayDiagram PathwayDiagram instance for which to fetch vertices
+     * @param pathway Pathway instance to extract species for use by term instances
+     * @param dba MySQLAdaptor to use in retrieving vertices
+     * @return Set of VertextSearchableTerm (GKInstance object) instances
+     * @throws Exception Thrown if unable to retrieve or set vertex or vertex term information
      */
     public Set<GKInstance> generateVertexSearchableTerms(GKInstance pathwayDiagram,
                                                          GKInstance pathway,

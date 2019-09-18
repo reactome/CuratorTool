@@ -22,20 +22,20 @@ public class BrowserLauncher {
 	// Property Path
 	//private static final String PROP_PATH = "resources" + File.separator + "browser.prop";
 	private static final String PROP_FILE = "browser.prop";
-	
+
 	private static String browserPath;
-	
+
 	public static void displayURL(String url, Component comp) throws IOException {
 		String osName = System.getProperty("os.name").toLowerCase();
 		if (osName.indexOf("mac") > -1) {
-			String[] cmdArray = new String[]{"open", url};			
+			String[] cmdArray = new String[]{"open", url};
 			Runtime.getRuntime().exec(cmdArray);
 			return;
 		}
 		if (browserPath == null)
 			locateBrowser(comp);
 		if (browserPath == null) {
-			JOptionPane.showMessageDialog(comp, "No Browser Specified!", 
+			JOptionPane.showMessageDialog(comp, "No Browser Specified!",
 			                              "Error In Launching Browser", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
@@ -57,8 +57,8 @@ public class BrowserLauncher {
 			throw new IOException("BrowserLaunch: Error in launching browser.");
 		}
 		*/
-	}	
-    
+	}
+
     public static void setBrowser(String path) {
 		browserPath = path;
 		Properties prop = new Properties();
@@ -74,7 +74,7 @@ public class BrowserLauncher {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static String getBrowser() {
 		String browserPath = null;
 		// Check if browser properties is set.
@@ -94,19 +94,18 @@ public class BrowserLauncher {
 		}
 		return browserPath;
 	}
-	
+
 	private static File getPropertyFile() {
-	    File file = null;
-	    try {
-	        file = GKApplicationUtilities.getPropertyFile(PROP_FILE);
-	    }
-	    catch(IOException e) {
-	        System.err.println("BrowserLauncher.getPropertyFile(): " + e);
-	        e.printStackTrace();
-	    }
-	    return file;
+		File file = null;
+		try {
+			file = GKApplicationUtilities.getPropertyFile(PROP_FILE);
+		} catch (IOException e) {
+			System.err.println("BrowserLauncher.getPropertyFile(): " + e);
+			e.printStackTrace();
+		}
+		return file;
 	}
-	
+
 	private static void locateBrowser(Component comp) {
 		// Check if browser properties is set.
 		//File file = new File(PROP_PATH);

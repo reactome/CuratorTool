@@ -265,7 +265,7 @@ public class SchemaDisplayPane extends JPanel {
 	
 	/**
 	 * Update the tree node that displays SchemaClass for adding a new Instance.
-	 * @param schemaClass
+	 * @param instance Instance to add
 	 */
 	public void addInstance(Instance instance) {
 		SchemaClass schemaClass = instance.getSchemClass();
@@ -319,7 +319,7 @@ public class SchemaDisplayPane extends JPanel {
 	
 	/**
 	 * Delete an GKInstance in a specified GKSchemaClass.
-	 * @param cls
+	 * @param schemaClass
 	 */
 	public void deleteInstance(GKSchemaClass schemaClass) {
 		updateCounter(schemaClass, false);

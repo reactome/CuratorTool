@@ -168,9 +168,9 @@ public class EventCheckOutHandler {
     
     /**
      * Get all instances that should be placed into the local project.
-     * @param eventNode
+     * @param events
      * @return
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve attribute values for instances
      */
     public Map<SchemaClass, Set<GKInstance>> pullInstances(Set<GKInstance> events) throws Exception {
         Map<Long, GKInstance> touchedMap = new HashMap<Long, GKInstance>();
@@ -439,8 +439,9 @@ public class EventCheckOutHandler {
     
     /**
      * A helper method to check if instances in the database to be stored into the local project exist.
-     * @param schemaMap
-     * @param fileAdaptor
+     * @param schemaMap Map of class type to instances
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instances
+     * @param parentFrame Parent GUI element in which to show messages
      */
     public void checkExistence(Map<SchemaClass, Set<GKInstance>> schemaMap, 
                                XMLFileAdaptor fileAdaptor, 
@@ -478,9 +479,10 @@ public class EventCheckOutHandler {
     /**
      * Check out an dbEvent from the database and an event hierarchy rooted at this event. The first 
      * level of referred instances should be checked out too.
-     * @param dbEvent
-     * @param fileAdaptor
-     * @throws Exception
+     * @param dbEvent Instance (event) to check out
+     * @param fileAdaptor XMLFileAdaptor in which to store checked out instances
+     * @throws Exception Thrown if unable to retrieve attribute values or referrers for events or if unable to store
+     * the generated schemaMap (class to instance set) by using the XMLFileAdaptor
      */
     public void checkOutEvent(GKInstance dbEvent, 
                               XMLFileAdaptor fileAdaptor) throws Exception {
@@ -492,8 +494,9 @@ public class EventCheckOutHandler {
     /**
      * Check out a set of GKInstance events.
      * @param dbEvents instances in this set should be Events.
-     * @param fileAdaptor
-     * @throws Exception
+     * @param fileAdaptor XMLFileAdaptor in which to store checked out instances
+     * @throws Exception Thrown if unable to retrieve attribute values or referrers for events or if unable to store
+     * the generated schemaMap (class to instance set) by using the XMLFileAdaptor
      */
     @SuppressWarnings("unchecked")
     public void checkOutEvents(Set<GKInstance> dbEvents,
@@ -508,9 +511,9 @@ public class EventCheckOutHandler {
 
     /**
      * Get all events for checking out.
-     * @param dbEvent
-     * @return
-     * @throws Exception
+     * @param dbEvent instance (event) for checking out
+     * @return Set of checked out instances for the dbEvent instance
+     * @throws Exception Thrown if unable to retrieve attribute values or referrers for events
      */
     public Set<GKInstance> getAllEventsForCheckout(GKInstance dbEvent) throws Exception {
         Set<GKInstance> dbEvents = new HashSet<GKInstance>(1);
@@ -520,9 +523,9 @@ public class EventCheckOutHandler {
     
     /**
      * Get all events to be checked out in full.
-     * @param dbEvents
-     * @return
-     * @throws Exception
+     * @param dbEvents Set of instances (events) for checking out
+     * @return Set of checked out instances for the dbEvents sets
+     * @throws Exception Thrown if unable to retrieve attribute values or referrers for events
      */
     public Set<GKInstance> getAllEventsForCheckout(Set<GKInstance> dbEvents) throws Exception {
         Set<GKInstance> allEvents = new HashSet<GKInstance>();

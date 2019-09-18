@@ -29,8 +29,8 @@ public class SelectionMediator {
     }
     
     /**
-     * Get the list of Selectable object.
-     * @return
+     * Get the list of Selectable objects.
+     * @return List of selectable objects
      */
     public List getSelectables() {
         return this.selectables;

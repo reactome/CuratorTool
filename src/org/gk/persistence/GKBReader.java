@@ -315,8 +315,8 @@ public class GKBReader implements RenderablePropertyNames {
     
     /**
      * Open a RenderablePathway from a passed process element.
-     * @param root
-     * @return
+     * @param root XML element from which to parse process data
+     * @return RenderablePathway instance representing the process
      */
     public RenderablePathway openProcess(org.jdom.Element root) {
         RenderablePathway pathway = new RenderablePathway();

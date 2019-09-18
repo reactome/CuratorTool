@@ -144,6 +144,8 @@ public class SynchronizationManager {
 	 * one. This new InstanceEdit has the check-in dateTime assigned so that the client can call
 	 * this method to get the current default InstanceEdit. However, if no default InstanceEdit
 	 * is assigned, this method will return null.
+	 * 
+	 * @param parentDialog Window GUI in which to display messages
 	 * @return a GKInstance for the default InstanceEdit will the nearest check-in dateTime. It
 	 * might return null.
 	 */
@@ -174,9 +176,10 @@ public class SynchronizationManager {
 	/**
 	 * Use this method if a dialog is needed to warn the user the local changes will
 	 * be overwritten.
-	 * @param localCopy
-	 * @param dbCopy
-	 * @param parentComp
+	 * @param localCopy Local instance (destination of update)
+	 * @param dbCopy Remote instance (source of update)
+	 * @param parentComp Parent Component GUI to display messages
+	 * @return return true if instance updated from db; false otherwise
 	 */
 	public boolean updateFromDB(GKInstance localCopy, GKInstance dbCopy, Component parentComp) {
 	    // Generate a warning dialog
@@ -1271,8 +1274,8 @@ public class SynchronizationManager {
 	
 	/**
      * Search matched instances for a specified local GKInstance object.
-     * @param localInstance
-     * @param parentDialog
+     * @param localInstance Local instance to search for matches in database 
+     * @param parentDialog Window GUI to display messages
      */
     public void matchInstanceInDB(GKInstance localInstance, Window parentDialog) {
         MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentDialog);
@@ -1434,7 +1437,11 @@ public class SynchronizationManager {
 	 * SchemaClass.
 	 * This method is thread safe because some status should be kept consistent among threads (e.g.
 	 * existence of a local instance).
-	 * @param instances
+	 * 
+	 * @param instances Instance to check out
+	 * @param parentDialog Window GUI to display messages
+	 * @throws Exception Thrown if unable to fetch instances from or store the checkOut map to the local file adaptor, 
+	 * if unable to show a message dialog, or if unable to fetch referrers for instances
 	 */
 	public synchronized void checkOut(java.util.List instances, Window parentDialog) throws Exception {
 		if (instances == null || instances.size() == 0)

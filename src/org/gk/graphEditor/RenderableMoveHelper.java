@@ -104,8 +104,8 @@ public class RenderableMoveHelper {
     
     /**
      * Scroll the editorPane so that the passed point to be visible.
-     * @param x
-     * @param y
+     * @param x X-coordinate of point
+     * @param y Y-coordinate of point
      */
     public void scrollToVisible(int x, int y) {
         visibleRectangle.x = x;

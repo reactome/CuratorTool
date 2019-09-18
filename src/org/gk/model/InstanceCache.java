@@ -28,31 +28,31 @@ public class InstanceCache {
 	}
 
 	/**
-	 * @param arg0
-	 * @return
+	 * @param arg0 Key to test for existence in cache
+	 * @return true if the cache contains the key; false otherwise
 	 */
 	public boolean containsKey(Object arg0) {
 		return cache.containsKey(arg0);
 	}
 
 	/**
-	 * @param arg0
-	 * @return
+	 * @param arg0 Value to test for existence in cache
+	 * @return true if the cache contains the value; false otherwise
 	 */
 	public boolean containsValue(GKInstance arg0) {
 		return cache.containsValue(arg0);
 	}
 
 	/**
-	 * @return
+	 * @return Key/Value pairs of the cache as a set of Map Entry objects
 	 */
 	public Set<Map.Entry<Long, Instance>> entrySet() {
 		return cache.entrySet();
 	}
 
 	/**
-	 * @param arg0
-	 * @return
+	 * @param arg0 Key used to retrieve GKInstance object from cache
+	 * @return GKInstance from cache
 	 */
 	public GKInstance get(Object arg0) {
 		return (GKInstance) cache.get(arg0);
@@ -63,23 +63,23 @@ public class InstanceCache {
 	}
 
 	/**
-	 * @return
+	 * @return true if the cache is empty; false otherwise
 	 */
 	public boolean isEmpty() {
 		return cache.isEmpty();
 	}
 
 	/**
-	 * @return
+	 * @return Set of all keys in the cache
 	 */
 	public Set<Long> keySet() {
 		return cache.keySet();
 	}
 
 	/**
-	 * @param arg0
-	 * @param arg1
-	 * @return
+	 * @param arg0 Key to add to cache
+	 * @param arg1 Value (Instance object) to add to cache
+	 * @return Value (Instance object) added to the cache
 	 */
 	public GKInstance put(Object arg0, Instance arg1) {
 	    if (!(arg0 instanceof Long))
@@ -88,17 +88,17 @@ public class InstanceCache {
 	}
 
 	/**
-	 * @param arg0
-	 * @return
+	 * @param arg0 Instance object to add to cache as a value (its db id will be used as the key)
+	 * @return Instance object added to cache
 	 */
 	public Instance put(Instance arg0) {
 		return put(arg0.getDBID(), arg0);
 	}
 
 	/**
-	 * @param arg0
-	 * @param arg1
-	 * @return
+	 * @param dbId Key (db id as long value) to add to cache
+	 * @param arg1 Value (GKInstance object) to add to cache
+	 * @return Value (GKInstance object) added to the cache
 	 */
 	public GKInstance put(long dbId, GKInstance arg1) {
 		return put(new Long(dbId), arg1);
@@ -109,29 +109,29 @@ public class InstanceCache {
 	}
 
 	/**
-	 * @param arg0
+	 * @param arg0 Map of db id to Instance objects to add to the cache
 	 */
 	public void putAll(Map<Long, Instance> arg0) {
 		cache.putAll(arg0);
 	}
 
 	/**
-	 * @param arg0
-	 * @return
+	 * @param arg0 Key to remove from the cache
+	 * @return Value mapped to the removed key
 	 */
 	public Object remove(Object arg0) {
 		return cache.remove(arg0);
 	}
 
 	/**
-	 * @return
+	 * @return Size of the cache
 	 */
 	public int size() {
 		return cache.size();
 	}
 
 	/**
-	 * @return
+	 * @return Collection of all Instance objects in the cache
 	 */
 	public Collection<Instance> values() {
 		return cache.values();

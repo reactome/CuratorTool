@@ -20,7 +20,7 @@ public class DetachActionEvent extends GraphEditorActionEvent {
 	
 	/**
 	 * One of INPUT, OUTPUT, HELPER, ACITVATOR, INHIBITOR in HyperEdge.
-	 * @param role
+	 * @param role Role to set
 	 */
 	public void setRole(int role) {
 	    this.role = role;
@@ -32,7 +32,7 @@ public class DetachActionEvent extends GraphEditorActionEvent {
 	
 	/**
 	 * Set the Renderable that is detached from this Detach event.
-	 * @param r
+	 * @param r Renderable that is detached
 	 */
 	public void setDetached(Renderable r) {
 	    this.detached = r;

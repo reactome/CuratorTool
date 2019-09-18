@@ -25,7 +25,10 @@ public class DragAction implements GraphEditorAction {
     // For scrolling
     private Rectangle scrollRect = new Rectangle();
     
-    /** Creates a new instance of DragAction */
+    /** 
+     * Creates a new instance of DragAction
+     * @param editorPane GraphEditorPane to set
+     */
     public DragAction(GraphEditorPane editorPane) {
         this.editorPane = editorPane;
         this.prevPoint = new Point();

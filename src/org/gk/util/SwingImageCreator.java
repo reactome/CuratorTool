@@ -36,6 +36,7 @@ public class SwingImageCreator {
      * from the supplied component. This method will 
      * use the preferred size of the component as the 
      * image's size.
+     * 
      * @param component the component to draw
      * @return an image of the component
      */
@@ -47,13 +48,13 @@ public class SwingImageCreator {
      * Creates a buffered image (of the specified type) 
      * from the supplied component. This method will use 
      * the preferred size of the component as the image's size
+     * 
      * @param component the component to draw
      * @param imageType the type of buffered image to draw
      * 
      * @return an image of the component
      */
-    public static BufferedImage createImage(JComponent component, 
-                                            int imageType) {
+    public static BufferedImage createImage(JComponent component, int imageType) {
 //        PathwayEditor pathwayEditor = (PathwayEditor) component;
 //        double scaleX = pathwayEditor.getScaleX();
 //        double scaleY = pathwayEditor.getScaleY();
@@ -76,12 +77,12 @@ public class SwingImageCreator {
     
     /**
      * Export anything in the component. Note: the scale is not done here.
-     * @param comp
-     * @param fileChooser
-     * @throws IOException
+     * 
+     * @param comp The component with the image to export
+     * @param fileChooser JFileChooser object to select file to export image as specific file type
+     * @throws IOException Thrown if unable to write file to export
      */
-    public static void exportImage(ZoomableJPanel comp,
-                                   JFileChooser fileChooser) throws IOException {
+    public static void exportImage(ZoomableJPanel comp, JFileChooser fileChooser) throws IOException {
         FileFilter pngFilter = new ImageFileFilter(".png", "PNG Image File (*.png)");
         FileFilter jpgFilter = new ImageFileFilter(".jpg", "JPEG Image File (*.jpg, *.jpeg)");
         FileFilter pdfFilter = new ImageFileFilter(".pdf", "PDF File (*.pdf)");
@@ -110,8 +111,7 @@ public class SwingImageCreator {
         exportImage(comp, selectedFile, formatName);
     }
     
-    public static void exportImageInPDF(JComponent comp,
-                                        File file) throws IOException {
+    public static void exportImageInPDF(JComponent comp, File file) throws IOException {
         Dimension size = comp.getPreferredSize();
         com.lowagie.text.Rectangle pageSize = new com.lowagie.text.Rectangle(size.width,
                                                                              size.height);
@@ -139,11 +139,12 @@ public class SwingImageCreator {
     }
     
     /**
-     * Export a buffered image to an external file. 
-     * @param image
-     * @param fileChooser
-     * @param parentComp
-     * @throws IOException
+     * Export a buffered image to an external file.
+     * 
+     * @param image Image to export
+     * @param fileChooser JFileChooser object to select file to export image as specific file type
+     * @param parentComp Parent container for which to display messages
+     * @throws IOException Thrown if unable to write file to export
      */
     public static void exportImage(BufferedImage image,
                                    JFileChooser fileChooser,

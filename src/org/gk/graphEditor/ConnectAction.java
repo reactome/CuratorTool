@@ -39,7 +39,9 @@ public class ConnectAction implements GraphEditorAction {
     // For scrolling
     private Rectangle scrollRect = new Rectangle();
     
-    /** Creates a new instance of ConnectAction */
+    /** Creates a new instance of ConnectAction
+     * @param editor GraphEditorPane to set
+     */
     public ConnectAction(GraphEditorPane editor) {
         this.editorPane = editor;
     }

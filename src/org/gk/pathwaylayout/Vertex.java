@@ -53,7 +53,7 @@ public class Vertex extends DefaultGraphCell {
 	}
 
 	/**
-	 * @param arg0
+	 * @param arg0 reference to the user object
 	 */
 	public Vertex(Object arg0) {
 		super(arg0);
@@ -61,8 +61,8 @@ public class Vertex extends DefaultGraphCell {
 	}
 
 	/**
-	 * @param arg0
-	 * @param arg1
+	 * @param arg0 reference to the user object
+	 * @param arg1 the storage attribute map for this vertex
 	 */
 	public Vertex(Object arg0, AttributeMap arg1) {
 		super(arg0, arg1);
@@ -70,9 +70,9 @@ public class Vertex extends DefaultGraphCell {
 	}
 
 	/**
-	 * @param arg0
-	 * @param arg1
-	 * @param arg2
+	 * @param arg0 an Object provided by the user that constitutes the vertex data
+	 * @param arg1 the storage attribute map for this vertex
+	 * @param arg2 array of children
 	 */
 	public Vertex(Object arg0, AttributeMap arg1, MutableTreeNode[] arg2) {
 		super(arg0, arg1, arg2);
@@ -179,7 +179,7 @@ public class Vertex extends DefaultGraphCell {
 
 	
 	/**
-	 * @return
+	 * @return Boundaries of vertex
 	 */
 	public Rectangle getBounds() {
 		return GraphConstants.getBounds(getAttributes()).getBounds();

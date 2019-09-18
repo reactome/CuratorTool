@@ -156,7 +156,7 @@ public class PropertyEditorView extends JPanel {
     
     /**
      * Display properties for the passed renderable object.
-     * @param renderable
+     * @param renderable Renderable object to display
      */
     public void open(Renderable renderable) {
         if (renderable instanceof Shortcut)
@@ -211,7 +211,7 @@ public class PropertyEditorView extends JPanel {
     
     /**
      * Refresh the display of a Node. The structure of the tree will not change.
-     * @param r
+     * @param r Renderable object to refresh
      */
     public void refresh(Renderable r) {
         objectListPane.refresh(r);

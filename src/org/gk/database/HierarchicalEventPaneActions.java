@@ -63,7 +63,7 @@ public class HierarchicalEventPaneActions {
 	/**
 	 * Set the wrapped tree for this object. The wrapped tree is used
 	 * to display GKInstance in a hierarchical way.
-	 * @param tree
+	 * @param tree Tree object to set
 	 */
 	public void setWrappedTree(JTree tree) {
 	    this.wrappedTree = tree;

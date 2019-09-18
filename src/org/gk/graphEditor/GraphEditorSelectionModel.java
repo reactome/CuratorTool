@@ -28,6 +28,7 @@ public class GraphEditorSelectionModel {
     
     /**
      * Add a single selected object to the model.
+     * @param selected Object to add to selection list
      */
     public void addSelected(Object selected) {
     	if (!selection.contains(selected)) {
@@ -40,6 +41,7 @@ public class GraphEditorSelectionModel {
     
     /**
      * Remove an object from this model.
+     * @param selected Object to remove from selection list
      */
     public void removeSelected(Object selected) {
         selection.remove(selected);
@@ -50,6 +52,7 @@ public class GraphEditorSelectionModel {
     
     /**
      * Add a list of selected objects to the model.
+     * @param selection List of objects to add to selection list
      */
     public void addSelection(java.util.List selection) {
         for (Iterator it = selection.iterator(); it.hasNext();) {
@@ -64,6 +67,7 @@ public class GraphEditorSelectionModel {
     
     /**
      * Remove a list of objects from the model.
+     * @param selection List of objects to remove from selection list
      */
     public void removeSelection(java.util.List selection) {
         if (selection == null || selection.size() == 0)

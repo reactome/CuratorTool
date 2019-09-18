@@ -53,7 +53,7 @@ public class AttributePane extends JPanel {
 	private JLabel titleLabel;
 	private AttributeTable propTable;
 	// For launch a view for cell value
-	private MouseListener cellMouseAdaptor;	
+	private MouseListener cellMouseAdaptor;
 	private GKInstance instance;
 	// A flag to mark as read-only
 	private boolean isEditable;
@@ -84,7 +84,7 @@ public class AttributePane extends JPanel {
     private boolean isGroupedByCategories;
     // To validate the editing
     private AttributeEditValidator validator;
-    
+
 	public AttributePane() {
 		init();
 	}
@@ -93,27 +93,27 @@ public class AttributePane extends JPanel {
 		this();
 		setInstance(newInstance);
 	}
-	
+
 	public void setEditable(boolean editable) {
 		this.isEditable = editable;
 		toolbar.setVisible(isEditable);
 	}
-	
+
 	public void setEmptySlotsInMultiple(boolean emptySlotsInMultiple) {
 		this.emptySlotsInMultiple = emptySlotsInMultiple;
 	}
-	
+
 	public void stopEditing() {
 		if (propTable.isEditing()) {
 			CellEditor editor = propTable.getCellEditor();
 			editor.stopCellEditing();
 		}
 	}
-	
+
 	public boolean isEditable() {
 		return this.isEditable;
 	}
-	
+
 	public AttributeEditValidator getEditValidator() {
 	    if (validator == null)
 	        validator = new AttributeEditValidator();
@@ -125,7 +125,7 @@ public class AttributePane extends JPanel {
             return false;
         return uneditableAttNames.contains(attributeName);
     }
-    
+
 	public void showCheckoutButton() {
 	    // Add a download button to the bottom
 	    final JPanel panel = new JPanel();
@@ -159,23 +159,23 @@ public class AttributePane extends JPanel {
 	        }
 	    });
 	}
-	
+
 	/**
-	 * Set all slots editable. This setting will overwrite the default unedtiable slots setting.
+	 * Set all slots editable. This setting will overwrite the default non-editable slots setting.
 	 * However, the client still should call setEdtiable(boolean) first to make this AttributePane
 	 * editable.
-	 * @param editable
+	 * @param editable true/false value to set whether all slots are editable
 	 */
 	public void setIsAllSlotEditable(boolean editable) {
 	    this.isAllSlotsEditable = editable;
 	}
-	
+
 //	/**
 //	 * If a change somewhere in the CuratorTool neccessitates an
 //	 * update to one of the buttons in AttributePane, this class
 //	 * will perform the update as soon as the user moves the mouse
 //	 * into the area of the AttributePane.
-//	 * 
+//	 *
 //	 * @author croft
 //	 *
 //	 */
@@ -183,44 +183,44 @@ public class AttributePane extends JPanel {
 //        public void mouseEntered(MouseEvent e) {
 //        	allowComboBoxEditorPropagate();
 //        }
-//        
+//
 //        public void mouseExited(MouseEvent e) {
 //        	allowComboBoxEditorPropagate();
 //        }
-//        
+//
 //        public void mouseClicked(MouseEvent e) {
 //        }
-//        
+//
 //        public void mousePressed(MouseEvent e) {
 //        	allowComboBoxEditorPropagate();
 //        }
-//        
+//
 //        public void mouseReleased(MouseEvent e) {
 //        }
-//        
+//
 //    	// Make sure editing status gets propagated from
 //    	// other views.
 //        private void allowComboBoxEditorPropagate() {
 //        	setAllowComboBoxEditor(AttributeEditConfig.getConfig().isAllowComboBoxEditor());
 //        }
-//        
+//
 //    }
-	
+
 	public void setAllowComboBoxEditor(boolean allowComboBoxEditor) {
 	    this.allowComboBoxEditor = allowComboBoxEditor;
 	    allowComboBoxEditorBtn.setIcon(findAllowComboBoxEditorIcon());
 	}
-	
+
 	private void init() {
 	    // Using mouse entering or exiting to change the UI is not
         // a good GUI programming practive. The user will be feeling
         // puzzled. This change is handled by a PropertyChangeListnere
         // in GKCuratorFrame.init().
         //this.addMouseListener(new ButtonUpdateMouseListener());
-	    
+
 	    // To control actions
 	    controller = new AttributePaneController(this);
-	    
+
 	    setLayout(new BorderLayout());
 	    JPanel northPane = new JPanel();
 	    northPane.setLayout(new BorderLayout());
@@ -229,17 +229,17 @@ public class AttributePane extends JPanel {
 	    titleLabel.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 2));
 	    titleLabel.setHorizontalAlignment(JLabel.LEFT);
 	    northPane.add(titleLabel, BorderLayout.WEST);
-	    
+
 	    // Add actions
 	    controller.initActions();
 	    toolbar = new JToolBar();
 	    Dimension btnSize = new Dimension(20, 20);
-	    
+
 	    allowComboBoxEditorBtn = new JButton(findAllowComboBoxEditorIcon());
 	    allowComboBoxEditorBtn.setPreferredSize(btnSize);
 	    setTooltipForAllowCBEditorButton();
 	    // Should not be selected! If selected, a dark background will be used.
-        // However, different icons have been used to indicate the status. Another 
+        // However, different icons have been used to indicate the status. Another
         // problem is that the selection backgroun is not gone after allowComboBoxEditor
         // is set to false.
         //allowComboBoxEditorBtn.setSelected(allowComboBoxEditor);
@@ -259,7 +259,7 @@ public class AttributePane extends JPanel {
 	        }
 	    });
 	    toolbar.add(allowComboBoxEditorBtn);
-	    
+
 	    JButton btn;
 	    btn = toolbar.add(controller.getSortByAlphabetAction());
 	    btn.setPreferredSize(btnSize);
@@ -274,7 +274,7 @@ public class AttributePane extends JPanel {
 	    northPane.add(toolbar, BorderLayout.EAST);
 	    add(northPane, BorderLayout.NORTH);
 	    toolbar.setVisible(isEditable);
-	    
+
 	    propTable = new AttributeTable();
 	    PropertyTableModel model = new PropertyTableModel();
 	    propTable.setModel(model);
@@ -331,7 +331,7 @@ public class AttributePane extends JPanel {
 	    propTable.setDragEnabled(true);
 	    propTable.setTransferHandler(new ListValueTransferHandler());
 	}
-	
+
 	private ImageIcon findAllowComboBoxEditorIcon() {
 		if (allowComboBoxEditor) {
 			//return new ImageIcon("images/AllowComboBoxEditor.gif");
@@ -344,33 +344,33 @@ public class AttributePane extends JPanel {
 			return GKApplicationUtilities.createImageIcon(getClass(), "DontAllowComboBoxEditor.gif");
 		}
 	}
-	
+
 	private void setTooltipForAllowCBEditorButton() {
 	    if (allowComboBoxEditor)
 	        allowComboBoxEditorBtn.setToolTipText("Click to disable pull down list");
 	    else
 	        allowComboBoxEditorBtn.setToolTipText("Click to enable pull down list");
 	}
-    
+
     public void setGroupAttributesByCategory(boolean value) {
         if (isGroupedByCategories != value) {
             isGroupedByCategories = value;
             PropertyTableModel model = (PropertyTableModel) propTable.getModel();
-            if (value) 
+            if (value)
                 model.setAttributeComparator(new AttributeCategoryGroupingComparator());
             else
                 model.setAttributeComparator(new AttributeAlphabeticalComparator());
             refresh(); // Have to refresh the whole display
-        }   
+        }
     }
-    
+
     public boolean isGroupAttributesByCategory() {
         return this.isGroupedByCategories;
     }
-	
+
 	public void setInstance(Instance newInstance) {
 		if (instance == newInstance)
-			return; 
+			return;
         if (propTable.isEditing())
             propTable.getCellEditor().stopCellEditing();
 		if (newInstance == null) {
@@ -395,15 +395,15 @@ public class AttributePane extends JPanel {
 			instance = gkInstance;
             PropertyTableModel model = (PropertyTableModel) propTable.getModel();
             model.setIntance(instance);
-			
+
 			// Use information that the attribute table model
 			// knows about the attributes to color code the
 			// rows in the table.
-			propTable.setGrayRows(model.getDefiningRows());			
+			propTable.setGrayRows(model.getDefiningRows());
 		}
         updateTitle(newInstance);
 	}
-	
+
 	/**
 	 * Refresh the property table. This method will only refresh the property table and
 	 * the button pane for shell instances. If you want to refresh the graph display, you need to call updateGraphDisplay
@@ -420,7 +420,7 @@ public class AttributePane extends JPanel {
 		model.refresh();
         propTable.setGrayRows(model.getDefiningRows());
         updateTitle(instance);
-        // Have to update 
+        // Have to update
 		if (instance.isShell()) {
 			// Check if shellPane is in
 			boolean hasShellPane = false;
@@ -437,12 +437,12 @@ public class AttributePane extends JPanel {
 			}
 		}
 		else {
-			remove(shellPane); // It is OK to call this method even though 
+			remove(shellPane); // It is OK to call this method even though
 							   // shellPane is not there
-			toolbar.setVisible(isEditable);							   
+			toolbar.setVisible(isEditable);
 		}
 	}
-    
+
     private void updateTitle(Instance instance) {
         if (instance != null) {
             titleLabel.setText(instance.getSchemClass().getName() + " Properties");
@@ -453,22 +453,19 @@ public class AttributePane extends JPanel {
             titleLabel.setToolTipText(null);
         }
     }
-	
+
 	public void setTitle(String title) {
 		titleLabel.setText(title);
         titleLabel.setToolTipText(title);
 	}
-	
+
 	public Instance getInstance() {
 		return this.instance;
 	}
-	
+
 	/**
 	 * All attributes containing nothing more than empty Strings
 	 * will be removed.
-	 * 
-	 * @param instance
-	 * @return
 	 */
 	public void removeEmptyAttributesFromInstance() {
 		// Examine attributes, filtering out the empty
@@ -479,7 +476,7 @@ public class AttributePane extends JPanel {
 		for (Iterator it = attributes.iterator(); it.hasNext();) {
 			try {
 				attributeValue = instance.getAttributeValuesList((SchemaAttribute)it.next());
-				
+
 				if (attributeValue!=null && attributeValue instanceof List) {
 					attributeList = (List)attributeValue;
 					while (attributeList.remove("")) {}
@@ -488,15 +485,15 @@ public class AttributePane extends JPanel {
 				System.err.println("Woops, something nasty happened while examinig an attribute");
 				e.printStackTrace();
 			}
-			
-		}		
+
+		}
 	}
 
 	/**
 	 * Decides what to do if the mouse is clicked in a cell.
 	 * E.g. pop up a popup menu, giving the user editing
 	 * options.
-	 * 
+	 *
 	 * @return
 	 */
 	private MouseListener getCellMouseAdaptor() {
@@ -518,7 +515,7 @@ public class AttributePane extends JPanel {
 						return;
 					}
 				}
-				
+
 				public void mouseReleased(MouseEvent e) {
 					if (e.isPopupTrigger())
 						doEditingPopup(e);
@@ -530,8 +527,8 @@ public class AttributePane extends JPanel {
 			};
 		}
 		return cellMouseAdaptor;
-	}	
-	
+	}
+
 	private void viewSelectedCell() {
 		int rowCount = propTable.getSelectedRowCount();
 		int colCount = propTable.getSelectedColumnCount();
@@ -553,14 +550,14 @@ public class AttributePane extends JPanel {
 //		else if (value instanceof GKInstance)
 //		    controller.viewSelectedCell();
 	}
-		
+
 	/**
 	 * Pops up a little menu that allows a user to select an
 	 * action for dealing with a selected attribute slot.
 	 * Typical actions are view, edit or delete that slot.
 	 * Typical event for triggering this popup is a right
 	 * mouse click.
-	 * 
+	 *
 	 * @param e the event that should trigger the popup
 	 */
 	public void doEditingPopup(MouseEvent e) {
@@ -589,24 +586,24 @@ public class AttributePane extends JPanel {
 		JComponent comp = (JComponent) e.getSource();
 		popup.show(comp, e.getX(), e.getY());
 	}
-	
+
 	/**
 	 * Add a single instance to a multi-instance slot
-	 * 
-	 * @param topLevelClasses
-	 * @param att
-	 * @param parentFrame
+	 *
+	 * @param topLevelClasses SchemaClass collection
+	 * @param att SchemaAttribute
+	 * @param parentFrame Parent frame to display instance selection dialog-box
 	 */
 	public void addInstanceValue(Collection topLevelClasses, SchemaAttribute att, JFrame parentFrame) {
 		controller.addInstanceValue(topLevelClasses, att, parentFrame);
 	}
-	
+
 	public void removeValue(Object value, String attName) {
 		controller.removeValue(value, attName);
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * Put in an extra empty slot, to allow the user to
 	 * add extra instances using a combo box.  This is
 	 * only relevant to slots that can accept multiple
@@ -619,14 +616,14 @@ public class AttributePane extends JPanel {
 		if (value!=null && controller.isMultipleAttribute(attName))
 			controller.addEmptyValue(attName);
 	}
-	
+
 	class PropertyCellEditor extends DefaultCellEditor {
 		// Give the user a chooser for editing appropriate cells
 		javax.swing.JMenu menu; // experimental
 		AttributeComboBox comboBox;
 		//Schema schema = null;
 		Object instanceArray[] = null;
-		
+
 		// For editing text related info
 		private JLabel label; // For GKInstance
 		private JTextField tf; // For other values
@@ -636,7 +633,7 @@ public class AttributePane extends JPanel {
 		private Object editingValue;
 		// The current data type
 		private int valueType;
-		
+
 		/**
 		 * As far as I am able to tell, this class does not use the
 		 * text field supplied here as an argument.  It will bomb
@@ -644,26 +641,26 @@ public class AttributePane extends JPanel {
 		 * value.
 		 * A JComponent (one of JTextField, JComboBox, or JList) is required for
 		 * DefaultCellEditor as described in Java API. -- WGM
-		 * 
+		 *
 		 * @param tf1
 		 */
 		public PropertyCellEditor(JTextField tf1) {
 			super(tf1);
 			propertyCellEditorInit();
 		}
-		
+
 		public void setComboBox(AttributeComboBox comboBox) {
 			this.comboBox = comboBox;
 		}
-		
+
 		public AttributeComboBox getComboBox() {
 			return comboBox;
 		}
-		
+
 		/**
 		 * Pretty little combo box with its own listeners.  Implemented as
 		 * an own class, because many new instances have to be created.
-		 * 
+		 *
 		 * @author croft
 		 *
 		 */
@@ -676,7 +673,7 @@ public class AttributePane extends JPanel {
 				});
 			}
 		}
-		
+
 		private void propertyCellEditorInit() {
 			// Give the user a chooser for editing appropriate cells
 			comboBox = new AttributeComboBox();
@@ -706,7 +703,7 @@ public class AttributePane extends JPanel {
 			});
 			enumJcb = new JComboBox();
 			enumJcb.addActionListener(new ActionListener() {
-                
+
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     fireEditingStopped();
@@ -714,7 +711,7 @@ public class AttributePane extends JPanel {
             });
 			setClickCountToStart(DEFAULT_CLICK_COUNT);
 		}
-		
+
 		/**
 		 * Get a table cell editor, dependant on the schema attribute
 		 * type for the current row.
@@ -732,14 +729,14 @@ public class AttributePane extends JPanel {
 			GKSchemaAttribute att = model.getAttribute(row);
 			valueType = att.getTypeAsInt();
 //			valueType = model.getValueType(row);
-			
+
 			switch (valueType) {
 				case SchemaAttribute.INSTANCE_TYPE :
-					
+
 					label.setFont(table.getFont());
 					label.setForeground(table.getSelectionForeground());
 					label.setBackground(table.getSelectionBackground());
-					
+
 					Component chooserComp = getChooserTableCellEditorComponent(table, value, row, model);
 					// Give the user a chooser for editing appropriate cells
 					if (chooserComp != null)
@@ -761,7 +758,7 @@ public class AttributePane extends JPanel {
 						label.setIcon(null);
 						label.setText("");
 					}
-					
+
 					label.requestFocus();
 					return label;
 				case SchemaAttribute.BOOLEAN_TYPE :
@@ -790,13 +787,13 @@ public class AttributePane extends JPanel {
 					return tf;
 			}
 		}
-		
+
 		/**
 		 * Returns a component that allows the user to choose an
 		 * attribute value from a set of existing instances.  Will
 		 * return a null value if no instances can be found or if
 		 * allowComboBoxEditor is false.
-		 * 
+		 *
 		 * @param table
 		 * @param value
 		 * @param row
@@ -808,7 +805,7 @@ public class AttributePane extends JPanel {
 				comboBox = null;
 				return comboBox;
 			}
-			
+
 			// This stuff creates a combo box presenting the user
 			// with a number of instances of the given class, taken from
 			// the local repository.
@@ -820,28 +817,28 @@ public class AttributePane extends JPanel {
 
 					comboBox = new AttributeComboBox();
 					comboBox.setFont(table.getFont());
-					
+
 					// allows user to leave item empty, if wanted
 					comboBox.addItem(null);
-						
+
 					for (int j=0;j<instanceArray.length;j++) {
 						comboBox.addItem(new ComboBoxInstanceWrapper((GKInstance)instanceArray[j]));
-						
+
 						// Restore previous selection, if known.
                         if (value instanceof StoichiometryInstance) {
                             GKInstance wrappedInstance = ((StoichiometryInstance)value).getInstance();
                             if (wrappedInstance == instanceArray[j])
                                 comboBox.setSelectedIndex(j + 1);
                         }
-                        else if ((value instanceof GKInstance) && 
+                        else if ((value instanceof GKInstance) &&
                                  (value==instanceArray[j]))
 							comboBox.setSelectedIndex(j+1); // add 1 because of empty item
 					}
-							
+
 					comboBox.requestFocus();
 
 					return comboBox;
-				} 
+				}
 			} catch (Exception e) {
 				System.err.println("AttributePane.getChooserTableCellEditorComponent: something went wrong while trying to get instances for row "+row);
 				e.printStackTrace();
@@ -849,30 +846,30 @@ public class AttributePane extends JPanel {
 
 			return null;
 		}
-		
+
 		/**
 		 * Wrapper class for a GKInstance that tries to provide a concise
 		 * instance name via the toString method.  Combo boxes look better
 		 * when you use this class, rather than a naked instance.
-		 * 
+		 *
 		 * @author croft
 		 *
 		 */
 		private class ComboBoxInstanceWrapper {
 			private GKInstance instance = null;
-			
+
 			public ComboBoxInstanceWrapper(GKInstance instance) {
 				this.instance = instance;
 			}
-			
+
 			public GKInstance getInstance() {
 				return(instance);
 			}
-			
+
 			public String toString() {
 				if (instance == null)
 					return("");
-				
+
 				String name = instance.getDisplayName();
 				if (name==null || name.equals(""))
 					name = instance.getExtendedDisplayName();
@@ -880,40 +877,40 @@ public class AttributePane extends JPanel {
 					name = instance.toString();
 				if (name==null || name.equals(""))
 					name = "Unknown instance of " + instance.getSchemClass().getName();
-				
+
 				return(name);
 			}
 		}
-		
+
 		/**
 		 * Derive all instances associated with an attribute name
-		 * 
+		 *
  		 * @param attName
 		 * @return
 		 */
 		private Collection deriveInstancesFromAttributeName(String attName) {
 			if (attName==null)
 				return null;
-			
+
 			// Get all the schema classes associated with the current
 			// attribute (in some cases, there may be more than one).
 			List schemaClasses = deriveSchemaClassesFromAttributeName(attName);
-			
+
 			// Find all of the instances in the local repository
 			// that realize the schema classes.
 			List instances = new ArrayList();
 			for (Iterator it = schemaClasses.iterator(); it.hasNext();)
 				instances.addAll(deriveInstancesFromSchemaClass((GKSchemaClass)it.next()));
-			
+
 			if (instances==null)
 				return null;
-			
+
 			// Sort the instances to make them more user-friendly
 			Collections.sort(instances, new InstanceComparator());
-			
+
 			return instances;
 		}
-		
+
 		private void addAllNonRedundant(ArrayList baseList, Collection stuffToAdd) {
 			Object addMe;
 			for (Iterator it = stuffToAdd.iterator(); it.hasNext();) {
@@ -922,11 +919,11 @@ public class AttributePane extends JPanel {
 					baseList.add(addMe);
 			}
 		}
-		
+
 		private List deriveInstancesFromSchemaClass(GKSchemaClass schemaClass) {
 			if (schemaClass==null)
 				return null;
-			
+
 			ArrayList instances = new ArrayList();
 			Collection schemaClassInstances;
 			try {
@@ -939,7 +936,7 @@ public class AttributePane extends JPanel {
 				System.err.println("AttributePane.deriveInstancesFromSchemaClass(): problem while trying to get some instances for the schema class "+schemaClass.getName());
 				e.printStackTrace();
 			}
-			
+
 			// Add the instances found for each subclass.  If there
 			// are no further subclasses, then the recursion is
 			// terminated.
@@ -954,17 +951,17 @@ public class AttributePane extends JPanel {
 						addAllNonRedundant(instances, schemaClassInstances);
 				}
 			}
-			
+
 			return instances;
 		}
-		
+
 		/**
 		 * Find the schema class corresponding to the given attribute name.
 		 * This tells you what kind of object is found in what slot.
-		 * 
+		 *
 		 * TODO: there is some overlap with code in AttributePaneController
 		 * here, it would be good if this could be merged somehow.
-		 * 
+		 *
 		 * @param attName
 		 * @return
 		 */
@@ -980,7 +977,7 @@ public class AttributePane extends JPanel {
 			}
 			if (att==null)
 				return null;
-			
+
 			Collection allowedClasses = att.getAllowedClasses();
 			if (allowedClasses == null || allowedClasses.size() == 0) {
 				System.err.println("AttributePane.deriveSchemaClassFromAttributeName(): There are no allowed classes for the attribute "+attName);
@@ -989,14 +986,14 @@ public class AttributePane extends JPanel {
 			List schemaClasses = new ArrayList();
 			for (Iterator it = allowedClasses.iterator(); it.hasNext();)
 				schemaClasses.add(it.next());
-			
+
 			return schemaClasses;
 		}
-		
+
 		/**
 		 * Used for comparing pairs of instances, to determine
 		 * their ordering in a sort.
-		 * 
+		 *
 		 * @author croft
 		 *
 		 */
@@ -1012,25 +1009,25 @@ public class AttributePane extends JPanel {
 					e.printStackTrace();
 					return 0;
 				}
-				
+
 				String instanceName1 = instance1.getDisplayName();
 				if (instanceName1==null)
 					instanceName1 = instance1.getExtendedDisplayName();
 				String instanceName2 = instance2.getDisplayName();
 				if (instanceName2==null)
 					instanceName2 = instance2.getExtendedDisplayName();
-				
+
 				// It doesn't make sense to try sorting things that don't
 				// have names.
 				if (instanceName1==null || instanceName2==null)
 					return 0;
-				
+
 				// Do a simple lexicographic comparison of the attribute
 				// names.
 				return instanceName1.compareToIgnoreCase(instanceName2);
 			}
 		}
-		
+
 		/**
 		 * Pulls a value from the current cell editor component.
 		 */
@@ -1041,11 +1038,11 @@ public class AttributePane extends JPanel {
 					// Give the user a chooser for editing appropriate cells
 					if (comboBox!=null) {
 						Object selectedItem = comboBox.getSelectedItem();
-						
+
 						// Make sure that nothing gets transferred from one slot
 						// to another.
 //						comboBox.removeAllItems();
-						
+
 						if (selectedItem==null)
 							return null;
 						else if (selectedItem instanceof ComboBoxInstanceWrapper)
@@ -1053,7 +1050,7 @@ public class AttributePane extends JPanel {
 						else
 							return trimmedStringFromObject(selectedItem);
 					}
-					
+
 					return editingValue;
 				case SchemaAttribute.BOOLEAN_TYPE :
 					str = trimmedStringFromObject(jcb.getSelectedItem());
@@ -1090,29 +1087,29 @@ public class AttributePane extends JPanel {
 					return tf.getText();
 			}
 		}
-		
+
 		private String trimmedStringFromObject(Object o) {
 			return o==null?null:o.toString().trim();
 		}
-		
+
 		public JComponent getCurrentComponent() {
 			switch (valueType) {
 				case SchemaAttribute.INSTANCE_TYPE :
 					// Give the user a chooser for editing appropriate cells
 					if (comboBox!=null)
 						return comboBox;
-					
+
 					return label;
 				case SchemaAttribute.BOOLEAN_TYPE :
 					return jcb;
 				case SchemaAttribute.ENUM_TYPE :
 				    return enumJcb;
 				default :
-					
+
 					return tf;
 			}
 		}
-		
+
 		/**
 		 * Validate the input data. This method is synchronized to avoid multiple
 		 * call at the same time.
@@ -1126,7 +1123,7 @@ public class AttributePane extends JPanel {
 			    return true;
 			}
 			String text = tf.getText().trim();
-			// It can be empty.    
+			// It can be empty.
 			if (text.length() == 0) {
 				fireEditingStopped();
 				return true;
@@ -1137,7 +1134,7 @@ public class AttributePane extends JPanel {
 						Integer.parseInt(text);
 					}
 					catch(NumberFormatException e) {
-						JOptionPane.showMessageDialog(propTable, 
+						JOptionPane.showMessageDialog(propTable,
 						     "Please input an integer number",
 						     "Input Error",
 						     JOptionPane.ERROR_MESSAGE);
@@ -1173,7 +1170,7 @@ public class AttributePane extends JPanel {
 			return true;
 		}
 	}
-	
+
 	/**
 	 * @param localChangeOnly true if the attribute editing will not propagate to other
 	 * classes.
@@ -1181,14 +1178,14 @@ public class AttributePane extends JPanel {
 	public void setLocalChangeOnly(boolean localChangeOnly) {
 		this.localChangeOnly = localChangeOnly;
 	}
-	
+
 	public JTable getPropertyTable() {
 		return propTable;
 	}
-	
+
 	/**
 	 * Get a list of any values that have been selected in this Object.
-	 * @return
+	 * @return List of objects selected
 	 */
 	public List<Object> getSelectedValues() {
 	    List<Object> values = new ArrayList<Object>();
@@ -1201,10 +1198,10 @@ public class AttributePane extends JPanel {
 	    }
 	    return values;
 	}
-	
+
 	/**
 	 * Get the attribute name for the selected value.
-	 * @return
+	 * @return Name of attribute
 	 */
 	public String getSelectedAttributeName() {
 	    PropertyTableModel model = (PropertyTableModel) propTable.getModel();
@@ -1213,7 +1210,7 @@ public class AttributePane extends JPanel {
 	    String attName = model.getKeyAt(row);
 	    return attName;
 	}
-    
+
     public AttributePaneController getController() {
         return controller;
     }
@@ -1233,7 +1230,7 @@ public class AttributePane extends JPanel {
 		private CellSpan cellSpan;
 		// For attributes sorting
         private Comparator attributeComparator;
-        
+
 		public PropertyTableModel() {
 			cellSpan = new CellSpan();
 			values = new Object[1][1];
@@ -1260,15 +1257,15 @@ public class AttributePane extends JPanel {
 			}
 			if (isAllSlotsEditable)
 			    return true;
-			
+
 			String key = getKeyAt(row);
             return !isUneditableAttributeName(key);
 		}
-		
+
 		/**
 		 * Import an instance and set up the table model to
 		 * reflect the new instance.
-		 * 
+		 *
 		 * @param instance
 		 */
 		public void setIntance(GKInstance instance) {
@@ -1281,14 +1278,14 @@ public class AttributePane extends JPanel {
 			this.instance = instance;
 			refresh();
 		}
-		
+
 		/**
 		 * @return Returns the current instance.
 		 */
 		public GKInstance getInstance() {
 			return instance;
 		}
-        
+
         /**
          * Required by the super class AttributeTableModel.
          * @return the SchemaClass object used by the displayed Instance object.
@@ -1298,11 +1295,11 @@ public class AttributePane extends JPanel {
                 return null;
             return instance.getSchemClass();
         }
-        
+
         public void setAttributeComparator(Comparator comparator) {
             this.attributeComparator = comparator;
         }
-        
+
         /**
 		 * Synchronises table-model-internal data structures
 		 * with the most recently imported instance.
@@ -1339,7 +1336,7 @@ public class AttributePane extends JPanel {
 //					// relevance to the curator.
 //					if (isIrrelevantAttributeName(attributeName))
 //						continue;
-//					
+//
 //					// Don't include uneditable attributes in the table,
 //					// if the table is editable.  Otherwise, do include
 //					// them.  The rationale is that a non-editable table
@@ -1348,7 +1345,7 @@ public class AttributePane extends JPanel {
 //					// interesting.
 //					if (isUneditableAttributeName(attributeName) && isEditable())
 //						continue;
-					
+
 					Collection vals = instance.getAttributeValuesList(attribute);
                     // A special case: use stoichiometry for complex hasComponent.
                     // It might be extended to input and output for Reaction.
@@ -1357,7 +1354,7 @@ public class AttributePane extends JPanel {
                     }
 					valueMap.put(attributeName, vals);
 					keys.add(attributeName); // add here, to make sure things stay in order
-					
+
 					// Make a note of the schema class of the value being set,
 					// for future reference.
 					if (vals!=null) {
@@ -1371,7 +1368,7 @@ public class AttributePane extends JPanel {
 							}
 						}
 					}
-					
+
 				}
 				setValues(valueMap, emptyCellMap, keys);
 				cellSpan.initSpansWithEmptyCells(valueMap, emptyCellMap, keys);
@@ -1403,11 +1400,11 @@ public class AttributePane extends JPanel {
                 }
             }
             if (unloaded.size() > 0) {
-                dba.loadInstanceAttributeValues(unloaded, 
+                dba.loadInstanceAttributeValues(unloaded,
                                                 new String[]{ReactomeJavaConstants._displayName});
             }
         }
-        
+
         private List generateStoichiometries(List components) {
             if (components == null)
                 return null;
@@ -1417,9 +1414,9 @@ public class AttributePane extends JPanel {
             for (Iterator it = components.iterator(); it.hasNext();) {
                 component = (GKInstance) it.next();
                 value = (Integer) map.get(component);
-                if (value == null) 
+                if (value == null)
                     value = new Integer(1);
-                else 
+                else
                     value = new Integer(value.intValue() + 1);
                 map.put(component, value);
             }
@@ -1434,14 +1431,14 @@ public class AttributePane extends JPanel {
             Collections.sort(rtn);
             return rtn;
         }
-		
+
 		/**
 		 * Builds up the (global) "values" array.  This maps table row
 		 * number to row content.  What makes this complicated is the
 		 * fact that some attributes can have multiple values.  One
 		 * row is assigned per value.  This means that there is no
 		 * one-to-one mapping between "valueMap" and "values".
-		 * 
+		 *
 		 * @param valueMap
 		 * @param keys
 		 */
@@ -1458,7 +1455,7 @@ public class AttributePane extends JPanel {
 				}
 				else
 					row++;
-				
+
 				// Increment row counter if an empty cell is present
 				if (emptyCellMap.get(key)!=null)
 					row++;
@@ -1489,7 +1486,7 @@ public class AttributePane extends JPanel {
                     //row2rank[row] = 0;
                     row++;
                 }
-                
+
                 // Put in an empty cell, if one is required
 				if (emptyCellMap.get(key)!=null) {
 					values[row][1] = null;
@@ -1497,19 +1494,19 @@ public class AttributePane extends JPanel {
 				}
             }
         }
-		
+
 		/**
 		 * Gets a list of row numbers corresponding to rows containing
 		 * defining attributes.
-		 * 
+		 *
 		 * @return
 		 */
 		public int[] getDefiningRows() {
 			ArrayList definingAttributeNames = getDefiningAttributeNames();
-			
+
 			if (definingAttributeNames==null)
 				return new int[0];
-			
+
 			// Loop over each of the defining attributes and check
 			// to see if they are in the table; if so, make a note
 			// of the corresponding row number.
@@ -1528,19 +1525,19 @@ public class AttributePane extends JPanel {
 						definingRowList.add(new Integer(row));
 				}
 			}
-			
+
 			// Copy the row numbers from the ArrayList to an int array.
 			int[] definingRows = new int[definingRowList.size()];
 			for (int i=0;i<definingRowList.size();i++)
 				definingRows[i] = ((Integer)(definingRowList.get(i))).intValue();
-			
+
 			return definingRows;
 		}
-		
+
 		private ArrayList getDefiningAttributeNames() {
 			if (instance==null)
 				return null;
-			
+
 			// Get a list of defining attributes from the instance
 			Collection definingAttributes = null;
 			try {
@@ -1551,26 +1548,26 @@ public class AttributePane extends JPanel {
 			}
 			if (definingAttributes==null)
 				return null;
-			
+
 			GKSchemaAttribute attribute;
 			ArrayList definingAttributeNames = new ArrayList();
 			for (Iterator it = definingAttributes.iterator(); it.hasNext();) {
 				attribute = (GKSchemaAttribute)it.next();
 				definingAttributeNames.add(attribute.getName());
 			}
-			
+
 			return definingAttributeNames;
 		}
-		
+
 		public boolean isDefiningAttributeName(String attributeName) {
 			ArrayList definingAttributeNames = getDefiningAttributeNames();
-			
+
 			if (definingAttributeNames==null)
 				return false;
-			
+
 			return definingAttributeNames.contains(attributeName);
 		}
-		
+
 		public int getRowCount() {
 			return values.length;
 		}
@@ -1589,11 +1586,11 @@ public class AttributePane extends JPanel {
 			}
 			return null;
 		}
-		
+
 		/**
 		 * Delete a value at the specified row.
 		 * @param row
-		 */ 
+		 */
 		public Object removeValueAt(int row) {
 			// Need to find the key for the value
 			Object key = null;
@@ -1618,13 +1615,13 @@ public class AttributePane extends JPanel {
                         int stoi = ((StoichiometryInstance)value).getStoichiometry();
                         for (int j = 0; j < stoi; j++)
                             valueList.remove(rtn);
-                    } 
+                    }
                     catch (Exception e) {
                         System.err.println("AttributePane.removeValueAt(): " + e);
                         e.printStackTrace();
                     }
                 }
-                else 
+                else
                     rtn = list.remove(index);
 				if (list.size() == 0) { // Need to empty a slot
                     try {
@@ -1636,7 +1633,7 @@ public class AttributePane extends JPanel {
                     }
                  }
 				refresh(); // Update the whole table. This is a lazy way. It
-				           // should be possible to remove or update a single cell 
+				           // should be possible to remove or update a single cell
 				           // to improve the performance.
 				return rtn;
 			}
@@ -1674,16 +1671,16 @@ public class AttributePane extends JPanel {
 		    }
 		    if (validator == null)
 		        validator = new AttributeEditValidator();
-		    if (!validator.validate(instance, 
-		                            key.toString(), 
-		                            value, 
+		    if (!validator.validate(instance,
+		                            key.toString(),
+		                            value,
 		                            AttributePane.this))
 		        return;
 		    // Make sure it is correct value
 		    if (value instanceof GKInstance) {
 		        List newValues = new ArrayList(1);
 		        newValues.add(value);
-//		        if (!validator.validateTreeStructure(newValues, 
+//		        if (!validator.validateTreeStructure(newValues,
 //		                                             key.toString(),
 //		                                             instance,
 //		                                             AttributePane.this))
@@ -1702,7 +1699,7 @@ public class AttributePane extends JPanel {
 		    // Need to update valueMap
 		    java.util.List list = (java.util.List)valueMap.get(key); // It is a List!
 		    if (controller.shouldStoichiometryInstanceBeUsed(row, col)) {
-		        try { 
+		        try {
 		            if (value != null) {
 		                GKInstance newInstance = (GKInstance) value;
 		                StoichiometryInstance newStoiInstance = new StoichiometryInstance(newInstance, 1);
@@ -1777,10 +1774,10 @@ public class AttributePane extends JPanel {
 		    // Special case for database ID
 		    if (key.toString().equals(ATTRIBUTE_NAME_DATABASE_ID))
 		        instance.setDBID(new Long(value.toString()));
-		    
+
 		    // Try adding a new empty cell at this point
 		    addEmptyValue(value);
-		    
+
 		    // Make a note of the schema class of the value being set,
 		    // for future reference.
 		    if (value instanceof GKInstance) { // Null checking is not needed. instanceof operator will
@@ -1788,7 +1785,7 @@ public class AttributePane extends JPanel {
 		        GKInstance attInstance = (GKInstance)value;
 		        setSchemaClassAt(row, (GKSchemaClass)attInstance.getSchemClass());
 		    }
-		    
+
 		    // Only for editable value
 		    // Some stuff commented out here, because changes in instance
 		    // attributes were not being "noticed" by persistence mechanism.
@@ -1797,7 +1794,7 @@ public class AttributePane extends JPanel {
 		    // havn't yet noticed anything.  DC.
 		    // TODO: find out sideeffects.
 //		    try {
-		    
+
 //		    if (!instance.getSchemClass().getAttribute(key.toString()).isInstanceTypeAttribute()) {
 		    // Fire edit event
 		    AttributeEditEvent e = new AttributeEditEvent(AttributePane.this, instance, key.toString());
@@ -1810,7 +1807,7 @@ public class AttributePane extends JPanel {
 //		    e.printStackTrace();
 //		    }
 		}
-		
+
 		public void setEmptyCell(boolean value, String attName) {
 			Boolean objectValue = new Boolean(true);
 			if (value)
@@ -1839,7 +1836,7 @@ public class AttributePane extends JPanel {
 			// The most generic type probably.
 			return SchemaAttribute.STRING_TYPE;
 		}
-		
+
 		public GKSchemaAttribute getAttribute(int row) {
 		    String key = getKeyAt(row);
 		    try {
@@ -1852,7 +1849,7 @@ public class AttributePane extends JPanel {
 		    }
 		    return null;
 		}
-		
+
 		public String getKeyAt(int row) {
 			Object key = null;
 			for (int i = row; i >= 0; i--) {
@@ -1864,19 +1861,19 @@ public class AttributePane extends JPanel {
 				return null;
 			return key.toString();
 		}
-		
+
 		public GKSchemaClass getSchemaClassAt(int row) {
 			return (GKSchemaClass)currentSchemaClassMap.get(getKeyAt(row));
 		}
-		
+
 		public void setSchemaClassAt(int row, GKSchemaClass schemaClass) {
 			setSchemaClass(getKeyAt(row), schemaClass);
 		}
-		
+
 		public void setSchemaClass(String attName, GKSchemaClass schemaClass) {
 			currentSchemaClassMap.put(attName, schemaClass);
 		}
-		
+
 		public int getLastRowForAttributeAt(int row) {
 			// Search down
 			Object key = null;
@@ -1888,16 +1885,16 @@ public class AttributePane extends JPanel {
 			return row;
 		}
 	}
-	
+
 	class ShellPane extends JPanel {
 		private JButton viewInDBBtn;
 		private JButton downloadBtn;
-		
+
 		public ShellPane() {
 			super();
 			init();
 		}
-		
+
 		private void init() {
 			setLayout(new BorderLayout());
 			JTextArea ta = new JTextArea();
@@ -1905,7 +1902,8 @@ public class AttributePane extends JPanel {
 			ta.setBackground(getBackground());
 			ta.setLineWrap(true);
 			ta.setWrapStyleWord(true);
-			ta.setText("This is a shell instance that is not editable. Click \"View in DB\" " +				"to view its attributes in the database, or \"Download\" to download and edit it:");
+			ta.setText("This is a shell instance that is not editable. Click \"View in DB\" " +
+				"to view its attributes in the database, or \"Download\" to download and edit it:");
 			add(ta, BorderLayout.NORTH);
 			// Buttons
 			JPanel btnPane = new JPanel();
@@ -1921,7 +1919,7 @@ public class AttributePane extends JPanel {
 			add(btnPane, BorderLayout.CENTER);
 		}
 	}
-	
+
 	/**
 	 * To enable DnD in the table for changing the order of the values.
 	 */
@@ -1929,13 +1927,13 @@ public class AttributePane extends JPanel {
 		private DataFlavor serialArrayListFlavor;
 		private DataFlavor bookmarksFlavor;
 		private String selectedAtt;
-		
+
 		public ListValueTransferHandler() {
 			serialArrayListFlavor = new DataFlavor(ArrayList.class,
 											       "ArrayList");
 			bookmarksFlavor = new DataFlavor(Bookmarks.class, "Bookmarks");
 		}
-		
+
 		private boolean hasSerialArrayListFlavor(DataFlavor[] flavors) {
 			if (serialArrayListFlavor == null) {
 				return false;
@@ -1948,7 +1946,7 @@ public class AttributePane extends JPanel {
 			}
 			return false;
 		}
-		
+
 		private boolean hasBookmarksFlavor(DataFlavor[] flavors) {
 		    for (int i = 0; i < flavors.length; i++) {
 		        if (flavors[i].equals(bookmarksFlavor)) {
@@ -1957,14 +1955,14 @@ public class AttributePane extends JPanel {
 		    }
 		    return false;
 		}
-	
+
 		public boolean canImport(JComponent c, DataFlavor[] flavors) {
 		    if (!isEditable)
 				return false;
 		    JTable table = (JTable) c;
 		    int col = table.getSelectedColumn();
 		    if (col != 1) // Only value column can be edited
-		        return false; 
+		        return false;
 		    int row = table.getSelectedRow();
 		    if (row == -1)
 		        return false;
@@ -1972,10 +1970,10 @@ public class AttributePane extends JPanel {
 		    String attName = model.getKeyAt(row);
 		    if (uneditableAttNames.contains(attName))
 		        return false;
-			if (hasSerialArrayListFlavor(flavors)) { 
+			if (hasSerialArrayListFlavor(flavors)) {
 				if (attName != selectedAtt)
 					return false;
-				return true; 
+				return true;
 			}
 			else if (hasBookmarksFlavor(flavors)) {
 			    try {
@@ -2008,7 +2006,7 @@ public class AttributePane extends JPanel {
 						controller.reorder(attName, valueIndex, anchorValue);
 				    }
 				    return true;
-				} 
+				}
 				else if (hasBookmarksFlavor(t.getTransferDataFlavors())){
 					List bookmarks = (ArrayList) t.getTransferData(bookmarksFlavor);
 					List instances = convertBookmarksToInstance(bookmarks);
@@ -2032,14 +2030,14 @@ public class AttributePane extends JPanel {
 				}
 				else
 				    return false;
-			} 
+			}
 			catch (Exception e) {
 				System.err.println("AttributePane.importData(): " + e);
 				e.printStackTrace();
 				return false;
-			} 
+			}
 		}
-		
+
 		private List convertBookmarksToInstance(List bookmarks) {
 		    List instances = new ArrayList(bookmarks.size());
 		    try {
@@ -2059,7 +2057,7 @@ public class AttributePane extends JPanel {
 		    }
 		    return instances;
 		}
-		
+
 		protected Transferable createTransferable(JComponent c) {
 			JTable table = (JTable) c;
 			int col = table.getSelectedColumn();
@@ -2078,20 +2076,20 @@ public class AttributePane extends JPanel {
 			this.selectedAtt = attName;
 			return new ArrayListTransferable(list);
 		}
-		
+
 		/**
 		 * Only move is allowed for DnD.
 		 */
 		public int getSourceActions(JComponent c) {
-			return MOVE; 
+			return MOVE;
 		}
-		
+
 		protected void exportDone(JComponent source, Transferable data, int action) {
 			if (action == MOVE) {
 				refresh();
 			}
 		}
-		
+
 		private int getIndex(String attName, Object value) {
 			try {
 				java.util.List list = instance.getAttributeValuesList(attName);
@@ -2106,11 +2104,11 @@ public class AttributePane extends JPanel {
 			}
 		}
 	}
-    
+
     /**
      * Used for comparing pairs of attributes, to determine
      * their ordering in a sort.
-     * 
+     *
      * @author croft
      *
      */
@@ -2126,21 +2124,21 @@ public class AttributePane extends JPanel {
                 e.printStackTrace();
                 return 0;
             }
-            
+
             String attributeName1 = attribute1.getName();
             String attributeName2 = attribute2.getName();
             // isdefiningAttributeName(String) is a length operation. Use this simple way.
             //boolean isDefiningAttribute1 = isDefiningAttributeName(attributeName1);
             //boolean isDefiningAttribute2 = isDefiningAttributeName(attributeName2);
             boolean isDefiningAttribute1 = false;
-             if (attribute1.getDefiningType() == SchemaAttribute.ALL_DEFINING || 
+             if (attribute1.getDefiningType() == SchemaAttribute.ALL_DEFINING ||
                  attribute1.getDefiningType() == SchemaAttribute.ANY_DEFINING)
                  isDefiningAttribute1 = true;
              boolean isDefiningAttribute2 = false;
              if (attribute2.getDefiningType() == SchemaAttribute.ALL_DEFINING ||
                  attribute2.getDefiningType() == SchemaAttribute.ANY_DEFINING)
                  isDefiningAttribute2 = true;
-            
+
             // If one of the two attributes is defining and the other
             // is not, then give preference to the one that is defining.
             // If both are defining or neither are defining, then "fall
@@ -2149,7 +2147,7 @@ public class AttributePane extends JPanel {
                 return (-1);
             if (!isDefiningAttribute1 && isDefiningAttribute2)
                 return 1;
-            
+
             // Do a simple lexicographic comparison of the attribute
             // names.
             return attributeName1.compareTo(attributeName2);
@@ -2157,7 +2155,7 @@ public class AttributePane extends JPanel {
     }
 
     /**
-     * This Compartor is used to group attributes in the same category together and then sort them 
+     * This Compartor is used to group attributes in the same category together and then sort them
      * based on attribute names. The order of the categories is: Mandatory, Required, Optional and
      * NO_Manual_Edit.
      * @author guanming
@@ -2168,10 +2166,10 @@ public class AttributePane extends JPanel {
             // This class will be used for attributes only
             SchemaAttribute att1 = (SchemaAttribute) obj1;
             SchemaAttribute att2 = (SchemaAttribute) obj2;
-            
+
             String attributeName1 = att1.getName();
             String attributeName2 = att2.getName();
-            
+
             // Categories sort as following: Mandantory, Required, Optional, NoManualEdit.
             // The integer values defined in class SchemaAttribute can be used for sorting.
             // But they may be not reliable and should NOT be assumed. So a local value is
@@ -2186,7 +2184,7 @@ public class AttributePane extends JPanel {
             else
                 return comp;
         }
-        
+
         private int getLocalCategory(int category) {
             switch(category) {
                 case SchemaAttribute.MANDATORY :
@@ -2194,7 +2192,7 @@ public class AttributePane extends JPanel {
                 case SchemaAttribute.REQUIRED :
                     return 2;
                 case SchemaAttribute.OPTIONAL :
-                    return 3; 
+                    return 3;
                 case SchemaAttribute.NOMANUALEDIT :
                     return 4;
                 default : // Default as the last one to be listed as the end.

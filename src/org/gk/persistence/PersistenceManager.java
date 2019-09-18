@@ -75,6 +75,14 @@ public class PersistenceManager {
 	/**
 	 * Return a MySQLAdaptor for a specified MySQL db. Calling this method will
 	 * automatically set the active MySQLAdaptor to the returned one.
+	 * 
+	 * @param host Database host
+	 * @param dbName Database name
+	 * @param user User name to connect to the database
+	 * @param pwd Password for the specified user name to connect to the database
+	 * @param port Database port
+	 * @return MySQLAdaptor object connected to the specified database; null if 
+	 * an SQLException occurs
 	 */
 	public MySQLAdaptor getMySQLAdaptor(String host, 
 	                                    String dbName, 
@@ -135,9 +143,10 @@ public class PersistenceManager {
     /**
      * An overloaded method to get the active MySQLAdaptor. If no active MySQLAdaptor,
      * this method will try to initiate one automatically.
-     * @param comp 
+     * 
+     * @param comp Component GUI to display messages to the user
      * @return the active MySQLAdaptor.
-     * @see getActiveMySQLAdaptor()
+     * @see #getActiveMySQLAdaptor()
      */
 	public MySQLAdaptor getActiveMySQLAdaptor(Component comp) {
 	    MySQLAdaptor dba = getActiveMySQLAdaptor();
@@ -170,6 +179,7 @@ public class PersistenceManager {
 	
 	/**
 	 * Compare timpestamps of local and db schema to make sure they are the same.
+	 * 
 	 * @param dba
 	 * @return true if the two schemas have the same timestamp or the comparison
 	 * cannot be done (e.g. the local schema is not loaded. or no timestamps for old
@@ -192,6 +202,7 @@ public class PersistenceManager {
 	 * Set up a MySQLAdaptor and set it as the active MySQLAdaptor based on the cached 
 	 * connecting information. Method setDBConnectInfo() should be called first. Otherwise,
 	 * the call to this method is deemed to fail.
+	 * 
 	 * @return the initilized MySQLAdaptor.
 	 */
 	private MySQLAdaptor initMySQLAdaptor(Component comp) {
@@ -280,9 +291,10 @@ public class PersistenceManager {
     /**
      * Update the local instance from the db instance. 
      * Note: changes of the local instance will be overwritten.
-     * @param localCopy
-     * @param dbCopy
-     * @throws Exception
+     * 
+     * @param localCopy Local GKInstance object to update
+     * @param dbCopy Remote GKInstance object from the database to use as data source for the update
+     * @throws Exception Thrown if unable to retrieve attribute values from the database instance
      */
     public void updateLocalFromDB(GKInstance localCopy,
                                   GKInstance dbCopy) throws Exception {
@@ -338,7 +350,9 @@ public class PersistenceManager {
 	 * found from the local file system, a shell copy will be created based on DB_ID
 	 * and displayName of the specified instance. This shell copy will be saved in 
 	 * the local file if the user saves all changes.
+	 * 
 	 * @param instance can be either from db or from local.
+	 * @return GKInstance object that is a local copy of the provided instance
 	 */
 	public GKInstance getLocalReference(GKInstance instance) {
 		if (activeFileAdaptor == null)

@@ -247,7 +247,7 @@ public class SearchPane extends JPanel {
 	
 	/**
 	 * Get the text that input in the attribute value field.
-	 * @return
+	 * @return Text value
 	 */
 	public String getText() {
 		return getValue(valueField,
@@ -279,9 +279,9 @@ public class SearchPane extends JPanel {
 	
 	/**
 	 * The actual method for doing search
-	 * @param persistenceAdaptor
-	 * @return
-	 * @throws Exception
+	 * @param persistenceAdaptor Adaptor to data source
+	 * @return Collection of instances found
+	 * @throws Exception Thrown if unable to retrieve instances during the search
 	 */
 	@SuppressWarnings("unchecked")
 	public Collection search(PersistenceAdaptor persistenceAdaptor) throws Exception {

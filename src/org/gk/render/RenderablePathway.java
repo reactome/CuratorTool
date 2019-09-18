@@ -33,7 +33,9 @@ public class RenderablePathway extends ContainerNode {
     private List<Renderable> bgComponents; // For components drawn as background
     private List<Renderable> fgComponents; // For components drawn as foreground
     
-    /** Creates a new instance of RenderablePathway */
+    /** 
+     * Creates a new instance of RenderablePathway 
+     */
     public RenderablePathway() {
         boundsBuffer = 8;
         hideComponents = true; // Used as default
@@ -43,7 +45,8 @@ public class RenderablePathway extends ContainerNode {
     
     /**
      * Set the corresponding PathwayDiagram DB_ID for this RenderablePathway.
-     * @param dbId
+     * 
+     * @param dbId DbId to set as the diagram id
      */
     public void setReactomeDiagramId(Long dbId) {
         this.reactomeDiagramId = dbId;
@@ -60,6 +63,8 @@ public class RenderablePathway extends ContainerNode {
     /**
      * This method has been deprecated in this RenderablePathway class. A RenderablePathway
      * may be corresponding to more than one Pathway instance. Use {@link #getReactomeDiagramId()} instead.
+     * 
+     * @return DbId of the Reactome pathway
      */
     @Override
     @Deprecated
@@ -69,8 +74,9 @@ public class RenderablePathway extends ContainerNode {
 
     /**
      * Set the flag to hide compartment names in nodes contained by this RenderablePathway
-     * object. 
-     * @param hide
+     * object.
+     * 
+     * @param hide True to hide compartment names; false otherwise
      */
     public void setHideCompartmentInNode(boolean hide) {
         this.hideCompartmentInNode = hide;
@@ -104,8 +110,8 @@ public class RenderablePathway extends ContainerNode {
     
     /**
      * Layout RenderablePathway automatically.
-     * @param type one of constants from GraphLayoutEngine:     
-     * HIERARCHICAL_LAYOUT, FORCE_DIRECTED_LAYOUT.
+     * 
+     * @param type One of constants from GraphLayoutEngine: HIERARCHICAL_LAYOUT, FORCE_DIRECTED_LAYOUT.
      */
 	public void layout(int type) {
         PathwayLayoutHelper helper = new PathwayLayoutHelper(this);

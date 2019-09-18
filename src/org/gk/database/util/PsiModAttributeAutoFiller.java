@@ -14,8 +14,8 @@ import javax.swing.JOptionPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 
-import uk.ac.ebi.demo.ols.soap.Query;
-import uk.ac.ebi.demo.ols.soap.QueryServiceLocator;
+import uk.ac.ebi.ols.soap.Query;
+import uk.ac.ebi.ols.soap.QueryServiceLocator;
 
 /**
  * This class is used to fetch attributes for PsiMOD instance directly from the EBI web service server

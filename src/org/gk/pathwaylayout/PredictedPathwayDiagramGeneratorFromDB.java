@@ -81,12 +81,12 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     
     /**
      * Generate a diagram for the passed predicted target pathway from the source diagram for source pathway.
-     * @param targetPathway
-     * @param sourcePathway
-     * @param sourceDiagram
-     * @param dba
-     * @return
-     * @throws Exception
+     * @param targetPathway Pathway for which to generate the diagram
+     * @param sourcePathway Pathway for which to retrieve information for generating the diagram
+     * @param sourceDiagram Diagram for which to retrieve information for generating the diagram
+     * @return Generated target PathwayDiagram instance
+     * @throws Exception Thrown if unable to get a default InstanceEdit from the set DBAdaptor or retrieve/set diagram
+     * data
      */
     public GKInstance generatePredictedDiagram(GKInstance targetPathway,
                                                GKInstance sourcePathway,
@@ -729,7 +729,11 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
      * This method should be called to generate diagrams for other species. All human diagrams
      * will be mapped to other species when applicable. Only diagrams instances are created, other
      * instances and static images should be created in other place.
-     * @throws Exception
+     * @param dba MySQLAdaptor used to retrieve/update PathwayDiagram instances
+     * @param defaultPerson Default person dbId to set
+     * @param srcSpeciesId Species instance dbId of the source species to find source PathwayDiagram instances
+     * @throws Exception Thrown if unable to retrieve/update PathwayDiagram instances or if unable to retrieve
+     * information from a PathwayDiagram instance or its pathway
      */
     public void generateDiagramsForOtherSpecies(MySQLAdaptor dba,
                                                 Long defaultPerson,
@@ -877,7 +881,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
      * species based on human manual diagrams; 2). Generate needed files and instances for both predicted and manual 
      * diagrams to serve the web application.
      * imagebaseDir: the top directory name for all static files used by Web ELV
-     * @param args
+     * @param args Command-line arguments
      */
     public static void main(String[] args) {
         if (args.length < 6) {

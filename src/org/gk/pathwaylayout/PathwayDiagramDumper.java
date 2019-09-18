@@ -36,9 +36,10 @@ public class PathwayDiagramDumper {
  
     /**
      * The entry point to output diagrams.
-     * @param dba
-     * @param outputDir
-     * @throws Exception
+     * @param dba MySQLAdaptor to use for retrieving PathwayDiagram instances
+     * @param outputDir Directory to which to write diagram files
+     * @throws Exception Thrown if unable to retrieve PathwayDiagram instances, retrieving values from the 
+     * PathwayDiagram instances, or an error occurs during file IO.
      */
     public void dumpDiagrams(MySQLAdaptor dba, 
                              File outputDir) throws Exception {

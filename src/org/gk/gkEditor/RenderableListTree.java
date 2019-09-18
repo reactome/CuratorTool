@@ -258,12 +258,12 @@ public abstract class RenderableListTree extends JTree implements Selectable {
     }
 
     /**
-     * Make sure the list is correct after shortcuts have been removed from 
+     * Make sure the list is correct after shortcuts have been removed from
      * the target.
      * @param target
-     * @param shortcutName
+     * @param shortcut
      */
-    public void delinkShortcuts(Renderable target, Renderable  shortcut) {
+    public void delinkShortcuts(Renderable target, Renderable shortcut) {
         List treeNodes = searchNodes(target);
         if (treeNodes != null && treeNodes.size() > 0) {
             // This node has been displayed. Insert the shortcut

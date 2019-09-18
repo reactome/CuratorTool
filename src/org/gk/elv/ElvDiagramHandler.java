@@ -401,13 +401,12 @@ public class ElvDiagramHandler {
     /**
      * Create a RenderablePathway by converting objects contained by passed pathway GKInstance into
      * a RenderablePathway.
-     * @param instance
-     * @param pathway
-     * @return
-     * @throws Exception
+     * @param instance Pathway for which to obtain events
+     * @param pathway RenderablePathway to send objects obtained from the instance
+     * @throws Exception Thrown if unable to get pathway component instances for the instance passed, if unable to 
+     * convert any components to a Renderable object, or if unable to convert properties
      */
-    public void createNewDiagram(GKInstance instance,
-                                 RenderablePathway pathway) throws Exception {
+    public void createNewDiagram(GKInstance instance, RenderablePathway pathway) throws Exception {
         InstanceHandlerFactory factory = InstanceHandlerFactory.getFactory();
         Set<GKInstance> events = getPathwayComponents(instance);
         GKInstance comp = null;
@@ -533,8 +532,12 @@ public class ElvDiagramHandler {
     
     /**
      * Clone a pathway diagram.
-     * @param diagram
-     * @throws Exception
+     * @param diagram RenderablePathway diagram instance to clone
+     * @param fileAdaptor XMLFileAdaptor from which to fetch instance data
+     * @return Cloned RenderablePathway object instance of the RenderablePathway to the method
+     * @throws Exception Thrown if unable to generate an XML String from the diagram passed, if unable to read the XML
+     * String generated to create a clone of the RenderablePathway object, or if unable to retrieve components from the
+     * cloned diagram to set their display names
      */
     public RenderablePathway cloneDiagram(RenderablePathway diagram,
                                           XMLFileAdaptor fileAdaptor) throws Exception {

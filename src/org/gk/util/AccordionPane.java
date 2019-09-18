@@ -39,11 +39,11 @@ public class AccordionPane extends JPanel {
     
     /**
      * Add a component to this AccordionPane with a provided title.
-     * @param title
-     * @param tab
+     * 
+     * @param title Title for SectionTitlePane
+     * @param tab Component to add to the SectionTitlePane
      */
-    public void addTab(String title,
-                       JComponent tab) {
+    public void addTab(String title, JComponent tab) {
         SectionTitlePane titlePane = new SectionTitlePane(title);
         titlePane.setBackground(titleColor);
         titlePane.setSectionPane(tab);
@@ -60,8 +60,9 @@ public class AccordionPane extends JPanel {
     
     /**
      * Set the named tab to be isClosed.
-     * @param title
-     * @param isClosed
+     * 
+     * @param title Title of the SectionTitlePane to be set as closed with true/false
+     * @param isClosed true if SectionTitlePane should be set as closed; false otherwise
      */
     public void setIsClosed(String title, boolean isClosed) {
         for (SectionTitlePane titlePane : titlePanes) {
@@ -75,8 +76,10 @@ public class AccordionPane extends JPanel {
     
     /**
      * Check if the specified tab is closed.
-     * @param title
-     * @return
+     * 
+     * @param title Title of the SectionTitlePane to check if it is closed
+     * @return true if the SectionTitlePane found with the specified title is closed; false if not closed or if a
+     * SectionTitlePane with the title passed was not found
      */
     public boolean isClosed(String title) {
         for (SectionTitlePane titlePane : titlePanes) {
@@ -135,7 +138,8 @@ public class AccordionPane extends JPanel {
     
     /**
      * Get the SectionTitlePane that is opened in this AccordionPane.
-     * @return
+     * 
+     * @return SectionTitlePane that is opened; null if no opened SectionTitlePane is found
      */
     public SectionTitlePane getOpenedPane() {
         for (SectionTitlePane titlePane : titlePanes) {

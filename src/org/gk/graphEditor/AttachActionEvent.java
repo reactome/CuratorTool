@@ -32,7 +32,7 @@ public class AttachActionEvent extends GraphEditorActionEvent {
     
     /**
      * One of INPUT, OUTPUT, HELPER, ACITVATOR, INHIBITOR in HyperEdge.
-     * @param role
+     * @param role Role to set
      */
     public void setRole(int role) {
         this.role = role;

@@ -191,18 +191,14 @@ public class SynchronizationDialog extends JDialog{
 		if (deleteList != null) {
 			java.util.List list = deleteList.getSelection();
 			if (list.size() > 0) {
-				try {
-					java.util.List dbIDs = new ArrayList(list.size());
-					for (Iterator it = list.iterator(); it.hasNext();) {
-						GKInstance instance = (GKInstance) it.next();
-						dbIDs.add(instance.getDBID());
-					}
-					fileAdaptor.clearDeleteRecord(dbIDs);	
+
+				java.util.List dbIDs = new ArrayList(list.size());
+				for (Iterator it = list.iterator(); it.hasNext();) {
+					GKInstance instance = (GKInstance) it.next();
+					dbIDs.add(instance.getDBID());
 				}
-				catch(IOException e) {
-					System.err.println("SynchronizationDialog.clearDeleteRecord(): " + e);
-					e.printStackTrace();
-				}
+				fileAdaptor.clearDeleteRecord(dbIDs);
+				
 				deleteList.deleteInstances(list);
 				// Check if deleteList needs to be removed
 				if (deleteList.getDisplayedInstances().size() == 0) {
@@ -635,7 +631,7 @@ public class SynchronizationDialog extends JDialog{
 	
 	/**
 	 * Check if the synchronization is cancelled by the user.
-	 * @return
+	 * @return true if cancelled; false otherwise
 	 */
 	public boolean isCancelled() {
 		return this.isCancelled;
@@ -643,7 +639,7 @@ public class SynchronizationDialog extends JDialog{
 	
 	/**
 	 * Check if the local repository is the same as the database repository.
-	 * @return
+	 * @return true if the same; false otherwise
 	 */
 	public boolean isSame() {
 		return isSame;
@@ -662,8 +658,8 @@ public class SynchronizationDialog extends JDialog{
 	 * then the contents of the list (assumed to be of type GKInstance)
 	 * will be taken instead.
 	 * 
-	 * @param fileAdaptor
-	 * @param dbAdaptor
+	 * @param fileAdaptor XMLFileAdaptor to access data from the local project
+	 * @param dbAdaptor MySQLAdaptor to access data remotely from database
 	 * @param uncheckableList
 	 */
 	public void setAdaptors(XMLFileAdaptor fileAdaptor,

@@ -30,6 +30,10 @@ public class DrawUtilities {
     
     /**
      * Draw a text in the center of the bounds.
+     * 
+     * @param text Text to draw
+     * @param bounds Rectangle object for boundaries of which the text should be drawn in the center
+     * @param g2 Graphics2D object on which to draw the text 
      */
     public static void drawString(String text, Rectangle bounds, Graphics2D g2) {
         FontMetrics metrics = g2.getFontMetrics();
@@ -128,12 +132,14 @@ public class DrawUtilities {
    
     
     /**
-     * Calculate the start point for drawing a TextLayout. 
-     * @param textLayout
-     * @param bounds the constraints of rendering.
-     * @param p the point's x y values will be reset if p is not null.
+     * Calculate the start point for drawing a TextLayout.
+     * 
+     * @param textLayout TextLayout object from which to get text bounds and ascent for calculating the draw point
+     * coordinates
+     * @param bounds the constraints of rendering
+     * @param p the point's x y values will be reset if p is not null
      * @return a new Point object will be returned if p is null. Otherwise,
-     * the passed Point object will be returned.
+     * the passed Point object will be returned with the reset x y values
      */
     public static Point getDrawPoint(TextLayout textLayout, Rectangle bounds, Point p) {
 		Rectangle2D textBounds = textLayout.getBounds();
@@ -167,9 +173,10 @@ public class DrawUtilities {
     }
     
     /**
-     * Draw an arrow around a line segement.
-     * @param position the arrow position.
-     * @param controlPoint another position that the arrow points away.
+     * Draw an arrow around a line segment.
+     * 
+     * @param position the arrow position
+     * @param controlPoint another position that the arrow points away
      * @param g2 graphic context
      */
     public static void drawArrow(Point position,
@@ -183,14 +190,15 @@ public class DrawUtilities {
     
     /**
      * Draw an hollow arrow.
-     * @param position
-     * @param controlPoint
-     * @param g2
+     * 
+     * @param position the arrow position
+     * @param controlPoint another position that the arrow points away
+     * @param g2 graphic context
      */
     public static void drawHollowArrow(Point position,
                                        Point controlPoint,
                                        Graphics2D g2) {
-        // The the angle of the line segment
+        // The angle of the line segment
         GeneralPath path = createArrowPath(position, 
                                            controlPoint);
         Paint oldPaint = g2.getPaint();
@@ -202,7 +210,7 @@ public class DrawUtilities {
     
     private static GeneralPath createArrowPath(Point position,
                                                Point controlPoint) {
-        // The the angle of the line segment
+        // The angle of the line segment
         double alpha = Math.atan((double)(position.y - controlPoint.y) / (position.x - controlPoint.x));
         if (controlPoint.x > position.x)
             alpha += Math.PI;

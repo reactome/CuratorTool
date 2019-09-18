@@ -81,7 +81,7 @@ public class AttributeEditManager {
     
     /**
      * A refactor method to make sure _displayName is still valid after some editing.
-     * @param instance
+     * @param instance Database instance
      * @return true for name has been changed.
      */
     public boolean validateDisplayName(GKInstance instance) {

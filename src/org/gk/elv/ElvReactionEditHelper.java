@@ -245,7 +245,9 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
     /**
      * A helper method to make sure reaction's inputs, outputs, catalysts and modifiers
      * are still correct after a detach or attach event.
-     * @param edge
+     * @param edge Edge to validate
+     * @throws Exception Thrown if unable to set attribute values for the reaction instance obtained from the edge 
+     * passed or if unable to get attribute values when validating the reaction instance's regulations and catalysts
      */
     public void validateReactionAttributes(HyperEdge edge) throws Exception {
         if (!(edge instanceof RenderableReaction))
@@ -263,8 +265,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         reactionInstance.setAttributeValue(ReactomeJavaConstants.output, list);
         AttributeEditManager.getManager().attributeEdit(reactionInstance, ReactomeJavaConstants.output);
         validateReactionCatalysts(reaction, reactionInstance);
-        validateRegulations(reaction, 
-                            reactionInstance); 
+        validateRegulations(reaction, reactionInstance); 
     }
     
     private List<GKInstance> convertToInstances(List<Node> renderables) {

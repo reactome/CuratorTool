@@ -11,7 +11,7 @@ public interface DBTool {
 
 	/**
 	 * A title that can be displayed under the menu.
-	 * @return
+	 * @return Title
 	 */
 	public String getTitle();
 	

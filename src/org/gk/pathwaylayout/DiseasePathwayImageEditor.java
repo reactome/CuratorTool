@@ -88,7 +88,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Get contained Renderable objects for the normal pathway.
-     * @return
+     * @return List of Renderable objects
      */
     public List<Renderable> getNormalComponents() {
         return this.normalComps;
@@ -96,7 +96,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Get contained Renderbale objects belong to the disease pathway only.
-     * @return
+     * @return List of Renderable objects
      */
     public List<Renderable> getDiseaseComponents() {
         return this.diseaseComps;
@@ -104,7 +104,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Get a list of Nodes that should be crossed out during drawing. 
-     * @return
+     * @return List of Nodes to be crossed out
      */
     public List<Node> getCrossedObjects() {
         if (crossedObjects == null)
@@ -114,7 +114,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Get a list of Renderable objects that should be overlaid from the disease pathway.
-     * @return
+     * @return List of Renderable objects to overlay
      */
     public List<Renderable> getOverlaidObjects() {
         if (overlaidObjects == null)
@@ -124,7 +124,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Get a list of nodes that should be displayed as loss_of_function objects.
-     * @return
+     * @return List of Nodes to be drawn as loss of function
      */
     public List<Node> getLofNodes() {
         if (lofNodes == null)
@@ -135,6 +135,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     /**
      * Override this method to augment a disease diagram by overlaying disease related objects
      * that have not drawn (e.g. loss_of_function reactions)
+     * @param pathway Renderable object (representing a pathway) to set
      */
     @Override
     public void setRenderable(Renderable pathway) {
@@ -165,6 +166,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Display this panel in a JFrame.
+     * @param parent Parent GUI component to set the location of the frame relative to
      */
     public void showInFrame(Component parent) {
         if (pathway == null) {
@@ -241,7 +243,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * Set the Pathway instance this object is used to draw. Since a PathwayDiagram
      * for disease may be used in multiple pathways, the wrapped pathway cannot be 
      * figured out from its RenderablePathway.
-     * @param pathway
+     * @param pathway Pathway instance to set
      */
     public void setPathway(GKInstance pathway) {
         this.pathway = pathway;
@@ -250,7 +252,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     /**
      * Set a flag to indicate that the paint method should draw objects that are related to normal 
      * pathway part only.
-     * @param isForNormal
+     * @param isForNormal true if to draw objects for normal pathway only; false otherwise
      */
     public void setIsForNormal(boolean isForNormal) {
         this.isForNormal = isForNormal;
@@ -258,7 +260,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * To be used to query GKInstances based on reactomeIds.
-     * @param adaptor
+     * @param adaptor PersistenceAdaptor instance (data source) to set
      */
     public void setPersistenceAdaptor(PersistenceAdaptor adaptor) {
         this.adaptor = adaptor;

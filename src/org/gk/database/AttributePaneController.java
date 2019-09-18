@@ -743,7 +743,7 @@ public class AttributePaneController {
 	/**
 	 * Creates an empty slot.
 	 *  
-	 * @param attName
+	 * @param attName Attribute name to add empty value
 	 */
 	public void addEmptyValue(String attName) {
 		try {

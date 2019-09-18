@@ -41,10 +41,10 @@ public class PathwayDiagramHandler {
      * This method should be called to retrieve the stored diagram for a passed
      * pathway instance or its contained sub-pathway if nothing is done for the
      * passed pathway.
-     * @param pathway
-     * @param newProject
-     * @param parentComp
-     * @return
+     * @param pathway Pathway instance from which to obtain data
+     * @param newProject Project from which to get new top pathway
+     * @param parentComp Parent component GUI object to display messages
+     * @return true if stored info successfully retrieved; false otherwise
      * @throws Exception
      */
     public boolean retrieveStoredRenderInfo(GKInstance pathway,
@@ -89,7 +89,8 @@ public class PathwayDiagramHandler {
      * @param pathway
      * @param parentComp
      * @return
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve the pathwayDiagram instance or its XML from the pathway passed or
+     * if unable to show a message dialog
      */
     private Map<GKInstance, String> loadPathwayToXML(GKInstance pathway,
                                                     Component parentComp) throws Exception {
@@ -113,7 +114,7 @@ public class PathwayDiagramHandler {
      * @param pathway
      * @param parentComp
      * @param pathwayToXML
-     * @throws Exception
+     * @throws Exception Thrown if unable to retrieve the pathwayDiagram instance or its XML from the pathway passed
      */
     private void loadPathwayToXML(GKInstance pathway, 
                                   Component parentComp,

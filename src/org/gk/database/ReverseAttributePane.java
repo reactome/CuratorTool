@@ -100,7 +100,8 @@ public class ReverseAttributePane extends JPanel {
     
     /**
      * Display referrers for a specified GKInstance object.
-     * @param instance
+     * @param instance Instance for which to display referrers
+     * @param parentComp Parent GUI Component in which to display referrers
      */
     public void displayReferrersWithCallback(GKInstance instance,
                                              final Component parentComp) {
@@ -266,9 +267,9 @@ public class ReverseAttributePane extends JPanel {
     
     /**
      * A helper method to fetch all referrers for a database GKInstance.
-     * @param instance
-     * @return
-     * @throws Exception
+     * @param instance Instance for which to fetch referrers
+     * @return Map of referrer attribute name to list of referrers
+     * @throws Exception Thrown if unable to retrieve referrers for the instance
      */
     public Map<String, List<GKInstance>> getReferrersMapForDBInstance(GKInstance instance) throws Exception {
         Map<String, Set<GKInstance>> map = new HashMap<String, Set<GKInstance>>();
@@ -314,7 +315,7 @@ public class ReverseAttributePane extends JPanel {
     
     /**
      * Expose the internal AttributeTable so that the client can do some customized adding.
-     * @return
+     * @return AttributeTable GUI component
      */
     public AttributeTable getAttributeTable() {
         return this.propTable;
@@ -322,7 +323,7 @@ public class ReverseAttributePane extends JPanel {
     
     /**
      * Return the selected GKInstance objects. 
-     * @return an emptty List will be returned if nothing is selected.
+     * @return an empty List will be returned if nothing is selected.
      */
     public List getSelectedInstances() {
         Set rtn = new HashSet();

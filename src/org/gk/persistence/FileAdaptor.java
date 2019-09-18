@@ -124,7 +124,8 @@ public class FileAdaptor implements PersistenceAdaptor {
     /**
      * Generate a new index map from the local repository. This is a safe-guide
      * method in case the index map is out of synchronization of the files. 
-     * @return
+     * @return Map of schema class names to instance map (db id to index info object)
+     * @throws IOException Thrown if unable to read file for generating the index map for any schema class
      */
     public Map generateIndexMap() throws IOException {
         HashMap map = new HashMap();
@@ -226,7 +227,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/**
 	 * Usually the client should call save() first to avoid losing the changes. 
 	 * Otherwise, an IllegalStateException will be thrown.
-	 * @throws Exception
+	 * @throws Exception Thrown if any unsaved changes or if unable to fetch schema due to file IO issues
 	 */
 	public void refresh() throws Exception {
 		if (isDirty())
@@ -275,7 +276,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/**
 	 * Mark an Instance as dirty so that it can be saved. If the specified
 	 * instance is a new instance, it will not be marked.
-	 * @param instance
+	 * @param instance Instance to mark as dirty
 	 */
 	public void markAsDirty(Instance instance) {
 		// Check if instance is a new GKInstance object. It will occur
@@ -305,8 +306,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Create a new GKInstance located in the local repository.
-	 * @param clsName
-	 * @return
+	 * @param clsName Name of schema class used to set the type of the new GKInstance
+	 * @return Newly created GKInstance
 	 */
 	public GKInstance createNewInstance(String clsName) {
 	    GKInstance instance = new GKInstance();
@@ -321,8 +322,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	}
 	
 	/**
-	 * Regirster a newly created Instance.
-	 * @param newInstance
+	 * Register a newly created Instance.
+	 * @param newInstance New instance to register
 	 */
 	public void addNewInstance(Instance newInstance) {
 		cache.put(newInstance);
@@ -346,8 +347,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	 * Make sure the old slot values are valid in the new schemaclass context, mimic the deleting 
 	 * operation for the instance, mimic the adding operation for the instance. Mimicing is used
 	 * to make data structure correct.
-	 * @param instance
-	 * @param newCls
+	 * @param instance GKInstance for which the type is to be switched
+	 * @param newCls GKSchemaClass representing the new type
 	 */
 	public void switchType(GKInstance instance, GKSchemaClass newCls) {
 		GKSchemaClass oldCls = (GKSchemaClass) instance.getSchemClass();
@@ -430,8 +431,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	}
 	
 	/**
-	 * Delete a specified from the repository.
-	 * @param instance
+	 * Delete a specified instance from the repository.
+	 * @param instance GKInstance to delete
 	 */
 	public void deleteInstance(GKInstance instance) {
 		SchemaClass schemaClass = instance.getSchemClass();
@@ -710,13 +711,14 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * A fast implementation for search GKInstance objects based on attribute values.
-	 * @param clsName
-	 * @param attName
-	 * @param operator
-	 * @param value
-	 * @return
-	 * @throws Exception
-	 * @see fetchInstanceByAttribute(String, String, String, Object).
+	 * @param className Schema class name of GKInstance objects to search
+	 * @param attName Attribute name of GKInstance objects to search
+	 * @param operator Operator to use in search (i.e. "=", "LIKE", "REGEXP", "IS NOT NULL", "IS NULL")
+	 * @param value Value of attribute to search for
+	 * @return Collection of GKInstance objects matching the search
+	 * @throws Exception Thrown if operator is not valid or if unable to fetch instances or their attribute values 
+	 * during the search
+	 * @see #fetchInstanceByAttribute(String, String, String, Object)
 	 */
 	public Collection search(String className, String attName, String operator, String value) throws Exception {
 		operator = operator.toUpperCase();
@@ -1179,7 +1181,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/**
 	 * Remove the delete record for a list of DB_IDs.
 	 * @param dbIDs a list of DB_IDs.
-	 * @throws IOException
+	 * @throws IOException Thrown if unable to save the delete map after it is updated from this removal
 	 */
 	public void clearDeleteRecord(java.util.List dbIDs) throws IOException {
 		if (dbIDs == null || dbIDs.size() == 0)
@@ -1259,7 +1261,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Use this method to load all attributes.
-	 * @param instance
+	 * @param instance GKInstance for which to load all attributes
+	 * @throws Exception Thrown if unable to fetch or set attribute values for the instance
 	 */
 	public void loadInstanceAttributes(GKInstance instance) throws Exception {
 		// List all attribute that have been loaded
@@ -1451,7 +1454,8 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Save all changes.
-	 * @throws Exception
+	 * @throws Exception Thrown if unable to backup classes that must be changed before saving or if there is a problem
+	 * rolling back changes during a problem with the save
 	 */
 	public void save() throws Exception {
 		// Nothing changed
@@ -1685,7 +1689,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Check if there is any unsaved changes.
-	 * @return
+	 * @return true if there are unsaved changes; false otherwise
 	 */
 	public boolean isDirty() {
 		return (newInstanceMap.size() > 0 || dirtyMap.size() > 0 ||
@@ -1695,9 +1699,10 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/**
 	 * Save the a collection of instances from the database to the local file system. The client to this method should 
 	 * make sure the Instance objects in the map should not be in the local file system.
-	 * @param instanceMap Keys: SchemaClass Values: a list of GKInstances that belong to
-	 * the SchemaClass in key.
-	 * @throws Exception
+	 * @param instanceMap Keys: SchemaClass Values: a list of GKInstances that belong to the SchemaClass in key.
+	 * @throws Exception Thrown if there are unsaved changes, the local schema is incompatible to the remote db schema,
+	 * if unable to a get a local copy of the any instances or loading instance attributes, or if there is a problem
+	 * with executing a save after generating new maps
 	 */
 	public void store(Map instanceMap) throws Exception {
 		if (isDirty()) {
@@ -1856,6 +1861,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	
 	/**
 	 * Update all data structures because of the DB_ID change.
+	 * @param oldDBID previous dbId of the instance being updated
 	 * @param instance whose DB_ID has been changed to new value.
 	 */
 	public void dbIDUpdated(Long oldDBID, GKInstance instance) {

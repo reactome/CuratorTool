@@ -19,7 +19,7 @@ public class RenderableEntitySet extends Node {
     }
     
     /**
-     * @param displayName
+     * @param displayName Display name of this RenderableEntitySet
      */
     public RenderableEntitySet(String displayName) {
         super(displayName);

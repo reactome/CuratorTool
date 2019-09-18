@@ -300,7 +300,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	
 	/**
 	 * Close the opened attribute frame for a specified GKInstance.
-	 * @param instance
+	 * @param instance Instance with the opened attribute frame
 	 */
 	public void close(GKInstance instance) {
 		JFrame frame = (JFrame) frames.get(instance);
@@ -427,7 +427,8 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	
 	/**
 	 * Show a SHELL instance.
-	 * @param instance
+	 * @param instance Instance for which to show a shell instance
+	 * @param comp Component in which to show message windows
 	 */
 	public void showShellInstance(GKInstance instance, JComponent comp) {
 		showShellInstance(instance, comp, null);
@@ -521,8 +522,8 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	}
 	
 	/**
-	 * Display a GKInstnace that is not editable.
-	 * @param instance
+	 * Display a GKInstance that is not editable.
+	 * @param instance Instance to display
 	 */
 	public void showInstance(GKInstance instance) {
 		showInstance(instance, false);
@@ -530,8 +531,8 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	
 	/**
 	 * An overloaded method to show an GKInstance in a modal JDialog.
-	 * @param instance
-	 * @param parentDialog
+	 * @param instance Instance to display
+	 * @param parentDialog Parent dialog in which to display instance
 	 */
 	public void showInstance(GKInstance instance, JDialog parentDialog) {
 		showInstance(instance, parentDialog, false, false);

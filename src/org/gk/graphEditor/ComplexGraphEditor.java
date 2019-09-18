@@ -188,7 +188,7 @@ public class ComplexGraphEditor extends GraphEditorPane {
 	
 	/**
 	 * Query the status of dissociation of this ComplexEditor.
-	 * @return
+	 * @return true if the ComplexEditor is dissociated; false otherwise
 	 */
 	public boolean isDissociated() {
 		return this.isDissociated;
@@ -237,7 +237,7 @@ public class ComplexGraphEditor extends GraphEditorPane {
 	/**
 	* Use this method to remove a Renderable from the complex. The removed
 	* objects includes renderable's shortcuts.
-	* @param renderable
+	* @param renderable Renderable to remove
 	*/
 	public void delete(Renderable renderable) {
 		super.delete(renderable);

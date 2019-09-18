@@ -44,9 +44,10 @@ public class DiagramGKBReader extends GKBReader {
     
     /**
      * Generate a displayable diagram from a PathwayDiagram instance.
-     * @param pathwayDiagram
-     * @return
-     * @throws Exception
+     * @param pathwayDiagram PathwayDiagram instance for which to create a RenderablePathway instance
+     * @return RenderablePathway representing the PathwayDiagram instance
+     * @throws Exception Thrown if the pathwayDiagram is not a PathwayDiagram instance, if unable to retrieve/process
+     * the pathwayDiagram XML, or fetch the component instances represented in the pathwayDiagram XML
      */
     public RenderablePathway openDiagram(GKInstance pathwayDiagram) throws Exception {
         if (!pathwayDiagram.getSchemClass().isa(ReactomeJavaConstants.PathwayDiagram)) {
@@ -67,9 +68,9 @@ public class DiagramGKBReader extends GKBReader {
     
     /**
      * Open a diagram from an XML String.
-     * @param xml
-     * @return
-     * @throws Exception
+     * @param xml XML describing the pathway diagram
+     * @return RenderablePathway object built from the XML
+     * @throws Exception Thrown if unable to process the XML
      */
     public RenderablePathway openDiagram(String xml) throws Exception {
         if (xml == null)
@@ -97,8 +98,9 @@ public class DiagramGKBReader extends GKBReader {
     /**
      * Use this method to set the display name for components in a diagram displayed
      * by a RenderablePathway object.
-     * @param pathway
-     * @param fileAdaptor
+     * @param pathway RenderablePathway instance representing the pathway diagram
+     * @param fileAdaptor Adaptor object used to retrieve diagram component instances
+     * @throws Exception Thrown if unable to retrieve component instances
      */
     public void setDisplayNames(RenderablePathway pathway,
                                 PersistenceAdaptor fileAdaptor) throws Exception {

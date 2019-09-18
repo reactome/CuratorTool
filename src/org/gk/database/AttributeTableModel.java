@@ -21,7 +21,7 @@ public abstract class AttributeTableModel extends AbstractTableModel {
     
     /**
      * Get the SchemaClass object for this AttributeTableModel.
-     * @return
+     * @return SchemaClass object modeling a data class's attributes
      */
     public abstract SchemaClass getSchemaClass();
 

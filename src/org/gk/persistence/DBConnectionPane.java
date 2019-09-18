@@ -138,7 +138,7 @@ public class DBConnectionPane extends JPanel {
 	
 	/**
 	 * Initialize all values based on the properties.
-	 * @param prop
+	 * @param prop Properties object from which to retrieve values to set
 	 */
 	public void setValues(Properties prop) {
 		String value = prop.getProperty("dbHost", "");

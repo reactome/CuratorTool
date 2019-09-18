@@ -95,7 +95,7 @@ public class PropertyEditorPane extends JPanel {
     
     /**
      * Display properties for a Renderable object.
-     * @param r
+     * @param r Renderable for which to display properties
      */
     public void display(Renderable r) {
         if (r == null) {
@@ -143,7 +143,7 @@ public class PropertyEditorPane extends JPanel {
     
     /**
      * Refresh the displayed Renderable object.
-     * @param r
+     * @param r Renderable object to be refreshed
      */
     public void refresh(Renderable r) {
         PropertyPane propertyPane = getDisplayedPropertyPane();
