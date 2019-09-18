@@ -116,6 +116,7 @@ public class SearchPane extends JPanel {
         JComboBox operatorBox = new JComboBox();
         operatorBox.addItem("Equals");
         operatorBox.addItem("Contains");
+        operatorBox.addItem("Does Not Contain");
         operatorBox.addItem("!=");
         operatorBox.addItem("Use REGEXP");
         operatorBox.addItem("IS NOT NULL");
@@ -240,6 +241,9 @@ public class SearchPane extends JPanel {
 	        operator = "=";
 	    else if (operator.equals("Contains"))
 	        operator = "LIKE";
+	    else if (operator.equals("Does Not Contain")) {
+	        operator = "NOT LIKE";
+	    }
 	    else if (operator.equals("Use REGEXP"))
 	        operator = "REGEXP";
 	    return operator;
@@ -258,7 +262,7 @@ public class SearchPane extends JPanel {
 	                          JComboBox operatorBox) {
 	    String text = valueField.getText().trim();
 	    String operator = getOperator(operatorBox);
-	    if (operator.equals("LIKE"))
+	    if (operator.equals("LIKE") || operator.contentEquals("NOT LIKE"))
 	        text = "%" + text + "%";
 	    return text;
 	}

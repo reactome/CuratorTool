@@ -492,15 +492,15 @@ public class FileAdaptor implements PersistenceAdaptor {
 		throws Exception {
 		operator = operator.toUpperCase();
 		// Need to check operator
-		if (!(operator.equals("=") || operator.equals("LIKE") || operator.equals("REGEXP") ||
+		if (!(operator.equals("=") || operator.equals("LIKE") || operator.equals("NOT LIKE") || operator.equals("REGEXP") ||
 		      operator.equals("IS NOT NULL") || operator.equals("IS NULL"))) {
 			throw new IllegalArgumentException("FileAdator.fetchInstanceByAttribute(): Unsupported operator: " + operator);
 		}
 		if ((value instanceof GKInstance) && operator.equals("REGEXP")) {
 			throw new IllegalArgumentException("FileAdator.fetchInstanceByAttribute(): Unsupported operator: " + operator);
 		}
-		// Have to get rid of % for like
-		if (operator.equals("LIKE")) {
+		// Have to get rid of % for like and not like
+		if (operator.equals("LIKE") || operator.equals("NOT LIKE")) {
 			String tmp = value.toString();
 			value = tmp.substring(1, tmp.length() - 1);
 		}
@@ -586,6 +586,10 @@ public class FileAdaptor implements PersistenceAdaptor {
 					if (name.indexOf(targetValue) >= 0)
 						isFound = true;
 				}
+				else if (operator.equals("NOT LIKE")) {
+					if (name.indexOf(targetValue) == -1)
+						isFound = true;
+				}
 				else if (operator.equals("REGEXP")) {
 					Matcher matcher = pattern.matcher(name);
 					if (matcher.find()) {
@@ -658,6 +662,13 @@ public class FileAdaptor implements PersistenceAdaptor {
 								rtnList.add(instance);
 								break;
 							}
+						}				
+						else if (operator.contentEquals("NOT LIKE")) {
+							if (valueStr.indexOf(targetValue) == -1) {
+								instance = extractInstance(root, className);
+								rtnList.add(instance);
+								break;
+							}
 						}
 						else if (operator.equals("REGEXP")) {
 							Matcher matcher = pattern.matcher(valueStr);
@@ -698,6 +709,15 @@ public class FileAdaptor implements PersistenceAdaptor {
 							break;
 						}
 					}
+					else if (operator.equals("NOT LIKE")) {
+						GKInstance refInstance = fetchInstance(clsName, refID);
+						String displayName = refInstance.getDisplayName();
+						if (displayName.indexOf(targetValue) == -1) {
+							instance = extractInstance(root, className);
+							rtnList.add(instance);
+							break;
+						}
+					}
 					// REGEXP is not supported for GKInstance type.
 				}
 			}
@@ -713,7 +733,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	 * A fast implementation for search GKInstance objects based on attribute values.
 	 * @param className Schema class name of GKInstance objects to search
 	 * @param attName Attribute name of GKInstance objects to search
-	 * @param operator Operator to use in search (i.e. "=", "LIKE", "REGEXP", "IS NOT NULL", "IS NULL")
+	 * @param operator Operator to use in search (i.e. "=", "LIKE", "NOT LIKE", "REGEXP", "IS NOT NULL", "IS NULL")
 	 * @param value Value of attribute to search for
 	 * @return Collection of GKInstance objects matching the search
 	 * @throws Exception Thrown if operator is not valid or if unable to fetch instances or their attribute values 
@@ -723,12 +743,12 @@ public class FileAdaptor implements PersistenceAdaptor {
 	public Collection search(String className, String attName, String operator, String value) throws Exception {
 		operator = operator.toUpperCase();
 		// Need to check operator
-		if (!(operator.equals("=") || operator.equals("LIKE") || operator.equals("REGEXP") ||
+		if (!(operator.equals("=") || operator.equals("LIKE") || operator.equals("NOT LIKE") || operator.equals("REGEXP") ||
 			  operator.equals("IS NOT NULL") || operator.equals("IS NULL"))) {
 			throw new IllegalArgumentException("FileAdator.fetchInstanceByAttribute(): Unsupported operator: " + operator);
 		}
-		// Have to get rid of % for like
-		if (operator.equals("LIKE")) {
+		// Have to get rid of % for like and not like
+		if (operator.equals("LIKE") || operator.equals("NOT LIKE")) {
 			String tmp = value.toString();
 			value = tmp.substring(1, tmp.length() - 1);
 		}
@@ -833,6 +853,11 @@ public class FileAdaptor implements PersistenceAdaptor {
 							isMatched = true;
 						}
 					}
+					else if (operator.equals("NOT LIKE")) {
+						if (valueStr.indexOf(value) == -1) {
+							isMatched = true;
+						}
+					}
 					else if (operator.equals("REGEXP")) {
 						Matcher matcher = pattern.matcher(valueStr);
 						if (matcher.find()) {
@@ -884,6 +909,13 @@ public class FileAdaptor implements PersistenceAdaptor {
 					for (Iterator it = values.iterator(); it.hasNext();) {
 						tmp = it.next().toString();
 						if (tmp.indexOf(targetValue) >= 0)
+							return true;
+					}
+				}
+				else if (operator.equals("NOT LIKE")) {
+					for (Iterator it = values.iterator(); it.hasNext();) {
+						tmp = it.next().toString();
+						if (tmp.indexOf(targetValue) == -1)
 							return true;
 					}
 				}
@@ -942,6 +974,15 @@ public class FileAdaptor implements PersistenceAdaptor {
 	    					if (name1.indexOf(displayName) >= 0)
 	    						return true;
 	    				}
+	    			}	   
+	    			else if (operator.equals("NOT LIKE")) { // Does Not Contain
+	    				String displayName = target.getDisplayName();
+	    				for (Iterator it = attValues.iterator(); it.hasNext();) {
+	    					GKInstance tmp = (GKInstance) it.next();
+	    					String name1 = tmp.getDisplayName();
+	    					if (name1.indexOf(displayName) == -1)
+	    						return true;
+	    				}
 	    			}
 	    			// Cannot support regex
 	    			else if (operator.equals("REGEXP"))
@@ -960,6 +1001,13 @@ public class FileAdaptor implements PersistenceAdaptor {
 	    				for (Iterator it = attValues.iterator(); it.hasNext();) {
 	    					String tmp = it.next().toString();
 	    					if (tmp.indexOf(target) >= 0)
+	    						return true;
+	    				}
+	    			}
+	    			else if (operator.equals("NOT LIKE")) {
+	    				for (Iterator it = attValues.iterator(); it.hasNext();) {
+	    					String tmp = it.next().toString();
+	    					if (tmp.indexOf(target) == -1)
 	    						return true;
 	    				}
 	    			}
