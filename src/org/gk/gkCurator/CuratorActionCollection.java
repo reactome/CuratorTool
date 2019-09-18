@@ -2191,11 +2191,13 @@ public class CuratorActionCollection {
 		InstanceUtilities.sortSchemaClasses(schemaClasses);
 		SchemaClass schemaClass = curatorFrame.getSchemaView().getSchemaPane().getSelectedClass();
 
-		// get list of uneditable attributes,
-		java.util.List uneditableAttNames = AttributeEditConfig.getConfig().getUneditableAttNames();
+		// get list of uncreatable classes.
+		java.util.List uncreatableClassNames = AttributeEditConfig.getConfig().getUncreatableClassNames();
+		System.out.println(uncreatableClassNames);
 
-		// attribute is editable.
-		if (! uneditableAttNames.contains(schemaClass.getName().toLowerCase())) {
+		// class is creatable.
+		// TODO should class names be case sensitive?
+		if (! uncreatableClassNames.contains(schemaClass.getName())) {
 			NewInstanceDialog newDialog = new NewInstanceDialog(curatorFrame, "Create a New Instance");
 			newDialog.setModal(true);
 			newDialog.setSize(450, 600);
@@ -2212,13 +2214,23 @@ public class CuratorActionCollection {
         		curatorFrame.getSchemaView().setSelection(instance);
         	}
         }
-        // attribute is not editable.
+        // class is not creatable.
         else {
+        	// get contact for uncreatable classes.
+        	String contact = AttributeEditConfig.getConfig().getUncreatableClassContact();
+        	System.out.println(contact);
+
+        	// fallback if contact is not found.
+        	// this may not be necessary/useful and can be removed at your discretion.
+        	if (contact == null) {
+        		contact = "your editor";
+        	}
+
         	String messageTemplate = "You cannot create an instance for this type of class. Please ask %s to create one for you.";
-        	String message = String.format(messageTemplate, "Peter D’Eustachio");
+        	String message = String.format(messageTemplate, contact);
         	JOptionPane.showMessageDialog(curatorFrame,
         			message,
-        			("Uneditable Class"),
+        			("Uncreatable Class"),
         			JOptionPane.WARNING_MESSAGE);	
         }
 	}

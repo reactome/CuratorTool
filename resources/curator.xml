@@ -15,11 +15,11 @@
         <attribute name="releaseStatus" />
         <!-- Value should be generated during slicing for complexes -->
         <attribute name="includedLocation" />
-        
-        <!-- uneditable classes -->
-        <attribute name="species" />
-        <attribute name="compartment" />
 	</uneditableAttributes>
+	<uncreatableClass contact="Peter D'Eustachio"> <!-- Only the contact can create instances for these cases" -->
+		<class name = "Compartment" />
+		<class name = "Species" />
+	</uncreatableClass>        
 	<hiddenAttributes>
 		<attribute name="_Protege_id" />
 		<attribute name="__is_ghost" />
