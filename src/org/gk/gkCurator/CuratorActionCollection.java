@@ -63,7 +63,6 @@ import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
 import org.gk.elv.EntityLevelView;
 import org.gk.elv.InstanceCloneHelper;
 import org.gk.gkCurator.authorTool.CuratorToolToAuthorToolConverter;
-import org.gk.gkCurator.ConstantsManager;
 import org.gk.gkEditor.GKEditorFrame;
 import org.gk.gkEditor.GKEditorManager;
 import org.gk.model.GKInstance;
@@ -2215,12 +2214,11 @@ public class CuratorActionCollection {
         }
         // attribute is not editable.
         else {
-        	ConstantsManager constants = new ConstantsManager();
-        	String messageTemplate = constants.get("uneditableClassTemplate");
-        	String message = String.format(messageTemplate, constants.get("editor"));
+        	String messageTemplate = "You cannot create an instance for this type of class. Please ask %s to create one for you.";
+        	String message = String.format(messageTemplate, "Peter D’Eustachio");
         	JOptionPane.showMessageDialog(curatorFrame,
         			message,
-        			constants.get("uneditableClassTitle"),
+        			("Uneditable Class"),
         			JOptionPane.WARNING_MESSAGE);	
         }
 	}

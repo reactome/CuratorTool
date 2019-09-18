@@ -18,7 +18,7 @@
         
         <!-- uneditable classes -->
         <attribute name="species" />
-        <attribute name="containers" />
+        <attribute name="compartment" />
 	</uneditableAttributes>
 	<hiddenAttributes>
 		<attribute name="_Protege_id" />
