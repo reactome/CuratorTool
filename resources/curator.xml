@@ -15,6 +15,10 @@
         <attribute name="releaseStatus" />
         <!-- Value should be generated during slicing for complexes -->
         <attribute name="includedLocation" />
+        
+        <!-- uneditable classes -->
+        <attribute name="species" />
+        <attribute name="containers" />
 	</uneditableAttributes>
 	<hiddenAttributes>
 		<attribute name="_Protege_id" />

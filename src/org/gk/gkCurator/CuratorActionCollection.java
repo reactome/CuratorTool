@@ -63,6 +63,7 @@ import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
 import org.gk.elv.EntityLevelView;
 import org.gk.elv.InstanceCloneHelper;
 import org.gk.gkCurator.authorTool.CuratorToolToAuthorToolConverter;
+import org.gk.gkCurator.ConstantsManager;
 import org.gk.gkEditor.GKEditorFrame;
 import org.gk.gkEditor.GKEditorManager;
 import org.gk.model.GKInstance;
@@ -2186,23 +2187,44 @@ public class CuratorActionCollection {
 		Schema schema = curatorFrame.getSchemaView().getSchemaPane().getSchema();
 		if (schema == null)
 			return;
+        
 		java.util.List schemaClasses = new ArrayList(schema.getClasses());
 		InstanceUtilities.sortSchemaClasses(schemaClasses);
 		SchemaClass schemaClass = curatorFrame.getSchemaView().getSchemaPane().getSelectedClass();
-		NewInstanceDialog newDialog = new NewInstanceDialog(curatorFrame, "Create a New Instance");
-		newDialog.setSchemaClasses(schemaClasses, schemaClass);
-		newDialog.setModal(true);
-		newDialog.setSize(450, 600);
-		newDialog.setLocationRelativeTo(curatorFrame);
-		newDialog.setVisible(true);
-		if (newDialog.isOKClicked()) {
-			GKInstance instance = newDialog.getNewInstance();
-			// Persist new instance locally
-			XMLFileAdaptor adaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-			adaptor.addNewInstance(instance);
-			curatorFrame.getSchemaView().setSelection(instance);
-		}
+
+		// get list of uneditable attributes,
+		java.util.List uneditableAttNames = AttributeEditConfig.getConfig().getUneditableAttNames();
+
+		// attribute is editable.
+		if (! uneditableAttNames.contains(schemaClass.getName().toLowerCase())) {
+			NewInstanceDialog newDialog = new NewInstanceDialog(curatorFrame, "Create a New Instance");
+			newDialog.setModal(true);
+			newDialog.setSize(450, 600);
+			newDialog.setLocationRelativeTo(curatorFrame);
+			newDialog.setVisible(true);
+	
+			newDialog.setSchemaClasses(schemaClasses, schemaClass);
+
+        	if (newDialog.isOKClicked()) {
+        		GKInstance instance = newDialog.getNewInstance();
+        		// Persist new instance locally
+        		XMLFileAdaptor adaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+        		adaptor.addNewInstance(instance);
+        		curatorFrame.getSchemaView().setSelection(instance);
+        	}
+        }
+        // attribute is not editable.
+        else {
+        	ConstantsManager constants = new ConstantsManager();
+        	String messageTemplate = constants.get("uneditableClassTemplate");
+        	String message = String.format(messageTemplate, constants.get("editor"));
+        	JOptionPane.showMessageDialog(curatorFrame,
+        			message,
+        			constants.get("uneditableClassTitle"),
+        			JOptionPane.WARNING_MESSAGE);	
+        }
 	}
+
 	
 	public Action getSaveProjectAction() {
 		if (saveProjectAction == null) {
