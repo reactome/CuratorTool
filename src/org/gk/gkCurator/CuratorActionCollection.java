@@ -2193,7 +2193,6 @@ public class CuratorActionCollection {
 
 		// get list of uncreatable classes.
 		java.util.List uncreatableClassNames = AttributeEditConfig.getConfig().getUncreatableClassNames();
-		System.out.println(uncreatableClassNames);
 
 		// class is creatable.
 		// TODO should class names be case sensitive?
@@ -2218,7 +2217,6 @@ public class CuratorActionCollection {
         else {
         	// get contact for uncreatable classes.
         	String contact = AttributeEditConfig.getConfig().getUncreatableClassContact();
-        	System.out.println(contact);
 
         	// fallback if contact is not found.
         	// this may not be necessary/useful and can be removed at your discretion.
