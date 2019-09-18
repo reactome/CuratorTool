@@ -880,6 +880,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         // Need to check operator
         if (!(operator.equals("=") || 
               operator.equals("LIKE") || 
+              operator.equals("NOT LIKE") || 
               operator.equals("REGEXP") ||
               operator.equals("IS NOT NULL") || 
               operator.equals("IS NULL") || 
@@ -889,8 +890,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         if ((value instanceof GKInstance) && operator.equals("REGEXP")) {
             throw new IllegalArgumentException("FileAdator.fetchInstanceByAttribute(): Unsupported operator: " + operator);
         }
-        // Have to get rid of % for like
-        if (operator.equals("LIKE")) {
+        // Have to get rid of % for like and not like
+        if (operator.equals("LIKE") || operator.contentEquals("NOT LIKE")) {
             String tmp = value.toString();
             value = tmp.substring(1, tmp.length() - 1);
         }
@@ -950,20 +951,30 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
                     // Want to make it case insentitive
                     String displayName = target.getDisplayName().toLowerCase();
                     for (Iterator it = attValues.iterator(); it.hasNext();) {
-                        GKInstance tmp = (GKInstance) it.next();
-                        String name1 = tmp.getDisplayName().toLowerCase();
-                        if (name1.indexOf(displayName) >= 0)
-                            return true;
+                    	GKInstance tmp = (GKInstance) it.next();
+                    	String name1 = tmp.getDisplayName().toLowerCase();
+                    	if (name1.indexOf(displayName) >= 0)
+                    		return true;
                     }
+                }
+                else if (operator.contentEquals("NOT LIKE")) { // Does Not Contain
+                	// Want to make it case insentitive
+                	String displayName = target.getDisplayName().toLowerCase();
+                	for (Iterator it = attValues.iterator(); it.hasNext();) {
+                		GKInstance tmp = (GKInstance) it.next();
+                		String name1 = tmp.getDisplayName().toLowerCase();
+                		if (name1.indexOf(displayName) == -1)
+                			return true;
+                	}
                 }
                 // Cannot support regex
                 else if (operator.equals("REGEXP"))
-                    throw new IllegalArgumentException(
+                	throw new IllegalArgumentException(
                                     "FileAdaptor.checkInstance(): Opertor is not supported: "
                                                     + operator);
             }
             else {
-//              Don't call toLowerCase. It is an expensive operation. Call it if needed.
+				// Don't call toLowerCase. It is an expensive operation. Call it if needed.
                 String target = value.toString();
                 if (operator.equals("=")) {
                     for (Iterator it = attValues.iterator(); it.hasNext();) {
@@ -990,6 +1001,15 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
                     for (Iterator it = attValues.iterator(); it.hasNext();) {
                         String tmp = it.next().toString().toLowerCase();
                         if (tmp.indexOf(target) >= 0)
+                            return true;
+                    }
+                }       
+                else if (operator.contentEquals("NOT LIKE")) {
+                    // Want to make it case insensitive. 
+                    target = target.toLowerCase();
+                    for (Iterator it = attValues.iterator(); it.hasNext();) {
+                        String tmp = it.next().toString().toLowerCase();
+                        if (tmp.indexOf(target) == -1)
                             return true;
                     }
                 }
