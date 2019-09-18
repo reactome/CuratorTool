@@ -2218,12 +2218,6 @@ public class CuratorActionCollection {
         	// get contact for uncreatable classes.
         	String contact = AttributeEditConfig.getConfig().getUncreatableClassContact();
 
-        	// fallback if contact is not found.
-        	// this may not be necessary/useful and can be removed at your discretion.
-        	if (contact == null) {
-        		contact = "your editor";
-        	}
-
         	String messageTemplate = "You cannot create an instance for this type of class. Please ask %s to create one for you.";
         	String message = String.format(messageTemplate, contact);
         	JOptionPane.showMessageDialog(curatorFrame,

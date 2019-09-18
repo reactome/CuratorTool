@@ -41,7 +41,7 @@ public class AttributeEditConfig {
 	// The uncreatable class list
 	private List uncreatableClasses;
 	// The uncreatable class contact
-	private String uncreatableClassesContact;
+	private String uncreatableClassesContact = "Peter D'Eustachio"; // Default to Peter
 	// attributes should not be displayed
 	private List hiddenAttributes;
 	// Attributes whose settings can be propagated to descedants in the 
@@ -153,7 +153,6 @@ public class AttributeEditConfig {
 	 * @param name of contact.
 	 */
 	public void setUncreatableClassContact(String contact) {
-		uncreatableClassesContact = "";
 		if (contact != null)
 			uncreatableClassesContact = contact;
 	}
@@ -191,10 +190,7 @@ public class AttributeEditConfig {
         NodeList childNodes = root.getChildNodes();
         int size = childNodes.getLength();
         java.util.List attNameList = new ArrayList();
-        
-        // We could use the above attNameList, but having a unique list may help
-        // attributes and classes things separate.
-        java.util.List classNameList = new ArrayList();
+
         for (int i = 0; i < size; i++) {
             Node node = childNodes.item(i);
             if (node.getNodeName().equals("uneditableAttributes")) {
@@ -211,11 +207,14 @@ public class AttributeEditConfig {
                 setUnedtiableAttNames(attNameList);
             }
             else if (node.getNodeName().equals("uncreatableClass")) {
+            	java.util.List classNameList = new ArrayList();
             	NodeList list = node.getChildNodes();
             	// get contact for class instances of uncreatableClasses.
             	Element elmContact = (Element) node;
             	String contact = elmContact.getAttribute("contact");
-            	setUncreatableClassContact(contact);
+            	if (contact != null && contact.length() > 0) { // To avoid assigning an empty contact.
+            		setUncreatableClassContact(contact);
+            	}
             	for (int j = 0; j < list.getLength(); j++) {
             		Node node1 = list.item(j);
             		if (node1.getNodeName().equals("class")) {
