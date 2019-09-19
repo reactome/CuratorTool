@@ -2186,23 +2186,47 @@ public class CuratorActionCollection {
 		Schema schema = curatorFrame.getSchemaView().getSchemaPane().getSchema();
 		if (schema == null)
 			return;
+        
 		java.util.List schemaClasses = new ArrayList(schema.getClasses());
 		InstanceUtilities.sortSchemaClasses(schemaClasses);
 		SchemaClass schemaClass = curatorFrame.getSchemaView().getSchemaPane().getSelectedClass();
-		NewInstanceDialog newDialog = new NewInstanceDialog(curatorFrame, "Create a New Instance");
-		newDialog.setSchemaClasses(schemaClasses, schemaClass);
-		newDialog.setModal(true);
-		newDialog.setSize(450, 600);
-		newDialog.setLocationRelativeTo(curatorFrame);
-		newDialog.setVisible(true);
-		if (newDialog.isOKClicked()) {
-			GKInstance instance = newDialog.getNewInstance();
-			// Persist new instance locally
-			XMLFileAdaptor adaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-			adaptor.addNewInstance(instance);
-			curatorFrame.getSchemaView().setSelection(instance);
-		}
+
+		// get list of uncreatable classes.
+		java.util.List uncreatableClassNames = AttributeEditConfig.getConfig().getUncreatableClassNames();
+
+		// class is creatable.
+		// TODO should class names be case sensitive?
+		if (! uncreatableClassNames.contains(schemaClass.getName())) {
+			NewInstanceDialog newDialog = new NewInstanceDialog(curatorFrame, "Create a New Instance");
+			newDialog.setModal(true);
+			newDialog.setSize(450, 600);
+			newDialog.setLocationRelativeTo(curatorFrame);
+			newDialog.setVisible(true);
+	
+			newDialog.setSchemaClasses(schemaClasses, schemaClass);
+
+        	if (newDialog.isOKClicked()) {
+        		GKInstance instance = newDialog.getNewInstance();
+        		// Persist new instance locally
+        		XMLFileAdaptor adaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+        		adaptor.addNewInstance(instance);
+        		curatorFrame.getSchemaView().setSelection(instance);
+        	}
+        }
+        // class is not creatable.
+        else {
+        	// get contact for uncreatable classes.
+        	String contact = AttributeEditConfig.getConfig().getUncreatableClassContact();
+
+        	String messageTemplate = "You cannot create an instance for this type of class. Please ask %s to create one for you.";
+        	String message = String.format(messageTemplate, contact);
+        	JOptionPane.showMessageDialog(curatorFrame,
+        			message,
+        			("Uncreatable Class"),
+        			JOptionPane.WARNING_MESSAGE);	
+        }
 	}
+
 	
 	public Action getSaveProjectAction() {
 		if (saveProjectAction == null) {

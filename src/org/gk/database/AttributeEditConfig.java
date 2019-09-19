@@ -38,6 +38,10 @@ public class AttributeEditConfig {
 	private static AttributeEditConfig config;
 	// The uneditable attributes list
 	private List uneditableAttributes;
+	// The uncreatable class list
+	private List uncreatableClasses;
+	// The uncreatable class contact
+	private String uncreatableClassesContact = "Peter D'Eustachio"; // Default to Peter
 	// attributes should not be displayed
 	private List hiddenAttributes;
 	// Attributes whose settings can be propagated to descedants in the 
@@ -78,6 +82,7 @@ public class AttributeEditConfig {
 	 */
 	private void init() {
 		uneditableAttributes = new ArrayList(); // All attributes are editable
+		uncreatableClasses = new ArrayList();
 		hiddenAttributes = new ArrayList();
 		disabledAutoClsAttNamesMap = new HashMap();
         attributeAutoFillerMap = new HashMap();
@@ -117,7 +122,7 @@ public class AttributeEditConfig {
     
     /**
 	 * Set the list of uneditable attributes.
-	 * @param names names of attributes that should not be editable.
+	 * @param names of attributes that should not be editable.
 	 */
 	public void setUnedtiableAttNames(List names) {
 		uneditableAttributes.clear();
@@ -127,6 +132,33 @@ public class AttributeEditConfig {
 	
 	public List getUneditableAttNames() {
 		return uneditableAttributes;
+	}
+
+    /**
+	 * Set the list of uncreatable classes.
+	 * @param names of classes that should not be creatable.
+	 */
+	public void setUncreatableClassNames(List names) {
+		uncreatableClasses.clear();
+		if (names != null)
+			uncreatableClasses.addAll(names);
+	}
+	
+	public List getUncreatableClassNames() {
+		return uncreatableClasses;
+	}
+
+    /**
+     * get contact for class instances of uncreatableClasses.
+	 * @param name of contact.
+	 */
+	public void setUncreatableClassContact(String contact) {
+		if (contact != null)
+			uncreatableClassesContact = contact;
+	}
+	
+	public String getUncreatableClassContact() {
+		return uncreatableClassesContact;
 	}
 	
 	public List getHiddenAttNames() {
@@ -158,6 +190,7 @@ public class AttributeEditConfig {
         NodeList childNodes = root.getChildNodes();
         int size = childNodes.getLength();
         java.util.List attNameList = new ArrayList();
+
         for (int i = 0; i < size; i++) {
             Node node = childNodes.item(i);
             if (node.getNodeName().equals("uneditableAttributes")) {
@@ -172,6 +205,26 @@ public class AttributeEditConfig {
                     }
                 }
                 setUnedtiableAttNames(attNameList);
+            }
+            else if (node.getNodeName().equals("uncreatableClass")) {
+            	java.util.List classNameList = new ArrayList();
+            	NodeList list = node.getChildNodes();
+            	// get contact for class instances of uncreatableClasses.
+            	Element elmContact = (Element) node;
+            	String contact = elmContact.getAttribute("contact");
+            	if (contact != null && contact.length() > 0) { // To avoid assigning an empty contact.
+            		setUncreatableClassContact(contact);
+            	}
+            	for (int j = 0; j < list.getLength(); j++) {
+            		Node node1 = list.item(j);
+            		if (node1.getNodeName().equals("class")) {
+            			Element elm = (Element) node1;
+            			String name = elm.getAttribute("name");
+            			if (name.length() > 0)
+            				classNameList.add(name);
+            		}
+            	}
+            	setUncreatableClassNames(classNameList);
             }
             else if (node.getNodeName().equals("hiddenAttributes")) {
             	NodeList list = node.getChildNodes();
