@@ -290,7 +290,6 @@ public class SlicingEngine {
      * In the actual implementation, we should apply the above rule to all EntitySets,
      * not necessary for EntitySet having drugs only.
      * 
-     * 
      * @param GKInstance instance, EntitySet to populate.
      * @throws Exception
      */
@@ -314,7 +313,7 @@ public class SlicingEngine {
     
     /**
      * Based off {@link #extractRegulations()}, iterate through disease instances
-     * and insert into the slice those instances with diseaseEntity values present
+     * and insert into the slice those instances with diseaseEntity values are present
      * in the slice.
      * 
      * @param GKInstance List, list of diseases to extract.
@@ -340,7 +339,7 @@ public class SlicingEngine {
 
     /**
      * Based off {@link #extractRegulations()}, iterate through compartment instances
-     * and insert into the slice those instances with compartmentEntity values present
+     * and insert into the slice those instances with compartmentEntity values are present
      * in the slice.
      * 
      * @param GKInstance List, list of compartments to extract.
