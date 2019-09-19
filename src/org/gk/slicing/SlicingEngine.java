@@ -67,7 +67,7 @@ import org.junit.Test;
  * 6). ReactionCoordinates whose locatedEvents are in the slice will be in the slice.
  * 7). All instances should be registered in table DatabaseObject. If not, it will be removed from the slice.
  * This is a database error and should not occur.
- * 8). All attributes referrred by instances in the slice should be in the slice. If not, these references will
+ * 8). All attributes referred by instances in the slice should be in the slice. If not, these references will
  * be removed from attributes.
  * 9). If a species list file is provided, all species and their references will be in the slice (recursively).
  * @author wgm
@@ -211,6 +211,8 @@ public class SlicingEngine {
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
+        extractDiseases();
+        extractCompartments();
         extractConcurrentEventSets();
         extractReactionCoordinates();
         extractSpecies();
@@ -876,6 +878,59 @@ public class SlicingEngine {
             }
         }
         logger.info("extractRegulations: " + sliceMap.size() + " instances.");
+    }
+
+    /**
+     * Based off {@link #extractRegulations()}, iterate through disease instances
+     * and insert into the slice those instances with diseaseEntity values present
+     * in the slice.
+     * 
+     * @throws Exception
+     */
+    private void extractDiseases() throws Exception {
+    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Disease);
+    	if (!cls.isValidAttribute(ReactomeJavaConstants.diseaseEntity))
+    		return;
+    	Collection diseases = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Disease);
+    	GKInstance disease = null;
+    	GKInstance diseaseEntity = null;
+    	for (Iterator it = diseases.iterator(); it.hasNext();) {
+    		disease = (GKInstance) it.next();
+    		diseaseEntity = (GKInstance) disease.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
+    		if (diseaseEntity == null)
+    			continue;
+    		if (sliceMap.containsKey(diseaseEntity.getDBID())) {
+    			extractReferencesToInstance(disease);
+    		}
+    	}
+    	logger.info("extractDiseases: " + sliceMap.size() + " instances.");
+    }
+
+
+    /**
+     * Based off {@link #extractRegulations()}, iterate through compartment instances
+     * and insert into the slice those instances with compartmentEntity values present
+     * in the slice.
+     * 
+     * @throws Exception
+     */
+    private void extractCompartments() throws Exception {
+    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
+    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntityCompartment))
+    		return;
+    	Collection compartments = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Compartment);
+    	GKInstance compartment = null;
+    	GKInstance compartmentEntity = null;
+    	for (Iterator it = compartments.iterator(); it.hasNext();) {
+    		compartment = (GKInstance) it.next();
+    		compartmentEntity = (GKInstance) compartment.getAttributeValue(ReactomeJavaConstants.EntityCompartment);
+    		if (compartmentEntity == null)
+    			continue;
+    		if (sliceMap.containsKey(compartmentEntity.getDBID())) {
+    			extractReferencesToInstance(compartment);
+    		}
+    	}
+    	logger.info("extractCompartments: " + sliceMap.size() + " instances.");
     }
     
     private void checkFollowingEventsInFloating() throws Exception {
