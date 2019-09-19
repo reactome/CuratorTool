@@ -211,8 +211,7 @@ public class SlicingEngine {
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
-        extractDiseases();
-        extractCompartments();
+        extractEntitySets();
         extractConcurrentEventSets();
         extractReactionCoordinates();
         extractSpecies();
@@ -239,6 +238,130 @@ public class SlicingEngine {
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+    }
+    
+    /**
+     * Based off {@link #extractRegulations()}, extracts EntitySets from slice.
+     * Calls {@link #populateEntitySet(GKInstance)} to populate disease and compartment slots.
+     * 
+     * @return List of EntitySets in slice, null if slice does not contain EntitySets.
+     * @throws Exception
+     */
+    private List<GKInstance> extractEntitySets() throws Exception {
+    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
+    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntitySet))
+    		return null;
+    	Collection entitySetsDb = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.EntitySet);
+    	GKInstance entitySetIter = null;
+    	GKInstance entitySetInstance = null;
+		List<GKInstance> list = new ArrayList<GKInstance>();
+    	
+    	// iterate through EnetitySet's in database.
+    	for (Iterator it = entitySetsDb.iterator(); it.hasNext();) {
+    		entitySetIter = (GKInstance) it.next();
+    		entitySetInstance = (GKInstance) entitySetIter.getAttributeValue(ReactomeJavaConstants.EntitySet);
+    		if (entitySetInstance == null)
+    			continue;
+    		// if slice contains a given EntitySet, load into slice,
+    		// and populate it's disease and compartment slots.
+    		if (sliceMap.containsKey(entitySetInstance.getDBID())) {
+    			extractReferencesToInstance(entitySetInstance);
+    			populateEntitySet(entitySetInstance);
+    		}
+    	}
+    	logger.info("extrac.EntitySet: " + sliceMap.size() + " instances.");
+    	return list;
+    }
+
+    /**
+     * Iterate through EntitySet instances and populate each instance's
+     * disease and compartment attributes.
+     * 
+     * <h3>Goal</h3>
+     * Consider an EntitySet composed of all drugs in its hasMember slot, 
+     * each of which may have different set of diseases.
+     * We want to collect all diseases together into the disease slot of this EntitySet.
+     * 
+     * <h3>Recursion</h3>
+     * An EntitySet may contain another EntitySet. So this should be done recursively.
+     * The same thing should be done for the compartment slot. 
+     * 
+     * <h3>Application Set</h3>
+     * In the actual implementation, we should apply the above rule to all EntitySets,
+     * not necessary for EntitySet having drugs only.
+     * 
+     * 
+     * @param GKInstance instance, EntitySet to populate.
+     * @throws Exception
+     */
+    private void populateEntitySet(GKInstance instance) throws Exception {
+    	// If EntitySet has a "hasMember" attribute (other EntitySets), recursively iterate them.
+    	List<GKInstance> members = instance.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+    	if (members != null && members.size() > 0) {
+    		for (GKInstance member: members) {
+    			populateEntitySet(member);
+    		}
+    	}
+    		
+    	// diseases to collect into the disease slot of the given EntitySet.
+    	List<GKInstance> diseases = instance.getAttributeValuesList(ReactomeJavaConstants.disease);
+    	extractDiseases(diseases);
+
+    	// compartments to collect into the compartment slot of the given EntitySet.
+    	List<GKInstance> compartments = instance.getAttributeValuesList(ReactomeJavaConstants.compartment);
+    	extractDiseases(compartments);
+    }
+    
+    /**
+     * Based off {@link #extractRegulations()}, iterate through disease instances
+     * and insert into the slice those instances with diseaseEntity values present
+     * in the slice.
+     * 
+     * @param GKInstance List, list of diseases to extract.
+     * @throws Exception
+     */
+    private void extractDiseases(List<GKInstance> diseases) throws Exception {
+    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Disease);
+    	if (!cls.isValidAttribute(ReactomeJavaConstants.diseaseEntity))
+    		return;
+    	GKInstance disease = null;
+    	GKInstance diseaseEntity = null;
+    	for (Iterator it = diseases.iterator(); it.hasNext();) {
+    		disease = (GKInstance) it.next();
+    		diseaseEntity = (GKInstance) disease.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
+    		if (diseaseEntity == null)
+    			continue;
+    		if (sliceMap.containsKey(diseaseEntity.getDBID())) {
+    			extractReferencesToInstance(disease);
+    		}
+    	}
+    	logger.info("extractDiseases: " + sliceMap.size() + " instances.");
+    }
+
+    /**
+     * Based off {@link #extractRegulations()}, iterate through compartment instances
+     * and insert into the slice those instances with compartmentEntity values present
+     * in the slice.
+     * 
+     * @param GKInstance List, list of compartments to extract.
+     * @throws Exception
+     */
+    private void extractCompartments(List<GKInstance> compartments) throws Exception {
+    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
+    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntityCompartment))
+    		return;
+    	GKInstance compartment = null;
+    	GKInstance compartmentEntity = null;
+    	for (Iterator it = compartments.iterator(); it.hasNext();) {
+    		compartment = (GKInstance) it.next();
+    		compartmentEntity = (GKInstance) compartment.getAttributeValue(ReactomeJavaConstants.EntityCompartment);
+    		if (compartmentEntity == null)
+    			continue;
+    		if (sliceMap.containsKey(compartmentEntity.getDBID())) {
+    			extractReferencesToInstance(compartment);
+    		}
+    	}
+    	logger.info("extractCompartments: " + sliceMap.size() + " instances.");
     }
     
     private void setStableIdReleased() throws Exception {
@@ -802,7 +925,7 @@ public class SlicingEngine {
 
     
     /**
-     * Take only those cooridates whose locatedEvent are in the slice.
+     * Take only those coordinates whose locatedEvent are in the slice.
      *
      */
     private void extractReactionCoordinates() throws Exception {
@@ -880,59 +1003,6 @@ public class SlicingEngine {
         logger.info("extractRegulations: " + sliceMap.size() + " instances.");
     }
 
-    /**
-     * Based off {@link #extractRegulations()}, iterate through disease instances
-     * and insert into the slice those instances with diseaseEntity values present
-     * in the slice.
-     * 
-     * @throws Exception
-     */
-    private void extractDiseases() throws Exception {
-    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Disease);
-    	if (!cls.isValidAttribute(ReactomeJavaConstants.diseaseEntity))
-    		return;
-    	Collection diseases = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Disease);
-    	GKInstance disease = null;
-    	GKInstance diseaseEntity = null;
-    	for (Iterator it = diseases.iterator(); it.hasNext();) {
-    		disease = (GKInstance) it.next();
-    		diseaseEntity = (GKInstance) disease.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
-    		if (diseaseEntity == null)
-    			continue;
-    		if (sliceMap.containsKey(diseaseEntity.getDBID())) {
-    			extractReferencesToInstance(disease);
-    		}
-    	}
-    	logger.info("extractDiseases: " + sliceMap.size() + " instances.");
-    }
-
-
-    /**
-     * Based off {@link #extractRegulations()}, iterate through compartment instances
-     * and insert into the slice those instances with compartmentEntity values present
-     * in the slice.
-     * 
-     * @throws Exception
-     */
-    private void extractCompartments() throws Exception {
-    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
-    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntityCompartment))
-    		return;
-    	Collection compartments = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.Compartment);
-    	GKInstance compartment = null;
-    	GKInstance compartmentEntity = null;
-    	for (Iterator it = compartments.iterator(); it.hasNext();) {
-    		compartment = (GKInstance) it.next();
-    		compartmentEntity = (GKInstance) compartment.getAttributeValue(ReactomeJavaConstants.EntityCompartment);
-    		if (compartmentEntity == null)
-    			continue;
-    		if (sliceMap.containsKey(compartmentEntity.getDBID())) {
-    			extractReferencesToInstance(compartment);
-    		}
-    	}
-    	logger.info("extractCompartments: " + sliceMap.size() + " instances.");
-    }
-    
     private void checkFollowingEventsInFloating() throws Exception {
         if (floatingEventMap == null || floatingEventMap.size() == 0)
             return;
