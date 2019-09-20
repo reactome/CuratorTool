@@ -241,39 +241,6 @@ public class SlicingEngine {
     }
     
     /**
-     * Based off {@link #extractRegulations()}, extracts EntitySets from slice.
-     * Calls {@link #populateEntitySet(GKInstance)} to populate disease and compartment slots.
-     * 
-     * @return List of EntitySets in slice, null if slice does not contain EntitySets.
-     * @throws Exception
-     */
-    private List<GKInstance> extractEntitySets() throws Exception {
-    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
-    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntitySet))
-    		return null;
-    	Collection entitySetsDb = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.EntitySet);
-    	GKInstance entitySetIter = null;
-    	GKInstance entitySetInstance = null;
-		List<GKInstance> list = new ArrayList<GKInstance>();
-    	
-    	// iterate through EnetitySet's in database.
-    	for (Iterator it = entitySetsDb.iterator(); it.hasNext();) {
-    		entitySetIter = (GKInstance) it.next();
-    		entitySetInstance = (GKInstance) entitySetIter.getAttributeValue(ReactomeJavaConstants.EntitySet);
-    		if (entitySetInstance == null)
-    			continue;
-    		// if slice contains a given EntitySet, load into slice,
-    		// and populate it's disease and compartment slots.
-    		if (sliceMap.containsKey(entitySetInstance.getDBID())) {
-    			extractReferencesToInstance(entitySetInstance);
-    			populateEntitySet(entitySetInstance);
-    		}
-    	}
-    	logger.info("extrac.EntitySet: " + sliceMap.size() + " instances.");
-    	return list;
-    }
-
-    /**
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
      * 
@@ -294,73 +261,46 @@ public class SlicingEngine {
      * @throws Exception
      */
     private void populateEntitySet(GKInstance instance) throws Exception {
-    	// If EntitySet has a "hasMember" attribute (other EntitySets), recursively iterate them.
-    	List<GKInstance> members = instance.getAttributeValuesList(ReactomeJavaConstants.hasMember);
-    	if (members != null && members.size() > 0) {
-    		for (GKInstance member: members) {
-    			populateEntitySet(member);
+    	Set<GKInstance> attributes = InstanceUtilities.getContainedInstances(instance, 
+    			ReactomeJavaConstants.hasMember,
+    			ReactomeJavaConstants.hasCandidate);
+    	
+    	// If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+    	if (attributes != null && attributes.size() > 0) {
+    		for (GKInstance attribute: attributes) {
+    			populateEntitySet(attribute);
     		}
     	}
-    		
-    	// diseases to collect into the disease slot of the given EntitySet.
-    	List<GKInstance> diseases = instance.getAttributeValuesList(ReactomeJavaConstants.disease);
-    	extractDiseases(diseases);
 
-    	// compartments to collect into the compartment slot of the given EntitySet.
-    	List<GKInstance> compartments = instance.getAttributeValuesList(ReactomeJavaConstants.compartment);
-    	extractDiseases(compartments);
-    }
-    
-    /**
-     * Based off {@link #extractRegulations()}, iterate through disease instances
-     * and insert into the slice those instances with diseaseEntity values are present
-     * in the slice.
-     * 
-     * @param GKInstance List, list of diseases to extract.
-     * @throws Exception
-     */
-    private void extractDiseases(List<GKInstance> diseases) throws Exception {
-    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Disease);
-    	if (!cls.isValidAttribute(ReactomeJavaConstants.diseaseEntity))
-    		return;
-    	GKInstance disease = null;
-    	GKInstance diseaseEntity = null;
-    	for (Iterator it = diseases.iterator(); it.hasNext();) {
-    		disease = (GKInstance) it.next();
-    		diseaseEntity = (GKInstance) disease.getAttributeValue(ReactomeJavaConstants.diseaseEntity);
-    		if (diseaseEntity == null)
-    			continue;
-    		if (sliceMap.containsKey(diseaseEntity.getDBID())) {
-    			extractReferencesToInstance(disease);
-    		}
-    	}
-    	logger.info("extractDiseases: " + sliceMap.size() + " instances.");
+		getAndSetAttributes(instance, 
+				ReactomeJavaConstants.disease,
+				ReactomeJavaConstants.compartment);
     }
 
     /**
-     * Based off {@link #extractRegulations()}, iterate through compartment instances
-     * and insert into the slice those instances with compartmentEntity values are present
-     * in the slice.
+     * Get and set attributes for a containing instance object.
      * 
-     * @param GKInstance List, list of compartments to extract.
+     * <ul>
+     *   <li> "container" is the containing instance object (e.g. EntitySet). </li>
+     *   <li> "attributeNames" are the String names of the attribute instances (e.g. ReactomeJavaConstants.disease). </li>
+     *   <li> "value" is the actual instance object of the attribute (e.g. disease). </li>
+     * </ul>
+     * 
+     * @param container
+     * @param attributeNames
      * @throws Exception
      */
-    private void extractCompartments(List<GKInstance> compartments) throws Exception {
-    	SchemaClass cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
-    	if (!cls.isValidAttribute(ReactomeJavaConstants.EntityCompartment))
-    		return;
-    	GKInstance compartment = null;
-    	GKInstance compartmentEntity = null;
-    	for (Iterator it = compartments.iterator(); it.hasNext();) {
-    		compartment = (GKInstance) it.next();
-    		compartmentEntity = (GKInstance) compartment.getAttributeValue(ReactomeJavaConstants.EntityCompartment);
-    		if (compartmentEntity == null)
-    			continue;
-    		if (sliceMap.containsKey(compartmentEntity.getDBID())) {
-    			extractReferencesToInstance(compartment);
-    		}
-    	}
-    	logger.info("extractCompartments: " + sliceMap.size() + " instances.");
+    private void getAndSetAttributes(GKInstance container, String... attributeNames) throws Exception {
+		// for each attribute name
+		for (String attributeName: attributeNames) {
+			// get list of attribute instance objects.
+			List<GKInstance> attributes = container.getAttributeValuesList(attributeName);
+
+			// set slot values for each of the attribute instances.
+			for (GKInstance value : attributes) {
+				container.setAttributeValue(attributeName, value);
+			}
+		}
     }
     
     private void setStableIdReleased() throws Exception {
