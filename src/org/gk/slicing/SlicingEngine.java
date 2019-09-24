@@ -288,8 +288,6 @@ public class SlicingEngine {
     private void getAndSetAttributes(GKInstance container, String... attributeNames) throws Exception {
 		// for each attribute name
 		for (String attributeName: attributeNames) {
-			logger.info("Populating " + attributeName + " for " + container.getDisplayName());
-			
 			// get list of attribute instance objects.
 			List<GKInstance> attributes = container.getAttributeValuesList(attributeName);
 
