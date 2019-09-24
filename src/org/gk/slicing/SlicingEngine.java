@@ -211,7 +211,6 @@ public class SlicingEngine {
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
-        extractEntitySets();
         extractConcurrentEventSets();
         extractReactionCoordinates();
         extractSpecies();
@@ -244,7 +243,7 @@ public class SlicingEngine {
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
      * 
-     * <h3>Goal</h3>
+     * <h3>Purpose</h3>
      * Consider an EntitySet composed of all drugs in its hasMember slot, 
      * each of which may have different set of diseases.
      * We want to collect all diseases together into the disease slot of this EntitySet.
@@ -257,24 +256,20 @@ public class SlicingEngine {
      * In the actual implementation, we should apply the above rule to all EntitySets,
      * not necessary for EntitySet having drugs only.
      * 
-     * @param GKInstance instance, EntitySet to populate.
+     * @param GKInstance, String...
      * @throws Exception
      */
-    private void populateEntitySet(GKInstance instance) throws Exception {
+    private void populateEntitySet(GKInstance instance, String... attributeNames) throws Exception {
     	Set<GKInstance> attributes = InstanceUtilities.getContainedInstances(instance, 
     			ReactomeJavaConstants.hasMember,
     			ReactomeJavaConstants.hasCandidate);
-    	
     	// If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
     	if (attributes != null && attributes.size() > 0) {
     		for (GKInstance attribute: attributes) {
     			populateEntitySet(attribute);
     		}
     	}
-
-		getAndSetAttributes(instance, 
-				ReactomeJavaConstants.disease,
-				ReactomeJavaConstants.compartment);
+		getAndSetAttributes(instance, attributeNames);
     }
 
     /**
@@ -293,6 +288,8 @@ public class SlicingEngine {
     private void getAndSetAttributes(GKInstance container, String... attributeNames) throws Exception {
 		// for each attribute name
 		for (String attributeName: attributeNames) {
+			logger.info("Populating " + attributeName + " for " + container.getDisplayName());
+			
 			// get list of attribute instance objects.
 			List<GKInstance> attributes = container.getAttributeValuesList(attributeName);
 
@@ -1013,6 +1010,13 @@ public class SlicingEngine {
                 pushToMap(tmp, sliceMap);
                 // Load all instances
 //                sourceDBA.loadInstanceAttributeValues(tmp);
+
+                // if the instance is an EntitySet, then populate the attributes passed to it.
+                if (tmp.getSchemClass().isa("EntitySet")) {
+                	populateEntitySet(instance,
+                			ReactomeJavaConstants.disease,
+                			ReactomeJavaConstants.compartment);
+                }
                 // Use this version to increase the performance hopefully
                 sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
