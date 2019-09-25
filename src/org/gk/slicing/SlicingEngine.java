@@ -243,57 +243,59 @@ public class SlicingEngine {
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
      * 
-     * <h3>Purpose</h3>
-     * Consider an EntitySet composed of all drugs in its hasMember slot, 
-     * each of which may have different set of diseases.
-     * We want to collect all diseases together into the disease slot of this EntitySet.
+     * TODO call to this method is current deferred.
      * 
-     * <h3>Recursion</h3>
-     * An EntitySet may contain another EntitySet. So this should be done recursively.
-     * The same thing should be done for the compartment slot. 
-     * 
-     * <h3>Application Set</h3>
-     * In the actual implementation, we should apply the above rule to all EntitySets,
-     * not necessary for EntitySet having drugs only.
-     * 
-     * @param GKInstance, String...
+     * @param instance
      * @throws Exception
      */
-    private void populateEntitySet(GKInstance instance, String... attributeNames) throws Exception {
+    private void populateEntitySet(GKInstance instance) throws Exception {
+    	// If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
     	Set<GKInstance> attributes = InstanceUtilities.getContainedInstances(instance, 
     			ReactomeJavaConstants.hasMember,
     			ReactomeJavaConstants.hasCandidate);
-    	// If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
     	if (attributes != null && attributes.size() > 0) {
     		for (GKInstance attribute: attributes) {
     			populateEntitySet(attribute);
     		}
     	}
-		getAndSetAttributes(instance, attributeNames);
+		setContainerAttributes(instance,
+				ReactomeJavaConstants.disease,
+				ReactomeJavaConstants.compartment);
     }
 
     /**
-     * Get and set attributes for a containing instance object.
+     * Return attributes for a containing instance object.
      * 
      * <ul>
      *   <li> "container" is the containing instance object (e.g. EntitySet). </li>
-     *   <li> "attributeNames" are the String names of the attribute instances (e.g. ReactomeJavaConstants.disease). </li>
-     *   <li> "value" is the actual instance object of the attribute (e.g. disease). </li>
+     *   <li> "attributeValues" are the String names of the attribute instances (e.g. ReactomeJavaConstants.disease). </li>
      * </ul>
      * 
      * @param container
-     * @param attributeNames
+     * @param attributeValues
+     * @return 
+     * @throws InvalidAttributeException 
      * @throws Exception
      */
-    private void getAndSetAttributes(GKInstance container, String... attributeNames) throws Exception {
-		// for each attribute name
-		for (String attributeName: attributeNames) {
-			// get list of attribute instance objects.
-			List<GKInstance> attributes = container.getAttributeValuesList(attributeName);
+    private List<GKInstance> getContainerAttributes(GKInstance container, String attributeValues) throws InvalidAttributeException, Exception {
+		return container.getAttributeValuesList(attributeValues);
+    }
 
-			// set slot values for each of the attribute instances.
+    /**
+     * Set attributes for a containing instance object.
+     * 
+     * @param container
+     * @param attributeValues
+     * @throws Exception
+     */
+    private void setContainerAttributes(GKInstance container, String... attributeValues) throws Exception {
+		for (String attributeValue: attributeValues) {
+			List<GKInstance> attributes = getContainerAttributes(container, attributeValue);
+
+			// set slot values for each of the defined attribute instances.
+			// values are defined in populateEntitySet.
 			for (GKInstance value : attributes) {
-				container.setAttributeValue(attributeName, value);
+				container.setAttributeValue(attributeValue, value);
 			}
 		}
     }
@@ -1009,12 +1011,6 @@ public class SlicingEngine {
                 // Load all instances
 //                sourceDBA.loadInstanceAttributeValues(tmp);
 
-                // if the instance is an EntitySet, then populate the attributes passed to it.
-                if (tmp.getSchemClass().isa("EntitySet")) {
-                	populateEntitySet(instance,
-                			ReactomeJavaConstants.disease,
-                			ReactomeJavaConstants.compartment);
-                }
                 // Use this version to increase the performance hopefully
                 sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
