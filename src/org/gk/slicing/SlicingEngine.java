@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 
@@ -233,6 +235,8 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
+        fillAttributeValuesForEntities(ReactomeJavaConstants.disease);
+        fillAttributeValuesForEntities(ReactomeJavaConstants.compartment);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -242,8 +246,6 @@ public class SlicingEngine {
     /**
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
-     * 
-     * TODO initial call to this method is current deferred.
      * 
      * @param instance
      * @throws Exception
@@ -270,19 +272,29 @@ public class SlicingEngine {
         instance.setAttributeValue(attributeName, memberList);
     }
     
-    @Test
+    //@Test
     public void testPopulateEntitySet() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_091119",
-                                            "root",
-                                            "macmysql01");
+    	MySQLAdaptor dba = new MySQLAdaptor("localhost",
+											"reactome",
+											"liam",
+											")8J7m]!%[<");
+    	
+    	// ACEI pro-drugs [extracellular region]
         Long dbId = 9619112L;
-        GKInstance entitySet = dba.fetchInstance(dbId);
-        List<GKInstance> disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
-        System.out.println("Disease before handling: " + disease);
-        populateEntitySet(entitySet, ReactomeJavaConstants.disease);
-        disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
-        System.out.println("Disease after handling: " + disease);
+        Map<String, Integer> attrNameAndSize = new HashMap<>();
+        attrNameAndSize.put(ReactomeJavaConstants.disease, 5);
+        attrNameAndSize.put(ReactomeJavaConstants.compartment, 1);
+        
+		for (String attrName : attrNameAndSize.keySet()) {
+        	GKInstance entitySet = dba.fetchInstance(dbId);
+        	List<GKInstance> attrValue = entitySet.getAttributeValuesList(attrName);
+        	System.out.println(attrName + " before handling: " + attrValue);
+
+        	populateEntitySet(entitySet, attrName);
+        	attrValue = entitySet.getAttributeValuesList(attrName);
+        	System.out.println(attrName + " after handling: " + attrValue);
+        	assertEquals(attrNameAndSize.get(attrName).intValue(), attrValue.size());
+        }
     }
     
     private void setStableIdReleased() throws Exception {
@@ -384,6 +396,18 @@ public class SlicingEngine {
             inst.setAttributeValue(ReactomeJavaConstants.includedLocation,
                                    list);
         }
+    }
+    
+    private void fillAttributeValuesForEntities(String attributeName) throws Exception {
+    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
+    	if (!EntityCls.isValidAttribute(attributeName))
+    		return;
+    	for (Long dbId : sliceMap.keySet()) {
+    		GKInstance inst = sliceMap.get(dbId);
+    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+    			continue;
+    		populateEntitySet(inst, attributeName);
+    	}
     }
     
     private void extractPathwayDiagrams() throws Exception {
