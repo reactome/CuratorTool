@@ -243,7 +243,7 @@ public class SlicingEngine {
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
      * 
-     * TODO call to this method is current deferred.
+     * TODO initial call to this method is current deferred.
      * 
      * @param instance
      * @throws Exception
@@ -264,7 +264,7 @@ public class SlicingEngine {
     }
 
     /**
-     * Return attributes for a containing instance object.
+     * Return attributes for an instance object.
      * 
      * <ul>
      *   <li> "container" is the containing instance object (e.g. EntitySet). </li>
@@ -273,7 +273,7 @@ public class SlicingEngine {
      * 
      * @param container
      * @param attributeValues
-     * @return 
+     * @return List
      * @throws InvalidAttributeException 
      * @throws Exception
      */
@@ -282,7 +282,7 @@ public class SlicingEngine {
     }
 
     /**
-     * Set attributes for a containing instance object.
+     * Set attributes for an instance object.
      * 
      * @param container
      * @param attributeValues
@@ -293,7 +293,6 @@ public class SlicingEngine {
 			List<GKInstance> attributes = getContainerAttributes(container, attributeValue);
 
 			// set slot values for each of the defined attribute instances.
-			// values are defined in populateEntitySet.
 			for (GKInstance value : attributes) {
 				container.setAttributeValue(attributeValue, value);
 			}
