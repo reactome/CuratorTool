@@ -235,8 +235,8 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        fillAttributeValuesForEntities(ReactomeJavaConstants.disease);
-        fillAttributeValuesForEntities(ReactomeJavaConstants.compartment);
+        fillAttributeValuesForEntitySets(ReactomeJavaConstants.disease);
+        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -398,7 +398,7 @@ public class SlicingEngine {
         }
     }
     
-    private void fillAttributeValuesForEntities(String attributeName) throws Exception {
+    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
     	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
     	if (!EntityCls.isValidAttribute(attributeName))
     		return;
