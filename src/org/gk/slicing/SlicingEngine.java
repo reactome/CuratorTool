@@ -248,55 +248,41 @@ public class SlicingEngine {
      * @param instance
      * @throws Exception
      */
-    private void populateEntitySet(GKInstance instance) throws Exception {
-    	// If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-    	Set<GKInstance> attributes = InstanceUtilities.getContainedInstances(instance, 
-    			ReactomeJavaConstants.hasMember,
-    			ReactomeJavaConstants.hasCandidate);
-    	if (attributes != null && attributes.size() > 0) {
-    		for (GKInstance attribute: attributes) {
-    			populateEntitySet(attribute);
-    		}
-    	}
-		setContainerAttributes(instance,
-				ReactomeJavaConstants.disease,
-				ReactomeJavaConstants.compartment);
+    private void populateEntitySet(GKInstance instance,
+                                   String attributeName) throws Exception {
+        if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+            return;
+        // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance, 
+                                                                          ReactomeJavaConstants.hasMember,
+                                                                          ReactomeJavaConstants.hasCandidate);
+        Set<GKInstance> memberAttributeValues = new HashSet<>();
+        for (GKInstance member : members) {
+            if (!member.getSchemClass().isValidAttribute(attributeName))
+                continue;
+            List<GKInstance> list = member.getAttributeValuesList(attributeName);
+            if (list == null || list.size() == 0)
+                continue;
+            memberAttributeValues.addAll(list);
+        }
+        List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
+        InstanceUtilities.sortInstances(memberList);
+        instance.setAttributeValue(attributeName, memberList);
     }
-
-    /**
-     * Return attributes for an instance object.
-     * 
-     * <ul>
-     *   <li> "container" is the containing instance object (e.g. EntitySet). </li>
-     *   <li> "attributeValues" are the String names of the attribute instances (e.g. ReactomeJavaConstants.disease). </li>
-     * </ul>
-     * 
-     * @param container
-     * @param attributeValues
-     * @return List
-     * @throws InvalidAttributeException 
-     * @throws Exception
-     */
-    private List<GKInstance> getContainerAttributes(GKInstance container, String attributeValues) throws InvalidAttributeException, Exception {
-		return container.getAttributeValuesList(attributeValues);
-    }
-
-    /**
-     * Set attributes for an instance object.
-     * 
-     * @param container
-     * @param attributeValues
-     * @throws Exception
-     */
-    private void setContainerAttributes(GKInstance container, String... attributeValues) throws Exception {
-		for (String attributeValue: attributeValues) {
-			List<GKInstance> attributes = getContainerAttributes(container, attributeValue);
-
-			// set slot values for each of the defined attribute instances.
-			for (GKInstance value : attributes) {
-				container.setAttributeValue(attributeValue, value);
-			}
-		}
+    
+    @Test
+    public void testPopulateEntitySet() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_091119",
+                                            "root",
+                                            "macmysql01");
+        Long dbId = 9619112L;
+        GKInstance entitySet = dba.fetchInstance(dbId);
+        List<GKInstance> disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
+        System.out.println("Disease before handling: " + disease);
+        populateEntitySet(entitySet, ReactomeJavaConstants.disease);
+        disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
+        System.out.println("Disease after handling: " + disease);
     }
     
     private void setStableIdReleased() throws Exception {
