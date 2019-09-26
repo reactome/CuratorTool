@@ -147,10 +147,10 @@ public class SlicingEngine {
     /**
      * The name of the target database. This database will be created at the same host
      * as the data source.
-     * @param dbName
+     * @param DbName
      */
-    public void setTargetDbName(String dbName) {
-        this.targetDbName = dbName;
+    public void setTargetDbName(String DbName) {
+        this.targetDbName = DbName;
     }
     
     public void setTargetDbHost(String host) {
@@ -1388,9 +1388,9 @@ public class SlicingEngine {
             String dbHost = properties.getProperty("dbHost");
             if (dbHost == null || dbHost.trim().length() == 0)
                 dbHost = getInput("Please input the database host");
-            String dbName = properties.getProperty("dbName");
-            if (dbName == null || dbName.trim().length() == 0)
-                dbName = getInput("Please input the source database name");
+            String DbName = properties.getProperty("DbName");
+            if (DbName == null || DbName.trim().length() == 0)
+                DbName = getInput("Please input the source database name");
             String dbPort = properties.getProperty("dbPort");
             if (dbPort == null || dbPort.trim().length() == 0)
                 dbPort = getInput("Please input the source databse port");
@@ -1400,12 +1400,14 @@ public class SlicingEngine {
             String pwd = properties.getProperty("dbPwd");
             if (pwd == null || pwd.trim().length() == 0)
                 pwd = getInput("Please input the password");
+            
+            // Target database.
             String targetDbHost = properties.getProperty("slicingDbHost");
             if (targetDbHost == null || targetDbHost.trim().length() == 0)
                 targetDbHost = getInput("Please input the slice databse host");
-            String targetdbName = properties.getProperty("slicingDbName");
-            if (targetdbName == null || targetdbName.trim().length() == 0)
-                targetdbName = getInput("Please input the slice database name");
+            String targetDbName = properties.getProperty("slicingDbName");
+            if (targetDbName == null || targetDbName.trim().length() == 0)
+                targetDbName = getInput("Please input the slice database name");
             String targetDbUser = properties.getProperty("slicingDbUser");
             if (targetDbUser == null || targetDbUser.trim().length() == 0)
                 targetDbUser = getInput("Please input the slice database user");
@@ -1449,14 +1451,14 @@ public class SlicingEngine {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
-                                                      dbName,
+                                                      DbName,
                                                       user,
                                                       pwd,
                                                       Integer.parseInt(dbPort));
             // To keep this connection consistent to avoid time out
             sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
             engine.setSource(sourceDBA);
-            engine.setTargetDbName(targetdbName);
+            engine.setTargetDbName(targetDbName);
             engine.setTargetDbHost(targetDbHost);
             engine.setTargetDbUser(targetDbUser);
             engine.setTargetDbPwd(targetDbPwd);
