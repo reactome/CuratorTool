@@ -335,7 +335,7 @@ public class SlicingEngine {
 		}
     }
 
-    private Boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
+    private boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
     	// Recursively iterate over events in pathway.
     	List<GKInstance> events = pathway.getAttributeValuesList("hasEvent");
 		if (events != null && events.size() > 0) {
@@ -390,9 +390,18 @@ public class SlicingEngine {
      */
     private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
     	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
+        MySQLAdaptor dba = getCompareDbAdapter();
   
     	for (GKInstance summation : summations) {
-    		if (summation.isDirty())
+    		// current text
+    		GKInstance text = (GKInstance) summation.getAttributeValue("text");
+    		
+    		// previous summation and text
+    		GKInstance summation_previous = dba.fetchInstance(summation.getDBID());
+    		GKInstance text_previous = (GKInstance) summation_previous.getAttributeValue("text");
+    		
+    		// if a change in text is detected, then summation is considered revised.
+    		if (!text.equals(text_previous))
     			return true;
     	}
 
