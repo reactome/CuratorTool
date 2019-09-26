@@ -49,6 +49,7 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
+import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
@@ -90,6 +91,13 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
+    // Compare (used for comparing against the current slice).
+    private String compareDbHost;
+    private String compareDbName;
+    private String compareDbUser;
+    private String compareDbPwd;
+    private int compareDbPort = 3306;
+    private MySQLAdaptor compareDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -169,6 +177,31 @@ public class SlicingEngine {
         this.targetDbPort = dbPort;
     }
     
+   /**
+     * The name of the compare database. This database will be created at the same host
+     * as the data source.
+     * @param DbName
+     */
+    public void setCompareDbName(String DbName) {
+        this.compareDbName = DbName;
+    }
+    
+    public void setCompareDbHost(String host) {
+        this.compareDbHost = host;
+    }
+    
+    public void setCompareDbUser(String dbUser) {
+        this.compareDbUser = dbUser;
+    }
+    
+    public void setCompareDbPwd(String pwd) {
+        this.compareDbPwd = pwd;
+    }
+    
+    public void setCompareDbPort(int dbPort) {
+        this.compareDbPort = dbPort;
+    }
+    
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
@@ -241,10 +274,6 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        // check for revision in RLE's.
-        checkForAttributeRevision(ReactomeJavaConstants.ReactionlikeEvent);
-        // check for revision in pathways.
-        checkForAttributeRevision(ReactomeJavaConstants.Pathway);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -368,6 +397,53 @@ public class SlicingEngine {
     	}
 
     	return false;
+    }
+    
+    /**
+     * 
+     * @param left
+     * @param right
+     * @param attrValue
+     * @return boolean
+     * @throws Exception 
+     */
+    private boolean compareAttribute(GKInstance left, GKInstance right, SchemaAttribute attrValue)
+    		throws Exception {
+    	return left.getAttributeValue(attrValue).equals(right.getAttributeValue(attrValue));
+    }
+
+    /**
+     * Return true if at least one "compare" value is provided by user.
+     * 
+     * @param args
+     * @return
+     * @throws IOException
+     */
+    private static boolean isCompareRequested(String[] args) throws IOException {
+    	Properties properties = loadProperties();
+
+    	Map<String, String> cmdLineProps = parsePropertiesInArgs(args);
+    	// Augment or override the auth.properties values.
+    	properties.putAll(cmdLineProps);
+
+    	return properties.getProperty("compareDBHost") != null
+			|| properties.getProperty("compareDBHost") != null
+			|| properties.getProperty("compareDBHost") != null
+			|| properties.getProperty("compareDBHost") != null;
+    }
+    
+    private MySQLAdaptor getCompareDbAdapter() throws SQLException {
+    	if ((compareDbHost != null)
+		 || (compareDbName != null) 
+		 || (compareDbUser != null) 
+		 || (compareDbPwd  != null))
+    		return null;
+    	
+    	return new MySQLAdaptor(compareDbHost,
+    			compareDbName, 
+    			compareDbUser, 
+    			compareDbPwd, 
+    			compareDbPort);
     }
     
     private void setStableIdReleased() throws Exception {
@@ -1417,6 +1493,33 @@ public class SlicingEngine {
             String targetDbPort = properties.getProperty("slicingDbPort");
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
+            
+            // Compare database.
+            // Only ask for all "compare" values if at least one "compare" value is provided by user.
+            if (isCompareRequested(args)) {
+            	String compareDbHost = properties.getProperty("compareDbHost");
+            	if (compareDbHost == null || compareDbHost.trim().length() == 0)
+            		compareDbHost = getInput("Please input the compare databse host");
+            	String compareDbName = properties.getProperty("compareDbName");
+            	if (compareDbName == null || compareDbName.trim().length() == 0)
+            		compareDbName = getInput("Please input the compare database name");
+            	String compareDbUser = properties.getProperty("compareDbUser");
+            	if (compareDbUser == null || compareDbUser.trim().length() == 0)
+            		compareDbUser = getInput("Please input the compare database user");
+            	String compareDbPwd = properties.getProperty("compareDbPwd");
+            	if (compareDbPwd == null || compareDbPwd.trim().length() == 0)
+            		compareDbPwd = getInput("Please input the compare database password");
+            	String compareDbPort = properties.getProperty("compareDbPort");
+            	if (compareDbPort == null || compareDbPort.trim().length() == 0)
+            		compareDbPort = getInput("Please input the compare database port");
+
+            	engine.setCompareDbName(compareDbName);
+            	engine.setCompareDbHost(compareDbHost);
+            	engine.setCompareDbUser(compareDbUser);
+            	engine.setCompareDbPwd(compareDbPwd);
+            	engine.setCompareDbPort(new Integer(compareDbPort));
+            }
+            
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
