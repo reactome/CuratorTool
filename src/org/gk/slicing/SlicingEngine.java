@@ -135,6 +135,14 @@ public class SlicingEngine {
     public void setSource(MySQLAdaptor dba) {
         this.sourceDBA = dba;
     }
+
+    /**
+     * Get the data source for slicing.
+     * @return dba
+     */
+    public MySQLAdaptor getSource() {
+        return this.sourceDBA;
+    }
     
     /**
      * The name of the target database. This database will be created at the same host
@@ -234,9 +242,9 @@ public class SlicingEngine {
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
         // check for revision in RLE's.
-        checkForRevision(ReactomeJavaConstants.ReactionlikeEvent);
+        checkForAttributeRevision(ReactomeJavaConstants.ReactionlikeEvent);
         // check for revision in pathways.
-        checkForRevision(ReactomeJavaConstants.Pathway);
+        checkForAttributeRevision(ReactomeJavaConstants.Pathway);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -274,8 +282,9 @@ public class SlicingEngine {
      * @param AttributeName
      * @throws Exception 
      * @throws InvalidAttributeException 
+     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
-    private void checkForRevision(String attrName) throws InvalidAttributeException, Exception {
+    private void checkForAttributeRevision(String attrName) throws InvalidAttributeException, Exception {
     	
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
@@ -320,7 +329,7 @@ public class SlicingEngine {
     	return false;
     }
     
-    private Boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
+    private boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
     	// Check if a catalyst is added, removed, or changed.
     	// Check if a regulator is added, removed, or changed.
     	// Check for changes in inputs
@@ -342,13 +351,22 @@ public class SlicingEngine {
     	return false;	
     }
 
-    private Boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
+    /**
+     * @param instance
+     * @return
+     * @throws InvalidAttributeException
+     * @throws Exception
+     * 
+     * @see {@link org.gk.model.Summation}
+     */
+    private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
     	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
-    	
+  
     	for (GKInstance summation : summations) {
-    		String text = summation.getAttributeValue("text").toString();
-    		// TODO get existing text and compare.
+    		if (summation.isDirty())
+    			return true;
     	}
+
     	return false;
     }
     
