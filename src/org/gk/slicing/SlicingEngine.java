@@ -235,7 +235,6 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        fillAttributeValuesForEntitySets(ReactomeJavaConstants.disease);
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment);
         dumpInstances();
         addFrontPage();
@@ -245,7 +244,7 @@ public class SlicingEngine {
     
     /**
      * Iterate through EntitySet instances and populate each instance's
-     * disease and compartment attributes.
+     * compartment attributes.
      * 
      * @param instance
      * @throws Exception
@@ -282,7 +281,6 @@ public class SlicingEngine {
     	// ACEI pro-drugs [extracellular region]
         Long dbId = 9619112L;
         Map<String, Integer> attrNameAndSize = new HashMap<>();
-        attrNameAndSize.put(ReactomeJavaConstants.disease, 5);
         attrNameAndSize.put(ReactomeJavaConstants.compartment, 1);
         
 		for (String attrName : attrNameAndSize.keySet()) {
