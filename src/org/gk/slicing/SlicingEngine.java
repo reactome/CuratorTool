@@ -233,10 +233,123 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
+        // check for revision in RLE's.
+        checkForRevision(ReactomeJavaConstants.ReactionlikeEvent);
+        // check for revision in pathways.
+        checkForRevision(ReactomeJavaConstants.Pathway);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+    } 
+    
+    /**
+     * TODO remove dev notes below.
+     * 
+     * <p><strong>An RLE gets a revised flag if:</strong></p>
+     * <ol>
+     *   <li>An immediate child RLE revised</li>
+     *   <ul>
+     *     <li>A Catalyst added/removed/changed</li>
+     *     <li>A regulator added/removed/changed</li>
+     *     <li>A change is made in inputs/outputs</li>
+     *     <li>A significant change in summation (?) (curator discretion(?))</li>
+     *   </ul>
+     * </ol>
+     * 
+     * <p><strong>A pathway gets a revised flag if:</strong></p>
+     * <ol>
+     *   <li>An immediate child RLE revised 
+     *   <ul>
+     *     <li>A Catalyst added/removed/changed</li>
+     *     <li>A regulator added/removed/changed</li>
+     *     <li>A change is made in inputs/outputs</li>
+     *     <li>A significant change in summation (?) (curator discretion(?))</li>
+     *   </ul>
+     *   <li>An immediate child RLE is added/removed</li>
+     *   <li>An immediate child Pathway added/removed</li>
+     *   <li>An immediate child Pathway is revised as in B</li>
+     * </ol>
+     * 
+     * @param AttributeName
+     * @throws Exception 
+     * @throws InvalidAttributeException 
+     */
+    private void checkForRevision(String attrName) throws InvalidAttributeException, Exception {
+    	
+		// Iterate over all instances in the slice.
+		for (long dbId : sliceMap.keySet()) {
+			GKInstance inst = sliceMap.get(dbId);
+			if (!inst.getSchemClass().isa(attrName))
+				continue;
+			
+			Boolean revised = false;
+			if (attrName.equals(ReactomeJavaConstants.Pathway))
+				revised = isPathwayRevised(inst);
+			else if (attrName.equals(ReactomeJavaConstants.ReactionlikeEvent))
+				revised = isRLERevised(inst);
+
+			// If a "revised flag" condition is met, set "revised flag" on the instance.
+			// TODO determine form of "revised flag"
+			if (revised) {
+				// TODO set revised flag on instance.
+			}
+		}
+    }
+
+    private Boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
+    	// Recursively iterate over events in pathway.
+    	List<GKInstance> events = pathway.getAttributeValuesList("hasEvent");
+		if (events != null && events.size() > 0) {
+			for (GKInstance event : events) {
+				// Pathway event.
+				if (event.getDisplayName().equals(ReactomeJavaConstants.Pathway))
+					isPathwayRevised(event);
+				// RLE
+				else if (event.getDisplayName().equals(ReactomeJavaConstants.ReactionlikeEvent))
+					isRLERevised(event);
+			}
+		}
+
+    	// Check if an immediate child Pathway is added or removed.
+    	// Check if an immediate child Pathway is revised.
+    	// Check for changes in summation text.
+    	if (isSummationRevised(pathway))
+			return true;
+
+    	return false;
+    }
+    
+    private Boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
+    	// Check if a catalyst is added, removed, or changed.
+    	// Check if a regulator is added, removed, or changed.
+    	// Check for changes in inputs
+    	List<GKInstance> inputs = reactionlikeEvent.getAttributeValuesList("input");
+    	for (GKInstance input : inputs) {
+    		// TODO if slice input differs database input
+    		return true;
+    	}
+    	// Check for changes in outputs
+    	List<GKInstance> outputs = reactionlikeEvent.getAttributeValuesList("output");	
+    	for (GKInstance output : outputs) {
+    		// TODO if slice input differs database input
+    		return true;
+    	}
+    	// Check for changes in summation text.
+    	if (isSummationRevised(reactionlikeEvent))
+    		return true;
+    	
+    	return false;	
+    }
+
+    private Boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
+    	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
+    	
+    	for (GKInstance summation : summations) {
+    		String text = summation.getAttributeValue("text").toString();
+    		// TODO get existing text and compare.
+    	}
+    	return false;
     }
     
     private void setStableIdReleased() throws Exception {
