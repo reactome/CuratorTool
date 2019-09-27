@@ -4,6 +4,8 @@
  */
 package org.gk.slicing;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -329,7 +331,7 @@ public class SlicingEngine {
 				revised = isRLERevised(inst);
 
 			// If a "revised flag" condition is met, set "revised flag" on the instance.
-			// TODO determine form of "revised flag"
+			// TODO determine form of "revised flag" (possibly UpdateTrack.class).
 			if (revised) {
 				// TODO set revised flag on instance.
 			}
@@ -391,12 +393,12 @@ public class SlicingEngine {
     			);
     	
     	for (String attrName : checkForChanges) {
-    		if (compareAttributesInList(reactionlikeEvent, attrName))
+    		if (compareAllAttributesInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
     	
     	for (String attrName : checkForAdditionsOrRemovals) {
-    		if (compareAttributeLists(reactionlikeEvent, attrName))
+    		if (compareAttributeLists(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
 
@@ -417,26 +419,28 @@ public class SlicingEngine {
      * @return boolean (true if the attribute values are equal, false otherwise).
      * @throws Exception 
      */
-    private boolean compareAttribute(GKInstance left, GKInstance right, String attrName)
+    private boolean compareAttributes(GKInstance left, GKInstance right, String attrName)
     		throws Exception {
     	// TODO Add is valid attribute checks for left and right.
     	return left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
     }
 
     /**
-     * Compare all elements in a GKInstance's list of a given attribute.
+     * Iterate over and compare all elements in a GKInstance's list of a given attribute.
      * 
-     * @param container
+     * @param left
+     * @param right
      * @param attrName
      * @return boolean (true if all attributes are equals, false otherwise).
      * @throws SQLException
      * @throws Exception
      */
-    private boolean compareAttributesInList(GKInstance container, String attrName) throws SQLException, Exception {
-    	List<GKInstance> attrList = container.getAttributeValuesList(attrName);
+    private boolean compareAllAttributesInList(GKInstance left, GKInstance right, String attrName)
+    		throws SQLException, Exception {
+    	List<GKInstance> attrList = left.getAttributeValuesList(attrName);
     	for (GKInstance attrValue : attrList) {
     		// If slice output differs from database output
-    		if (!compareAttribute(container, getCompareInstance(container), attrName))
+    		if (!compareAttributes(left, right, attrName))
 				return false;
     	}
     	
@@ -444,41 +448,49 @@ public class SlicingEngine {
     }
     
     /**
-     * Compare the attribute lists as discrete objects in order to detected additions or deletions. 
+     * Compare the attribute lists as discrete objects in order to detect additions or deletions. 
+     * TODO iterate through left's list and for each element, match to right's list's element.
+     *      If right does not contain a given element that left has, return false.
+     *      After iterating over left, check for any remaining elements in right.
+     *      If elements remain, return false.
      * 
-     * @param container
+     * @param left
+     * @param right
      * @param attrName
      * @return boolean (true if the lists are equal, false otherwise).
      * @throws InvalidAttributeException
      * @throws SQLException
      * @throws Exception
      */
-    private boolean compareAttributeLists(GKInstance container, String attrName)
+    private boolean compareAttributeLists(GKInstance left, GKInstance right, String attrName)
     		throws InvalidAttributeException, SQLException, Exception {
-    	List<GKInstance> current = container.getAttributeValuesList(attrName);
-    	List<GKInstance> compare = getCompareInstance(container).getAttributeValuesList(attrName);
+    	List<GKInstance> current = left.getAttributeValuesList(attrName);
+    	List<GKInstance> compare = right.getAttributeValuesList(attrName);
     	
-    	if (current.equals(compare))
+    	if (!current.equals(compare))
     		return false;
     	
     	return true;
     }
-
+    
     /**
+     * Check if an instance's summation attribute is revised.
+     * 
      * @param instance
-     * @return true if summation is revised, false otherwise.
+     * @return boolean (true if summation is revised, false otherwise).
      * @throws InvalidAttributeException
      * @throws Exception
      * 
      * @see {@link org.gk.model.Summation}
      */
-    private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
+    private boolean isSummationRevised(GKInstance instance)
+    		throws InvalidAttributeException, Exception {
     	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
         MySQLAdaptor dba = getCompareDbAdapter();
   
     	for (GKInstance summation : summations) {
     		// if a change in text is detected, then summation is considered revised.
-    		if (!compareAttribute(summation, getCompareInstance(summation), "text"))
+    		if (!compareAttributes(summation, getCompareInstance(summation), "text"))
     			return true;
     	}
 
@@ -486,13 +498,15 @@ public class SlicingEngine {
     }
     
     /**
+     * Given a particular GKInstance, return the associated GKInstance from the "compare" slice.
      * 
      * @param instance
      * @return GKInstance
      * @throws SQLException
      * @throws Exception
      */
-    private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
+    private GKInstance getCompareInstance(GKInstance instance)
+    		throws SQLException, Exception {
     	return getCompareDbAdapter().fetchInstance(instance.getDBID());
     }
 
@@ -523,17 +537,133 @@ public class SlicingEngine {
      * @throws SQLException
      */
     private MySQLAdaptor getCompareDbAdapter() throws SQLException {
-    	if ((compareDbHost != null)
-		 || (compareDbName != null) 
-		 || (compareDbUser != null) 
-		 || (compareDbPwd  != null))
+    	List<Object> parameters = Arrays.asList(
+    			compareDbHost,
+    			compareDbName,
+    			compareDbUser,
+    			compareDbPwd,
+    			compareDbPort
+    			);
+    	
+    	if (!allElementsExist(parameters))
     		return null;
     	
-    	return new MySQLAdaptor(compareDbHost,
+    	return new MySQLAdaptor(
+    			compareDbHost,
     			compareDbName, 
     			compareDbUser, 
     			compareDbPwd, 
-    			compareDbPort);
+    			compareDbPort
+    			);
+    }
+    
+    /**
+     * Check that all elements in a list exist (non null with a length greater than 0).
+     * 
+     * @param list
+     * @return boolean (
+     */
+    private boolean allElementsExist(List<Object> list) {
+    	for (Object element : list) {
+    		if (element == null || String.valueOf(element).length() == 0)
+    			return false;
+    	}
+    	return true;
+    }
+     
+    @Test
+    public void compareAttributesTest() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor(
+    			"localhost", 
+    			"reactome",
+    			"liam", 
+    			")8J7m]!%[<"
+    			);
+
+    	// (DOCK7) [cytosol]
+    	GKInstance left = dba.fetchInstance(8875579L);
+
+    	// ABI2 [cytosol]
+    	GKInstance right = dba.fetchInstance(1671649L);
+    	
+    	assertEquals(true, compareAttributeLists(left, left, "stableIdentifier"));
+    	assertEquals(true, compareAttributeLists(right, right, "stableIdentifier"));
+    	assertEquals(false, compareAttributeLists(left, right, "stableIdentifier"));
+    }
+
+    @Test
+    public void compareAllAttributesInListTest() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor(
+    			"localhost", 
+    			"reactome",
+    			"liam", 
+    			")8J7m]!%[<"
+    			);
+
+    	// (DOCK7) [cytosol]
+    	GKInstance left = dba.fetchInstance(8875579L);
+
+    	// ABI2 [cytosol]
+    	GKInstance right = dba.fetchInstance(1671649L);
+    	
+    	assertEquals(true, compareAttributeLists(left, left, "hasCandidate"));
+    	assertEquals(true, compareAttributeLists(right, right, "hasCandidate"));
+    	assertEquals(false, compareAttributeLists(left, right, "hasCandidate"));
+    }
+
+    @Test
+    public void compareAttributeListsTest() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor(
+    			"localhost", 
+    			"reactome",
+    			"liam", 
+    			")8J7m]!%[<"
+    			);
+
+    	// (DOCK7) [cytosol]
+    	GKInstance left = dba.fetchInstance(8875579L);
+
+    	// ABI2 [cytosol]
+    	GKInstance right = dba.fetchInstance(1671649L);
+    	
+    	assertEquals(true, compareAttributeLists(left, left, "hasCandidate"));
+    	assertEquals(true, compareAttributeLists(right, right, "hasCandidate"));
+    	assertEquals(false, compareAttributeLists(left, right, "hasCandidate"));
+    }
+
+    @Test
+    public void getCompareDbAdapterTest() throws SQLException {
+    	List<Object> parameters = Arrays.asList(
+    			compareDbHost,
+    			compareDbName,
+    			compareDbUser,
+    			compareDbPwd,
+    			compareDbPort
+    			);
+    	
+    	if (!allElementsExist(parameters))
+    		return;
+    	
+		assert(getCompareDbAdapter() != null);
+    }
+    
+    @Test
+    public void allElementsExistTest() {
+    	List<Object> strings = Arrays.asList(
+    			"Read",
+    			"Eval",
+    			"Print",
+    			"Loop"
+    			);
+    	
+    	assertEquals(true, allElementsExist(strings));
+
+    	List<Object> nulls = Arrays.asList(
+    			null,
+    			""
+    			);
+
+    	assertEquals(false, allElementsExist(nulls));
     }
     
     private void setStableIdReleased() throws Exception {
