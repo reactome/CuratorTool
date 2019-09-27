@@ -398,7 +398,7 @@ public class SlicingEngine {
     	}
     	
     	for (String attrName : checkForAdditionsOrRemovals) {
-    		if (compareAttributeLists(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    		if (additionOrDeletionInLists(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
 
@@ -413,6 +413,9 @@ public class SlicingEngine {
     /**
      * Compare the value of a given attribute between two instances.
      * 
+     * Valid attribute checks take place in
+     * {@link org.gk.slicing.SlicingEngine#isValidAttributeOrThrow(SchemaAttribute attribute)}
+     * 
      * @param left
      * @param right
      * @param attrName
@@ -421,7 +424,6 @@ public class SlicingEngine {
      */
     private boolean compareAttributes(GKInstance left, GKInstance right, String attrName)
     		throws Exception {
-    	// TODO Add is valid attribute checks for left and right.
     	return left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
     }
 
@@ -462,14 +464,27 @@ public class SlicingEngine {
      * @throws SQLException
      * @throws Exception
      */
-    private boolean compareAttributeLists(GKInstance left, GKInstance right, String attrName)
+    private boolean additionOrDeletionInLists(GKInstance left, GKInstance right, String attrName)
     		throws InvalidAttributeException, SQLException, Exception {
-    	List<GKInstance> current = left.getAttributeValuesList(attrName);
-    	List<GKInstance> compare = right.getAttributeValuesList(attrName);
+    	List<Object> rightList = right.getAttributeValuesList(attrName);
+    	List<Object> leftList = left.getAttributeValuesList(attrName);
     	
-    	if (!current.equals(compare))
+    	// Constant time check to detect additions or deletions.
+    	// Misses the case where the same number of unique additions and deletions occur.
+    	// That case is detected by the iterator below.
+    	if (rightList.size() > leftList.size()
+    	 || rightList.size() < leftList.size())
     		return false;
-    	
+
+    	// Linear time check to detect additions or deletions.
+    	for (Object instance : leftList) {
+    		// If rightList does not contain an instance in leftList,
+    		// then either rightList has a deletion, or leftList has an addition.
+    		if (!rightList.contains(instance))
+    			return false;
+    	}
+
+    	// The lists have the same elements.
     	return true;
     }
     
@@ -586,9 +601,9 @@ public class SlicingEngine {
     	// ABI2 [cytosol]
     	GKInstance right = dba.fetchInstance(1671649L);
     	
-    	assertEquals(true, compareAttributeLists(left, left, "stableIdentifier"));
-    	assertEquals(true, compareAttributeLists(right, right, "stableIdentifier"));
-    	assertEquals(false, compareAttributeLists(left, right, "stableIdentifier"));
+    	assertEquals(true, compareAttributes(left, left, "stableIdentifier"));
+    	assertEquals(true, compareAttributes(right, right, "stableIdentifier"));
+    	assertEquals(false, compareAttributes(left, right, "stableIdentifier"));
     }
 
     @Test
@@ -606,13 +621,13 @@ public class SlicingEngine {
     	// ABI2 [cytosol]
     	GKInstance right = dba.fetchInstance(1671649L);
     	
-    	assertEquals(true, compareAttributeLists(left, left, "hasCandidate"));
-    	assertEquals(true, compareAttributeLists(right, right, "hasCandidate"));
-    	assertEquals(false, compareAttributeLists(left, right, "hasCandidate"));
+    	assertEquals(true, compareAllAttributesInList(left, left, "hasCandidate"));
+    	assertEquals(true, compareAllAttributesInList(right, right, "hasCandidate"));
+    	assertEquals(false, compareAllAttributesInList(left, right, "hasCandidate"));
     }
 
     @Test
-    public void compareAttributeListsTest() throws Exception {
+    public void additionOrDeletionInListsTest() throws Exception {
     	MySQLAdaptor dba = new MySQLAdaptor(
     			"localhost", 
     			"reactome",
@@ -622,13 +637,16 @@ public class SlicingEngine {
 
     	// (DOCK7) [cytosol]
     	GKInstance left = dba.fetchInstance(8875579L);
-
-    	// ABI2 [cytosol]
-    	GKInstance right = dba.fetchInstance(1671649L);
+    	GKInstance right = (GKInstance) left.clone();
     	
-    	assertEquals(true, compareAttributeLists(left, left, "hasCandidate"));
-    	assertEquals(true, compareAttributeLists(right, right, "hasCandidate"));
-    	assertEquals(false, compareAttributeLists(left, right, "hasCandidate"));
+    	assertEquals(true, additionOrDeletionInLists(left, left, "name"));
+    	assertEquals(true, additionOrDeletionInLists(left, right, "name"));
+    	assertEquals(true, additionOrDeletionInLists(right, right, "name"));
+    	
+    	right.addAttributeValue("name", "dedicator of cytokinesis 7");
+    	
+    	assertEquals(true, additionOrDeletionInLists(right, right, "name"));
+    	assertEquals(false, additionOrDeletionInLists(left, right, "name"));
     }
 
     @Test
