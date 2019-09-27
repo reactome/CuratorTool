@@ -450,11 +450,7 @@ public class SlicingEngine {
     }
     
     /**
-     * Compare the attribute lists as discrete objects in order to detect additions or deletions. 
-     * TODO iterate through left's list and for each element, match to right's list's element.
-     *      If right does not contain a given element that left has, return false.
-     *      After iterating over left, check for any remaining elements in right.
-     *      If elements remain, return false.
+     * Compare the attribute lists in order to detect additions or deletions. 
      * 
      * @param left
      * @param right
