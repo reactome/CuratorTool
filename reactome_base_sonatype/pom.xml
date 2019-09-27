@@ -31,7 +31,7 @@
         <connection>scm:git:git://github.com/reactome/CuratorTool.git</connection>
         <developerConnection>scm:git:ssh://github.com/reactome/CuratorTool.git</developerConnection>
         <url>https://github.com/reactome/CuratorTool</url>
-        <tag>v1.2.21</tag>
+        <tag>v1.2.22</tag>
     </scm>
 
     <dependencies>
