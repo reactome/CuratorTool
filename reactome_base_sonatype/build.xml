@@ -1,0 +1,200 @@
+<!-- based on instructions from https://central.sonatype.org/pages/apache-ant.html -->
+<project name="reactome-base" default="deploy" basedir="." xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+	<property name="projectDir" value=".." />
+	<property name="srcDir" value="${projectDir}/src" />
+	<property name="libDir" value="${basedir}/lib" />
+	<property name="classDir" value="${basedir}/classes" />
+	<property name="dist" location="dist" />
+
+	<!-- define Maven coordinates -->
+	<property name="groupId" value="org.reactome.base" />
+	<property name="artifactId" value="reactome-base" />
+	<property name="version" value="1.2.22-SNAPSHOT" />
+	<!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="jar" value="${dist}/lib/${artifactId}-${version}.jar" />
+	<property name="javadocs-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
+	<property name="sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+
+	<!-- define maven snapshots and staging repository id and url -->
+	<property name="ossrh-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots" />
+	<property name="ossrh-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2" />
+	<!-- the server id in the Maven settings.xml -->
+	<property name="ossrh-server-id" value="ossrh" />
+
+	<!-- define resource for Maven Ant Tasks  -->
+	<path id="maven-ant-tasks.classpath" path="lib/maven-ant-tasks-2.1.3.jar" />
+	<typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven-ant-tasks.classpath" />
+
+	<!-- source files for reactome-base artifact -->
+	<fileset id="sourceFiles" dir="${srcDir}">
+		<include name="org/gk/database/*.java" />
+		<include name="org/gk/database/util/*.java" />
+		<include name="org/gk/elv/*.java" />
+		<include name="org/gk/gkCurator/*.java" />
+		<include name="org/gk/gkCurator/authorTool/*.java" />
+		<include name="org/gk/gkEditor/*.java" />
+		<include name="org/gk/graphEditor/*.java" />
+		<include name="org/gk/model/*.java" />
+		<include name="org/gk/osxAdapter/*.java" />
+		<include name="org/gk/pathwaylayout/*.java" />
+		<include name="org/gk/pathView/GKVisualizationPane.java" />
+		<include name="org/gk/persistence/*.java" />
+		<include name="org/gk/property/*.java" />
+		<include name="org/gk/render/*.java" />
+		<include name="org/gk/schema/*.java" />
+		<!-- Don't place this package into the base (May, 2019) -->
+		<!-- include name="org/gk/slicing/*.java" /-->
+		<include name="org/gk/util/*.java" />
+	</fileset>
+
+	<!-- class files for reactome-base artifact -->
+	<fileset id="classFiles" dir="${classDir}">
+		<include name="org/gk/database/*.class" />
+		<include name="org/gk/database/util/*.class" />
+		<include name="org/gk/elv/*.class" />
+		<include name="org/gk/gkCurator/*.class" />
+		<include name="org/gk/gkCurator/authorTool/*.class" />
+		<include name="org/gk/gkEditor/*.class" />
+		<include name="org/gk/graphEditor/*.class" />
+		<include name="org/gk/model/*.class" />
+		<include name="org/gk/osxAdapter/*.class" />
+		<include name="org/gk/pathwaylayout/*.class" />
+		<include name="org/gk/pathView/GKVisualizationPane.class" />
+		<include name="org/gk/persistence/*.class" />
+		<include name="org/gk/property/*.class" />
+		<include name="org/gk/render/*.class" />
+		<include name="org/gk/schema/*.class" />
+		<!-- Don't place this package into the base (May, 2019) -->
+		<!-- include name="org/gk/slicing/*.class" /-->
+		<include name="org/gk/util/*.class" />
+	</fileset>
+
+	<!-- library path for reactome-base jar -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+
+	<target name="clean" description="clean up">
+		<delete dir="${classDir}" />
+		<delete dir="${dist}" />
+	</target>
+
+	<target name="init" depends="clean">
+		<mkdir dir="${classDir}" />
+		<mkdir dir="${dist}/lib" />
+	</target>
+
+	<target name="compile" depends="init">
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
+			<classpath refid="class.path" />
+			<include name="org/gk/database/*.java" />
+			<include name="org/gk/database/util/*.java" />
+			<include name="org/gk/elv/*.java" />
+			<include name="org/gk/gkCurator/*.java" />
+			<include name="org/gk/gkCurator/authorTool/*.java" />
+			<include name="org/gk/gkEditor/*.java" />
+			<include name="org/gk/graphEditor/*.java" />
+			<include name="org/gk/model/*.java" />
+			<include name="org/gk/osxAdapter/*.java" />
+			<include name="org/gk/pathwaylayout/*.java" />
+			<include name="org/gk/pathView/GKVisualizationPane.java" />
+			<include name="org/gk/persistence/*.java" />
+			<include name="org/gk/property/*.java" />
+			<include name="org/gk/render/*.java" />
+			<include name="org/gk/schema/*.java" />
+			<!-- Don't place this package into the base (May, 2019) -->
+			<!-- include name="org/gk/slicing/*.java" /-->
+			<include name="org/gk/util/*.java" />
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<!-- build the main artifact -->
+		<jar destfile="${jar}">
+			<fileset refid="classFiles" />
+		</jar>
+	</target>
+
+	<target name="dist" depends="jar">
+		<!-- build the javadoc jar -->
+        <javadoc access="public" author="true" destdir="${dist}/javadoc" nodeprecated="false"
+        	nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" classpathref="class.path"
+        	source="1.8" splitindex="true" use="true" version="true" >
+
+        	<packageset dir="${srcDir}" defaultexcludes="yes">
+            	<include name="org/gk/database/**" />
+            	<include name="org/gk/database/util/**" />
+            	<include name="org/gk/elv/**" />
+            	<include name="org/gk/gkCurator/**" />
+            	<include name="org/gk/gkCurator/authorTool/**" />
+            	<include name="org/gk/gkEditor/**" />
+            	<include name="org/gk/graphEditor/**" />
+            	<include name="org/gk/model/**" />
+            	<include name="org/gk/osxAdapter/**" />
+            	<include name="org/gk/pathwaylayout/**" />
+    			<include name="org/gk/pathView/GKVisualizationPane.java" />
+            	<include name="org/gk/persistence/**" />
+            	<include name="org/gk/property/**" />
+            	<include name="org/gk/render/**" />
+            	<include name="org/gk/schema/**" />
+            	<include name="org/gk/util/**" />
+            </packageset>
+        </javadoc>
+		<jar jarfile="${javadocs-jar}">
+			<fileset dir="${dist}/javadoc" />
+		</jar>
+
+		<!-- build the source jar -->
+		<jar jarfile="${sources-jar}">
+			<fileset refid="sourceFiles" />
+		</jar>
+	</target>
+
+	<target name="deploy" depends="dist" description="deploy snapshot version to Maven snapshot repository">
+		<!-- deploy the main artifact as SNAPSHOT -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+			<arg value="-Durl=${ossrh-snapshots-repository-url}" />
+			<arg value="-DrepositoryId=${ossrh-server-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${jar}" />
+		</artifact:mvn>
+	</target>
+
+	<target name="stage" depends="dist" description="deploy release version to Maven staging repository">
+		<!-- sign and deploy the main artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${ossrh-staging-repository-url}" />
+			<arg value="-DrepositoryId=${ossrh-server-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${jar}" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the sources artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${ossrh-staging-repository-url}" />
+			<arg value="-DrepositoryId=${ossrh-server-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${sources-jar}" />
+			<arg value="-Dclassifier=sources" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the javadoc artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${ossrh-staging-repository-url}" />
+			<arg value="-DrepositoryId=${ossrh-server-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${javadoc-jar}" />
+			<arg value="-Dclassifier=javadoc" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+	</target>
+</project>
