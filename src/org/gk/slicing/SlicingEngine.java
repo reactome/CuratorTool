@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -335,6 +336,14 @@ public class SlicingEngine {
 		}
     }
 
+    /**
+     * Check if Pathway is revised.
+     * 
+     * @param pathway
+     * @return boolean (true if revised, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
     private boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
     	// Recursively iterate over events in pathway.
     	List<GKInstance> events = pathway.getAttributeValuesList("hasEvent");
@@ -348,9 +357,9 @@ public class SlicingEngine {
 					isRLERevised(event);
 			}
 		}
+    	// TODO Check if an immediate child Pathway is added or removed.
+    	// TODO Check if an immediate child Pathway is revised.
 
-    	// Check if an immediate child Pathway is added or removed.
-    	// Check if an immediate child Pathway is revised.
     	// Check for changes in summation text.
     	if (isSummationRevised(pathway))
 			return true;
@@ -358,31 +367,106 @@ public class SlicingEngine {
     	return false;
     }
     
+    /**
+     * Check if ReactionlikeEvent is revised.
+     * 
+     * @param reactionlikeEvent
+     * @return boolean (true if revised, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
     private boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
-    	// Check if a catalyst is added, removed, or changed.
-    	// Check if a regulator is added, removed, or changed.
-    	// Check for changes in inputs
-    	List<GKInstance> inputs = reactionlikeEvent.getAttributeValuesList("input");
-    	for (GKInstance input : inputs) {
-    		// TODO if slice input differs database input
-    		return true;
+    	// Check for changes in inputs, outputs, regulators, and catalysts.
+    	List<String> checkForChanges = Arrays.asList(
+    			"input",
+    			"output",
+    			"regulatedBy",
+    			"catalystActivity"
+    			);
+
+    	// Check if a catalyst or regulator is added or removed.
+    	List<String> checkForAdditionsOrRemovals = Arrays.asList(
+    			"regulatedBy",
+    			"catalystActivity"
+    			);
+    	
+    	for (String attrName : checkForChanges) {
+    		if (compareAttributesInList(reactionlikeEvent, attrName))
+    			return true;
     	}
-    	// Check for changes in outputs
-    	List<GKInstance> outputs = reactionlikeEvent.getAttributeValuesList("output");	
-    	for (GKInstance output : outputs) {
-    		// TODO if slice input differs database input
-    		return true;
+    	
+    	for (String attrName : checkForAdditionsOrRemovals) {
+    		if (compareAttributeLists(reactionlikeEvent, attrName))
+    			return true;
     	}
-    	// Check for changes in summation text.
+
+    	// Check if summation is revised.
+    	// Requires "special case" (examining "text" attribute for all summations).
     	if (isSummationRevised(reactionlikeEvent))
     		return true;
     	
     	return false;	
     }
+    
+    /**
+     * Compare the value of a given attribute between two instances.
+     * 
+     * @param left
+     * @param right
+     * @param attrName
+     * @return boolean (true if the attribute values are equal, false otherwise).
+     * @throws Exception 
+     */
+    private boolean compareAttribute(GKInstance left, GKInstance right, String attrName)
+    		throws Exception {
+    	// TODO Add is valid attribute checks for left and right.
+    	return left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
+    }
+
+    /**
+     * Compare all elements in a GKInstance's list of a given attribute.
+     * 
+     * @param container
+     * @param attrName
+     * @return boolean (true if all attributes are equals, false otherwise).
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean compareAttributesInList(GKInstance container, String attrName) throws SQLException, Exception {
+    	List<GKInstance> attrList = container.getAttributeValuesList(attrName);
+    	for (GKInstance attrValue : attrList) {
+    		// If slice output differs from database output
+    		if (!compareAttribute(container, getCompareInstance(container), attrName))
+				return false;
+    	}
+    	
+    	return true;
+    }
+    
+    /**
+     * Compare the attribute lists as discrete objects in order to detected additions or deletions. 
+     * 
+     * @param container
+     * @param attrName
+     * @return boolean (true if the lists are equal, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean compareAttributeLists(GKInstance container, String attrName)
+    		throws InvalidAttributeException, SQLException, Exception {
+    	List<GKInstance> current = container.getAttributeValuesList(attrName);
+    	List<GKInstance> compare = getCompareInstance(container).getAttributeValuesList(attrName);
+    	
+    	if (current.equals(compare))
+    		return false;
+    	
+    	return true;
+    }
 
     /**
      * @param instance
-     * @return
+     * @return true if summation is revised, false otherwise.
      * @throws InvalidAttributeException
      * @throws Exception
      * 
@@ -393,15 +477,8 @@ public class SlicingEngine {
         MySQLAdaptor dba = getCompareDbAdapter();
   
     	for (GKInstance summation : summations) {
-    		// current text
-    		GKInstance text = (GKInstance) summation.getAttributeValue("text");
-    		
-    		// previous summation and text
-    		GKInstance summation_previous = dba.fetchInstance(summation.getDBID());
-    		GKInstance text_previous = (GKInstance) summation_previous.getAttributeValue("text");
-    		
     		// if a change in text is detected, then summation is considered revised.
-    		if (!text.equals(text_previous))
+    		if (!compareAttribute(summation, getCompareInstance(summation), "text"))
     			return true;
     	}
 
@@ -410,22 +487,20 @@ public class SlicingEngine {
     
     /**
      * 
-     * @param left
-     * @param right
-     * @param attrValue
-     * @return boolean
-     * @throws Exception 
+     * @param instance
+     * @return GKInstance
+     * @throws SQLException
+     * @throws Exception
      */
-    private boolean compareAttribute(GKInstance left, GKInstance right, SchemaAttribute attrValue)
-    		throws Exception {
-    	return left.getAttributeValue(attrValue).equals(right.getAttributeValue(attrValue));
+    private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
+    	return getCompareDbAdapter().fetchInstance(instance.getDBID());
     }
 
     /**
      * Return true if at least one "compare" value is provided by user.
      * 
      * @param args
-     * @return
+     * @return boolean (true if compare property is found, false otherwise).
      * @throws IOException
      */
     private static boolean isCompareRequested(String[] args) throws IOException {
@@ -440,7 +515,13 @@ public class SlicingEngine {
 			|| properties.getProperty("compareDBHost") != null
 			|| properties.getProperty("compareDBHost") != null;
     }
-    
+
+    /**
+     * Get database adaptor for "compare" database.
+     * 
+     * @return MySQLAdaptor
+     * @throws SQLException
+     */
     private MySQLAdaptor getCompareDbAdapter() throws SQLException {
     	if ((compareDbHost != null)
 		 || (compareDbName != null) 
