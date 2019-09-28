@@ -293,7 +293,7 @@ public class SlicingEngine {
      *     <li>A Catalyst added/removed/changed</li>
      *     <li>A regulator added/removed/changed</li>
      *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation (?) (curator discretion(?))</li>
+     *     <li>A significant change in summation text</li>
      *   </ul>
      * </ol>
      * 
@@ -304,7 +304,7 @@ public class SlicingEngine {
      *     <li>A Catalyst added/removed/changed</li>
      *     <li>A regulator added/removed/changed</li>
      *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation (?) (curator discretion(?))</li>
+     *     <li>A significant change in summation text</li>
      *   </ul>
      *   <li>An immediate child RLE is added/removed</li>
      *   <li>An immediate child Pathway added/removed</li>
@@ -317,7 +317,6 @@ public class SlicingEngine {
      * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
     private void checkForAttributeRevision(String attrName) throws InvalidAttributeException, Exception {
-    	
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
@@ -393,12 +392,12 @@ public class SlicingEngine {
     			);
     	
     	for (String attrName : checkForChanges) {
-    		if (compareAllAttributesInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    		if (!compareAllAttributesInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
     	
     	for (String attrName : checkForAdditionsOrRemovals) {
-    		if (additionOrDeletionInLists(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    		if (!additionOrDeletionInLists(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
 
@@ -422,9 +421,13 @@ public class SlicingEngine {
      * @return boolean (true if the attribute values are equal, false otherwise).
      * @throws Exception 
      */
-    private boolean compareAttributes(GKInstance left, GKInstance right, String attrName)
-    		throws Exception {
-    	return left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
+    private boolean compareAttributes(GKInstance left, GKInstance right, String attrName) throws Exception {
+    	if (attrName.equals("text"))
+    		return left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
+
+		Long leftDBID = ((GKInstance) left.getAttributeValue(attrName)).getDBID();
+		Long rightDBID = ((GKInstance) right.getAttributeValue(attrName)).getDBID();
+    	return leftDBID.equals(rightDBID);
     }
 
     /**
@@ -476,8 +479,17 @@ public class SlicingEngine {
     	for (Object instance : leftList) {
     		// If rightList does not contain an instance in leftList,
     		// then either rightList has a deletion, or leftList has an addition.
-    		if (!rightList.contains(instance))
-    			return false;
+    		if (!rightList.contains(instance)) {
+    			for (Object inst : rightList) {
+    				Long leftDBID = ((GKInstance) inst).getDBID();
+    				Long rightDBID = ((GKInstance) inst).getDBID();
+
+    				if (leftDBID.equals(rightDBID))
+    					return true;
+
+    				return false;
+    			}
+    		}
     	}
 
     	// The lists have the same elements.
@@ -494,8 +506,7 @@ public class SlicingEngine {
      * 
      * @see {@link org.gk.model.Summation}
      */
-    private boolean isSummationRevised(GKInstance instance)
-    		throws InvalidAttributeException, Exception {
+    private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
     	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
         MySQLAdaptor dba = getCompareDbAdapter();
   
@@ -516,8 +527,7 @@ public class SlicingEngine {
      * @throws SQLException
      * @throws Exception
      */
-    private GKInstance getCompareInstance(GKInstance instance)
-    		throws SQLException, Exception {
+    private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
     	return getCompareDbAdapter().fetchInstance(instance.getDBID());
     }
 
@@ -580,6 +590,30 @@ public class SlicingEngine {
     			return false;
     	}
     	return true;
+    }
+    
+    @Test
+    public void isRLERevisedTest() throws Exception {
+    	compareDbHost = "localhost";
+    	compareDbName = "reactome";
+    	compareDbUser = "liam";
+    	compareDbPwd = ")8J7m]!%[<";
+
+    	MySQLAdaptor dba = new MySQLAdaptor(
+    			compareDbHost,
+    			compareDbName,
+    			compareDbUser,
+    			compareDbPwd
+    			);
+
+    	// DIT and MIT...
+    	GKInstance RLE = dba.fetchInstance(209925L);
+    	System.out.println("RLE: " + RLE);
+    	System.out.println("RLE: " + RLE.getAttributeValue("summation"));
+    	assertEquals(false, isRLERevised(RLE));
+
+    	RLE.addAttributeValue("regulatedBy", dba.fetchInstance(5210962L));
+    	assertEquals(true, isRLERevised(RLE));
     }
      
     @Test
