@@ -9,7 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,7 +40,6 @@ import org.gk.graphEditor.UndoableDeleteEdit;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.ConnectInfo;
@@ -863,22 +861,21 @@ public class ElvActionCollection extends AuthorToolActionCollection {
                     if (pathway == null)
                         return;
                     try {
-                        Collection<GKInstance> diagrams = pathway.getReferers(ReactomeJavaConstants.representedPathway);
-                        if (diagrams == null || diagrams.size() == 0) {
+                        // It is expected that this is a local instance
+                        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+                        RenderablePathway diagram = fileAdaptor.getDiagram(pathway);
+                        if (diagram == null) {
                             JOptionPane.showMessageDialog(elv,
                                                           "Error: No diagram available for selected pathway.", 
                                                           "Error in Viewing Diagram",
                                                           JOptionPane.ERROR_MESSAGE);
                             return ;
                         }
-                        GKInstance diagram = diagrams.stream().findFirst().get();
-                        DiagramGKBReader reader = new DiagramGKBReader();
-                        reader.setPersistenceAdaptor(pathway.getDbAdaptor());
-                        RenderablePathway rPathway = reader.openDiagram(diagram);
-
                         DiagramDisplayHandler diagramHander = new DiagramDisplayHandler();
                         diagramHander.setParentComponent(elv);
-                        diagramHander.viewPathwayAsDiseaseDiagram(pathway, rPathway);
+                        // To avoid overwride the normal pathway diagram, we need to clone the diagram first
+                        RenderablePathway diagramClone = new ElvDiagramHandler().cloneDiagram(diagram, fileAdaptor);
+                        diagramHander.viewPathwayAsDiseaseDiagram(pathway, diagramClone);
                     }
                     catch(Exception e1) {
                         JOptionPane.showMessageDialog(elv,
