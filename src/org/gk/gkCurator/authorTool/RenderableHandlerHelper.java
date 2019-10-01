@@ -135,7 +135,7 @@ public class RenderableHandlerHelper {
                                        null);
             return;
         }
-        // Something differnt for summation: there is a isChanged mark
+        // Something different for summation: there is a isChanged mark
         GKInstance sumInst = null;
         Long dbId = summation.getDB_ID();
         if (dbId != null) {

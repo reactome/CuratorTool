@@ -292,8 +292,8 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        checkForAttributeRevision(ReactomeJavaConstants.ReactionlikeEvent);
-        checkForAttributeRevision(ReactomeJavaConstants.Pathway);
+        checkForRevision(ReactomeJavaConstants.ReactionlikeEvent);
+        checkForRevision(ReactomeJavaConstants.Pathway);
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -333,14 +333,16 @@ public class SlicingEngine {
      * @throws InvalidAttributeException 
      * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
-    private void checkForAttributeRevision(String attrName) throws InvalidAttributeException, Exception {
+    private void checkForRevision(String attrName) throws InvalidAttributeException, Exception {
+        logger.info("checkForRevision(" + attrName + ")");
+
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
 			if (!inst.getSchemClass().isa(attrName))
 				continue;
 			
-			Boolean revised = false;
+			boolean revised = false;
 			if (attrName.equals(ReactomeJavaConstants.Pathway))
 				revised = isPathwayRevised(inst);
 			else if (attrName.equals(ReactomeJavaConstants.ReactionlikeEvent))
@@ -358,84 +360,101 @@ public class SlicingEngine {
      * Check if Pathway is revised.
      * 
      * @param pathway
-     * @return 
-     * @return 
      * @return boolean (true if revised, false otherwise).
      * @throws InvalidAttributeException
      * @throws Exception
      */
     private boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
+    	if (pathway == null)
+    		return false;
+
     	// Recursively iterate over events in pathway.
-    	List<GKInstance> events = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-    	
+    	Collection<GKInstance> events = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+
 		if (events != null && events.size() > 0) {
 			for (GKInstance event : events) {
 				// Pathway
-				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-					// Check if an immediate child Pathway is revised.
-					// TODO Is `.equals()` OK to detect a pathway revision,
-					//      or should we iterate over all attributes of the `event` instance to detect revisions?
-					if (event.getDBID() != getCompareInstance(event).getDBID())
-						return true;
-					
-					// Check if an immediate child Pathway is added or removed
-					if (countChildPathways(event) != countChildPathways(getCompareInstance(event)))
-						return true;
-					
-					List<GKInstance> childPathways = event
-							.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-					
-					List<Long> childPathwayDBIDs = (List<Long>) childPathways
-							.stream()
-							.filter(attrName -> attrName.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-							.map(attrValue -> attrValue.getDBID())
-							.collect(Collectors.toList());
-
-					List<GKInstance> compareChildPathways = getCompareInstance(event)
-							.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-					
-					// (i.e. if the given child pathway is not associated with both instances).
-					Optional<Long> commonDBID = compareChildPathways
-							.stream()
-							// Only compare pathways.
-							.filter(attrName -> attrName.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-							// Get database ID.
-							.map(attrValue -> attrValue.getDBID())
-							// Set match criteria (identical database ID's).
-							.filter(comparePathwayDBID -> childPathwayDBIDs.contains(comparePathwayDBID))
-							// Find match (or null if no match).
-							.findFirst();
-
-					if (!commonDBID.isPresent())
-						return true;
-
-					// Finally check for changes in summation text.
-					if (isSummationRevised(pathway))
-						return true;
-					
-					// TODO We iterate over the entire tree of child pathways, instead of just the immediate child.
-					//      Is this what we want?
+				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
 					isPathwayRevised(event);
-				}
+
 				// RLE
 				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
-					  && isRLERevised(event))
+					 && isRLERevised(event))
 					return true;
 			}
 		}
+    	
+    	// Check if an immediate child Pathway is added or removed
+    	if (isChildPathwayAddedOrRemoved(pathway))
+    		return true;
+
+    	// Finally check for changes in summation text.
+    	if (isSummationRevised(pathway))
+    		return true;
+    	
+    	return false;
+    }
+
+    /**
+     * Check if a child pathway is added or removed for a given parent.
+     * 
+     * @param parent
+     * @return boolean (true if a child pathway is added or removed, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean isChildPathwayAddedOrRemoved(GKInstance parent)
+    		throws InvalidAttributeException, SQLException, Exception {
+
+    	Collection<GKInstance> childPathways = getChildPathways(parent);
+    	Collection<GKInstance> compareChildPathways = getChildPathways(getCompareInstance(parent));
+    	
+    	if (childPathways.isEmpty() && compareChildPathways.isEmpty())
+    		return false;
+    	
+    	// If the number of child pathways is different between the two parents,
+    	// then an addition or deletion has taken place.
+    	if (childPathways.size() != compareChildPathways.size())
+    		return true;
+
+    	// List of child pathway IDs.
+    	Collection<Long> childPathwayDBIDs = childPathways.stream()
+														  .map(attrValue -> attrValue.getDBID())
+														  .collect(Collectors.toList());
+
+    	// Check if there is a child pathway not associated with both parents.
+    	Optional<Long> commonDBID = compareChildPathways.stream()
+    			// Get database ID.
+    			.map(attrValue -> attrValue.getDBID())
+    			// Set match criteria (identical database ID's).
+    			.filter(comparePathwayDBID -> childPathwayDBIDs.contains(comparePathwayDBID))
+    			// Find match (or null if no match).
+    			.findFirst();
+
+    	if (!commonDBID.isPresent())
+    		return true;
 
     	return false;
     }
 
-    private long countChildPathways(GKInstance instance) throws InvalidAttributeException, Exception {
-    	return instance.getAttributeValuesList(ReactomeJavaConstants.hasEvent)
-					   .stream()
-					   .filter(attr -> ((GKInstance) attr).getSchemClass().isa(ReactomeJavaConstants.Pathway))
-					   .count();
+    /**
+     * Return a list of child pathways for a given parent.
+     * 
+     * @param parent
+     * @return List
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    private Collection<GKInstance> getChildPathways(GKInstance parent) throws InvalidAttributeException, Exception {
+    	Collection<GKInstance> events = parent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+    	return events.stream()
+					 .filter(attr -> attr.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+					 .collect(Collectors.toList());
     }
 
     /**
-     * Check if ReactionlikeEvent is revised.
+     * Check if a ReactionlikeEvent is revised.
      * 
      * @param reactionlikeEvent
      * @return boolean (true if revised, false otherwise).
@@ -444,23 +463,19 @@ public class SlicingEngine {
      */
     private boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
     	// Check for changes in inputs, outputs, regulators, and catalysts.
-    	List<String> revisionList = Arrays.asList(
-    			ReactomeJavaConstants.input,
-    			ReactomeJavaConstants.output,
-    			ReactomeJavaConstants.regulatedBy,
-    			ReactomeJavaConstants.catalystActivity
-    			);
-    
-    	// Check if a catalyst or regulator is added or removed.
-    	List<String> additionsOrDeletionsList = Arrays.asList(
-    			ReactomeJavaConstants.regulatedBy,
-    			ReactomeJavaConstants.catalystActivity
-    			);
+    	Collection<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
+													    ReactomeJavaConstants.output,
+													    ReactomeJavaConstants.regulatedBy,
+													    ReactomeJavaConstants.catalystActivity);
     	
     	for (String attrName : revisionList) {
     		if (revisionInAttributeList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
     			return true;
     	}
+
+    	// Check if a catalyst or regulator is added or removed.
+    	Collection<String> additionsOrDeletionsList = Arrays.asList(ReactomeJavaConstants.regulatedBy,
+															        ReactomeJavaConstants.catalystActivity);
 
     	for (String attrName : additionsOrDeletionsList) {
     		if (additionOrDeletionInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
@@ -488,6 +503,12 @@ public class SlicingEngine {
      * @throws Exception 
      */
     private boolean attributesRevised(GKInstance left, GKInstance right, String attrName) throws Exception {
+    	if (left == null || right == null) {
+    		if (left == right)
+    			return false;
+    		return true;
+    	}
+
     	// If the object will not be able to cast to GKInstance, then simply compare the values.
     	if (left.getAttributeValue(attrName) instanceof String)
     		return !left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
@@ -510,7 +531,7 @@ public class SlicingEngine {
      */
     private boolean revisionInAttributeList(GKInstance left, GKInstance right, String attrName)
     		throws SQLException, Exception {
-    	List<GKInstance> attrList = left.getAttributeValuesList(attrName);
+    	Collection<GKInstance> attrList = left.getAttributeValuesList(attrName);
     	for (GKInstance attrValue : attrList) {
     		// If slice output differs from database output
     		if (attributesRevised(left, right, attrName))
@@ -533,8 +554,8 @@ public class SlicingEngine {
      */
     private boolean additionOrDeletionInList(GKInstance left, GKInstance right, String attrName)
     		throws InvalidAttributeException, SQLException, Exception {
-    	List<Object> rightList = right.getAttributeValuesList(attrName);
-    	List<Object> leftList = left.getAttributeValuesList(attrName);
+    	Collection<Object> rightList = right.getAttributeValuesList(attrName);
+    	Collection<Object> leftList = left.getAttributeValuesList(attrName);
     	
     	// Constant time check to detect additions or deletions.
     	// Misses the case where the same number of unique additions and deletions have occurred.
@@ -574,7 +595,7 @@ public class SlicingEngine {
      * @see {@link org.gk.model.Summation}
      */
     private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
-    	List<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);	
+    	Collection<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);
     	for (GKInstance summation : summations) {
     		// if a change in text is detected, then summation is considered revised.
     		if (attributesRevised(summation, getCompareInstance(summation), ReactomeJavaConstants.text))
@@ -593,7 +614,21 @@ public class SlicingEngine {
      * @throws Exception
      */
     private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
-    	return getCompareDbAdapter().fetchInstance(instance.getDBID());
+    	return getCompareInstance(instance.getDBID());
+    }
+
+    private GKInstance getCompareInstance(Long DBID) throws SQLException, Exception {
+    	return getCompareDbAdapter().fetchInstance(DBID);
+    }
+
+    private GKInstance getCompareInstanceShallow(GKInstance instance) throws SQLException, Exception {
+    	return getCompareInstanceShallow(instance.getDBID());
+    }
+
+    private GKInstance getCompareInstanceShallow(Long DBID) throws SQLException, Exception {
+    	GKInstance clone = (GKInstance) getCompareInstance(DBID).clone();
+    	clone.setDBID(DBID);
+    	return clone;
     }
 
     /**
@@ -617,12 +652,12 @@ public class SlicingEngine {
     }
 
     /**
-     * Check that all elements in a list exist (non null with a length greater than 0).
+     * Check that all elements in a list exist (not null with a length greater than 0).
      * 
-     * @param list
-     * @return boolean (
+     * @param Collection
+     * @return boolean
      */
-    private boolean allElementsExist(List<Object> list) {
+    private boolean allElementsExist(Collection<Object> list) {
     	for (Object element : list) {
     		if (element == null || String.valueOf(element).length() == 0)
     			return false;
@@ -630,6 +665,10 @@ public class SlicingEngine {
     	return true;
     }
     
+    private GKInstance getSliceInstance(Long DBID) {
+    	return (GKInstance) sliceMap.get(DBID);
+    }
+
     @Before
     public void setUp() throws SQLException {
     	setCompareDbHost("localhost");
@@ -641,67 +680,54 @@ public class SlicingEngine {
     
     @Test
     public void testIsRLERevised() throws Exception {
-    	MySQLAdaptor dba = getCompareDbAdapter();
-
     	// Example RLE (DIT and MIT combine to form triiodothyronine).
-    	GKInstance RLE = dba.fetchInstance(209925L);
+    	GKInstance RLE = getCompareInstanceShallow(209925L);
     	assertEquals(false, isRLERevised(RLE));
 
     	// Example added attribute (Positive regulation by 'H+ [endosome lumen]').
-    	RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, dba.fetchInstance(5210962L));
+    	RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, getCompareInstance(5210962L));
     	assertEquals(true, isRLERevised(RLE));
     	
     	// Remove attribute.
-    	RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, dba.fetchInstance(5210962L));
+    	RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, getCompareInstance(5210962L));
     	assertEquals(false, isRLERevised(RLE));
     }
 
     @Test
     public void testIsPathwayRevised() throws Exception {
-    	MySQLAdaptor dba = getCompareDbAdapter();
-
     	// Example pathway #1 (xylitol degradation).
-    	GKInstance xylitolDegradation = dba.fetchInstance(5268107L);
+    	GKInstance xylitolDegradation = getCompareInstanceShallow(5268107L);
     	assertEquals(false, isPathwayRevised(xylitolDegradation));
 
-    	// Example added child pathway (tRNA processing).
-    	xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, dba.fetchInstance(72306L));
+    	GKInstance clone = (GKInstance) xylitolDegradation.clone();
+    	// Example addition of a child pathway (tRNA processing).
+    	xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getCompareInstance(72306L));
     	assertEquals(true, isPathwayRevised(xylitolDegradation));
     	// Reset the addition.
-    	xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, dba.fetchInstance(72306L));
+    	xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, getCompareInstance(72306L));
     	assertEquals(false, isPathwayRevised(xylitolDegradation));
     	
     	
     	// Example pathway #2 (neuronal system).
-    	GKInstance neuronalSystem = dba.fetchInstance(112316L);
+    	GKInstance neuronalSystem = getCompareInstanceShallow(112316L);
     	assertEquals(false, isPathwayRevised(neuronalSystem));
     	
-    	// Remove a child pathway.
-    	GKInstance removedChildPathway = dba.fetchInstance(1296071L);
+    	// Remove an existing child pathway.
+    	GKInstance removedChildPathway = getCompareInstance(1296071L);
     	neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, removedChildPathway);
     	assertEquals(true, isPathwayRevised(neuronalSystem));
     	// Reset the removal.
     	neuronalSystem.addAttributeValue(ReactomeJavaConstants.hasEvent, removedChildPathway);
     	assertEquals(false, isPathwayRevised(neuronalSystem));
-    	
-    	// Revise child pathway.
-    	GKInstance revisedChildPathway = dba.fetchInstance(6794362L);
-    	revisedChildPathway.setAttributeValue(ReactomeJavaConstants.definition, "Love Potion #9");
-    	assertEquals(true, isPathwayRevised(neuronalSystem));
-    	// Reset revision.
-    	revisedChildPathway.removeAttributeValueNoCheck(ReactomeJavaConstants.definition, "Love Potion #9");
-    	assertEquals(true, isPathwayRevised(neuronalSystem));
     }
      
     @Test
-    public void testCompareAttributes() throws Exception {
-    	MySQLAdaptor dba = getCompareDbAdapter();
-
+    public void testSliceAttributes() throws Exception {
     	// (DOCK7) [cytosol]
-    	GKInstance left = dba.fetchInstance(8875579L);
+    	GKInstance left = getCompareInstance(8875579L);
 
     	// ABI2 [cytosol]
-    	GKInstance right = dba.fetchInstance(1671649L);
+    	GKInstance right = getCompareInstance(1671649L);
     	
     	assertEquals(false, attributesRevised(left, left, ReactomeJavaConstants.stableIdentifier));
     	assertEquals(false, attributesRevised(right, right, ReactomeJavaConstants.stableIdentifier));
@@ -709,14 +735,12 @@ public class SlicingEngine {
     }
 
     @Test
-    public void testCompareAllAttributesInList() throws Exception {
-    	MySQLAdaptor dba = getCompareDbAdapter();
-
+    public void testSliceAllAttributesInList() throws Exception {
     	// (DOCK7) [cytosol]
-    	GKInstance left = dba.fetchInstance(8875579L);
+    	GKInstance left = getCompareInstance(8875579L);
 
     	// ABI2 [cytosol]
-    	GKInstance right = dba.fetchInstance(1671649L);
+    	GKInstance right = getCompareInstance(1671649L);
     	
     	assertEquals(false, revisionInAttributeList(left, left, ReactomeJavaConstants.hasCandidate));
     	assertEquals(false, revisionInAttributeList(right, right, ReactomeJavaConstants.hasCandidate));
@@ -725,10 +749,8 @@ public class SlicingEngine {
 
     @Test
     public void testAdditionOrDeletionInLists() throws Exception {
-    	MySQLAdaptor dba = getCompareDbAdapter();
-
     	// (DOCK7) [cytosol]
-    	GKInstance left = dba.fetchInstance(8875579L);
+    	GKInstance left = getCompareInstanceShallow(8875579L);
     	GKInstance right = (GKInstance) left.clone();
     	
     	assertEquals(false, additionOrDeletionInList(left, left, ReactomeJavaConstants.name));
@@ -743,14 +765,11 @@ public class SlicingEngine {
 
     @Test
     public void testGetCompareDbAdapter() throws SQLException {
-    	List<Object> parameters = Arrays.asList(
-    			compareDbHost,
-    			compareDbName,
-    			compareDbUser,
-    			compareDbPwd,
-    			compareDbPort
-    			);
-    	
+    	Collection<Object> parameters = Arrays.asList(compareDbHost,
+													  compareDbName,
+													  compareDbUser,
+													  compareDbPwd,
+													  compareDbPort);
     	if (!allElementsExist(parameters))
     		return;
     	
@@ -759,20 +778,10 @@ public class SlicingEngine {
     
     @Test
     public void testAllElementsExist() {
-    	List<Object> strings = Arrays.asList(
-    			"Read",
-    			"Eval",
-    			"Print",
-    			"Loop"
-    			);
-    	
+    	Collection<Object> strings = Arrays.asList("Read", "Eval", "Print", "Loop");
     	assertEquals(true, allElementsExist(strings));
 
-    	List<Object> nulls = Arrays.asList(
-    			null,
-    			""
-    			);
-
+    	Collection<Object> nulls = Arrays.asList(null, "");
     	assertEquals(false, allElementsExist(nulls));
     }
     
