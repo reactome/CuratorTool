@@ -270,8 +270,20 @@ public class SlicingEngine {
         InstanceUtilities.sortInstances(memberList);
         instance.setAttributeValue(attributeName, memberList);
     }
+
+    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
+    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
+    	if (!EntityCls.isValidAttribute(attributeName))
+    		return;
+    	for (Long dbId : sliceMap.keySet()) {
+    		GKInstance inst = sliceMap.get(dbId);
+    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+    			continue;
+    		populateEntitySet(inst, attributeName);
+    	}
+    }
     
-    //@Test
+    @Test
     public void testPopulateEntitySet() throws Exception {
     	MySQLAdaptor dba = new MySQLAdaptor("localhost",
 											"reactome",
@@ -394,18 +406,6 @@ public class SlicingEngine {
             inst.setAttributeValue(ReactomeJavaConstants.includedLocation,
                                    list);
         }
-    }
-    
-    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
-    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
-    	if (!EntityCls.isValidAttribute(attributeName))
-    		return;
-    	for (Long dbId : sliceMap.keySet()) {
-    		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-    			continue;
-    		populateEntitySet(inst, attributeName);
-    	}
     }
     
     private void extractPathwayDiagrams() throws Exception {
