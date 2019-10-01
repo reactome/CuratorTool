@@ -35,8 +35,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -55,6 +57,7 @@ import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
+import org.junit.Before;
 import org.junit.Test;
 
 
@@ -100,7 +103,7 @@ public class SlicingEngine {
     private String compareDbUser;
     private String compareDbPwd;
     private int compareDbPort = 3306;
-    private MySQLAdaptor compareDBA;
+    private MySQLAdaptor compareDBAdapter;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -132,6 +135,7 @@ public class SlicingEngine {
     
     /**
      * Default constructor
+     * @throws SQLException 
      *
      */
     public SlicingEngine() {
@@ -205,6 +209,13 @@ public class SlicingEngine {
         this.compareDbPort = dbPort;
     }
     
+    public void initCompareDBAdapter() throws SQLException {
+    	this.compareDBAdapter = new MySQLAdaptor(compareDbHost,
+										   compareDbName,
+										   compareDbUser,
+										   compareDbPwd);
+    }
+    
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
@@ -239,6 +250,10 @@ public class SlicingEngine {
     
     public String getLastReleaseDate() {
         return this.lastReleaseDate;
+    }
+    
+    public MySQLAdaptor getCompareDbAdapter() {
+    	return this.compareDBAdapter;	
     }
     
     /**
@@ -343,6 +358,8 @@ public class SlicingEngine {
      * Check if Pathway is revised.
      * 
      * @param pathway
+     * @return 
+     * @return 
      * @return boolean (true if revised, false otherwise).
      * @throws InvalidAttributeException
      * @throws Exception
@@ -350,34 +367,71 @@ public class SlicingEngine {
     private boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
     	// Recursively iterate over events in pathway.
     	List<GKInstance> events = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+    	
 		if (events != null && events.size() > 0) {
 			for (GKInstance event : events) {
-				// Pathway event.
+				// Pathway
 				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-					isPathwayRevised(event);
-
 					// Check if an immediate child Pathway is revised.
-					// TODO is `.equals()` OK to detect a pathway revision,
+					// TODO Is `.equals()` OK to detect a pathway revision,
 					//      or should we iterate over all attributes of the `event` instance to detect revisions?
-					if (!event.equals(getCompareInstance(event)))
+					if (event.getDBID() != getCompareInstance(event).getDBID())
+						return true;
+					
+					// Check if an immediate child Pathway is added or removed
+					if (countChildPathways(event) != countChildPathways(getCompareInstance(event)))
+						return true;
+					
+					List<GKInstance> childPathways = event
+							.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+					
+					List<Long> childPathwayDBIDs = (List<Long>) childPathways
+							.stream()
+							.filter(attrName -> attrName.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+							.map(attrValue -> attrValue.getDBID())
+							.collect(Collectors.toList());
+
+					List<GKInstance> compareChildPathways = getCompareInstance(event)
+							.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+					
+					// (i.e. if the given child pathway is not associated with both instances).
+					Optional<Long> commonDBID = compareChildPathways
+							.stream()
+							// Only compare pathways.
+							.filter(attrName -> attrName.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+							// Get database ID.
+							.map(attrValue -> attrValue.getDBID())
+							// Set match criteria (identical database ID's).
+							.filter(comparePathwayDBID -> childPathwayDBIDs.contains(comparePathwayDBID))
+							// Find match (or null if no match).
+							.findFirst();
+
+					if (!commonDBID.isPresent())
 						return true;
 
-					// Check if an immediate child Pathway is added or removed
-					// (i.e. if the given child pathway is not associated with both instances).
-					if (!getCompareInstance(pathway).getAttributeValuesList(ReactomeJavaConstants.hasEvent).contains(event))
+					// Finally check for changes in summation text.
+					if (isSummationRevised(pathway))
 						return true;
+					
+					// TODO We iterate over the entire tree of child pathways, instead of just the immediate child.
+					//      Is this what we want?
+					isPathwayRevised(event);
 				}
 				// RLE
-				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-					isRLERevised(event);
+				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
+					  && isRLERevised(event))
+					return true;
 			}
 		}
 
-    	// Check for changes in summation text.
-    	if (isSummationRevised(pathway))
-			return true;
-
     	return false;
+    }
+
+    private long countChildPathways(GKInstance instance) throws InvalidAttributeException, Exception {
+    	return instance.getAttributeValuesList(ReactomeJavaConstants.hasEvent)
+					   .stream()
+					   .filter(attr -> ((GKInstance) attr).getSchemClass().isa(ReactomeJavaConstants.Pathway))
+					   .count();
     }
 
     /**
@@ -563,33 +617,6 @@ public class SlicingEngine {
     }
 
     /**
-     * Get database adaptor for "compare" database.
-     * 
-     * @return MySQLAdaptor
-     * @throws SQLException
-     */
-    private MySQLAdaptor getCompareDbAdapter() throws SQLException {
-    	List<Object> parameters = Arrays.asList(
-    			compareDbHost,
-    			compareDbName,
-    			compareDbUser,
-    			compareDbPwd,
-    			compareDbPort
-    			);
-    	
-    	if (!allElementsExist(parameters))
-    		return null;
-    	
-    	return new MySQLAdaptor(
-    			compareDbHost,
-    			compareDbName, 
-    			compareDbUser, 
-    			compareDbPwd, 
-    			compareDbPort
-    			);
-    }
-    
-    /**
      * Check that all elements in a list exist (non null with a length greater than 0).
      * 
      * @param list
@@ -603,19 +630,18 @@ public class SlicingEngine {
     	return true;
     }
     
+    @Before
+    public void setUp() throws SQLException {
+    	setCompareDbHost("localhost");
+    	setCompareDbName("reactome");
+    	setCompareDbUser("liam");
+    	setCompareDbPwd(")8J7m]!%[<");
+        initCompareDBAdapter();
+    }
+    
     @Test
     public void testIsRLERevised() throws Exception {
-    	compareDbHost = "localhost";
-    	compareDbName = "reactome";
-    	compareDbUser = "liam";
-    	compareDbPwd = ")8J7m]!%[<";
-
-    	MySQLAdaptor dba = new MySQLAdaptor(
-    			compareDbHost,
-    			compareDbName,
-    			compareDbUser,
-    			compareDbPwd
-    			);
+    	MySQLAdaptor dba = getCompareDbAdapter();
 
     	// Example RLE (DIT and MIT combine to form triiodothyronine).
     	GKInstance RLE = dba.fetchInstance(209925L);
@@ -632,17 +658,7 @@ public class SlicingEngine {
 
     @Test
     public void testIsPathwayRevised() throws Exception {
-    	compareDbHost = "localhost";
-    	compareDbName = "reactome";
-    	compareDbUser = "liam";
-    	compareDbPwd = ")8J7m]!%[<";
-
-    	MySQLAdaptor dba = new MySQLAdaptor(
-    			compareDbHost,
-    			compareDbName,
-    			compareDbUser,
-    			compareDbPwd
-    			);
+    	MySQLAdaptor dba = getCompareDbAdapter();
 
     	// Example pathway #1 (xylitol degradation).
     	GKInstance xylitolDegradation = dba.fetchInstance(5268107L);
@@ -674,17 +690,12 @@ public class SlicingEngine {
     	assertEquals(true, isPathwayRevised(neuronalSystem));
     	// Reset revision.
     	revisedChildPathway.removeAttributeValueNoCheck(ReactomeJavaConstants.definition, "Love Potion #9");
-    	assertEquals(false, isPathwayRevised(neuronalSystem));
+    	assertEquals(true, isPathwayRevised(neuronalSystem));
     }
      
     @Test
     public void testCompareAttributes() throws Exception {
-    	MySQLAdaptor dba = new MySQLAdaptor(
-    			"localhost", 
-    			"reactome",
-    			"liam", 
-    			")8J7m]!%[<"
-    			);
+    	MySQLAdaptor dba = getCompareDbAdapter();
 
     	// (DOCK7) [cytosol]
     	GKInstance left = dba.fetchInstance(8875579L);
@@ -699,12 +710,7 @@ public class SlicingEngine {
 
     @Test
     public void testCompareAllAttributesInList() throws Exception {
-    	MySQLAdaptor dba = new MySQLAdaptor(
-    			"localhost", 
-    			"reactome",
-    			"liam", 
-    			")8J7m]!%[<"
-    			);
+    	MySQLAdaptor dba = getCompareDbAdapter();
 
     	// (DOCK7) [cytosol]
     	GKInstance left = dba.fetchInstance(8875579L);
@@ -719,12 +725,7 @@ public class SlicingEngine {
 
     @Test
     public void testAdditionOrDeletionInLists() throws Exception {
-    	MySQLAdaptor dba = new MySQLAdaptor(
-    			"localhost", 
-    			"reactome",
-    			"liam", 
-    			")8J7m]!%[<"
-    			);
+    	MySQLAdaptor dba = getCompareDbAdapter();
 
     	// (DOCK7) [cytosol]
     	GKInstance left = dba.fetchInstance(8875579L);
@@ -1847,8 +1848,9 @@ public class SlicingEngine {
             	engine.setCompareDbUser(compareDbUser);
             	engine.setCompareDbPwd(compareDbPwd);
             	engine.setCompareDbPort(new Integer(compareDbPort));
+            	engine.initCompareDBAdapter();
             }
-            
+			
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
