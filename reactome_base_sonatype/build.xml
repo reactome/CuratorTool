@@ -82,7 +82,7 @@
 			<include name="batik/batik-util-1.11.jar" />
 			<include name="commons/commons-lang-2.5.jar" />
 			<include name="commons/commons-httpclient-3.1.jar" />
-			<include name="itext-2.0.4.jar" />
+			<include name="itext/itext-2.0.6.jar" />
 			<include name="javax.xml.rpc-api-1.1.2.jar" />
 			<include name="jdom/jdom-1.1.3.jar" />
 			<include name="jgraph/jgraph-5.13.0.0.jar" />
