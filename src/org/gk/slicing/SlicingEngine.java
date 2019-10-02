@@ -503,9 +503,12 @@ public class SlicingEngine {
      * @throws Exception 
      */
     private boolean attributesRevised(GKInstance left, GKInstance right, String attrName) throws Exception {
+    	// Null checker.
     	if (left == null || right == null) {
+    		// if both instances are null, then there are no attributes to revise.
     		if (left == right)
     			return false;
+    		// if only one instance is null, then any attribute may be considered revised.
     		return true;
     	}
 
