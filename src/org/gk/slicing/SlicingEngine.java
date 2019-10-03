@@ -263,7 +263,7 @@ public class SlicingEngine {
         return this.lastReleaseDate;
     }
     
-    public MySQLAdaptor getCompareDbAdapter() {
+    public MySQLAdaptor getCompareDBA() {
     	return this.compareDBAdapter;	
     }
     
@@ -350,13 +350,14 @@ public class SlicingEngine {
     private void checkForRevisions(String schemaClassName) throws InvalidAttributeException, Exception {
     	// Verify that `schemaClass` is a valid schema class.
     	if (!sourceDBA.getSchema().isValidClass(schemaClassName)
-		 || !getCompareDbAdapter().getSchema().isValidClass(schemaClassName))
+		 || !getCompareDBA().getSchema().isValidClass(schemaClassName))
     		return;
 
         logger.info("checkForRevisions(" + schemaClassName + ")");
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
+			// Sanity Check.
 			if (!inst.getSchemClass().isa(schemaClassName))
 				continue;
 			
@@ -378,6 +379,9 @@ public class SlicingEngine {
     /**
      * Check if Pathway is revised.
      * 
+     * TODO Is the "in-method" recursive approach that
+     * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} takes recommended?
+     *
      * @param pathway
      * @return boolean (true if revised, false otherwise).
      * @throws InvalidAttributeException
@@ -427,7 +431,7 @@ public class SlicingEngine {
     		throws InvalidAttributeException, SQLException, Exception {
 
     	Collection<GKInstance> childPathways = getChildPathways(parent);
-    	Collection<GKInstance> compareChildPathways = getChildPathways(getCompareInstance(parent));
+    	Collection<GKInstance> compareChildPathways = getChildPathways(getInstance(getCompareDBA(), parent));
     	
     	if (childPathways.isEmpty() && compareChildPathways.isEmpty())
     		return false;
@@ -488,7 +492,7 @@ public class SlicingEngine {
 													    ReactomeJavaConstants.catalystActivity);
     	
     	for (String attrName : revisionList) {
-    		if (revisionInAttributeList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    		if (revisionInAttributeList(reactionlikeEvent, getInstance(getCompareDBA(), reactionlikeEvent), attrName))
     			return true;
     	}
 
@@ -497,7 +501,7 @@ public class SlicingEngine {
 															        ReactomeJavaConstants.catalystActivity);
 
     	for (String attrName : additionsOrDeletionsList) {
-    		if (additionOrDeletionInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    		if (additionOrDeletionInList(reactionlikeEvent, getInstance(getCompareDBA(), reactionlikeEvent), attrName))
     			return true;
     	}
 
@@ -620,7 +624,7 @@ public class SlicingEngine {
     	Collection<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);
     	for (GKInstance summation : summations) {
     		// if a change in text is detected, then summation is considered revised.
-    		if (attributesRevised(summation, getCompareInstance(summation), ReactomeJavaConstants.text))
+    		if (attributesRevised(summation, getInstance(getCompareDBA(), summation), ReactomeJavaConstants.text))
     			return true;
     	}
 
@@ -635,20 +639,20 @@ public class SlicingEngine {
      * @throws SQLException
      * @throws Exception
      */
-    private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
-    	return getCompareInstance(instance.getDBID());
+    private GKInstance getInstance(MySQLAdaptor dba, GKInstance instance) throws SQLException, Exception {
+    	return getInstance(dba, instance.getDBID());
     }
 
-    private GKInstance getCompareInstance(Long DBID) throws SQLException, Exception {
-    	return getCompareDbAdapter().fetchInstance(DBID);
+    private GKInstance getInstance(MySQLAdaptor dba, Long DBID) throws SQLException, Exception {
+    	return getCompareDBA().fetchInstance(DBID);
     }
 
-    private GKInstance getCompareInstanceShallow(GKInstance instance) throws SQLException, Exception {
-    	return getCompareInstanceShallow(instance.getDBID());
+    private GKInstance getInstanceShallow(MySQLAdaptor dba, GKInstance instance) throws SQLException, Exception {
+    	return getInstanceShallow(dba, instance.getDBID());
     }
 
-    private GKInstance getCompareInstanceShallow(Long DBID) throws SQLException, Exception {
-    	GKInstance clone = (GKInstance) getCompareInstance(DBID).clone();
+    private GKInstance getInstanceShallow(MySQLAdaptor dba, Long DBID) throws SQLException, Exception {
+    	GKInstance clone = (GKInstance) dba.fetchInstance(DBID).clone();
     	clone.setDBID(DBID);
     	return clone;
     }
@@ -693,6 +697,14 @@ public class SlicingEngine {
     	return (GKInstance) sliceMap.get(DBID);
     }
 
+    /**
+     * Set up a database to be used as a "before" state for testing.
+     *
+     * Using the compare database is just a quick and simple to way to set
+     * up such a test database.
+     *
+     * @throws SQLException
+     */
     @Before
     public void setUp() throws SQLException {
     	setCompareDbHost("localhost");
@@ -813,6 +825,9 @@ public class SlicingEngine {
      * Iterate through EntitySet instances and populate each instance's
      * compartment attributes.
      * 
+     * The recursive iteration takes place in the
+     * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
+     *
      * @param instance
      * @throws Exception
      */
@@ -857,7 +872,7 @@ public class SlicingEngine {
 											"liam",
 											")8J7m]!%[<");
     	
-    	// ACEI pro-drugs [extracellular region]
+    	// ACEI pro-drugs [extracellular region], has one compartment (extracellular region).
         Long dbId = 9619112L;
         Map<String, Integer> attrNameAndSize = new HashMap<>();
         attrNameAndSize.put(ReactomeJavaConstants.compartment, 1);
