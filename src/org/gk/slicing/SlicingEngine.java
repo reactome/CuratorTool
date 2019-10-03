@@ -345,25 +345,29 @@ public class SlicingEngine {
      * @throws InvalidAttributeException 
      * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
-    private void checkForRevisions(String attrName) throws InvalidAttributeException, Exception {
-        logger.info("checkForRevision(" + attrName + ")");
+    private void checkForRevisions(String schemaClassName) throws InvalidAttributeException, Exception {
+    	// Verify that `schemaClass` is a valid schema class.
+    	if (!sourceDBA.getSchema().isValidClass(schemaClassName)
+		 || !getCompareDbAdapter().getSchema().isValidClass(schemaClassName))
+    		return;
 
+        logger.info("checkForRevisions(" + schemaClassName + ")");
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
-			if (!inst.getSchemClass().isa(attrName))
+			if (!inst.getSchemClass().isa(schemaClassName))
 				continue;
 			
 			boolean revised = false;
-			if (attrName.equals(ReactomeJavaConstants.Pathway))
+			if (schemaClassName.equals(ReactomeJavaConstants.Pathway))
 				revised = isPathwayRevised(inst);
-			else if (attrName.equals(ReactomeJavaConstants.ReactionlikeEvent))
+			else if (schemaClassName.equals(ReactomeJavaConstants.ReactionlikeEvent))
 				revised = isRLERevised(inst);
 
 			// If a "revised flag" condition is met, set "revised flag" on the instance.
-			// TODO determine form of "revised flag" (e.g. UpdateTrack.class).
 			if (revised) {
-				// TODO set revised flag on instance.
+				// TODO determine API of UpdateTrack.class.
+				UpdateTrack updateTrack = new UpdateTrack.Builder(inst).build();
 			}
 		}
     }
@@ -1871,7 +1875,7 @@ public class SlicingEngine {
             		compareDbPort = getInput("Please input the compare database port");
             	String delim = ",";
             	List<String> compareClasses = Arrays.asList(properties.getProperty("compareClasses").split(delim));
-            	compareClasses.forEach(compareClass -> compareClass.trim());
+            	compareClasses.replaceAll(String::trim);
             	if (compareClasses == null || compareClasses.size() == 0)
             		compareClasses = Arrays.asList(getInput("Please input the schema classes to compare (seperated by commas)")
 									     .split(delim));
