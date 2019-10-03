@@ -30,7 +30,7 @@ public class GKInstance implements Instance, Cloneable {
 	///// For display and label
 	// private String displayName;
 	private Long dbID; // a unique id for db
-	// SchemaClass is the defintion of Instance
+	// SchemaClass is the definition of Instance
 	private SchemaClass schemaClass;
 	private Map referers = new HashMap();
 	//private Map referersByName = new HashMap();

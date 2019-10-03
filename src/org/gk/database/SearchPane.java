@@ -134,7 +134,7 @@ public class SearchPane extends JPanel {
 		valueBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				int index = valueBox.getSelectedIndex();
-				if (index < 4) {
+				if (index < 5) {
 					valueField.setVisible(true);
 					valueField.invalidate();
 					validate();
@@ -241,9 +241,8 @@ public class SearchPane extends JPanel {
 	        operator = "=";
 	    else if (operator.equals("Contains"))
 	        operator = "LIKE";
-	    else if (operator.equals("Does Not Contain")) {
+	    else if (operator.equals("Does Not Contain"))
 	        operator = "NOT LIKE";
-	    }
 	    else if (operator.equals("Use REGEXP"))
 	        operator = "REGEXP";
 	    return operator;

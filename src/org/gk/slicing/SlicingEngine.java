@@ -4,6 +4,8 @@
  */
 package org.gk.slicing;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,8 +35,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -50,9 +54,11 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
+import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import static org.junit.Assert.assertEquals;
+import org.junit.Before;
 import org.junit.Test;
 
 
@@ -92,6 +98,15 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
+    // Compare (used for comparing against the current slice).
+    private String compareDbHost;
+    private String compareDbName;
+    private String compareDbUser;
+    private String compareDbPwd;
+    private List<String> compareClasses;
+    private int compareDbPort = 3306;
+    private boolean compareRequested = false;
+    private MySQLAdaptor compareDBAdapter;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -123,6 +138,7 @@ public class SlicingEngine {
     
     /**
      * Default constructor
+     * @throws SQLException 
      *
      */
     public SlicingEngine() {
@@ -137,14 +153,22 @@ public class SlicingEngine {
     public void setSource(MySQLAdaptor dba) {
         this.sourceDBA = dba;
     }
+
+    /**
+     * Get the data source for slicing.
+     * @return dba
+     */
+    public MySQLAdaptor getSource() {
+        return this.sourceDBA;
+    }
     
     /**
      * The name of the target database. This database will be created at the same host
      * as the data source.
-     * @param dbName
+     * @param DbName
      */
-    public void setTargetDbName(String dbName) {
-        this.targetDbName = dbName;
+    public void setTargetDbName(String DbName) {
+        this.targetDbName = DbName;
     }
     
     public void setTargetDbHost(String host) {
@@ -163,6 +187,46 @@ public class SlicingEngine {
         this.targetDbPort = dbPort;
     }
     
+   /**
+     * The name of the compare database. This database will be created at the same host
+     * as the data source.
+     * @param DbName
+     */
+    public void setCompareDbName(String DbName) {
+        this.compareDbName = DbName;
+    }
+
+    public void setCompareDbHost(String host) {
+        this.compareDbHost = host;
+    }
+
+    public void setCompareDbUser(String dbUser) {
+        this.compareDbUser = dbUser;
+    }
+
+    public void setCompareDbPwd(String pwd) {
+        this.compareDbPwd = pwd;
+    }
+
+    public void setCompareDbPort(int dbPort) {
+        this.compareDbPort = dbPort;
+    }
+
+    public void initCompareDBAdapter() throws SQLException {
+    	this.compareDBAdapter = new MySQLAdaptor(compareDbHost,
+										   compareDbName,
+										   compareDbUser,
+										   compareDbPwd);
+    }
+
+    public void setCompareClasses(List<String> compareClasses) {
+        this.compareClasses = compareClasses;
+    }
+
+    public void setIsCompareRequested(boolean requested) {
+        this.compareRequested = requested;
+    }
+
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
@@ -197,6 +261,10 @@ public class SlicingEngine {
     
     public String getLastReleaseDate() {
         return this.lastReleaseDate;
+    }
+    
+    public MySQLAdaptor getCompareDbAdapter() {
+    	return this.compareDBAdapter;	
     }
     
     /**
@@ -236,10 +304,509 @@ public class SlicingEngine {
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment);
+        if (compareRequested) {
+        	for (String compareClass : compareClasses)
+        		checkForRevisions(compareClass);
+        }
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+    } 
+    
+    /**
+     * TODO remove dev notes below.
+     * 
+     * <p><strong>An RLE gets a revised flag if:</strong></p>
+     * <ol>
+     *   <li>An immediate child RLE revised</li>
+     *   <ul>
+     *     <li>A Catalyst added/removed/changed</li>
+     *     <li>A regulator added/removed/changed</li>
+     *     <li>A change is made in inputs/outputs</li>
+     *     <li>A significant change in summation text</li>
+     *   </ul>
+     * </ol>
+     * 
+     * <p><strong>A pathway gets a revised flag if:</strong></p>
+     * <ol>
+     *   <li>An immediate child RLE revised 
+     *   <ul>
+     *     <li>A Catalyst added/removed/changed</li>
+     *     <li>A regulator added/removed/changed</li>
+     *     <li>A change is made in inputs/outputs</li>
+     *     <li>A significant change in summation text</li>
+     *   </ul>
+     *   <li>An immediate child RLE is added/removed</li>
+     *   <li>An immediate child Pathway added/removed</li>
+     *   <li>An immediate child Pathway is revised as in B</li>
+     * </ol>
+     * 
+     * @param AttributeName
+     * @throws Exception 
+     * @throws InvalidAttributeException 
+     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
+     */
+    private void checkForRevisions(String schemaClassName) throws InvalidAttributeException, Exception {
+    	// Verify that `schemaClass` is a valid schema class.
+    	if (!sourceDBA.getSchema().isValidClass(schemaClassName)
+		 || !getCompareDbAdapter().getSchema().isValidClass(schemaClassName))
+    		return;
+
+        logger.info("checkForRevisions(" + schemaClassName + ")");
+		// Iterate over all instances in the slice.
+		for (long dbId : sliceMap.keySet()) {
+			GKInstance inst = sliceMap.get(dbId);
+			if (!inst.getSchemClass().isa(schemaClassName))
+				continue;
+			
+			boolean revised = false;
+			if (schemaClassName.equals(ReactomeJavaConstants.Pathway))
+				revised = isPathwayRevised(inst);
+			else if (schemaClassName.equals(ReactomeJavaConstants.ReactionlikeEvent))
+				revised = isRLERevised(inst);
+
+			// If a "revised flag" condition is met, set "revised flag" on the instance.
+			if (revised) {
+				// TODO determine API of UpdateTrack.class.
+				UpdateTrack updateTrack = new UpdateTrack.Builder(inst).build();
+				updateTrack.writeUpdate();
+			}
+		}
+    }
+
+    /**
+     * Check if Pathway is revised.
+     * 
+     * @param pathway
+     * @return boolean (true if revised, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    private boolean isPathwayRevised(GKInstance pathway) throws InvalidAttributeException, Exception {
+    	if (pathway == null)
+    		return false;
+
+    	// Recursively iterate over events in pathway.
+    	Collection<GKInstance> events = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+
+		if (events != null && events.size() > 0) {
+			for (GKInstance event : events) {
+				// Pathway
+				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+					isPathwayRevised(event);
+
+				// RLE
+				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
+					 && isRLERevised(event))
+					return true;
+			}
+		}
+    	
+    	// Check if an immediate child Pathway is added or removed
+    	if (isChildPathwayAddedOrRemoved(pathway))
+    		return true;
+
+    	// Finally check for changes in summation text.
+    	if (isSummationRevised(pathway))
+    		return true;
+    	
+    	return false;
+    }
+
+    /**
+     * Check if a child pathway is added or removed for a given parent.
+     * 
+     * @param parent
+     * @return boolean (true if a child pathway is added or removed, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean isChildPathwayAddedOrRemoved(GKInstance parent)
+    		throws InvalidAttributeException, SQLException, Exception {
+
+    	Collection<GKInstance> childPathways = getChildPathways(parent);
+    	Collection<GKInstance> compareChildPathways = getChildPathways(getCompareInstance(parent));
+    	
+    	if (childPathways.isEmpty() && compareChildPathways.isEmpty())
+    		return false;
+    	
+    	// If the number of child pathways is different between the two parents,
+    	// then an addition or deletion has taken place.
+    	if (childPathways.size() != compareChildPathways.size())
+    		return true;
+
+    	// List of child pathway IDs.
+    	Collection<Long> childPathwayDBIDs = childPathways.stream()
+														  .map(attrValue -> attrValue.getDBID())
+														  .collect(Collectors.toList());
+
+    	// Check if there is a child pathway not associated with both parents.
+    	Optional<Long> commonDBID = compareChildPathways.stream()
+    			// Get database ID.
+    			.map(attrValue -> attrValue.getDBID())
+    			// Set match criteria (identical database ID's).
+    			.filter(comparePathwayDBID -> childPathwayDBIDs.contains(comparePathwayDBID))
+    			// Find match (or null if no match).
+    			.findFirst();
+
+    	if (!commonDBID.isPresent())
+    		return true;
+
+    	return false;
+    }
+
+    /**
+     * Return a list of child pathways for a given parent.
+     * 
+     * @param parent
+     * @return List
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    private Collection<GKInstance> getChildPathways(GKInstance parent) throws InvalidAttributeException, Exception {
+    	Collection<GKInstance> events = parent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+    	return events.stream()
+					 .filter(attr -> attr.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+					 .collect(Collectors.toList());
+    }
+
+    /**
+     * Check if a ReactionlikeEvent is revised.
+     * 
+     * @param reactionlikeEvent
+     * @return boolean (true if revised, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    private boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
+    	// Check for changes in inputs, outputs, regulators, and catalysts.
+    	Collection<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
+													    ReactomeJavaConstants.output,
+													    ReactomeJavaConstants.regulatedBy,
+													    ReactomeJavaConstants.catalystActivity);
+    	
+    	for (String attrName : revisionList) {
+    		if (revisionInAttributeList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    			return true;
+    	}
+
+    	// Check if a catalyst or regulator is added or removed.
+    	Collection<String> additionsOrDeletionsList = Arrays.asList(ReactomeJavaConstants.regulatedBy,
+															        ReactomeJavaConstants.catalystActivity);
+
+    	for (String attrName : additionsOrDeletionsList) {
+    		if (additionOrDeletionInList(reactionlikeEvent, getCompareInstance(reactionlikeEvent), attrName))
+    			return true;
+    	}
+
+    	// Check if summation is revised.
+    	// Requires "special case" (examining "text" attribute for all summations).
+    	if (isSummationRevised(reactionlikeEvent))
+    		return true;
+    	
+    	return false;	
+    }
+
+    /**
+     * Compare the value of a given attribute between two instances.
+     * 
+     * Valid attribute checks take place in
+     * {@link org.gk.slicing.SlicingEngine#isValidAttributeOrThrow(SchemaAttribute attribute)}
+     * 
+     * @param left
+     * @param right
+     * @param attrName
+     * @return boolean (true if an attribute value is revised, false if all attribute values are equal).
+     * @throws Exception 
+     */
+    private boolean attributesRevised(GKInstance left, GKInstance right, String attrName) throws Exception {
+    	// Null checker.
+    	if (left == null || right == null) {
+    		// if both instances are null, then there are no attributes to revise.
+    		if (left == right)
+    			return false;
+    		// if only one instance is null, then any attribute may be considered revised.
+    		return true;
+    	}
+
+    	// If the object will not be able to cast to GKInstance, then simply compare the values.
+    	if (left.getAttributeValue(attrName) instanceof String)
+    		return !left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
+
+    	// Default option is to cast to GKInstance and compare the database ID's.
+		Long leftDBID = ((GKInstance) left.getAttributeValue(attrName)).getDBID();
+		Long rightDBID = ((GKInstance) right.getAttributeValue(attrName)).getDBID();
+    	return !leftDBID.equals(rightDBID);
+    }
+
+    /**
+     * Iterate over and compare all elements in a GKInstance's list of a given attribute.
+     * 
+     * @param left
+     * @param right
+     * @param attrName
+     * @return boolean (true if a revision is detected, false if all attributes are equal).
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean revisionInAttributeList(GKInstance left, GKInstance right, String attrName)
+    		throws SQLException, Exception {
+    	Collection<GKInstance> attrList = left.getAttributeValuesList(attrName);
+    	for (GKInstance attrValue : attrList) {
+    		// If slice output differs from database output
+    		if (attributesRevised(left, right, attrName))
+				return true;
+    	}
+    	
+    	return false;
+    }
+    
+    /**
+     * Compare the attribute lists in order to detect additions or deletions. 
+     * 
+     * @param left
+     * @param right
+     * @param attrName
+     * @return boolean (true if there is an addition or deletion in the attribute list, false if the lists are equal).
+     * @throws InvalidAttributeException
+     * @throws SQLException
+     * @throws Exception
+     */
+    private boolean additionOrDeletionInList(GKInstance left, GKInstance right, String attrName)
+    		throws InvalidAttributeException, SQLException, Exception {
+    	Collection<Object> rightList = right.getAttributeValuesList(attrName);
+    	Collection<Object> leftList = left.getAttributeValuesList(attrName);
+    	
+    	// Constant time check to detect additions or deletions.
+    	// Misses the case where the same number of unique additions and deletions have occurred.
+    	// That case is detected by the iterator below.
+    	if (rightList.size() > leftList.size()
+    	 || rightList.size() < leftList.size())
+    		return true;
+
+    	// O(n^2) time check to detect additions or deletions.
+    	for (Object instance : leftList) {
+    		// If rightList does not contain an instance in leftList,
+    		// then either rightList has a deletion, or leftList has an addition.
+    		if (!rightList.contains(instance)) {
+    			for (Object inst : rightList) {
+    				Long leftDBID = ((GKInstance) inst).getDBID();
+    				Long rightDBID = ((GKInstance) inst).getDBID();
+
+    				// An attribute has been added or deleted from the instance.
+    				if (!leftDBID.equals(rightDBID))
+    					return true;
+    			}
+    		}
+    	}
+
+    	// The lists have the same elements.
+    	return false;
+    }
+    
+    /**
+     * Check if an instance's summation attribute is revised.
+     * 
+     * @param instance
+     * @return boolean (true if summation is revised, false otherwise).
+     * @throws InvalidAttributeException
+     * @throws Exception
+     * 
+     * @see {@link org.gk.model.Summation}
+     */
+    private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
+    	Collection<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);
+    	for (GKInstance summation : summations) {
+    		// if a change in text is detected, then summation is considered revised.
+    		if (attributesRevised(summation, getCompareInstance(summation), ReactomeJavaConstants.text))
+    			return true;
+    	}
+
+    	return false;
+    }
+    
+    /**
+     * Given a particular GKInstance, return the associated GKInstance from the "compare" slice.
+     * 
+     * @param instance
+     * @return GKInstance
+     * @throws SQLException
+     * @throws Exception
+     */
+    private GKInstance getCompareInstance(GKInstance instance) throws SQLException, Exception {
+    	return getCompareInstance(instance.getDBID());
+    }
+
+    private GKInstance getCompareInstance(Long DBID) throws SQLException, Exception {
+    	return getCompareDbAdapter().fetchInstance(DBID);
+    }
+
+    private GKInstance getCompareInstanceShallow(GKInstance instance) throws SQLException, Exception {
+    	return getCompareInstanceShallow(instance.getDBID());
+    }
+
+    private GKInstance getCompareInstanceShallow(Long DBID) throws SQLException, Exception {
+    	GKInstance clone = (GKInstance) getCompareInstance(DBID).clone();
+    	clone.setDBID(DBID);
+    	return clone;
+    }
+
+    /**
+     * Return true if at least one "compare" value is provided by user.
+     * 
+     * @param args
+     * @return boolean (true if compare property is found, false otherwise).
+     * @throws IOException
+     */
+    private static boolean isCompareRequested(String[] args) throws IOException {
+    	Properties properties = loadProperties();
+
+    	Map<String, String> cmdLineProps = parsePropertiesInArgs(args);
+    	// Augment or override the auth.properties values.
+    	properties.putAll(cmdLineProps);
+
+    	return properties.getProperty("compareClasses") != null
+    		|| properties.getProperty("compareDbHost")  != null
+			|| properties.getProperty("compareDbName")  != null
+			|| properties.getProperty("compareDbPort")  != null
+			|| properties.getProperty("compareDbPwd")   != null
+			|| properties.getProperty("compareDbUser")  != null;
+    }
+
+    /**
+     * Check that all elements in a list exist (not null with a length greater than 0).
+     * 
+     * @param Collection
+     * @return boolean
+     */
+    private boolean allElementsExist(Collection<Object> list) {
+    	for (Object element : list) {
+    		if (element == null || String.valueOf(element).length() == 0)
+    			return false;
+    	}
+    	return true;
+    }
+    
+    private GKInstance getSliceInstance(Long DBID) {
+    	return (GKInstance) sliceMap.get(DBID);
+    }
+
+    @Before
+    public void setUp() throws SQLException {
+    	setCompareDbHost("localhost");
+    	setCompareDbName("reactome");
+    	setCompareDbUser("liam");
+    	setCompareDbPwd(")8J7m]!%[<");
+        initCompareDBAdapter();
+    }
+    
+    @Test
+    public void testIsRLERevised() throws Exception {
+    	// Example RLE (DIT and MIT combine to form triiodothyronine).
+    	GKInstance RLE = getCompareInstanceShallow(209925L);
+    	assertEquals(false, isRLERevised(RLE));
+
+    	// Example added attribute (Positive regulation by 'H+ [endosome lumen]').
+    	RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, getCompareInstance(5210962L));
+    	assertEquals(true, isRLERevised(RLE));
+    	
+    	// Remove attribute.
+    	RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, getCompareInstance(5210962L));
+    	assertEquals(false, isRLERevised(RLE));
+    }
+
+    @Test
+    public void testIsPathwayRevised() throws Exception {
+    	// Example pathway #1 (xylitol degradation).
+    	GKInstance xylitolDegradation = getCompareInstanceShallow(5268107L);
+    	assertEquals(false, isPathwayRevised(xylitolDegradation));
+
+    	GKInstance clone = (GKInstance) xylitolDegradation.clone();
+    	// Example addition of a child pathway (tRNA processing).
+    	xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getCompareInstance(72306L));
+    	assertEquals(true, isPathwayRevised(xylitolDegradation));
+    	// Reset the addition.
+    	xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, getCompareInstance(72306L));
+    	assertEquals(false, isPathwayRevised(xylitolDegradation));
+    	
+    	
+    	// Example pathway #2 (neuronal system).
+    	GKInstance neuronalSystem = getCompareInstanceShallow(112316L);
+    	assertEquals(false, isPathwayRevised(neuronalSystem));
+    	
+    	// Remove an existing child pathway.
+    	GKInstance removedChildPathway = getCompareInstance(1296071L);
+    	neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, removedChildPathway);
+    	assertEquals(true, isPathwayRevised(neuronalSystem));
+    	// Reset the removal.
+    	neuronalSystem.addAttributeValue(ReactomeJavaConstants.hasEvent, removedChildPathway);
+    	assertEquals(false, isPathwayRevised(neuronalSystem));
+    }
+     
+    @Test
+    public void testSliceAttributes() throws Exception {
+    	// (DOCK7) [cytosol]
+    	GKInstance left = getCompareInstance(8875579L);
+
+    	// ABI2 [cytosol]
+    	GKInstance right = getCompareInstance(1671649L);
+    	
+    	assertEquals(false, attributesRevised(left, left, ReactomeJavaConstants.stableIdentifier));
+    	assertEquals(false, attributesRevised(right, right, ReactomeJavaConstants.stableIdentifier));
+    	assertEquals(true, attributesRevised(left, right, ReactomeJavaConstants.stableIdentifier));
+    }
+
+    @Test
+    public void testSliceAllAttributesInList() throws Exception {
+    	// (DOCK7) [cytosol]
+    	GKInstance left = getCompareInstance(8875579L);
+
+    	// ABI2 [cytosol]
+    	GKInstance right = getCompareInstance(1671649L);
+    	
+    	assertEquals(false, revisionInAttributeList(left, left, ReactomeJavaConstants.hasCandidate));
+    	assertEquals(false, revisionInAttributeList(right, right, ReactomeJavaConstants.hasCandidate));
+    	assertEquals(true, revisionInAttributeList(left, right, ReactomeJavaConstants.hasCandidate));
+    }
+
+    @Test
+    public void testAdditionOrDeletionInLists() throws Exception {
+    	// (DOCK7) [cytosol]
+    	GKInstance left = getCompareInstanceShallow(8875579L);
+    	GKInstance right = (GKInstance) left.clone();
+    	
+    	assertEquals(false, additionOrDeletionInList(left, left, ReactomeJavaConstants.name));
+    	assertEquals(false, additionOrDeletionInList(left, right, ReactomeJavaConstants.name));
+    	assertEquals(false, additionOrDeletionInList(right, right, ReactomeJavaConstants.name));
+    	
+    	right.addAttributeValue(ReactomeJavaConstants.name, "dedicator of cytokinesis 7");
+    	
+    	assertEquals(false, additionOrDeletionInList(right, right, ReactomeJavaConstants.name));
+    	assertEquals(true, additionOrDeletionInList(left, right, ReactomeJavaConstants.name));
+    }
+
+    @Test
+    public void testGetCompareDbAdapter() throws SQLException {
+    	Collection<Object> parameters = Arrays.asList(compareDbHost,
+													  compareDbName,
+													  compareDbUser,
+													  compareDbPwd,
+													  compareDbPort);
+    	if (!allElementsExist(parameters))
+    		return;
+    	
+		assert(getCompareDbAdapter() != null);
+    }
+    
+    @Test
+    public void testAllElementsExist() {
+    	Collection<Object> strings = Arrays.asList("Read", "Eval", "Print", "Loop");
+    	assertEquals(true, allElementsExist(strings));
+
+    	Collection<Object> nulls = Arrays.asList(null, "");
+    	assertEquals(false, allElementsExist(nulls));
     }
     
     /**
@@ -600,7 +1167,7 @@ public class SlicingEngine {
         return false;
     }
     
-    @Test
+    //@Test
     public void testAddReleaseNumber() throws Exception {
         targetDBA = new MySQLAdaptor("localhost",
                                      "gk_current_ver37",
@@ -1326,9 +1893,9 @@ public class SlicingEngine {
             String dbHost = properties.getProperty("dbHost");
             if (dbHost == null || dbHost.trim().length() == 0)
                 dbHost = getInput("Please input the database host");
-            String dbName = properties.getProperty("dbName");
-            if (dbName == null || dbName.trim().length() == 0)
-                dbName = getInput("Please input the source database name");
+            String DbName = properties.getProperty("dbName");
+            if (DbName == null || DbName.trim().length() == 0)
+                DbName = getInput("Please input the source database name");
             String dbPort = properties.getProperty("dbPort");
             if (dbPort == null || dbPort.trim().length() == 0)
                 dbPort = getInput("Please input the source databse port");
@@ -1338,12 +1905,14 @@ public class SlicingEngine {
             String pwd = properties.getProperty("dbPwd");
             if (pwd == null || pwd.trim().length() == 0)
                 pwd = getInput("Please input the password");
+            
+            // Target database.
             String targetDbHost = properties.getProperty("slicingDbHost");
             if (targetDbHost == null || targetDbHost.trim().length() == 0)
                 targetDbHost = getInput("Please input the slice databse host");
-            String targetdbName = properties.getProperty("slicingDbName");
-            if (targetdbName == null || targetdbName.trim().length() == 0)
-                targetdbName = getInput("Please input the slice database name");
+            String targetDbName = properties.getProperty("slicingDbName");
+            if (targetDbName == null || targetDbName.trim().length() == 0)
+                targetDbName = getInput("Please input the slice database name");
             String targetDbUser = properties.getProperty("slicingDbUser");
             if (targetDbUser == null || targetDbUser.trim().length() == 0)
                 targetDbUser = getInput("Please input the slice database user");
@@ -1353,6 +1922,43 @@ public class SlicingEngine {
             String targetDbPort = properties.getProperty("slicingDbPort");
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
+            
+            // Compare database.
+            // Only ask for all "compare" values if at least one "compare" value is provided by user.
+            if (isCompareRequested(args)) {
+				logger.info("Compare requested.");
+            	String compareDbHost = properties.getProperty("compareDbHost");
+            	if (compareDbHost == null || compareDbHost.trim().length() == 0)
+            		compareDbHost = getInput("Please input the compare databse host");
+            	String compareDbName = properties.getProperty("compareDbName");
+            	if (compareDbName == null || compareDbName.trim().length() == 0)
+            		compareDbName = getInput("Please input the compare database name");
+            	String compareDbUser = properties.getProperty("compareDbUser");
+            	if (compareDbUser == null || compareDbUser.trim().length() == 0)
+            		compareDbUser = getInput("Please input the compare database user");
+            	String compareDbPwd = properties.getProperty("compareDbPwd");
+            	if (compareDbPwd == null || compareDbPwd.trim().length() == 0)
+            		compareDbPwd = getInput("Please input the compare database password");
+            	String compareDbPort = properties.getProperty("compareDbPort");
+            	if (compareDbPort == null || compareDbPort.trim().length() == 0)
+            		compareDbPort = getInput("Please input the compare database port");
+            	String delim = ",";
+            	List<String> compareClasses = Arrays.asList(properties.getProperty("compareClasses").split(delim));
+            	compareClasses.replaceAll(String::trim);
+            	if (compareClasses == null || compareClasses.size() == 0)
+            		compareClasses = Arrays.asList(getInput("Please input the schema classes to compare (seperated by commas)")
+									     .split(delim));
+
+            	engine.setIsCompareRequested(true);
+            	engine.setCompareClasses(compareClasses);
+            	engine.setCompareDbName(compareDbName);
+            	engine.setCompareDbHost(compareDbHost);
+            	engine.setCompareDbUser(compareDbUser);
+            	engine.setCompareDbPwd(compareDbPwd);
+            	engine.setCompareDbPort(new Integer(compareDbPort));
+            	engine.initCompareDBAdapter();
+            }
+			
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
@@ -1387,14 +1993,14 @@ public class SlicingEngine {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
-                                                      dbName,
+                                                      DbName,
                                                       user,
                                                       pwd,
                                                       Integer.parseInt(dbPort));
             // To keep this connection consistent to avoid time out
             sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
             engine.setSource(sourceDBA);
-            engine.setTargetDbName(targetdbName);
+            engine.setTargetDbName(targetDbName);
             engine.setTargetDbHost(targetDbHost);
             engine.setTargetDbUser(targetDbUser);
             engine.setTargetDbPwd(targetDbPwd);
@@ -1475,7 +2081,7 @@ public class SlicingEngine {
         return input;
     }
     
-    @Test
+    //@Test
     public void testTopics() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "test_gk_central",
@@ -1491,7 +2097,7 @@ public class SlicingEngine {
         }
     }
     
-    @Test
+    //@Test
     public void testInsert() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost", 
                                             "test_gk_central_slice",
