@@ -14,6 +14,7 @@
 	
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../../ReactomeBuild/AuthorToolBuildFiles" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="orgDir" value="${classDir}/org" />
 	<property name="resourcesDir" value="${basedir}/resources" />
@@ -21,6 +22,13 @@
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
 	<property name="libDir" value="${basedir}/lib" />
+	
+	
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
 	
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
@@ -32,8 +40,38 @@
 		<mkdir dir="${targetDir}" /> 
 	</target>
 	
+	<target name="clean">
+		<mkdir dir="${classDir}"/>
+	</target>
+	
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
+			<classpath refid="class.path" />
+			<include name="org/gk/database/*.java" />
+			<include name="org/gk/elv/*.java" />
+			<include name="org/gk/examples/*.java" />
+			<include name="org/gk/gkCurator/*.java" />
+			<include name="org/gk/gkCurator/authorTool/*.java" />
+			<include name="org/gk/gkEditor/*.java" />
+			<include name="org/gk/graphEditor/*.java" />
+			<include name="org/gk/model/*.java" />
+			<include name="org/gk/osxAdapter/*.java" />
+			<include name="org/gk/pathView/*.java" />
+			<include name="org/gk/pathwaylayout/*.java" />
+			<include name="org/gk/persistence/*.java" />
+			<include name="org/gk/property/*.java" />
+			<include name="org/gk/qualityCheck/*.java" />
+			<include name="org/gk/render/*.java" />
+			<include name="org/gk/schema/*.java" />
+			<!-- Don't place this package into the base (May, 2019) -->
+			<!-- include name="org/gk/slicing/*.java" /-->
+			<include name="org/gk/util/*.java" />
+		</javac>
+	</target>
+	
 	<!-- copy all files to the target directory -->
-	<target name="copy" depends="mkdir">
+	<target name="copy" depends="compile, mkdir">
 		<copy todir="${targetDir}/org">
 			<fileset dir="${orgDir}">
 				<exclude name="reactome/**" />
@@ -127,9 +165,9 @@
 	<property name="appletTemp" value="appletTemp" />
 	<target name="deployAsJWS">
 		<copy file="src/AuthorToolHtmlWrapper.html" todir="${authorToolTargetDir}" />
-		<copy file="lib/mysql-connector-java-5.0.8-bin.jar" tofile="${authorToolTargetDir}/mysql.jar" />
+		<copy file="lib/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${authorToolTargetDir}/mysql.jar" />
 		<copy file="lib/osxAdapter.jar" tofile="${authorToolTargetDir}/osxAdapter.jar" />
-		<copy file="lib/jdom/jdom.jar" tofile="${authorToolTargetDir}/jdom.jar" />
+		<copy file="lib/jdom/jdom-1.1.3.jar" tofile="${authorToolTargetDir}/jdom-1.1.3.jar" />
 		<mkdir dir="${appletTemp}" />
 		<copy todir="${appletTemp}/org">
 			<fileset dir="${orgDir}">
