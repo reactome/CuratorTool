@@ -368,6 +368,7 @@ public class SlicingEngine {
 			if (revised) {
 				// TODO determine API of UpdateTrack.class.
 				UpdateTrack updateTrack = new UpdateTrack.Builder(inst).build();
+				updateTrack.writeUpdate();
 			}
 		}
     }
