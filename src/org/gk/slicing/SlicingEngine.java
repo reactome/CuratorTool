@@ -102,7 +102,9 @@ public class SlicingEngine {
     private String compareDbName;
     private String compareDbUser;
     private String compareDbPwd;
+    private List<String> compareClasses;
     private int compareDbPort = 3306;
+    private boolean compareRequested = false;
     private MySQLAdaptor compareDBAdapter;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
@@ -192,30 +194,38 @@ public class SlicingEngine {
     public void setCompareDbName(String DbName) {
         this.compareDbName = DbName;
     }
-    
+
     public void setCompareDbHost(String host) {
         this.compareDbHost = host;
     }
-    
+
     public void setCompareDbUser(String dbUser) {
         this.compareDbUser = dbUser;
     }
-    
+
     public void setCompareDbPwd(String pwd) {
         this.compareDbPwd = pwd;
     }
-    
+
     public void setCompareDbPort(int dbPort) {
         this.compareDbPort = dbPort;
     }
-    
+
     public void initCompareDBAdapter() throws SQLException {
     	this.compareDBAdapter = new MySQLAdaptor(compareDbHost,
 										   compareDbName,
 										   compareDbUser,
 										   compareDbPwd);
     }
-    
+
+    public void setCompareClasses(List<String> compareClasses) {
+        this.compareClasses = compareClasses;
+    }
+
+    public void setIsCompareRequested(boolean requested) {
+        this.compareRequested = requested;
+    }
+
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
@@ -292,8 +302,10 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        checkForRevision(ReactomeJavaConstants.ReactionlikeEvent);
-        checkForRevision(ReactomeJavaConstants.Pathway);
+        if (compareRequested) {
+        	for (String compareClass : compareClasses)
+        		checkForRevisions(compareClass);
+        }
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -333,7 +345,7 @@ public class SlicingEngine {
      * @throws InvalidAttributeException 
      * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
-    private void checkForRevision(String attrName) throws InvalidAttributeException, Exception {
+    private void checkForRevisions(String attrName) throws InvalidAttributeException, Exception {
         logger.info("checkForRevision(" + attrName + ")");
 
 		// Iterate over all instances in the slice.
@@ -648,10 +660,12 @@ public class SlicingEngine {
     	// Augment or override the auth.properties values.
     	properties.putAll(cmdLineProps);
 
-    	return properties.getProperty("compareDBHost") != null
-			|| properties.getProperty("compareDBHost") != null
-			|| properties.getProperty("compareDBHost") != null
-			|| properties.getProperty("compareDBHost") != null;
+    	return properties.getProperty("compareClasses") != null
+    		|| properties.getProperty("compareDbHost")  != null
+			|| properties.getProperty("compareDbName")  != null
+			|| properties.getProperty("compareDbPort")  != null
+			|| properties.getProperty("compareDbPwd")   != null
+			|| properties.getProperty("compareDbUser")  != null;
     }
 
     /**
@@ -1806,7 +1820,7 @@ public class SlicingEngine {
             String dbHost = properties.getProperty("dbHost");
             if (dbHost == null || dbHost.trim().length() == 0)
                 dbHost = getInput("Please input the database host");
-            String DbName = properties.getProperty("DbName");
+            String DbName = properties.getProperty("dbName");
             if (DbName == null || DbName.trim().length() == 0)
                 DbName = getInput("Please input the source database name");
             String dbPort = properties.getProperty("dbPort");
@@ -1839,6 +1853,7 @@ public class SlicingEngine {
             // Compare database.
             // Only ask for all "compare" values if at least one "compare" value is provided by user.
             if (isCompareRequested(args)) {
+				logger.info("Compare requested.");
             	String compareDbHost = properties.getProperty("compareDbHost");
             	if (compareDbHost == null || compareDbHost.trim().length() == 0)
             		compareDbHost = getInput("Please input the compare databse host");
@@ -1854,7 +1869,15 @@ public class SlicingEngine {
             	String compareDbPort = properties.getProperty("compareDbPort");
             	if (compareDbPort == null || compareDbPort.trim().length() == 0)
             		compareDbPort = getInput("Please input the compare database port");
+            	String delim = ",";
+            	List<String> compareClasses = Arrays.asList(properties.getProperty("compareClasses").split(delim));
+            	compareClasses.forEach(compareClass -> compareClass.trim());
+            	if (compareClasses == null || compareClasses.size() == 0)
+            		compareClasses = Arrays.asList(getInput("Please input the schema classes to compare (seperated by commas)")
+									     .split(delim));
 
+            	engine.setIsCompareRequested(true);
+            	engine.setCompareClasses(compareClasses);
             	engine.setCompareDbName(compareDbName);
             	engine.setCompareDbHost(compareDbHost);
             	engine.setCompareDbUser(compareDbUser);
