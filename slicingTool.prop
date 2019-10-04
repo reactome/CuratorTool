@@ -55,7 +55,8 @@ compareDbPort=3306
 compareDbName=reactome
 
 # Compare schema classes (comma separated).
-# leading/trailing whitespace is deleted with `trim()` before processing.
+# Leading/trailing whitespace is deleted with `trim()` before processing.
+# Currently only RLE's and Pathway's are supported.
 compareClasses=ReactionlikeEvent, Pathway
 
 # Check if the slicing is used for a non-human Reactome (e.g. Fly-Reactome). If it is set to true, a single layer of referred Events and their Event-type references will be in the slice.
