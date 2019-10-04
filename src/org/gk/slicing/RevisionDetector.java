@@ -20,7 +20,8 @@ import org.junit.Test;
 
 public class RevisionDetector {
 	// Database adaptor used for tests.
-	private MySQLAdaptor dba;
+	// TODO Should the tests be moved to an independent class?
+	private MySQLAdaptor testDBA;
 
     private static final Logger logger = Logger.getLogger(RevisionDetector.class);
 
@@ -384,14 +385,11 @@ public class RevisionDetector {
 	/**
 	 * Set up a database to be used as a "before" state for testing.
 	 *
-	 * Using the compare database is just a quick and simple to way to set
-	 * up such a test database.
-	 *
 	 * @throws SQLException
 	 */
 	@Before
 	public void setUp() throws SQLException {
-		dba = new MySQLAdaptor("localhost",
+		testDBA = new MySQLAdaptor("localhost",
 							   "reactome",
 						       "liam",
 						       ")8J7m]!%[<");
@@ -400,54 +398,54 @@ public class RevisionDetector {
 	@Test
 	public void testIsRLERevised() throws Exception {
 		// Example RLE (DIT and MIT combine to form triiodothyronine).
-		GKInstance RLE = getInstanceShallow(dba, 209925L);
-		assertEquals(false, isRLERevised(RLE, dba));
+		GKInstance RLE = getInstanceShallow(testDBA, 209925L);
+		assertEquals(false, isRLERevised(RLE, testDBA));
 
 		// Example added attribute (Positive regulation by 'H+ [endosome lumen]').
-		RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, getInstance(dba, 5210962L));
-		assertEquals(true, isRLERevised(RLE, dba));
+		RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, getInstance(testDBA, 5210962L));
+		assertEquals(true, isRLERevised(RLE, testDBA));
 
 		// Remove attribute.
-		RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, getInstance(dba, 5210962L));
-		assertEquals(false, isRLERevised(RLE, dba));
+		RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, getInstance(testDBA, 5210962L));
+		assertEquals(false, isRLERevised(RLE, testDBA));
 	}
 
 	@Test
 	public void testIsPathwayRevised() throws Exception {
 		// Example pathway #1 (xylitol degradation).
-		GKInstance xylitolDegradation = getInstanceShallow(dba, 5268107L);
-		assertEquals(false, isPathwayRevised(xylitolDegradation, dba));
+		GKInstance xylitolDegradation = getInstanceShallow(testDBA, 5268107L);
+		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
 		GKInstance clone = (GKInstance) xylitolDegradation.clone();
 		// Example addition of a child pathway (tRNA processing).
-		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getInstance(dba, 72306L));
-		assertEquals(true, isPathwayRevised(xylitolDegradation, dba));
+		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getInstance(testDBA, 72306L));
+		assertEquals(true, isPathwayRevised(xylitolDegradation, testDBA));
 		// Reset the addition.
 		xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent,
-				getInstance(dba, 72306L));
-		assertEquals(false, isPathwayRevised(xylitolDegradation, dba));
+				getInstance(testDBA, 72306L));
+		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
 
 		// Example pathway #2 (neuronal system).
-		GKInstance neuronalSystem = getInstanceShallow(dba, 112316L);
-		assertEquals(false, isPathwayRevised(neuronalSystem, dba));
+		GKInstance neuronalSystem = getInstanceShallow(testDBA, 112316L);
+		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
 
 		// Remove an existing child pathway.
-		GKInstance removedChildPathway = getInstance(dba, 1296071L);
+		GKInstance removedChildPathway = getInstance(testDBA, 1296071L);
 		neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, removedChildPathway);
-		assertEquals(true, isPathwayRevised(neuronalSystem, dba));
+		assertEquals(true, isPathwayRevised(neuronalSystem, testDBA));
 		// Reset the removal.
 		neuronalSystem.addAttributeValue(ReactomeJavaConstants.hasEvent, removedChildPathway);
-		assertEquals(false, isPathwayRevised(neuronalSystem, dba));
+		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
 	}
 
 	@Test
 	public void testSliceAttributes() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance left = getInstance(dba, 8875579L);
+		GKInstance left = getInstance(testDBA, 8875579L);
 
 		// ABI2 [cytosol]
-		GKInstance right = getInstance(dba, 1671649L);
+		GKInstance right = getInstance(testDBA, 1671649L);
 
 		assertEquals(false, attributesRevised(left, left, ReactomeJavaConstants.stableIdentifier));
 		assertEquals(false, attributesRevised(right, right, ReactomeJavaConstants.stableIdentifier));
@@ -457,10 +455,10 @@ public class RevisionDetector {
 	@Test
 	public void testSliceAllAttributesInList() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance left = getInstance(dba, 8875579L);
+		GKInstance left = getInstance(testDBA, 8875579L);
 
 		// ABI2 [cytosol]
-		GKInstance right = getInstance(dba, 1671649L);
+		GKInstance right = getInstance(testDBA, 1671649L);
 
 		assertEquals(false, revisionInAttributeList(left, left, ReactomeJavaConstants.hasCandidate));
 		assertEquals(false, revisionInAttributeList(right, right, ReactomeJavaConstants.hasCandidate));
@@ -470,7 +468,7 @@ public class RevisionDetector {
 	@Test
 	public void testAdditionOrDeletionInLists() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance left = getInstanceShallow(dba, 8875579L);
+		GKInstance left = getInstanceShallow(testDBA, 8875579L);
 		GKInstance right = (GKInstance) left.clone();
 
 		assertEquals(false, additionOrDeletionInList(left, left, ReactomeJavaConstants.name));

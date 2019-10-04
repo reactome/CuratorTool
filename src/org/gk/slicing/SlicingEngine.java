@@ -212,11 +212,12 @@ public class SlicingEngine {
         this.compareDbPort = dbPort;
     }
 
-    public void initCompareDBAdapter() throws SQLException {
+    public void initCompareDBA() throws SQLException {
     	this.compareDBA = new MySQLAdaptor(compareDbHost,
 										   compareDbName,
 										   compareDbUser,
-										   compareDbPwd);
+										   compareDbPwd,
+										   compareDbPort);
     }
 
     public void setCompareClasses(List<String> compareClasses) {
@@ -371,7 +372,8 @@ public class SlicingEngine {
     }
 
     private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
-    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
+    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema()
+														   .getClassByName(ReactomeJavaConstants.EntitySet);
     	if (!EntityCls.isValidAttribute(attributeName))
     		return;
     	for (Long dbId : sliceMap.keySet()) {
@@ -381,13 +383,13 @@ public class SlicingEngine {
     		populateEntitySet(inst, attributeName);
     	}
     }
-    
+
     @Test
     public void testPopulateEntitySet() throws Exception {
-    	MySQLAdaptor dba = new MySQLAdaptor("localhost",
-											"reactome",
-											"liam",
-											")8J7m]!%[<");
+    	MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
+											    "reactome",
+											    "liam",
+											    ")8J7m]!%[<");
     	
     	// ACEI pro-drugs [extracellular region], has one compartment (extracellular region).
         Long dbId = 9619112L;
@@ -395,7 +397,7 @@ public class SlicingEngine {
         attrNameAndSize.put(ReactomeJavaConstants.compartment, 1);
         
 		for (String attrName : attrNameAndSize.keySet()) {
-        	GKInstance entitySet = dba.fetchInstance(dbId);
+        	GKInstance entitySet = testDBA.fetchInstance(dbId);
         	List<GKInstance> attrValue = entitySet.getAttributeValuesList(attrName);
         	System.out.println(attrName + " before handling: " + attrValue);
 
@@ -1488,7 +1490,7 @@ public class SlicingEngine {
             	engine.setCompareDbUser(compareDbUser);
             	engine.setCompareDbPwd(compareDbPwd);
             	engine.setCompareDbPort(new Integer(compareDbPort));
-            	engine.initCompareDBAdapter();
+            	engine.initCompareDBA();
             }
 			
             String fileName = properties.getProperty("releaseTopicsFileName");
