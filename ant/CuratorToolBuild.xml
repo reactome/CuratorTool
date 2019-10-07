@@ -19,31 +19,83 @@
      wugm                                                                
      ====================================================================== -->
 <project name="CuratorTool" default="createInstaller" basedir=".." xmlns:fx="javafx:com.sun.javafx.tools.ant">
-    <description>
-    	Copy all files needed to build the Reactome author tool by InstallAnywhere.
-    </description>
-	
+	<description>
+		Copy all files needed to build the Reactome author tool by InstallAnywhere.
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../../Documents/ReactomeBuild/CuratorToolBuildFiles" />
 	<property name="resourcesDir" value="${basedir}/resources" />
 	<property name="imagesDir" value="${basedir}/images" />
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
+	<property name="bundleDir" value="macApp" />
+
 	<!-- For creating updating jar files and update.html -->
 	<property name="updateTargetDir" value="${basedir}/../../Documents/ReactomeUpdate" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="libDir" value="${basedir}/lib" />
 	<property name="clsDir" value="${basedir}/classes" />
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
-	</target>
-	
+	</target> 
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
+	<!-- Class path for all library files -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${clsDir}"/>
+	</target>
+
+	<!-- compile source code from scratch -->
+	<target name="compile" depends="clean">
+		<mkdir dir="${clsDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${clsDir}">
+			<classpath refid="class.path" />
+			<exclude name="org/gk/IDGeneration/**" />
+			<exclude name="org/gk/scripts/**" />
+		</javac>
+	</target>
+
+	<target name="createReactomeCuratorToolJar" depends="compile">
+		<jar destfile="${targetDir}/ReactomeCuratorTool.jar">
+			<fileset dir="${clsDir}">
+				<include name="org/**" />
+				<include name="launcher/**" />
+				<exclude name="org/gk/IDGeneration/**" />
+				<exclude name="org/gk/scripts/**" />
+			</fileset>
+			<zipgroupfileset dir="${libDir}">
+				<include name="*.jar"/>
+				<!-- the version we will use is 5.1.28 to support ssl connection -->
+				<exclude name="mysql/mysql-connector-java-5.0.8-bin.jar" />
+				<!-- Use version 5.1.47 for better performance for slicing -->
+				<exclude name="mysql/mysql-connector-java-5.1.28-bin.jar" />
+				<include name="batik/**.jar" />
+				<include name="jdom/**.jar" />
+				<include name="junit/**.jar" />
+				<include name="ols-client/**.jar" />
+				<include name="jsonpath/**.jar" />
+				<include name="uniprotjapi/commons*.jar" />
+			</zipgroupfileset>
+			<manifest>
+				<attribute name="Main-Class" value="launcher.Launcher" />
+				<attribute name="Class-Path" value="ReactomeCuratorTool.jar" />
+			</manifest>
+		</jar>
+	</target>
+
 	<!-- copy all files to the target directory -->
 	<target name="copy" depends="mkdir, createReactomeCuratorToolJar">
 		<copy todir="${targetDir}/resources">
@@ -81,26 +133,13 @@
 			<!-- /fileset -->
 		<!-- /copy -->
 	</target>
-	<!-- the whole process -->
-	<target name="build" depends="copy, createUpdateFile">
-		<copy file="${updateTargetDir}/update.xml" todir="${targetDir}/resources" />
-		<copy file="${updateTargetDir}/update.xml" todir="${resourcesDir}" />
-	</target>
-	<!-- A Test Run -->
-	<target name="runOnly">
-		<java dir="${targetDir}" classpath="${targetDir}" classname="launcher.Launcher" fork="true">
-			<classpath>
-			      <fileset dir="lib">
-			        <include name="**/*.jar"/>
-			      </fileset>
-			</classpath>
-		</java>
-	</target>
+
 	<!-- Create Jar files for updating -->
 	<target name="cleanJarDir">
 		<delete dir="${updateTargetDir}" />
 		<mkdir dir="${updateTargetDir}" />
 	</target>
+
 	<!-- copy all files to the target directory -->
 	<target name="updateJar" depends="cleanJarDir">
 		<!-- Since this update never works, this is used as a mark right now -->
@@ -110,66 +149,62 @@
 			</fileset>
 		</jar>
 	</target>
-	<taskdef name="updateFile" 
-		     classname="org.reactome.ant.UpdateFileTask"
-		     classpath="${basedir}/classes">
-	</taskdef>
+
 	<target name="createUpdateFile" depends="updateJar">
+		<taskdef name="updateFile" 
+			     classname="org.reactome.ant.UpdateFileTask"
+			     classpath="${basedir}/classes">
+		</taskdef>
+
 		<updateFile dir="${updateTargetDir}" uri="https://www.reactome.org/download/tools/curatorTool/update">
 			<!-- Just a mark. Curators have to manually update the installed curator tool. -->
 			<resource name="resources.jar" deleteDir="false" />
 		</updateFile>
 	</target>
-	
-	<target name="createReactomeCuratorToolJar">
-		<jar destfile="${targetDir}/ReactomeCuratorTool.jar">
-			<fileset dir="${clsDir}">
-				<include name="org/**" />
-				<include name="launcher/**" />
-				<exclude name="org/gk/IDGeneration/**" />
-				<exclude name="org/gk/scripts/**" />
-			</fileset>
-			<zipgroupfileset dir="${libDir}">
-				<include name="*.jar"/>
-				<!-- the version we will use is 5.1.28 to support ssl connection -->
-				<exclude name="mysql-connector-java-5.0.8-bin.jar" />
-				<!-- Use version 5.1.47 for better performance for slicing -->
-				<exclude name="mysql-connector-java-5.1.28-bin.jar" />
-				<include name="batik/**.jar" />
-				<include name="jdom/**.jar" />
-				<include name="junit/**.jar" />
-				<include name="ols-client/**.jar" />
-				<include name="jsonpath/**.jar" />
-				<include name="uniprotjapi/commons*.jar" />
-			</zipgroupfileset>
-			<manifest>
-				<attribute name="Main-Class" value="launcher.Launcher" />
-				<attribute name="Class-Path" value="ReactomeCuratorTool.jar" />
-			</manifest>
-		</jar>
+
+	<!-- the whole process -->
+	<target name="build" depends="copy, createUpdateFile">
+		<copy file="${updateTargetDir}/update.xml" todir="${targetDir}/resources" />
+		<copy file="${updateTargetDir}/update.xml" todir="${resourcesDir}" />
 	</target>
-	
+
+	<!-- A Test Run -->
+	<target name="runOnly" depends="copy">
+		<copy todir="${targetDir}/classes">
+			<fileset dir="${clsDir}" />
+		</copy>
+		<java dir="${targetDir}" classpath="${targetDir}/classes" classname="launcher.Launcher" fork="true">
+			<classpath>
+				<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</java>
+	</target>
+
 	<!-- New way to create Mac app based on Oracle appbundler. Copied from  http://stackoverflow.com/questions/14806709/application-is-using-java-6-from-apple-instead-of-java-7-from-oracle-on-mac-os-x--> 
 	<!-- October 4, 2016 -->
 	<property environment="env" />
 	<taskdef 
-	    name="bundleapp" 
-	    classname="com.oracle.appbundler.AppBundlerTask" 
-	    classpath="lib/appbundler-1.0.jar" />
+		name="bundleapp" 
+		classname="com.oracle.appbundler.AppBundlerTask" 
+		classpath="${libDir}/appbundler-1.0.jar" />
 
 	<target name="bundle">
-	    <bundleapp 
-	        outputdirectory="macApp" 
-	        name="ReactomeCuratorTool" 
-	        displayname="Reactome Curator Tool" 
-	        identifier="org.reactome.curatorTool" 
-	        shortversion="3.1"
-	        applicationCategory="public.app-category.curator-tools"
-	        mainclassname="launcher.Launcher">
-	        <classpath file="macApp/ReactomeCuratorTool.jar" />
-	    </bundleapp>
+		<mkdir dir="${bundleDir}"/>
+		<bundleapp 
+			outputdirectory="${bundleDir}" 
+			name="ReactomeCuratorTool" 
+			displayname="Reactome Curator Tool" 
+			identifier="org.reactome.curatorTool" 
+			shortversion="3.1"
+			applicationCategory="public.app-category.curator-tools"
+			mainclassname="launcher.Launcher">
+
+			<classpath file="${bundleDir}/ReactomeCuratorTool.jar" />
+		</bundleapp>
 	</target>
-	
+
 	<!-- The following tasks are for MacOS X related work -->
 	<!-- Generate a Jar files for Reactome Classes -->
 	<property name="jarBundlerDir" value="/Developer/Applications/Java Tools/Jar Bundler.app/Contents/MacOS" />
@@ -214,7 +249,7 @@
 				<include name="images/**" />
 				<include name="lib/**" />
 			</fileset>
-	    </copy>
+		</copy>
 		<!-- Need to change the permisions to make these two files executive. The original
 		     permsion is changed after copy.-->
 		<chmod file="${targetDir}/ReactomeCuratorTool.sh" perm="+x" />
@@ -268,13 +303,13 @@
 			3). Move these two install.zip files to reactomedev.oicr.on.ca.
 		-->
 	</target>
-	
+
 	<!-- These targets are used for deploy author tool as a Java Web Start application -->
 	<property name="jwsTargetDir" value="../ReactomeTools/WebContent/CuratorTool/" />
 	<property name="jwsTemp" value="jwsTemp" />
 	<target name="deployAsJWS">
-		<copy file="lib/mysql-connector-java-5.0.8-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
-		<copy file="lib/osxAdapter.jar" tofile="${jwsTargetDir}/osxAdapter.jar" />
+		<copy file="${libDir}/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
+		<copy file="${libDir}/osxAdapter.jar" tofile="${jwsTargetDir}/osxAdapter.jar" />
 		<mkdir dir="${jwsTemp}" />
 		<copy todir="${jwsTemp}/org">
 			<fileset dir="${orgDir}">
@@ -303,7 +338,7 @@
 				<include name="curator.xml" />
 				<include name="AdjacentCompartments.txt" />
 				<include name="AllowedEntityEventCompartments.txt" />
-		    </fileset>
+			</fileset>
 		</copy>
 		<copy todir="${jwsTemp}/docs">
 			<fileset dir="${docsDir}">
@@ -325,10 +360,10 @@
 			<fileset dir="${imagesDir}">
 				<include name="R-big.gif" />
 			</fileset>
-			<fileset dir="lib/batik">
+			<fileset dir="${libDir}/batik">
 				<include name="*.jar" />
 			</fileset>
-			<fileset dir="lib/jdom">
+			<fileset dir="${libDir}/jdom">
 				<include name="*.jar" />
 			</fileset>
 		</copy>
