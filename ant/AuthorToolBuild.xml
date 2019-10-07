@@ -8,10 +8,10 @@
      wugm                                                                
      ====================================================================== -->
 <project name="AuthorTool" default="copy" basedir="..">
-    <description>
-    	Copy all files needed to build the Reactome author tool by InstallAnywhere.
-    </description>
-	
+	<description>
+		Copy all files needed to build the Reactome author tool by InstallAnywhere.
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../../ReactomeBuild/AuthorToolBuildFiles" />
 	<property name="srcDir" value="${basedir}/src" />
@@ -22,54 +22,36 @@
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
 	<property name="libDir" value="${basedir}/lib" />
-	
-	
+
+	<!-- Class path for all library files -->
 	<path id="class.path">
 		<fileset dir="${libDir}">
 			<include name="**/*.jar" />
 		</fileset>
 	</path>
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
 	</target>
-	
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
 	<target name="clean">
 		<mkdir dir="${classDir}"/>
 	</target>
-	
+
+	<!-- compile source code from scratch -->
 	<target name="compile" depends="clean">
 		<mkdir dir="${classDir}" />
 		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
 			<classpath refid="class.path" />
-			<include name="org/gk/database/*.java" />
-			<include name="org/gk/elv/*.java" />
-			<include name="org/gk/examples/*.java" />
-			<include name="org/gk/gkCurator/*.java" />
-			<include name="org/gk/gkCurator/authorTool/*.java" />
-			<include name="org/gk/gkEditor/*.java" />
-			<include name="org/gk/graphEditor/*.java" />
-			<include name="org/gk/model/*.java" />
-			<include name="org/gk/osxAdapter/*.java" />
-			<include name="org/gk/pathView/*.java" />
-			<include name="org/gk/pathwaylayout/*.java" />
-			<include name="org/gk/persistence/*.java" />
-			<include name="org/gk/property/*.java" />
-			<include name="org/gk/qualityCheck/*.java" />
-			<include name="org/gk/render/*.java" />
-			<include name="org/gk/schema/*.java" />
-			<!-- Don't place this package into the base (May, 2019) -->
-			<!-- include name="org/gk/slicing/*.java" /-->
-			<include name="org/gk/util/*.java" />
 		</javac>
 	</target>
-	
+
 	<!-- copy all files to the target directory -->
 	<target name="copy" depends="compile, mkdir">
 		<copy todir="${targetDir}/org">
@@ -112,7 +94,7 @@
 			</fileset>
 		</copy>
 	</target>
-	<target name="run">
+	<target name="run" depends="copy">
 		<java dir="${targetDir}" classname="org.gk.gkEditor.GKEditorFrame" fork="true">
 			<classpath>
 				<pathelement location="${targetDir}"/>
@@ -152,7 +134,7 @@
 				<include name="resources/**" />
 				<include name="lib/skin/**.zip" />
 			</fileset>
-	    </copy>
+		</copy>
 		<!-- Have to do a manual archive -->
 		<!-- exec executable="zip">
 			<arg value="${targetDir}/${AppName}.zip" />
@@ -163,11 +145,12 @@
 	<!-- These targets are used for deploy author tool as a Java Web Start application -->
 	<property name="authorToolTargetDir" value="../ReactomeTools/WebContent/AuthorTool/" />
 	<property name="appletTemp" value="appletTemp" />
-	<target name="deployAsJWS">
-		<copy file="src/AuthorToolHtmlWrapper.html" todir="${authorToolTargetDir}" />
-		<copy file="lib/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${authorToolTargetDir}/mysql.jar" />
-		<copy file="lib/osxAdapter.jar" tofile="${authorToolTargetDir}/osxAdapter.jar" />
-		<copy file="lib/jdom/jdom-1.1.3.jar" tofile="${authorToolTargetDir}/jdom-1.1.3.jar" />
+	<target name="deployAsJWS" depends="compile">
+		<copy file="${srcDir}/AuthorToolHtmlWrapper.html" todir="${authorToolTargetDir}" />
+		<copy file="${libDir}/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${authorToolTargetDir}/mysql.jar" />
+		<copy file="${libDir}/osxAdapter.jar" tofile="${authorToolTargetDir}/osxAdapter.jar" />
+		<copy file="${libDir}/jdom/jdom-1.1.3.jar" tofile="${authorToolTargetDir}/jdom-1.1.3.jar" />
+		<delete dir="${appletTemp}" />
 		<mkdir dir="${appletTemp}" />
 		<copy todir="${appletTemp}/org">
 			<fileset dir="${orgDir}">
@@ -175,7 +158,7 @@
 				<exclude name="gk/geneX/**" />
 				<exclude name="gk/pathView/**" />
 				<exclude name="gk/gkCurator/**" />
-		        <exclude name="gk/examples/**" />
+				<exclude name="gk/examples/**" />
 				<exclude name="gk/IDGeneration/**" />
 				<exclude name="gk/pathwayLayout/**" />
 				<exclude name="gk/qualityCheck/**" />
