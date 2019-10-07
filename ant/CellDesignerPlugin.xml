@@ -8,38 +8,66 @@
      wgm                                                                
      ====================================================================== -->
 <project name="project" default="run" basedir="..">
-    <description>
-            Copy plug-ins and run.
-    </description>
-	
+	<description>
+		Copy plug-ins and run.
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="cellDesginerDir" value="/Users/wgm/ProgramFiles/CellDesigner4.0beta" />
 	<property name="plugInDir" value="${cellDesginerDir}/plugin" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="classDir" value="${basedir}/classes" />
-	
-    <!-- ================================= 
-          target: run              
-         ================================= -->
-    <target name="run" depends="jar" description="--> description">
+	<property name="libDir" value="${basedir}/lib" />
+
+
+	<!-- ================================= 
+	      target: run              
+	     ================================= -->
+	<target name="run" depends="jar" description="--> description">
 		<exec dir="${cellDesginerDir}" executable="open">
 			<arg value="CellDesigner4.0beta.app" />
 		</exec>
-    </target>
+	</target>
 
-    <!-- - - - - - - - - - - - - - - - - - 
-          target: depends                      
-         - - - - - - - - - - - - - - - - - -->
-    <target name="jar">
-    	<jar destfile="${plugInDir}/ReactomePlugIn.jar">
+	<!-- - - - - - - - - - - - - - - - - - 
+	      target: depends                      
+	     - - - - - - - - - - - - - - - - - -->
+	<target name="jar" depends="compile">
+		<jar destfile="${plugInDir}/ReactomePlugIn.jar">
 			<fileset dir="${classDir}">
 				<include name="org/reactome/celldesigner/**.class" />
 				<include name="org/gk/model/**.class" />
-				<include name="org/gk/schema/**.class" />
 				<include name="org/gk/persistence/**.class" />
-				<include name="org/gk/util/**.class" />
 				<include name="org/gk/render/**.class" />
+				<include name="org/gk/schema/**.class" />
+				<include name="org/gk/util/**.class" />
 			</fileset>
 		</jar>
-    </target>
+	</target>
 
+	<!-- Class path for all library files -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${classDir}"/>
+	</target>
+
+	<!-- compile source code from scratch -->
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
+			<classpath refid="class.path" />
+			<include name="org/reactome/ant/*.java" />
+			<include name="org/reactome/celldesigner/*.java" />
+			<include name="org/gk/model/*.java" />
+			<include name="org/gk/persistence/*.java" />
+			<include name="org/gk/render/*.java" />
+			<include name="org/gk/schema/*.java" />
+			<include name="org/gk/util/*.java" />
+		</javac>
+	</target>
 </project>
