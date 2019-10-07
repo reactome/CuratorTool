@@ -8,18 +8,50 @@
      guanming                                                                
      ====================================================================== -->
 <project name="project" default="jar" basedir="..">
-    <description>
-            Copy all class files and source files into one jar file.
-    </description>
+	<description>
+		Copy all class files and source files into one jar file.
+	</description>
 	<property name="targetDir" value="reactomeAPI" />
 	<property name="tmpDir" value="${targetDir}/tmp" />
-	<property name="srcDir" value="src" />
-	<property name="clsDir" value="classes" />
-	
-	<target name="copy">
-		<delete dir="${targetDir}"/>
-		<mkdir dir="${targetDir}"/>
+	<property name="srcDir" value="${basedir}/src" />
+	<property name="clsDir" value="${basedir}/classes" />
+	<property name="libDir" value="${basedir}/lib" />
+
+	<!-- Empty the direcotry. If nothing there, it should do nothing -->
+	<target name="delete">
+		<delete dir="${targetDir}" />
+	</target>
+
+	<!-- make a directory first. If it is there, it should do nothing -->
+	<target name="mkdir" depends="delete">
+		<mkdir dir="${targetDir}" />
 		<mkdir dir="${tmpDir}"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${classDir}" />
+	</target>
+
+	<!-- path for including all jar files in library directory -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="compile" depends="clean">
+		<mkdir dir="${clsDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${clsDir}">
+			<classpath refid="class.path" />
+
+			<include name="org/gk/model/**" />
+			<include name="org/gk/schema/**" />
+			<include name="org/gk/persistence/**" />
+			<include name="org/gk/util/**" />
+		</javac>
+	</target>
+
+	<target name="copy" depends="mkdir, compile">
 		<copy todir="${tmpDir}">
 			<fileset dir="${clsDir}">
 				<include name="org/gk/model/**.class" />
@@ -35,7 +67,7 @@
 			</fileset>
 		</copy>
 	</target>
-	
+
 	<target name="jar" depends="copy">
 		<jar destfile="${targetDir}/reactomeAPI.jar">
 			<fileset dir="${tmpDir}">
@@ -43,6 +75,4 @@
 		</jar>
 		<delete dir="${tmpDir}" />
 	</target>
-
 </project>
-
