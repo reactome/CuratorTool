@@ -13,9 +13,9 @@
      wgm                                                                
      ====================================================================== -->
 <project name="project" default="jar" basedir="..">
-    <description>
-            create jar files for the applet.
-    </description>
+	<description>
+		create jar files for the applet.
+	</description>
 
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../../GOApplet" />
@@ -25,17 +25,33 @@
 	<property name="srcDir" value="${basedir}/src" />
 	<property name="goSrcDir" value="${srcDir}/org/reactome/go" />
 	<property name="resourcesDir" value="{basedir}/resources" />
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
 	</target>
-	
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
+	<target name="clean">
+		<delete dir="${classDir}" />
+	</target>
+
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
+			<classpath refid="jar.dependencies" />
+			<include name="org/gk/util/**" />
+			<include name="org/gk/schema/**" />
+			<include name="org/gk/persistence/**" />
+			<include name="org/gk/model/**" />
+			<include name="local/GOMapGenerator**" />
+		</javac>
+	</target>
+
 	<!-- Generate a runnable jar file for creating a map between Reactome and GO -->
 	<target name="ReactomeGOMapper" depends="mkdir">
 		<jar destfile="${targetDir}/Reactome2GoMapper.jar">
@@ -44,7 +60,7 @@
 				<include name="org/gk/schema/**" />
 				<include name="org/gk/persistence/**" />
 				<include name="org/gk/model/**" />
-			    <include name="local/GOMapGenerator*.*" />
+				<include name="local/GOMapGenerator*.*" />
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="local.GOMapGenerator" />
@@ -53,7 +69,7 @@
 		</jar>
 		<copy file="${libDir}/mysql-connector-java-3.0.11-stable-bin.jar" tofile="${targetDir}/mysql.jar" />
 	</target>
-	
+
 	<!-- copy all files to the target directory -->
 	<target name="jar" depends="mkdir">
 		<jar destfile="${targetDir}/eventGo.jar">
@@ -81,10 +97,10 @@
 			<fileset dir="${libDir}">
 				<include name="mysql-connector-java-3.0.11-stable-bin.jar" />
 			</fileset>
-	    </copy>
+		</copy>
 		<copy tofile="${targetDir}/skinlf.jar">
 			<fileset dir="${libDir}">
-			    <include name="skin/skinlf.jar" />
+				<include name="skin/skinlf.jar" />
 			</fileset>
 		</copy>
 		<copy todir="${targetDir}">
@@ -105,4 +121,3 @@
 		</jar>
 	</target>
 </project>
-
