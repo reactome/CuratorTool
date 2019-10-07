@@ -7,13 +7,15 @@
                    
      wugm                                                                
      ====================================================================== -->
-<project name="UpdatableCuratorTool" default="runOnly" basedir="..">
-    <description>
-    	Copy all files needed to build the Reactome author tool by InstallAnywhere.
-    </description>
-	
+<project name="UpdatableCuratorTool" default="run" basedir="..">
+	<description>
+		Copy all files needed to build the Reactome author tool by InstallAnywhere.
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../temp/curatorTool" />
+	<property name="libDir" value="${basedir}/lib" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="orgDir" value="${classDir}/org" />
 	<property name="launchDir" value="${classDir}/launcher" />
@@ -21,28 +23,45 @@
 	<property name="imagesDir" value="${basedir}/images" />
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
-	<property name="libDir" value="${basedir}/lib" />
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
 	</target>
-	
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
+	<!-- path for including all jar files in library directory -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${classDir}"/>
+	</target>
+
+	<!-- compile source code in specified src directory -->
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}" >
+			<classpath refid="class.path" />
+		</javac>
+	</target>
+
 	<!-- copy all files to the target directory -->
-	<target name="copy" depends="mkdir">
+	<target name="copy" depends="mkdir, compile">
 		<copy todir="${targetDir}/org">
 			<fileset dir="${orgDir}">
 				<exclude name="reactome/**" />
 			</fileset>
 		</copy>
 		<copy todir="${targetDir}/launcher">
-			<fileset dir="${launchDir}">
-			</fileset>
+			<fileset dir="${launchDir}" />
 		</copy>
 		<copy todir="${targetDir}/resources">
 			<fileset dir="${resourcesDir}" >
@@ -54,8 +73,7 @@
 			<fileset dir="${imagesDir}" />
 		</copy>
 		<copy todir="${targetDir}/docs">
-			<fileset dir="${docsDir}">
-			</fileset>
+			<fileset dir="${docsDir}" />
 		</copy>
 		<copy todir="${targetDir}/lib">
 			<fileset dir="${libDir}">
@@ -63,16 +81,13 @@
 			</fileset>
 		</copy>
 	</target>
-	
-	<target name="run" depends="copy, runOnly">
-	</target>
-	
-	<target name="runOnly">
+
+	<target name="run" depends="copy">
 		<java dir="${targetDir}" classpath="${targetDir}" classname="launcher.Launcher" fork="true">
 			<classpath>
-			      <fileset dir="lib">
-			        <include name="**/*.jar"/>
-			      </fileset>
+				<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
 			</classpath>
 		</java>
 	</target>
