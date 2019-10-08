@@ -84,6 +84,7 @@ public class RevisionDetector {
 			// If a "revised flag" condition is met, set "revised flag" on the instance.
 			if (revised) {
 				// TODO determine API database UpdateTrack schema class.
+				logger.info("Revision detected in: " + inst);
 			}
 		}
 	}
@@ -288,7 +289,7 @@ public class RevisionDetector {
 		// Misses the case where the same number of unique additions and deletions have occurred.
 		// That case is detected by the iterator below.
 		if (newInstanceList.size() > oldInstanceList.size()
-				|| newInstanceList.size() < oldInstanceList.size())
+		 || newInstanceList.size() < oldInstanceList.size())
 			return true;
 
 		// O(n^2) time check to detect additions or deletions.

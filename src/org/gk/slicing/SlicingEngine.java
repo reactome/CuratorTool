@@ -35,10 +35,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -54,11 +52,8 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
-import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
-import static org.junit.Assert.assertEquals;
-import org.junit.Before;
 import org.junit.Test;
 
 
@@ -368,6 +363,7 @@ public class SlicingEngine {
         }
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
+        memberList.forEach(member -> logger.info(String.format(" -> %s", member)));
         instance.setAttributeValue(attributeName, memberList);
     }
 
@@ -380,6 +376,8 @@ public class SlicingEngine {
     		GKInstance inst = sliceMap.get(dbId);
     		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
     			continue;
+
+			logger.info(String.format("Populating %s in %s", attributeName, inst));
     		populateEntitySet(inst, attributeName);
     	}
     }
