@@ -11,9 +11,11 @@ import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.SchemaAttribute;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -239,7 +241,7 @@ public class RevisionDetector {
 	 */
 	private boolean attributesRevised(GKInstance oldInstance, GKInstance newInstance, String attrName)
 			throws Exception {
-		// Null checker.
+		// Instance null checker.
 		if (oldInstance == null || newInstance == null) {
 			// if both instances are null, then there are no attributes to revise.
 			if (oldInstance == newInstance)
@@ -248,7 +250,15 @@ public class RevisionDetector {
 			return true;
 		}
 
-		// If the object will not be able to cast to GKInstance, then simply compare the values.
+		// Attribute null checker.
+		if (oldInstance.getAttributeValue(attrName) == null || newInstance.getAttributeValue(attrName) == null) {
+			if (oldInstance.getAttributeValue(attrName) == newInstance.getAttributeValue(attrName))
+				return false;
+			return true;
+		}
+
+		// If the object will not be able to cast to GKInstance, then simply compare the
+		// values.
 		if (oldInstance.getAttributeValue(attrName) instanceof String)
 			return !oldInstance.getAttributeValue(attrName).equals(newInstance.getAttributeValue(attrName));
 
