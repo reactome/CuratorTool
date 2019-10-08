@@ -56,9 +56,9 @@ public class RevisionDetector {
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
 	public void checkForRevisions(String schemaClassName,
-								   MySQLAdaptor sourceDBA,
-								   MySQLAdaptor compareDBA,
-								   Map<Long,GKInstance> sliceMap) throws InvalidAttributeException, Exception {
+								  MySQLAdaptor sourceDBA,
+								  MySQLAdaptor compareDBA,
+								  Map<Long,GKInstance> sliceMap) throws InvalidAttributeException, Exception {
 		// Verify that `schemaClass` is a valid schema class.
 		if (!sourceDBA.getSchema().isValidClass(schemaClassName)
 		 || !compareDBA.getSchema().isValidClass(schemaClassName))
