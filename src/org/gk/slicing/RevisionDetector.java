@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -23,49 +22,49 @@ public class RevisionDetector {
 	// TODO Should the tests be moved to an independent class?
 	private MySQLAdaptor testDBA;
 
-    private static final Logger logger = Logger.getLogger(RevisionDetector.class);
+	private static final Logger logger = Logger.getLogger(RevisionDetector.class);
 
-    /**
-     * <p><strong>An RLE gets a revised flag if:</strong></p>
-     * <ol>
-     *   <li>An immediate child RLE revised</li>
-     *   <ul>
-     *     <li>A Catalyst added/removed/changed</li>
-     *     <li>A regulator added/removed/changed</li>
-     *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation text</li>
-     *   </ul>
-     * </ol>
-     * 
-     * <p><strong>A pathway gets a revised flag if:</strong></p>
-     * <ol>
-     *   <li>An immediate child RLE revised 
-     *   <ul>
-     *     <li>A Catalyst added/removed/changed</li>
-     *     <li>A regulator added/removed/changed</li>
-     *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation text</li>
-     *   </ul>
-     *   <li>An immediate child RLE is added/removed</li>
-     *   <li>An immediate child Pathway added/removed</li>
-     *   <li>An immediate child Pathway is revised as in B</li>
-     * </ol>
-     * 
-     * @param AttributeName
-     * @throws Exception 
-     * @throws InvalidAttributeException 
-     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
-     */
-    public void checkForRevisions(String schemaClassName,
+	/**
+	 * <p><strong>An RLE gets a revised flag if:</strong></p>
+	 * <ol>
+	 *	 <li>An immediate child RLE revised</li>
+	 *	 <ul>
+	 *	   <li>A Catalyst added/removed/changed</li>
+	 *	   <li>A regulator added/removed/changed</li>
+	 *	   <li>A change is made in inputs/outputs</li>
+	 *	   <li>A significant change in summation text</li>
+	 *	 </ul>
+	 * </ol>
+	 *
+	 * <p><strong>A pathway gets a revised flag if:</strong></p>
+	 * <ol>
+	 *	 <li>An immediate child RLE revised
+	 *	 <ul>
+	 *	   <li>A Catalyst added/removed/changed</li>
+	 *	   <li>A regulator added/removed/changed</li>
+	 *	   <li>A change is made in inputs/outputs</li>
+	 *	   <li>A significant change in summation text</li>
+	 *	 </ul>
+	 *	 <li>An immediate child RLE is added/removed</li>
+	 *	 <li>An immediate child Pathway added/removed</li>
+	 *	 <li>An immediate child Pathway is revised as in B</li>
+	 * </ol>
+	 *
+	 * @param AttributeName
+	 * @throws Exception
+	 * @throws InvalidAttributeException
+	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
+	 */
+	public void checkForRevisions(String schemaClassName,
 								   MySQLAdaptor sourceDBA,
 								   MySQLAdaptor compareDBA,
 								   Map<Long,GKInstance> sliceMap) throws InvalidAttributeException, Exception {
-    	// Verify that `schemaClass` is a valid schema class.
-    	if (!sourceDBA.getSchema().isValidClass(schemaClassName)
+		// Verify that `schemaClass` is a valid schema class.
+		if (!sourceDBA.getSchema().isValidClass(schemaClassName)
 		 || !compareDBA.getSchema().isValidClass(schemaClassName))
-    		return;
+			return;
 
-        logger.info("checkForRevisions(" + schemaClassName + ")");
+		logger.info("checkForRevisions(" + schemaClassName + ")");
 
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
@@ -73,7 +72,7 @@ public class RevisionDetector {
 			// Sanity Check.
 			if (!inst.getSchemClass().isa(schemaClassName))
 				continue;
-			
+
 			boolean revised = false;
 			if (schemaClassName.equals(ReactomeJavaConstants.Pathway))
 				revised = isPathwayRevised(inst, compareDBA);
@@ -85,7 +84,7 @@ public class RevisionDetector {
 				// TODO determine API database UpdateTrack schema class.
 			}
 		}
-    }
+	}
 
 	/**
 	 * Check if Pathway is revised.
@@ -98,7 +97,8 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private boolean isPathwayRevised(GKInstance pathway, MySQLAdaptor dba) throws InvalidAttributeException, Exception {
+	private boolean isPathwayRevised(GKInstance pathway, MySQLAdaptor targetDBA)
+			throws InvalidAttributeException, Exception {
 		if (pathway == null)
 			return false;
 
@@ -109,21 +109,21 @@ public class RevisionDetector {
 			for (GKInstance event : events) {
 				// Pathway
 				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-					isPathwayRevised(event, dba);
+					isPathwayRevised(event, targetDBA);
 
 				// RLE
 				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
-						&& isRLERevised(event, dba))
+					 && isRLERevised(event, targetDBA))
 					return true;
 			}
 		}
 
 		// Check if an immediate child Pathway is added or removed
-		if (isChildPathwayAddedOrRemoved(pathway, dba))
+		if (isChildPathwayAddedOrRemoved(pathway, targetDBA))
 			return true;
 
 		// Finally check for changes in summation text.
-		if (isSummationRevised(pathway, dba))
+		if (isSummationRevised(pathway, targetDBA))
 			return true;
 
 		return false;
@@ -138,11 +138,11 @@ public class RevisionDetector {
 	 * @throws SQLException
 	 * @throws Exception
 	 */
-	private boolean isChildPathwayAddedOrRemoved(GKInstance parent, MySQLAdaptor dba)
+	private boolean isChildPathwayAddedOrRemoved(GKInstance parent, MySQLAdaptor targetDBA)
 			throws InvalidAttributeException, SQLException, Exception {
 
 		Collection<GKInstance> childPathways = getChildPathways(parent);
-		Collection<GKInstance> compareChildPathways = getChildPathways(getInstance(dba, parent));
+		Collection<GKInstance> compareChildPathways = getChildPathways(getInstance(targetDBA, parent));
 
 		if (childPathways.isEmpty() && compareChildPathways.isEmpty())
 			return false;
@@ -195,7 +195,8 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private boolean isRLERevised(GKInstance reactionlikeEvent, MySQLAdaptor dba) throws InvalidAttributeException, Exception {
+	private boolean isRLERevised(GKInstance reactionlikeEvent, MySQLAdaptor targetDBA)
+			throws InvalidAttributeException, Exception {
 		// Check for changes in inputs, outputs, regulators, and catalysts.
 		Collection<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
 				ReactomeJavaConstants.output,
@@ -203,7 +204,7 @@ public class RevisionDetector {
 				ReactomeJavaConstants.catalystActivity);
 
 		for (String attrName : revisionList) {
-			if (revisionInAttributeList(reactionlikeEvent, getInstance(dba, reactionlikeEvent), attrName))
+			if (attributesRevised(reactionlikeEvent, getInstance(targetDBA, reactionlikeEvent), attrName))
 				return true;
 		}
 
@@ -212,13 +213,13 @@ public class RevisionDetector {
 				ReactomeJavaConstants.catalystActivity);
 
 		for (String attrName : additionsOrDeletionsList) {
-			if (additionOrDeletionInList(reactionlikeEvent, getInstance(dba, reactionlikeEvent), attrName))
+			if (additionOrDeletionInList(reactionlikeEvent, getInstance(targetDBA, reactionlikeEvent), attrName))
 				return true;
 		}
 
 		// Check if summation is revised.
 		// Requires "special case" (examining "text" attribute for all summations).
-		if (isSummationRevised(reactionlikeEvent, dba))
+		if (isSummationRevised(reactionlikeEvent, targetDBA))
 			return true;
 
 		return false;
@@ -230,88 +231,67 @@ public class RevisionDetector {
 	 * Valid attribute checks take place in
 	 * {@link org.gk.slicing.SlicingEngine#isValidAttributeOrThrow(SchemaAttribute attribute)}
 	 *
-	 * @param left
-	 * @param right
+	 * @param oldInstance
+	 * @param newInstance
 	 * @param attrName
 	 * @return boolean (true if an attribute value is revised, false if all attribute values are equal).
 	 * @throws Exception
 	 */
-	private boolean attributesRevised(GKInstance left, GKInstance right, String attrName) throws Exception {
+	private boolean attributesRevised(GKInstance oldInstance, GKInstance newInstance, String attrName)
+			throws Exception {
 		// Null checker.
-		if (left == null || right == null) {
+		if (oldInstance == null || newInstance == null) {
 			// if both instances are null, then there are no attributes to revise.
-			if (left == right)
+			if (oldInstance == newInstance)
 				return false;
 			// if only one instance is null, then any attribute may be considered revised.
 			return true;
 		}
 
 		// If the object will not be able to cast to GKInstance, then simply compare the values.
-		if (left.getAttributeValue(attrName) instanceof String)
-			return !left.getAttributeValue(attrName).equals(right.getAttributeValue(attrName));
+		if (oldInstance.getAttributeValue(attrName) instanceof String)
+			return !oldInstance.getAttributeValue(attrName).equals(newInstance.getAttributeValue(attrName));
 
 		// Default option is to cast to GKInstance and compare the database ID's.
-		Long leftDBID = ((GKInstance) left.getAttributeValue(attrName)).getDBID();
-		Long rightDBID = ((GKInstance) right.getAttributeValue(attrName)).getDBID();
-		return !leftDBID.equals(rightDBID);
-	}
-
-	/**
-	 * Iterate over and compare all elements in a GKInstance's list of a given attribute.
-	 *
-	 * @param left
-	 * @param right
-	 * @param attrName
-	 * @return boolean (true if a revision is detected, false if all attributes are equal).
-	 * @throws SQLException
-	 * @throws Exception
-	 */
-	private boolean revisionInAttributeList(GKInstance left, GKInstance right, String attrName)
-			throws SQLException, Exception {
-		Collection<GKInstance> attrList = left.getAttributeValuesList(attrName);
-		for (GKInstance attrValue : attrList) {
-			// If slice output differs from database output
-			if (attributesRevised(left, right, attrName))
-				return true;
-		}
-
-		return false;
+		Long oldInstanceDBID = ((GKInstance) oldInstance.getAttributeValue(attrName)).getDBID();
+		Long newInstanceDBID = ((GKInstance) newInstance.getAttributeValue(attrName)).getDBID();
+		return !oldInstanceDBID.equals(newInstanceDBID);
 	}
 
 	/**
 	 * Compare the attribute lists in order to detect additions or deletions.
 	 *
-	 * @param left
-	 * @param right
+	 * @param oldInstance
+	 * @param newInstance
 	 * @param attrName
 	 * @return boolean (true if there is an addition or deletion in the attribute list, false if the lists are equal).
 	 * @throws InvalidAttributeException
 	 * @throws SQLException
 	 * @throws Exception
 	 */
-	private boolean additionOrDeletionInList(GKInstance left, GKInstance right, String attrName)
+	private boolean additionOrDeletionInList(GKInstance oldInstance, GKInstance newInstance, String attrName)
 			throws InvalidAttributeException, SQLException, Exception {
-		Collection<Object> rightList = right.getAttributeValuesList(attrName);
-		Collection<Object> leftList = left.getAttributeValuesList(attrName);
+		Collection<GKInstance> newInstanceList = newInstance.getAttributeValuesList(attrName);
+		Collection<GKInstance> oldInstanceList = oldInstance.getAttributeValuesList(attrName);
 
 		// Constant time check to detect additions or deletions.
 		// Misses the case where the same number of unique additions and deletions have occurred.
 		// That case is detected by the iterator below.
-		if (rightList.size() > leftList.size()
-				|| rightList.size() < leftList.size())
+		if (newInstanceList.size() > oldInstanceList.size()
+				|| newInstanceList.size() < oldInstanceList.size())
 			return true;
 
 		// O(n^2) time check to detect additions or deletions.
-		for (Object instance : leftList) {
-			// If rightList does not contain an instance in leftList,
-			// then either rightList has a deletion, or leftList has an addition.
-			if (!rightList.contains(instance)) {
-				for (Object inst : rightList) {
-					Long leftDBID = ((GKInstance) inst).getDBID();
-					Long rightDBID = ((GKInstance) inst).getDBID();
+		for (Object instance : oldInstanceList) {
+			// If newInstanceList does not contain an instance in oldInstanceList,
+			// then either newInstanceList has a deletion, or oldInstanceList has an addition.
+			if (!newInstanceList.contains(instance)) {
+				for (Object inst : newInstanceList) {
+					Long oldInstanceDBID = ((GKInstance) inst).getDBID();
+					Long newInstanceDBID = ((GKInstance) inst).getDBID();
 
 					// An attribute has been added or deleted from the instance.
-					if (!leftDBID.equals(rightDBID))
+					if (!oldInstanceDBID.equals(newInstanceDBID))
 						return true;
 				}
 			}
@@ -331,11 +311,12 @@ public class RevisionDetector {
 	 *
 	 * @see {@link org.gk.model.Summation}
 	 */
-	private boolean isSummationRevised(GKInstance instance, MySQLAdaptor dba) throws InvalidAttributeException, Exception {
+	private boolean isSummationRevised(GKInstance instance, MySQLAdaptor targetDBA)
+			throws InvalidAttributeException, Exception {
 		Collection<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);
 		for (GKInstance summation : summations) {
 			// if a change in text is detected, then summation is considered revised.
-			if (attributesRevised(summation, getInstance(dba, summation), ReactomeJavaConstants.text))
+			if (attributesRevised(summation, getInstance(targetDBA, summation), ReactomeJavaConstants.text))
 				return true;
 		}
 
@@ -358,28 +339,10 @@ public class RevisionDetector {
 		return dba.fetchInstance(DBID);
 	}
 
-	private GKInstance getInstanceShallow(MySQLAdaptor dba, GKInstance instance) throws SQLException, Exception {
-		return getInstanceShallow(dba, instance.getDBID());
-	}
-
 	private GKInstance getInstanceShallow(MySQLAdaptor dba, Long DBID) throws SQLException, Exception {
 		GKInstance clone = (GKInstance) getInstance(dba, DBID).clone();
 		clone.setDBID(DBID);
 		return clone;
-	}
-
-	/**
-	 * Check that all elements in a list exist (not null with a length greater than 0).
-	 *
-	 * @param Collection
-	 * @return boolean
-	 */
-	private boolean allElementsExist(Collection<Object> list) {
-		for (Object element : list) {
-			if (element == null || String.valueOf(element).length() == 0)
-				return false;
-		}
-		return true;
 	}
 
 	/**
@@ -390,9 +353,9 @@ public class RevisionDetector {
 	@Before
 	public void setUp() throws SQLException {
 		testDBA = new MySQLAdaptor("localhost",
-							   "reactome",
-						       "liam",
-						       ")8J7m]!%[<");
+								   "reactome",
+								   "liam",
+								   ")8J7m]!%[<");
 	}
 
 	@Test
@@ -416,7 +379,6 @@ public class RevisionDetector {
 		GKInstance xylitolDegradation = getInstanceShallow(testDBA, 5268107L);
 		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
-		GKInstance clone = (GKInstance) xylitolDegradation.clone();
 		// Example addition of a child pathway (tRNA processing).
 		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getInstance(testDBA, 72306L));
 		assertEquals(true, isPathwayRevised(xylitolDegradation, testDBA));
@@ -442,51 +404,29 @@ public class RevisionDetector {
 	@Test
 	public void testSliceAttributes() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance left = getInstance(testDBA, 8875579L);
+		GKInstance oldInstance = getInstance(testDBA, 8875579L);
 
 		// ABI2 [cytosol]
-		GKInstance right = getInstance(testDBA, 1671649L);
+		GKInstance newInstance = getInstance(testDBA, 1671649L);
 
-		assertEquals(false, attributesRevised(left, left, ReactomeJavaConstants.stableIdentifier));
-		assertEquals(false, attributesRevised(right, right, ReactomeJavaConstants.stableIdentifier));
-		assertEquals(true, attributesRevised(left, right, ReactomeJavaConstants.stableIdentifier));
-	}
-
-	@Test
-	public void testSliceAllAttributesInList() throws Exception {
-		// (DOCK7) [cytosol]
-		GKInstance left = getInstance(testDBA, 8875579L);
-
-		// ABI2 [cytosol]
-		GKInstance right = getInstance(testDBA, 1671649L);
-
-		assertEquals(false, revisionInAttributeList(left, left, ReactomeJavaConstants.hasCandidate));
-		assertEquals(false, revisionInAttributeList(right, right, ReactomeJavaConstants.hasCandidate));
-		assertEquals(true, revisionInAttributeList(left, right, ReactomeJavaConstants.hasCandidate));
+		assertEquals(false, attributesRevised(oldInstance, oldInstance, ReactomeJavaConstants.stableIdentifier));
+		assertEquals(false, attributesRevised(newInstance, newInstance, ReactomeJavaConstants.stableIdentifier));
+		assertEquals(true, attributesRevised(oldInstance, newInstance, ReactomeJavaConstants.stableIdentifier));
 	}
 
 	@Test
 	public void testAdditionOrDeletionInLists() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance left = getInstanceShallow(testDBA, 8875579L);
-		GKInstance right = (GKInstance) left.clone();
+		GKInstance oldInstance = getInstanceShallow(testDBA, 8875579L);
+		GKInstance newInstance = (GKInstance) oldInstance.clone();
 
-		assertEquals(false, additionOrDeletionInList(left, left, ReactomeJavaConstants.name));
-		assertEquals(false, additionOrDeletionInList(left, right, ReactomeJavaConstants.name));
-		assertEquals(false, additionOrDeletionInList(right, right, ReactomeJavaConstants.name));
+		assertEquals(false, additionOrDeletionInList(oldInstance, oldInstance, ReactomeJavaConstants.name));
+		assertEquals(false, additionOrDeletionInList(oldInstance, newInstance, ReactomeJavaConstants.name));
+		assertEquals(false, additionOrDeletionInList(newInstance, newInstance, ReactomeJavaConstants.name));
 
-		right.addAttributeValue(ReactomeJavaConstants.name, "dedicator of cytokinesis 7");
+		newInstance.addAttributeValue(ReactomeJavaConstants.name, "dedicator of cytokinesis 7");
 
-		assertEquals(false, additionOrDeletionInList(right, right, ReactomeJavaConstants.name));
-		assertEquals(true, additionOrDeletionInList(left, right, ReactomeJavaConstants.name));
-	}
-
-	@Test
-	public void testAllElementsExist() {
-		Collection<Object> strings = Arrays.asList("Read", "Eval", "Print", "Loop");
-		assertEquals(true, allElementsExist(strings));
-
-		Collection<Object> nulls = Arrays.asList(null, "");
-		assertEquals(false, allElementsExist(nulls));
+		assertEquals(false, additionOrDeletionInList(newInstance, newInstance, ReactomeJavaConstants.name));
+		assertEquals(true, additionOrDeletionInList(oldInstance, newInstance, ReactomeJavaConstants.name));
 	}
 }

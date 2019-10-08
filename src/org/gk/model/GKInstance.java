@@ -25,14 +25,14 @@ import org.gk.schema.SchemaClass;
 public class GKInstance implements Instance, Cloneable {
 	// For holding attributes: Keys are the names of the attributes
 	// values are the values of the attributes.
-	private Map attributes = new HashMap();
+	private Map<String, Object> attributes = new HashMap<String, Object>();
 	// This shouldn't be here (?)
 	///// For display and label
 	// private String displayName;
 	private Long dbID; // a unique id for db
 	// SchemaClass is the definition of Instance
 	private SchemaClass schemaClass;
-	private Map referers = new HashMap();
+	private Map<SchemaAttribute, Object> referers = new HashMap<SchemaAttribute, Object>();
 	//private Map referersByName = new HashMap();
 	private transient PersistenceAdaptor dbAdaptor;
 	private boolean isInflated = false;
@@ -82,7 +82,7 @@ public class GKInstance implements Instance, Cloneable {
 	/* 
 	 * @see org.gk.model.Instance#getSchemaAttributes()
 	 */
-	public Collection getSchemaAttributes() {
+	public Collection<?> getSchemaAttributes() {
 		if (schemaClass != null)
 			return schemaClass.getAttributes();
 		return null;
@@ -121,16 +121,16 @@ public class GKInstance implements Instance, Cloneable {
 	public void addAttributeValueNoCheck(String attName, Object value) {
 		if (value == null)	
 			return;
-		List values = (java.util.List) attributes.get(attName);
+		List<Object> values = (java.util.List) attributes.get(attName);
 		if (values == null) {
-			values = new ArrayList();
+			values = new ArrayList<Object>();
 			attributes.put(attName, values);
 		}
 		values.add(value);
 	}
 	
 	public void removeAttributeValueNoCheck(String attName, Object value) {
-		List values = (java.util.List) attributes.get(attName);
+		List<?> values = (java.util.List) attributes.get(attName);
 		if (values != null) {
 			//System.out.println("Before remove:\t" + values);
 			values.remove(value);
@@ -139,9 +139,9 @@ public class GKInstance implements Instance, Cloneable {
 	}
 
 	public void addAttributeValueNoCheck(SchemaAttribute attribute, Object value) {
-		List valueList;
-		if ((valueList = (List) attributes.get(attribute.getName())) == null) {
-			valueList = new ArrayList();
+		List<Object> valueList;
+		if ((valueList = (List<Object>) attributes.get(attribute.getName())) == null) {
+			valueList = new ArrayList<Object>();
 			attributes.put(attribute.getName(), valueList);
 		}
 		if (value == null) {
@@ -149,7 +149,7 @@ public class GKInstance implements Instance, Cloneable {
 			return;
 		}
 		if (value instanceof java.util.List) {
-			valueList.addAll((Collection) value);
+			valueList.addAll((Collection<?>) value);
 		} else {
 			valueList.add(value);
 		}
@@ -162,9 +162,9 @@ public class GKInstance implements Instance, Cloneable {
 	}
 
 	public void setAttributeValuePositionNoCheck(SchemaAttribute attribute, int index, Object value) {
-		List valueList;
-		if ((valueList = (List) attributes.get(attribute.getName())) == null) {
-			valueList = new ArrayList();
+		List<Object> valueList;
+		if ((valueList = (List<Object>) attributes.get(attribute.getName())) == null) {
+			valueList = new ArrayList<Object>();
 			attributes.put(attribute.getName(), valueList);
 		}
 		if (value == null) {
@@ -205,7 +205,7 @@ public class GKInstance implements Instance, Cloneable {
 		if (value instanceof java.util.List) {
 			return attributes.put(attributeName, value);
 		} else {
-			List valueList = new ArrayList();
+			List<Object> valueList = new ArrayList<Object>();
 			if (value != null) {
 				valueList.add(value);
 			}
@@ -218,7 +218,7 @@ public class GKInstance implements Instance, Cloneable {
 		Object value) throws InvalidAttributeValueException {
 		if (value != null) {
 			if (value instanceof java.util.List) {
-				attribute.areValidValuesOrThrow((List) value);
+				attribute.areValidValuesOrThrow((List<?>) value);
 			} else {
 				attribute.isValidValueOrThrow(value);
 			}
@@ -266,7 +266,7 @@ public class GKInstance implements Instance, Cloneable {
 		if ((o = attributes.get(attributeName)) == null) {
 			return null;
 		} else {
-			List valueList = (List) o;
+			List<?> valueList = (List<?>) o;
 			if (valueList.isEmpty()) {
 				return null;
 			} else {
@@ -285,25 +285,25 @@ public class GKInstance implements Instance, Cloneable {
 	 * it's a single value or a List already.
 	 */
 
-	public List getAttributeValuesList(SchemaAttribute attribute) throws Exception {
+	public List<GKInstance> getAttributeValuesList(SchemaAttribute attribute) throws Exception {
 		((GKSchemaClass) schemaClass).isValidAttributeOrThrow(attribute);
 		if (! isAttributeValueLoaded(attribute) && ! isInflated) {
 			loadAttributeValues((GKSchemaAttribute) attribute);
             // Mark it if the value is null
             if (!attributes.containsKey(attribute.getName()))
-                attributes.put(attribute.getName(), new ArrayList()); // To avoid returning null
+                attributes.put(attribute.getName(), new ArrayList<Object>()); // To avoid returning null
 		}
 		Object o;
 		if ((o = attributes.get(attribute.getName())) == null) {
-		    List list = new ArrayList();
+		    List<GKInstance> list = new ArrayList<GKInstance>();
 		    attributes.put(attribute.getName(), list);
 			return list; // Have to make sure the returned list is the cached one!
 		} else {
-			return (List) o;
+			return (List<GKInstance>) o;
 		}
 	}
 
-	public List getAttributeValuesList(String attributeName) throws InvalidAttributeException, Exception {
+	public List<GKInstance> getAttributeValuesList(String attributeName) throws InvalidAttributeException, Exception {
 		return getAttributeValuesList(schemaClass.getAttribute(attributeName));
 	}
 
@@ -332,7 +332,7 @@ public class GKInstance implements Instance, Cloneable {
 		Object value) throws InvalidAttributeValueException {
 		if (value != null) {
 			if (value instanceof java.util.List) {
-				((GKSchemaAttribute) attribute).areValidValuesOrThrow((List) value);
+				((GKSchemaAttribute) attribute).areValidValuesOrThrow((List<?>) value);
 			} else {
 				((GKSchemaAttribute) attribute).isValidValueOrThrow(value);
 			}
@@ -343,12 +343,12 @@ public class GKInstance implements Instance, Cloneable {
 	/* 
 	 * @see org.gk.model.Instance#getReferers(java.lang.String)
 	 */
-	public Collection getReferers(String attributeName) throws Exception {
+	public Collection<?> getReferers(String attributeName) throws Exception {
 		if (debug) System.out.println(this + "\tgetReferers(String)\t" + attributeName);
-		Collection out = new ArrayList();
-		for (Iterator i = ((GKSchemaClass) schemaClass).getReferersByName(attributeName).iterator(); i.hasNext();) {
+		Collection<?> out = new ArrayList<Object>();
+		for (Iterator<?> i = ((GKSchemaClass) schemaClass).getReferersByName(attributeName).iterator(); i.hasNext();) {
 			SchemaAttribute att = (SchemaAttribute) i.next();
-			Collection c = getReferers(att);
+			Collection<?> c = getReferers(att);
 			if (c != null) {
 				out.addAll(c);
 			}
@@ -364,12 +364,12 @@ public class GKInstance implements Instance, Cloneable {
 	/* 
 	 * @see org.gk.model.Instance#getReferers(org.gk.schema.SchemaAttribute)
 	 */
-	public Collection getReferers(SchemaAttribute attribute) throws Exception {
+	public Collection<?> getReferers(SchemaAttribute attribute) throws Exception {
 		if (debug) System.out.println(this + "\tgetReferers(SchemaAttribute)\t" + attribute);
 		SchemaAttribute originalAtt = ((GKSchemaAttribute) attribute).getOriginalAttribute();
 		if (! referers.containsKey(originalAtt)) {
 			if (dbAdaptor != null) {
-				Collection c = dbAdaptor.fetchInstanceByAttribute(originalAtt,"=",this);
+				Collection<?> c = dbAdaptor.fetchInstanceByAttribute(originalAtt,"=",this);
 				referers.put(originalAtt, c);
 				return c;
 			}
@@ -378,15 +378,15 @@ public class GKInstance implements Instance, Cloneable {
 		if (o == null) {
 			return null;
 		} else {
-			return (Collection) o;
+			return (Collection<?>) o;
 		}
 	}
 	
 	public void addRefererNoCheck(SchemaAttribute att, Object referer) throws Exception {
 		SchemaAttribute originalAtt = ((GKSchemaAttribute) att).getOriginalAttribute();
-		Collection c = (Collection) referers.get(originalAtt);
+		Collection<Object> c = (Collection<Object>) referers.get(originalAtt);
 		if (c == null) {
-			c = new ArrayList();
+			c = new ArrayList<Object>();
 			c.add(referer);
 			referers.put(originalAtt, c);
 		}
@@ -397,7 +397,7 @@ public class GKInstance implements Instance, Cloneable {
 	
 	public void removeRefererNoCheck(SchemaAttribute att, Instance referer) {
 		SchemaAttribute originalAtt = ((GKSchemaAttribute) att).getOriginalAttribute();
-		Collection c = (Collection) referers.get(originalAtt);
+		Collection<?> c = (Collection<?>) referers.get(originalAtt);
 		if (c != null)
 			c.remove(referer);
 	}
@@ -414,14 +414,14 @@ public class GKInstance implements Instance, Cloneable {
 		referers.clear();
 	}
 	
-	public Map getReferers() {
+	public Map<SchemaAttribute, Object> getReferers() {
 		return referers;
 	}
 	
 	public boolean areReferersEmpty() {
 		if (referers.size() == 0)
 			return true;
-		for (Iterator it = referers.keySet().iterator(); it.hasNext();) {
+		for (Iterator<SchemaAttribute> it = referers.keySet().iterator(); it.hasNext();) {
 			Object key = it.next();
 			java.util.List list = (java.util.List) referers.get(key);
 			if (list != null && list.size() > 0) {
@@ -485,7 +485,7 @@ public class GKInstance implements Instance, Cloneable {
 			// multiple times!
 			// This is a workaround
 			if (!attributes.containsKey(attribute.getName()))
-			    attributes.put(attribute.getName(), new ArrayList()); // Avoid null return
+			    attributes.put(attribute.getName(), new ArrayList<Object>()); // Avoid null return
 		} else {
 			new Exception("No dbAdaptor").printStackTrace();
 		}
@@ -504,23 +504,23 @@ public class GKInstance implements Instance, Cloneable {
 	public String toStanza() throws Exception {
 		StringBuffer sb = new StringBuffer();
 		sb.append(getExtendedDisplayName() + "\n");
-		for (Iterator i = schemaClass.getAttributes().iterator(); i.hasNext();) {
+		for (Iterator<?> i = schemaClass.getAttributes().iterator(); i.hasNext();) {
 			SchemaAttribute att = (SchemaAttribute) i.next();
-			Collection vals = getAttributeValuesList(att);
+			Collection<?> vals = getAttributeValuesList(att);
 			if (vals != null) {
-				for (Iterator j = vals.iterator(); j.hasNext();) {
+				for (Iterator<?> j = vals.iterator(); j.hasNext();) {
 					sb.append(att.getName() + "\t" + j.next().toString() + "\n");
 				}
 //			} else {
 //				sb.append(att.getName() + "\t<none>\n");
 			}
 		}
-		for (Iterator i = schemaClass.getReferers().iterator(); i.hasNext();) {
+		for (Iterator<?> i = schemaClass.getReferers().iterator(); i.hasNext();) {
 			SchemaAttribute att = (SchemaAttribute) i.next();
 			//System.out.println(att);
-			Collection vals = getReferers(att);
+			Collection<?> vals = getReferers(att);
 			if (vals != null) {
-				for (Iterator j = vals.iterator(); j.hasNext();) {
+				for (Iterator<?> j = vals.iterator(); j.hasNext();) {
 					sb.append("(" + att.getName() + ")\t" + j.next().toString() + "\n");
 				}
 			}
@@ -588,13 +588,13 @@ public class GKInstance implements Instance, Cloneable {
 		// Don't copy DB_ID
 		// Copy attributes
 		try {
-			for (Iterator it = schemaClass.getAttributes().iterator(); it.hasNext();) {
+			for (Iterator<?> it = schemaClass.getAttributes().iterator(); it.hasNext();) {
 				SchemaAttribute att = (SchemaAttribute)it.next();
 				if (att.getName().equals("DB_ID")) // Escape DB_ID
 					continue;
 				java.util.List values = getAttributeValuesList(att);
 				if (values != null && values.size() > 0) {
-					java.util.List valueCopy = new ArrayList(values);
+					java.util.List valueCopy = new ArrayList<Object>(values);
 					clone.setAttributeValueNoCheck(att, valueCopy);
 				}
 			}
@@ -638,7 +638,7 @@ public class GKInstance implements Instance, Cloneable {
      * @throws InvalidAttributeValueException if the value for an attribute is not valid for this instance
      */
     public void setDefaultValues() throws InvalidAttributeException, InvalidAttributeValueException {
-    	for (Iterator it = getSchemaAttributes().iterator(); it.hasNext();) {
+    	for (Iterator<?> it = getSchemaAttributes().iterator(); it.hasNext();) {
     		GKSchemaAttribute att = (GKSchemaAttribute)it.next();
     		if (att.getDefaultValue() != null) {
     			this.setAttributeValue(att, att.getDefaultValue());
