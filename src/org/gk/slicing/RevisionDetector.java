@@ -102,6 +102,14 @@ public class RevisionDetector {
 		if (pathway == null)
 			return false;
 
+		// Check if an immediate child Pathway is added or removed
+		if (isChildPathwayAddedOrRemoved(pathway, targetDBA))
+			return true;
+
+		// Finally check for changes in summation text.
+		if (isSummationRevised(pathway, targetDBA))
+			return true;
+
 		// Recursively iterate over events in pathway.
 		Collection<GKInstance> events = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
 
@@ -117,14 +125,6 @@ public class RevisionDetector {
 					return true;
 			}
 		}
-
-		// Check if an immediate child Pathway is added or removed
-		if (isChildPathwayAddedOrRemoved(pathway, targetDBA))
-			return true;
-
-		// Finally check for changes in summation text.
-		if (isSummationRevised(pathway, targetDBA))
-			return true;
 
 		return false;
 	}
