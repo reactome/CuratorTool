@@ -2,6 +2,7 @@ package org.gk.slicing;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -23,8 +23,6 @@ public class RevisionDetector {
 	// Database adaptor used for tests.
 	// TODO Should the tests be moved to an independent class?
 	private MySQLAdaptor testDBA;
-
-	private static final Logger logger = Logger.getLogger(RevisionDetector.class);
 
 	/**
 	 * <p><strong>An RLE gets a revised flag if:</strong></p>
@@ -60,13 +58,14 @@ public class RevisionDetector {
 	public void checkForRevisions(String schemaClassName,
 								  MySQLAdaptor sourceDBA,
 								  MySQLAdaptor compareDBA,
-								  Map<Long,GKInstance> sliceMap) throws InvalidAttributeException, Exception {
+								  Map<Long,GKInstance> sliceMap,
+								  PrintStream ps) throws InvalidAttributeException, Exception {
 		// Verify that `schemaClass` is a valid schema class.
 		if (!sourceDBA.getSchema().isValidClass(schemaClassName)
 		 || !compareDBA.getSchema().isValidClass(schemaClassName))
 			return;
 
-		logger.info("checkForRevisions(" + schemaClassName + ")");
+		SlicingEngine.logAndPrintln(String.format("checkForRevisions(%s)", schemaClassName), ps);
 
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
@@ -84,7 +83,7 @@ public class RevisionDetector {
 			// If a "revised flag" condition is met, set "revised flag" on the instance.
 			if (revised) {
 				// TODO determine API database UpdateTrack schema class.
-				logger.info("Revision detected in: " + inst);
+				SlicingEngine.logAndPrintln("Revision detected in: " + inst, ps);
 			}
 		}
 	}

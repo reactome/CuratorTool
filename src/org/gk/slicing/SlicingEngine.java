@@ -294,20 +294,23 @@ public class SlicingEngine {
                                      output);
         qa.validateAttributes(output);
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
-        if (logFileName != null)
-            output.close(); // Close it if output is opened by the application
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment);
+        logAndPrintln("\nFilling Attribute Values...", output);
+        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, output);
         if (compareRequested) {
+        	logAndPrintln("\nRevision checking...", output);
         	RevisionDetector revisionDetector = new RevisionDetector();
         	for (String compareClass : compareClasses)
         		revisionDetector.checkForRevisions(compareClass,
 												   sourceDBA,
 												   compareDBA,
-												   sliceMap);
+												   sliceMap,
+												   output);
         }
+        if (logFileName != null)
+            output.close(); // Close it if output is opened by the application
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -320,7 +323,7 @@ public class SlicingEngine {
      * @param attributeName
      * @throws Exception
      */
-    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
+    private void fillAttributeValuesForEntitySets(String attributeName, PrintStream ps) throws Exception {
     	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema()
 														   .getClassByName(ReactomeJavaConstants.EntitySet);
     	if (!EntityCls.isValidAttribute(attributeName))
@@ -330,8 +333,8 @@ public class SlicingEngine {
     		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
     			continue;
 
-			logger.info(String.format("Populating %s in %s", attributeName, inst));
-    		populateEntitySet(inst, attributeName);
+			logAndPrintln(String.format("Populating %s in %s", attributeName, inst), ps);
+    		populateEntitySet(inst, attributeName, ps);
     	}
     }
 
@@ -346,7 +349,8 @@ public class SlicingEngine {
      * @throws Exception
      */
     private void populateEntitySet(GKInstance instance,
-                                   String attributeName) throws Exception {
+                                   String attributeName,
+                                   PrintStream ps) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
             return;
         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
@@ -364,7 +368,7 @@ public class SlicingEngine {
         }
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
-        memberList.forEach(member -> logger.info(String.format("-> %s", member)));
+        memberList.forEach(member -> logAndPrintln(String.format("-> %s", member), ps));
         instance.setAttributeValue(attributeName, memberList);
     }
 
@@ -385,11 +389,22 @@ public class SlicingEngine {
         	List<GKInstance> attrValue = entitySet.getAttributeValuesList(attrName);
         	System.out.println(attrName + " before handling: " + attrValue);
 
-        	populateEntitySet(entitySet, attrName);
+        	populateEntitySet(entitySet, attrName, null);
         	attrValue = entitySet.getAttributeValuesList(attrName);
         	System.out.println(attrName + " after handling: " + attrValue);
         	assertEquals(attrNameAndSize.get(attrName).intValue(), attrValue.size());
         }
+    }
+    
+    /**
+     * 
+     * @param msg
+     * @param ps
+     */
+    static void logAndPrintln(String msg, PrintStream ps) {
+    	logger.info(msg);
+    	if (ps != null)
+			ps.println(msg);
     }
 
     /**
