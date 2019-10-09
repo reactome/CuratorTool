@@ -315,23 +315,24 @@ public class SlicingEngine {
     } 
 
     /**
-     * Return true if at least one "compare" value is provided by user.
+     * Front-end for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.
      * 
-     * @param args
-     * @return 
-     * @return boolean (true if compare property is found, false otherwise).
-     * @throws IOException
+     * @param attributeName
+     * @throws Exception
      */
-    private static boolean isCompareRequested(Properties properties) throws IOException {
-    	List<String> compareProperties = Arrays.asList("compareClasses",	
-													   "compareDbHost", 	
-													   "compareDbName", 	
-													   "compareDbPort", 	
-													   "compareDbPwd");
-    	return compareProperties.stream()
-							    .filter(compareProperty -> properties.getProperty(compareProperty) != null)
-							    .findAny()
-							    .isPresent();
+    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
+    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema()
+														   .getClassByName(ReactomeJavaConstants.EntitySet);
+    	if (!EntityCls.isValidAttribute(attributeName))
+    		return;
+    	for (Long dbId : sliceMap.keySet()) {
+    		GKInstance inst = sliceMap.get(dbId);
+    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+    			continue;
+
+			logger.info(String.format("Populating %s in %s", attributeName, inst));
+    		populateEntitySet(inst, attributeName);
+    	}
     }
 
     /**
@@ -363,23 +364,8 @@ public class SlicingEngine {
         }
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
-        memberList.forEach(member -> logger.info(String.format(" -> %s", member)));
+        memberList.forEach(member -> logger.info(String.format("-> %s", member)));
         instance.setAttributeValue(attributeName, memberList);
-    }
-
-    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
-    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema()
-														   .getClassByName(ReactomeJavaConstants.EntitySet);
-    	if (!EntityCls.isValidAttribute(attributeName))
-    		return;
-    	for (Long dbId : sliceMap.keySet()) {
-    		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-    			continue;
-
-			logger.info(String.format("Populating %s in %s", attributeName, inst));
-    		populateEntitySet(inst, attributeName);
-    	}
     }
 
     @Test
@@ -404,6 +390,26 @@ public class SlicingEngine {
         	System.out.println(attrName + " after handling: " + attrValue);
         	assertEquals(attrNameAndSize.get(attrName).intValue(), attrValue.size());
         }
+    }
+
+    /**
+     * Return true if at least one "compare" value is provided by user.
+     * 
+     * @param args
+     * @return 
+     * @return boolean (true if compare property is found, false otherwise).
+     * @throws IOException
+     */
+    private static boolean isCompareRequested(Properties properties) throws IOException {
+    	List<String> compareProperties = Arrays.asList("compareClasses",	
+													   "compareDbHost", 	
+													   "compareDbName", 	
+													   "compareDbPort", 	
+													   "compareDbPwd");
+    	return compareProperties.stream()
+							    .filter(compareProperty -> properties.getProperty(compareProperty) != null)
+							    .findAny()
+							    .isPresent();
     }
     
     private void setStableIdReleased() throws Exception {
