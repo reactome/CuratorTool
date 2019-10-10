@@ -373,29 +373,70 @@ public class SlicingEngine {
         instance.setAttributeValue(attributeName, memberList);
     }
 
+    public MySQLAdaptor getTestDBA() throws SQLException {
+    	return new MySQLAdaptor("localhost",
+								"reactome",
+								"liam",
+								")8J7m]!%[<");
+    }
+
+    @Test
+    public void testFillAttributeValuesForEntitySets() throws Exception {
+    	MySQLAdaptor testDBA = getTestDBA();
+    	// Each of these EntitySet's (and all of their respective members) have just one compartment.
+    	List<Long> dbIds = Arrays.asList(9619112L,  // ACEI pro-drugs [extracellular region]
+										 182588L,   // INK4 [cytolsol]
+										 3215203L); // ING [nucleoplasm]
+
+    	// Compartment not included in the EntitySet's above.
+    	GKInstance plasmaMembrane = testDBA.fetchInstance(876L);
+
+		for (Long dbId : dbIds) {
+    		GKInstance entity = testDBA.fetchInstance(dbId);
+			GKInstance originalCompartment = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.compartment);
+
+    		// Control.
+    		List<GKInstance> attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+    		assertEquals(1, attrValue.size());
+
+    		// Fill attribute values.
+			entity.setAttributeValue(ReactomeJavaConstants.compartment, plasmaMembrane);
+    		fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, testDBA, null);
+    		assertEquals(2, attrValue.size());
+
+    		// Remove added attribute values.
+			entity.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
+    		assertEquals(1, attrValue.size());
+    	}
+    }
+
     @Test
     public void testPopulateEntitySet() throws Exception {
-        MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
-                                                "reactome",
-                                                "liam",
-                                                ")8J7m]!%[<");
+        MySQLAdaptor testDBA = getTestDBA();
 
         // ACEI pro-drugs [extracellular region], has one compartment (extracellular region),
         // and eleven members. By changing the compartment of one of these members (e.g. zofenopril),
         // ACEI pro-drugs should then have two compartments.
-        GKInstance definedSet = testDBA.fetchInstance(9619112L);
+        GKInstance entity = testDBA.fetchInstance(9619112L);
         GKInstance member = testDBA.fetchInstance(9619097L);
         GKInstance cytoplasm = testDBA.fetchInstance(459L);
+        GKInstance originalCompartment = (GKInstance) member.getAttributeValue(ReactomeJavaConstants.compartment);
         member.setAttributeValue(ReactomeJavaConstants.compartment, cytoplasm);
 
-        List<GKInstance> attrValue = definedSet.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        // Control.
+        List<GKInstance> attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(1, attrValue.size());
 
         // Populate the compartments.
-        populateEntitySet(definedSet, ReactomeJavaConstants.compartment, null);
-        attrValue = definedSet.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+        attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(2, attrValue.size());
-        System.out.println(attrValue);
+        
+        // Remove the added compartment.
+        member.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
+        populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+        attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        assertEquals(1, attrValue.size());
     }
     
     /**
@@ -838,7 +879,7 @@ public class SlicingEngine {
             targetDBA.startTransaction();
         try {
             for (Long dbId : sliceMap.keySet()) {
-                GKInstance instance = (GKInstance) sliceMap.get(dbId);
+                GKInstance instance = sliceMap.get(dbId);
                 storeInstance(instance, targetDBA);
             }
             if (isTnSupported)
