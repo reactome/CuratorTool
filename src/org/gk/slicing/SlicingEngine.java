@@ -262,7 +262,7 @@ public class SlicingEngine {
     public MySQLAdaptor getCompareDBA() {
     	return this.compareDBA;
     }
-    
+
     /**
      * The entry point for slicing. A client to this class should call this method.
      * @throws Exception
@@ -273,7 +273,7 @@ public class SlicingEngine {
         speciesIDs = getSpeciesIDs();
         if(!prepareTargetDatabase())
             throw new IllegalStateException("SlicingEngine.slice(): " +
-            		"target database cannot be set up.");
+                    "target database cannot be set up.");
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
@@ -298,16 +298,17 @@ public class SlicingEngine {
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
         logAndPrintln("\nFilling Attribute Values...", output);
-        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, output);
+        member.setAttributeValue(ReactomeJavaConstants.compartment, cytoplasm);
+        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
         if (compareRequested) {
-        	logAndPrintln("\nRevision checking...", output);
-        	RevisionDetector revisionDetector = new RevisionDetector();
-        	for (String compareClass : compareClasses)
-        		revisionDetector.checkForRevisions(compareClass,
-												   sourceDBA,
-												   compareDBA,
-												   sliceMap,
-												   output);
+            logAndPrintln("\nRevision checking...", output);
+            RevisionDetector revisionDetector = new RevisionDetector();
+            for (String compareClass : compareClasses)
+                revisionDetector.checkForRevisions(compareClass,
+                                                   sourceDBA,
+                                                   compareDBA,
+                                                   sliceMap,
+                                                   output);
         }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
@@ -323,14 +324,15 @@ public class SlicingEngine {
      * @param attributeName
      * @throws Exception
      */
-    private void fillAttributeValuesForEntitySets(String attributeName, PrintStream ps) throws Exception {
-    	GKSchemaClass EntityCls = (GKSchemaClass) sourceDBA.getSchema()
-														   .getClassByName(ReactomeJavaConstants.EntitySet);
-    	if (!EntityCls.isValidAttribute(attributeName))
+    private void fillAttributeValuesForEntitySets(String attributeName, MySQLAdaptor dba, PrintStream ps)
+    		throws Exception {
+    	GKSchemaClass entitySet = (GKSchemaClass) dba.getSchema()
+												     .getClassByName(ReactomeJavaConstants.EntitySet);
+    	if (!entitySet.isValidAttribute(attributeName))
     		return;
     	for (Long dbId : sliceMap.keySet()) {
     		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+    		if (!inst.getSchemClass().getSuperClasses().contains(entitySet))
     			continue;
 
 			logAndPrintln(String.format("Populating %s in %s", attributeName, inst), ps);
@@ -374,26 +376,27 @@ public class SlicingEngine {
 
     @Test
     public void testPopulateEntitySet() throws Exception {
-    	MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
-											    "reactome",
-											    "liam",
-											    ")8J7m]!%[<");
-    	
-    	// ACEI pro-drugs [extracellular region], has one compartment (extracellular region).
-        Long dbId = 9619112L;
-        Map<String, Integer> attrNameAndSize = new HashMap<>();
-        attrNameAndSize.put(ReactomeJavaConstants.compartment, 1);
-        
-		for (String attrName : attrNameAndSize.keySet()) {
-        	GKInstance entitySet = testDBA.fetchInstance(dbId);
-        	List<GKInstance> attrValue = entitySet.getAttributeValuesList(attrName);
-        	System.out.println(attrName + " before handling: " + attrValue);
+        MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
+                                                "reactome",
+                                                "liam",
+                                                ")8J7m]!%[<");
 
-        	populateEntitySet(entitySet, attrName, null);
-        	attrValue = entitySet.getAttributeValuesList(attrName);
-        	System.out.println(attrName + " after handling: " + attrValue);
-        	assertEquals(attrNameAndSize.get(attrName).intValue(), attrValue.size());
-        }
+        // ACEI pro-drugs [extracellular region], has one compartment (extracellular region),
+        // and eleven members. By changing the compartment of one of these members (e.g. zofenopril),
+        // ACEI pro-drugs should then have two compartments.
+        GKInstance definedSet = testDBA.fetchInstance(9619112L);
+        GKInstance member = testDBA.fetchInstance(9619097L);
+        GKInstance cytoplasm = testDBA.fetchInstance(459L);
+        member.setAttributeValue(ReactomeJavaConstants.compartment, cytoplasm);
+
+        List<GKInstance> attrValue = definedSet.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        assertEquals(1, attrValue.size());
+
+        // Populate the compartments.
+        populateEntitySet(definedSet, ReactomeJavaConstants.compartment, null);
+        attrValue = definedSet.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        assertEquals(2, attrValue.size());
+        System.out.println(attrValue);
     }
     
     /**
@@ -1205,21 +1208,21 @@ public class SlicingEngine {
     private boolean prepareTargetDatabase() throws Exception {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.prepareTargetDatabase(): source database is not specified.");
-        if(!runDumpCommand(null, DUMP_FILE_NAME))
+        if (!runDumpCommand(null, DUMP_FILE_NAME))
             return false;
-        if(!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
+        if (!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
             return false;
         if (!runDumpCommand("Ontology", ONTOLOGY_FILE_NAME))
             return false;
-        if(!createTargetDatabase())
+        if (!createTargetDatabase())
             return false;
-        if(!runImport(DUMP_FILE_NAME))
+        if (!runImport(DUMP_FILE_NAME))
             return false;
-        if(!runImport(SCHEMA_FILE_NAME))
+        if (!runImport(SCHEMA_FILE_NAME))
             return false;
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
-        if(!runAlterTables())
+        if (!runAlterTables())
             return false;
         return true;
     }
