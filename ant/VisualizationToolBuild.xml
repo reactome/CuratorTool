@@ -1,29 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="VisualizationTool" default="copy" basedir="..">
-    <description>
-    	Copy all files needed to build the Reactome visualization tool by InstallAnywhere.
-    </description>
-	
+	<description>
+		Copy all files needed to build the Reactome visualization tool by InstallAnywhere.
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../ReactomeBuild/VisualizationToolBuildFiles" />
 	<property name="classDir" value="${basedir}/classes" />
 	<property name="orgDir" value="${classDir}/org" />
+	<property name="srcDir" value="${basedir}/src" />
 	<property name="resourcesDir" value="${basedir}/resources" />
 	<property name="imagesDir" value="${basedir}/images" />
 	<property name="libDir" value="${basedir}/lib" />
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
 	</target>
-	
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
+	<!-- path for including all jar files in library directory -->
+	<path id="class.path">
+		<fileset dir="${libDir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${classDir}"/>
+	</target>
+
+	<!-- compile source code in specified src directory -->
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}" >
+			<classpath refid="class.path" />
+		</javac>
+	</target>
+
 	<!-- copy all files to the target directory -->
-	<target name="copy" depends="mkdir">
+	<target name="copy" depends="mkdir, compile">
 		<copy todir="${targetDir}/org">
 			<fileset dir="${orgDir}">
 				<exclude name="reactome/**" />
@@ -45,24 +65,25 @@
 			</fileset>
 		</copy>
 	</target>
+
 	<!-- A Test Run -->
-	<target name="runOnly">
+	<target name="runOnly" depends="copy">
 		<java dir="${targetDir}" classpath="${targetDir}" classname="org.gk.pathView.GKVisualizationPane" fork="true">
 			<classpath>
-			      <fileset dir="lib">
-			        <include name="**/*.jar"/>
-			      </fileset>
+				<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
 			</classpath>
 		</java>
 	</target>
-	
+
 	<!-- These targets are used for deploy author tool as a Java Web Start application -->
 	<property name="jwsTargetDir" value="../AuthorToolWebApp/WebContent/applet/" />
 	<property name="jwsTemp" value="jwsTemp" />
-	<target name="deployAsJWS">
-		<copy file="lib/mysql-connector-java-3.0.11-stable-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
-		<copy file="lib/osxAdapter.jar" tofile="${jwsTargetDir}/osxAdapter.jar" />
-		<copy file="lib/jdom/jdom.jar" tofile="${jwsTargetDir}/jdom.jar" />
+	<target name="deployAsJWS" depends="compile">
+		<copy file="${libDir}/mysql/mysql-connector-java-5.1.47-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
+		<copy file="${libDir}/osxAdapter.jar" tofile="${jwsTargetDir}/osxAdapter.jar" />
+		<copy file="${libDir}/jdom/jdom-1.1.3.jar" tofile="${jwsTargetDir}/jdom.jar" />
 		<mkdir dir="${jwsTemp}" />
 		<copy todir="${jwsTemp}/org">
 			<fileset dir="${orgDir}">
@@ -81,7 +102,7 @@
 			<fileset dir="${imagesDir}">
 				<include name="R-big.gif" />
 			</fileset>
-			<fileset dir="lib/batik">
+			<fileset dir="${libDir}/batik">
 				<include name="*.jar" />
 			</fileset>
 		</copy>
