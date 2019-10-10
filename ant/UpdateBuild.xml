@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <project name="createFile" default="updateJar" basedir="..">
-    <description>
-    	Create five jar files for updating
-    </description>
-	
+	<description>
+		Create five jar files for updating
+	</description>
+
 	<!-- Defining a list of directory names to be used -->
 	<property name="targetDir" value="${basedir}/../ReactomeUpdate" />
 	<property name="classDir" value="${basedir}/classes" />
@@ -15,17 +15,17 @@
 	<property name="docsDir" value="${basedir}/docs" />
 	<property name="docsImagesDir" value="${docsDir}/images" />
 	<property name="libDir" value="${basedir}/lib" />
-	
+
 	<!-- Empty the direcotry. If nothing there, it should do nothing -->
 	<target name="delete">
 		<delete dir="${targetDir}" />
 	</target>
-	
+
 	<!-- make a directory first. If it is there, it should do nothing -->
 	<target name="mkdir" depends="delete">
 		<mkdir dir="${targetDir}" /> 
 	</target>
-	
+
 	<!-- copy all files to the target directory -->
 	<target name="updateJar" depends="mkdir">
 		<jar destfile="${targetDir}/org.jar"> 
@@ -58,7 +58,7 @@
 		     classpath="${basedir}/classes">
 	</taskdef>
 	<target name="createFile" depends="updateJar">
-		<updateFile dir="${targetDir}" uri="http://brie8.cshl.org/download/tools/curatorTool/update">
+		<updateFile dir="${targetDir}" uri="http://release.reactome.org/download/tools/curatorTool/update">
 			<resource name="org.jar" deleteDir="true" />
 			<resource name="docs.jar" deleteDir="true" />
 			<resource name="resources.jar" deleteDir="false" />
