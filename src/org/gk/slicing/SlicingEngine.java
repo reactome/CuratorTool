@@ -298,7 +298,6 @@ public class SlicingEngine {
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
         logAndPrintln("\nFilling Attribute Values...", output);
-        member.setAttributeValue(ReactomeJavaConstants.compartment, cytoplasm);
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
         if (compareRequested) {
             logAndPrintln("\nRevision checking...", output);
