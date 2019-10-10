@@ -320,6 +320,13 @@ public class SlicingEngine {
     /**
      * Front-end for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.
      * 
+     * <h5>Integration Testing Notes</h5>
+     * <ul>
+     *   <li>zofenopril (9619010) is a member of ACEI pro-drugs [endoplasmic reticulum] (9619052).</li>
+     *   <li>Both entities have endoplasmic reticulum as their compartments.</li>
+     *   <li>By changeing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
+     * </ul>
+     * 
      * @param attributeName
      * @throws Exception
      */
