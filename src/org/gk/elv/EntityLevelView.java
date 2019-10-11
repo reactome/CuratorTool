@@ -242,6 +242,8 @@ public class EntityLevelView extends JPanel {
         if (event == null)
             return;
         if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+            // Regardless turn this one for a pathway
+            actionCollection.getViewAsDiseaseDiagramAction().setEnabled(true);
             List<GKInstance> containers = zoomableEditor.getDisplayedPathways();
             if (containers == null || containers.size() == 0) {
                 actionCollection.getEncapsulateDiagramAction().setEnabled(false);
@@ -260,6 +262,7 @@ public class EntityLevelView extends JPanel {
         else { // Default: these two actions should be disabled.
             actionCollection.getOpenDiagramAction().setEnabled(false);
             actionCollection.getEncapsulateDiagramAction().setEnabled(false);
+            actionCollection.getViewAsDiseaseDiagramAction().setEnabled(false);
         }
     }
     
