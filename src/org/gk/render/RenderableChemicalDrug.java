@@ -7,10 +7,10 @@ import java.awt.Color;
  * @author wug
  *
  */
-public class RenderableChemicalDrug extends RenderableChemical {
+public class RenderableChemicalDrug extends RenderableChemical implements DefaultRenderConstants {
 
     public RenderableChemicalDrug() {
         setForegroundColor(Color.RED); // As the default for the drugs
+        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
-    
 }
