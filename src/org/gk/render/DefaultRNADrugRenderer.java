@@ -13,5 +13,4 @@ public class DefaultRNADrugRenderer extends DefaultRNARenderer {
         super.renderShapes(g);
         super.renderDrugLabel(g);
     }
-    
 }

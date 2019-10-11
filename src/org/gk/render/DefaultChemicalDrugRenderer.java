@@ -5,6 +5,7 @@ import java.awt.Graphics;
 public class DefaultChemicalDrugRenderer extends DefaultChemicalRenderer {
     
     public DefaultChemicalDrugRenderer() {
+
     }
 
     @Override

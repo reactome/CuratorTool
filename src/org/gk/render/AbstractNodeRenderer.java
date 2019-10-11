@@ -32,7 +32,8 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     /**
      * Render method.
      */
-    public void render(Graphics g) {
+    @Override
+	public void render(Graphics g) {
         if (!node.isVisible() && !node.isSelected())
             return;
         node.validateBounds(g);
@@ -277,12 +278,13 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
                     2 * Node.RESIZE_WIDGET_WIDTH);
     }
     
-    public void setRenderable(Renderable r) {
+    @Override
+	public void setRenderable(Renderable r) {
         node = (Node) r;
     }
     
     /**
-     * Prepare this Renderer with infomation in Renderable.
+     * Prepare this Renderer with information in Renderable.
      */
     protected void setProperties(Renderable renderable) {
         Node node = (Node) renderable;

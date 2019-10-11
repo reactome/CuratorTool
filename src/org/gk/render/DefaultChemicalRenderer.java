@@ -14,7 +14,8 @@ public class DefaultChemicalRenderer extends AbstractNodeRenderer {
     public DefaultChemicalRenderer() {
     }
     
-    protected void renderShapes(Graphics g) {
+    @Override
+	protected void renderShapes(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         if (background == null) { 
             g2.setPaint(DEFAULT_BACKGROUND);
@@ -36,6 +37,4 @@ public class DefaultChemicalRenderer extends AbstractNodeRenderer {
                     bounds.height);
         g2.setStroke(stroke);
     }
-    
-    
 }
