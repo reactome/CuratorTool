@@ -10,7 +10,6 @@ public class DefaultChemicalDrugRenderer extends DefaultChemicalRenderer {
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);
-        renderDrug(g);
+        renderDrugLabel(g);
     }
-    
 }

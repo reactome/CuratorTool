@@ -11,7 +11,6 @@ public class DefaultProteinDrugRenderer extends DefaultProteinRenderer {
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);
-        super.renderDrug(g);
+        super.renderDrugLabel(g);
     }
-
 }

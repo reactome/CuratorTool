@@ -52,7 +52,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 
     protected abstract void renderShapes(Graphics g);
     
-    protected void renderDrug(Graphics g) {
+    protected void renderDrugLabel(Graphics g) {
         // Want to use a smaller font
         Font font = g.getFont();
         Font oldFond = font;
