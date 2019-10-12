@@ -6,6 +6,7 @@ package org.gk.render;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -62,11 +63,20 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Rectangle2D textBounds = font.getStringBounds(DRUG_SYMBOL, g2.getFontRenderContext());
         // Make sure it is drawn at the bottom right corner
         Rectangle bounds = node.getBounds();
+
+        // The position of the label (case-insensitive).
+        // Supported positions: RIGHT, TOPRIGHT, TOP, TOPLEFT, LEFT, BOTTOMLEFT, BOTTOM, BOTTOMRIGHT.
+        String position = "BOTTOMRIGHT";
+
+        // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
-        int x = (int) (bounds.getMaxX() - w);
-        int y = (int) (bounds.getMaxY() - h);
-        
+        Dimension labelWidthHeight = new Dimension(w, h);
+
+        // Translated dimension of the label.
+        Dimension newDimensions = EllipsesUtils.getLabelDimensions(position, labelWidthHeight, bounds);
+        int x = (int)(newDimensions.getWidth());
+        int y = (int)(newDimensions.getHeight());
         // Some shapes for the labeling
         if (background == null) { 
             g2.setPaint(DEFAULT_BACKGROUND);
@@ -144,7 +154,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     }
         
     /**
-     * A helper method is used to draw RenderaleFeature
+     * A helper method is used to draw RenderableFeature
      * @param attachment
      * @param g
      */
