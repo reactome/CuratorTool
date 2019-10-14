@@ -22,7 +22,7 @@ public class EllipsesUtils {
 	}
 
 	/**
-	 * "Corrects" the label dimensions by moving it left, right, up, or down to fit it within the ellipses' boundary.
+	 * "Corrects" the label dimensions by moving it left, right, up, or down to fit within the ellipses' boundary.
 	 * 
 	 * @param position
 	 * @param labelWidthHeight
@@ -66,7 +66,7 @@ public class EllipsesUtils {
 	}
 
 	/**
-	 * Returns a dimension corresponding to a point on the boundary of an ellipses.
+	 * Returns a dimension corresponding to a point on the boundary of an ellipse.
 	 * Supported positions (case-insensitive): RIGHT, TOPRIGHT, TOP, TOPLEFT, LEFT, BOTTOMLEFT, BOTTOM, BOTTOMRIGHT.
 	 * 
 	 * @param position

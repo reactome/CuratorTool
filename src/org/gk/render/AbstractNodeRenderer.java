@@ -86,7 +86,6 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         }
         g2.fillRect(x, y, w, h);
         setDrawPaintAndStroke(g2);
-        g2.drawRect(x, y, w, h);
         
         // Draw the drug label
         g2.setFont(font);
