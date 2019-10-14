@@ -4,10 +4,6 @@ import java.awt.Dimension;
 import java.awt.Rectangle;
 
 public class EllipsesUtils {
-	public EllipsesUtils() {
-
-	}
-
 	/**
 	 * Helper function for {@link EllipsesUtils#getLabelDimensions(String, Dimension, Dimension)}.
 	 * 
@@ -16,7 +12,7 @@ public class EllipsesUtils {
 	 * @param bounds
 	 * @return Dimension
 	 */
-	protected static Dimension getLabelDimensions(String position, Dimension labelWidthHeight, Rectangle bounds) {
+	Dimension getLabelDimensions(String position, Dimension labelWidthHeight, Rectangle bounds) {
 		Dimension oldDimensions = getEllipsesDimensions(position, bounds);
 		return getLabelDimensions(position, oldDimensions, labelWidthHeight);	
 	}
@@ -29,7 +25,7 @@ public class EllipsesUtils {
 	 * @param oldDimension
 	 * @return Dimension
 	 */
-	private static Dimension getLabelDimensions(String position, Dimension oldDimension, Dimension labelWidthHeight) {
+	private Dimension getLabelDimensions(String position, Dimension oldDimension, Dimension labelWidthHeight) {
 		double x = oldDimension.getWidth();
 		double y = oldDimension.getHeight();
 		double width = labelWidthHeight.getWidth();
@@ -73,7 +69,7 @@ public class EllipsesUtils {
 	 * @param bounds
 	 * @return Dimension
 	 */
-	private static Dimension getEllipsesDimensions(String position, Rectangle bounds) {
+	private Dimension getEllipsesDimensions(String position, Rectangle bounds) {
 		double radians = 0, x, y;
 
 		switch (position.toUpperCase()) {

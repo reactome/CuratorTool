@@ -74,7 +74,8 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Dimension labelWidthHeight = new Dimension(w, h);
 
         // Translated dimension of the label.
-        Dimension newDimensions = EllipsesUtils.getLabelDimensions(position, labelWidthHeight, bounds);
+        EllipsesUtils ellipsesUtils = new EllipsesUtils();
+        Dimension newDimensions = ellipsesUtils.getLabelDimensions(position, labelWidthHeight, bounds);
         int x = (int)(newDimensions.getWidth());
         int y = (int)(newDimensions.getHeight());
         // Some shapes for the labeling
