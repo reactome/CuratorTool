@@ -117,8 +117,8 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 		double labelHeight = labelDimensions.getHeight();
 		double boundsTop   = bounds.getMinY();
 		double boundsLeft  = bounds.getMinX();
-		y += 2 * labelHeight * ((boundsTop - y)          / y);
-		x -= 4 * labelWidth  * ((x         - boundsLeft) / x);
+		y += 6 * labelHeight * ((boundsTop - y)          / y);
+		x -= 6 * labelWidth  * ((x         - boundsLeft) / x);
 
 		Point newCoordinates = new Point();
 		newCoordinates.setLocation(x, y);
