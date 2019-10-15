@@ -18,7 +18,6 @@ import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
 
-import org.gk.render.EllipsesUtils.EllipsesPosition;
 import org.gk.util.DrawUtilities;
 
 public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderConstants {
@@ -66,18 +65,13 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         // Make sure it is drawn at the bottom right corner
         Rectangle bounds = node.getBounds();
 
-        // The position of the label.
-        // Supported positions: RIGHT, TOPRIGHT, TOP, TOPLEFT, LEFT, BOTTOMLEFT, BOTTOM, BOTTOMRIGHT.
-        EllipsesPosition position = EllipsesPosition.TOPRIGHT;
-
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
         Dimension labelDimensions = new Dimension(w, h);
 
         // Translated dimension of the label.
-        EllipsesUtils ellipsesUtils = new EllipsesUtils();
-        Point newCoordinates = ellipsesUtils.getLabelCoordinates(position, labelDimensions, bounds);
+        Point newCoordinates = getLabelCoordinates(labelDimensions, bounds);
         int x = (int) newCoordinates.getX();
         int y = (int) newCoordinates.getY();
         // Some shapes for the labeling
@@ -100,6 +94,36 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         g2.setFont(oldFond);
         g2.setColor(oldColor);
     }
+
+	/**
+	 * Returns a dimension corresponding to a bottomright point on an ellipse.
+	 * "Corrects" the label coordinates by moving it left, right, up, or down to fit within the ellipses' boundary.
+	 *
+	 * @param position
+	 * @param labelCoordinates
+	 * @return Point
+	 */
+	private Point getLabelCoordinates(Dimension labelDimensions, Rectangle bounds) {
+		// Bottom right coordinates.
+		double x, y;
+		double radians = (7. * Math.PI / 4.);
+		double a = bounds.getWidth() / 2.0;
+		double b = bounds.getHeight() / 2.0;
+		x = bounds.getCenterX() + a * Math.cos(radians);
+		y = bounds.getCenterY() - b * Math.sin(radians);
+
+		// Correct the label coordinate.
+		double labelWidth  = labelDimensions.getWidth();
+		double labelHeight = labelDimensions.getHeight();
+		double boundsTop   = bounds.getMinY();
+		double boundsLeft  = bounds.getMinX();
+		y += 2 * labelHeight * ((boundsTop - y)          / y);
+		x -= 2 * labelWidth  * ((x         - boundsLeft) / x);
+
+		Point newCoordinates = new Point();
+		newCoordinates.setLocation(x, y);
+		return newCoordinates;
+	}
     
     protected void setDrawPaintAndStroke(Graphics2D g2) {
         // Set line color first
