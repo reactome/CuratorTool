@@ -21,7 +21,7 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     protected void renderShapes(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
-        // The following code is used to draw two same size shapes with a litte shift
+        // The following code is used to draw two same size shapes with a little shift
 //        // Draw an extra rectangle
 //        g.translate(MULTIMER_RECT_DIST, -MULTIMER_RECT_DIST); // MULTIMER_RECT_DIST = 3
 //        renderShapes(bounds, g2);

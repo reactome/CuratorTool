@@ -32,7 +32,12 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
+import org.gk.model.ReactomeJavaConstants;
 import org.gk.osxAdapter.OSXApplication;
+import org.gk.schema.SchemaClass;
+import org.junit.Test;
 import org.w3c.dom.Document;
 /**
  * A list of utilities that can be used in the gk applications.
@@ -833,5 +838,45 @@ public class GKApplicationUtilities {
     	 }
      }
 
+     /**
+      * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).
+      *
+      * @param instance
+      * @throws Exception
+      * @returns boolean
+      */
+     public static boolean isDrug(GKInstance instance) throws Exception {
+    	 if (instance == null)
+    		 return false;
 
+    	 SchemaClass schemaClass = instance.getSchemClass();
+    	 // Check if instance is a drug.
+    	 if (schemaClass.isValidAttribute(ReactomeJavaConstants.Drug))
+    		 return true;
+
+    	 // Check if instance contains a drug.
+    	 List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+												   ReactomeJavaConstants.Complex);
+    	 // No EntitySets or Complexes.
+    	 if (validClasses.stream().noneMatch(schemaClass::isa))
+			 return false;
+
+    	 // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+    	 Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
+																		   ReactomeJavaConstants.hasMember,
+																		   ReactomeJavaConstants.hasCandidate);
+    	 // No members.
+    	 if (members.size() == 0 || members == null)
+    		 return false;
+
+    	 return members.stream()
+					   .map(GKInstance::getSchemClass)
+					   .anyMatch(member -> member.isValidAttribute(ReactomeJavaConstants.Drug));
+
+     }
+
+     @Test
+     public void testIsDrug() {
+
+     }
 }

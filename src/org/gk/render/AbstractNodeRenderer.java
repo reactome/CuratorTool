@@ -19,6 +19,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.List;
 
 import org.gk.util.DrawUtilities;
+import org.gk.util.GKApplicationUtilities;
 
 public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderConstants {
     protected Node node;
@@ -51,11 +52,25 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         drawNodeAttachments(g);
         drawMultimerMonomerNumber(g);
         RenderUtility.drawName(node, (Graphics2D)g);
+        // Will only draw drug components if the node is or contains a drug.
+        renderDrug(g);
     }
 
     protected abstract void renderShapes(Graphics g);
     
-    protected void renderDrugLabel(Graphics g) {
+    protected void renderDrug(Graphics g) {
+        // Check if the node is or contains a drug instance.
+    	try {
+			if (!GKApplicationUtilities.isDrug(node.getInstance()))
+				return;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+        node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
+        node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        Node.setHeightRatioOfBoundsToText(2.);
+
         // Want to use a smaller font
         Font font = g.getFont();
         Font oldFond = font;
@@ -105,20 +120,11 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 	 */
 	private Point getLabelCoordinates(Dimension labelDimensions, Rectangle bounds) {
 		// Bottom right coordinates.
-		double x, y;
 		double radians = (7. * Math.PI / 4.);
 		double a = bounds.getWidth() / 2.0;
 		double b = bounds.getHeight() / 2.0;
-		x = bounds.getCenterX() + a * Math.cos(radians);
-		y = bounds.getCenterY() - b * Math.sin(radians);
-
-		// Correct the label coordinate.
-		double labelWidth  = labelDimensions.getWidth();
-		double labelHeight = labelDimensions.getHeight();
-		double boundsTop   = bounds.getMinY();
-		double boundsLeft  = bounds.getMinX();
-		y += 6 * labelHeight * ((boundsTop - y)          / y);
-		x -= 6 * labelWidth  * ((x         - boundsLeft) / x);
+		double x = bounds.getCenterX() + a * Math.cos(radians) - labelDimensions.getWidth();
+		double y = bounds.getCenterY() - b * Math.sin(radians) - labelDimensions.getHeight();
 
 		Point newCoordinates = new Point();
 		newCoordinates.setLocation(x, y);
