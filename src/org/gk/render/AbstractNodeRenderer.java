@@ -12,11 +12,13 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
 
+import org.gk.render.EllipsesUtils.EllipsesPosition;
 import org.gk.util.DrawUtilities;
 
 public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderConstants {
@@ -64,20 +66,20 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         // Make sure it is drawn at the bottom right corner
         Rectangle bounds = node.getBounds();
 
-        // The position of the label (case-insensitive).
+        // The position of the label.
         // Supported positions: RIGHT, TOPRIGHT, TOP, TOPLEFT, LEFT, BOTTOMLEFT, BOTTOM, BOTTOMRIGHT.
-        String position = "BOTTOMRIGHT";
+        EllipsesPosition position = EllipsesPosition.TOPRIGHT;
 
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
-        Dimension labelWidthHeight = new Dimension(w, h);
+        Dimension labelDimensions = new Dimension(w, h);
 
         // Translated dimension of the label.
         EllipsesUtils ellipsesUtils = new EllipsesUtils();
-        Dimension newDimensions = ellipsesUtils.getLabelDimensions(position, labelWidthHeight, bounds);
-        int x = (int)(newDimensions.getWidth());
-        int y = (int)(newDimensions.getHeight());
+        Point newCoordinates = ellipsesUtils.getLabelCoordinates(position, labelDimensions, bounds);
+        int x = (int) newCoordinates.getX();
+        int y = (int) newCoordinates.getY();
         // Some shapes for the labeling
         if (background == null) { 
             g2.setPaint(DEFAULT_BACKGROUND);
@@ -85,9 +87,6 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         else {
             g2.setPaint(background);
         }
-        g2.fillRect(x, y, w, h);
-        setDrawPaintAndStroke(g2);
-        
         // Draw the drug label
         g2.setFont(font);
         Color oldColor = g2.getColor();

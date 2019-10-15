@@ -1,64 +1,45 @@
 package org.gk.render;
 
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 
-public class EllipsesUtils {
+class EllipsesUtils {
 	/**
-	 * Helper function for {@link EllipsesUtils#getLabelDimensions(String, Dimension, Dimension)}.
+	 * Helper function for {@link EllipsesUtils#getLabelCoordinates(String, Dimension, Dimension)}.
 	 * 
 	 * @param position
-	 * @param labelWidthHeight
+	 * @param labelCoordinates
 	 * @param bounds
 	 * @return Dimension
 	 */
-	Dimension getLabelDimensions(String position, Dimension labelWidthHeight, Rectangle bounds) {
-		Dimension oldDimensions = getEllipsesDimensions(position, bounds);
-		return getLabelDimensions(position, oldDimensions, labelWidthHeight);	
+	Point getLabelCoordinates(EllipsesPosition position, Dimension labelDimensions, Rectangle bounds) {
+		Point oldCoordinates = getEllipsesCoordinates(position, bounds);
+		return getLabelCoordinates(position, oldCoordinates, labelDimensions, bounds);	
 	}
 
 	/**
 	 * "Corrects" the label dimensions by moving it left, right, up, or down to fit within the ellipses' boundary.
 	 * 
 	 * @param position
-	 * @param labelWidthHeight
-	 * @param oldDimension
-	 * @return Dimension
+	 * @param labelCoordinates
+	 * @param oldCoordinates
+	 * @return Point
 	 */
-	private Dimension getLabelDimensions(String position, Dimension oldDimension, Dimension labelWidthHeight) {
-		double x = oldDimension.getWidth();
-		double y = oldDimension.getHeight();
-		double width = labelWidthHeight.getWidth();
-		double height = labelWidthHeight.getHeight();
-		Dimension newDimensions = new Dimension();
-		switch (position.toUpperCase()) {
-			case "RIGHT":
-				newDimensions.setSize(x - width * 2, y - height / 2);
-				break;
-			case "TOPRIGHT":
-				newDimensions.setSize(x - width,     y + height);
-				break;
-			case "TOP":
-				newDimensions.setSize(x - width / 2, y + height);
-				break;
-			case "TOPLEFT":
-				newDimensions.setSize(x + width,     y + height);
-				break;
-			case "LEFT":
-				newDimensions.setSize(x + width,     y - height / 2);
-				break;
-			case "BOTTOMLEFT":
-				newDimensions.setSize(x + width,     y - height);	
-				break;
-			case "BOTTOM":
-				newDimensions.setSize(x - width / 2, y - height * 2);
-				break;
-			case "BOTTOMRIGHT":
-				newDimensions.setSize(x - width,     y - height);
-				break;
-		}
+	private Point getLabelCoordinates(EllipsesPosition position, Point oldCoordinates, Dimension labelDimensions, Rectangle bounds) {
+		double x           = oldCoordinates.getX();
+		double y           = oldCoordinates.getY();
+		double labelWidth  = labelDimensions.getWidth();
+		double labelHeight = labelDimensions.getHeight();
+		double boundsTop   = bounds.getMinY();
+		double boundsLeft  = bounds.getMinX();
 
-		return newDimensions;
+		y += 2 * labelHeight * ((boundsTop - y)          / y);
+		x -= 2 * labelWidth  * ((x         - boundsLeft) / x);
+
+		Point newCoordinates = new Point();
+		newCoordinates.setLocation(x, y);
+		return newCoordinates;
 	}
 
 	/**
@@ -67,52 +48,54 @@ public class EllipsesUtils {
 	 * 
 	 * @param position
 	 * @param bounds
-	 * @return Dimension
+	 * @return Point
 	 */
-	private Dimension getEllipsesDimensions(String position, Rectangle bounds) {
+	private Point getEllipsesCoordinates(EllipsesPosition position, Rectangle bounds) {
 		double radians = 0, x, y;
 
-		switch (position.toUpperCase()) {
-			case "RIGHT":
+		switch (position) {
+			case RIGHT:
 				radians = EllipsesPosition.RIGHT.getRadians();
 				break;
-			case "TOPRIGHT":
+			case TOPRIGHT:
 				radians = EllipsesPosition.TOPRIGHT.getRadians();
 				break;
-			case "TOP":
+			case TOP:
 				radians = EllipsesPosition.TOP.getRadians();
 				break;
-			case "TOPLEFT":
+			case TOPLEFT:
 				radians = EllipsesPosition.TOPLEFT.getRadians();
 				break;
-			case "LEFT":
+			case LEFT:
 				radians = EllipsesPosition.LEFT.getRadians();
 				break;
-			case "BOTTOMLEFT":
+			case BOTTOMLEFT:
 				radians = EllipsesPosition.BOTTOMLEFT.getRadians();
 				break;
-			case "BOTTOM":
+			case BOTTOM:
 				radians = EllipsesPosition.BOTTOM.getRadians();
 				break;
-			case "BOTTOMRIGHT":
+			case BOTTOMRIGHT:
 				radians = EllipsesPosition.BOTTOMRIGHT.getRadians();
 				break;
+		    default:
+				radians = EllipsesPosition.BOTTOMRIGHT.getRadians();
 		}
 
 		double a = bounds.getWidth() / 2.0;
 		double b = bounds.getHeight() / 2.0;
-		x = (int) (bounds.getCenterX() + a * Math.cos(radians));
-		y = (int) (bounds.getCenterY() - b * Math.sin(radians));
+		x = bounds.getCenterX() + a * Math.cos(radians);
+		y = bounds.getCenterY() - b * Math.sin(radians);
 
-		Dimension xy = new Dimension();
-		xy.setSize(x, y);
+		Point xy = new Point();
+		xy.setLocation(x, y);
 		return xy;
 	}
 
 	/**
 	 * Radians for each position along an ellipses.
 	 */
-	private enum EllipsesPosition {
+	static enum EllipsesPosition {
 		RIGHT       (0.               ),
 		TOPRIGHT    (     Math.PI / 4.),
 		TOP         (     Math.PI / 2.),
@@ -127,7 +110,6 @@ public class EllipsesUtils {
 		}
 
 		private double radians;
-
 		public double getRadians() {
 			return radians;
 		}
