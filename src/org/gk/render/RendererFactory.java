@@ -44,6 +44,9 @@ public class RendererFactory {
         Renderer complexRenderer = new DefaultComplexRenderer();
         clsToRenderer.put(RenderableComplex.class,
                           complexRenderer);
+        Renderer complexDrugRenderer = new DefaultComplexDrugRenderer();
+        clsToRenderer.put(RenderableComplexDrug.class,
+                          complexDrugRenderer);
         Renderer pathwayRenderer = new DefaultPathwayRenderer();
         clsToRenderer.put(RenderablePathway.class,
                           pathwayRenderer);
@@ -74,6 +77,9 @@ public class RendererFactory {
         Renderer entitySetRenderer = new DefaultEntitySetRenderer();
         clsToRenderer.put(RenderableEntitySet.class,
                           entitySetRenderer);
+        Renderer entitySetDrugRenderer= new DefaultEntitySetDrugRenderer();
+        clsToRenderer.put(RenderableEntitySetDrug.class,
+                          entitySetDrugRenderer);
         Renderer renderer = new DefaultChemicalRenderer();
         clsToRenderer.put(RenderableChemical.class,
                           renderer);
