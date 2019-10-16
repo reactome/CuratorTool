@@ -19,7 +19,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.List;
 
 import org.gk.util.DrawUtilities;
-import org.gk.util.GKApplicationUtilities;
 
 public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderConstants {
     protected Node node;
@@ -52,25 +51,11 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         drawNodeAttachments(g);
         drawMultimerMonomerNumber(g);
         RenderUtility.drawName(node, (Graphics2D)g);
-        // Will only draw drug components if the node is or contains a drug.
-        renderDrug(g);
     }
 
     protected abstract void renderShapes(Graphics g);
     
-    protected void renderDrug(Graphics g) {
-        // Check if the node is or contains a drug instance.
-    	try {
-			if (!GKApplicationUtilities.isDrug(node.getInstance()))
-				return;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-        node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
-        node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
-        Node.setHeightRatioOfBoundsToText(2.);
-
+    protected void renderDrugLabel(Graphics g) {
         // Want to use a smaller font
         Font font = g.getFont();
         Font oldFond = font;
