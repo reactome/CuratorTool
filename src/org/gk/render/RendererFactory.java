@@ -10,7 +10,7 @@ import java.util.Map;
 
 
 /**
- * This class is refactored from PathwayEditor, and used to help rendering and editing
+ * This class is refactored from PathwayEditor, and used to help renderering and editing
  * for in PathwayEditor.
  * @author guanming
  *
