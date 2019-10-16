@@ -20,6 +20,8 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.model.Reference;
 import org.gk.model.Summation;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
+import org.gk.util.GKApplicationUtilities;
 import org.gk.util.GraphLayoutEngine;
 
 /**
@@ -222,16 +224,25 @@ public class InstanceToRenderableConverter {
     private static Node convertToNode(GKInstance instance, boolean needProp, Map map) throws Exception {
         GKSchemaClass schemaClass = (GKSchemaClass)instance.getSchemClass();
         Node node = null;
-        if (schemaClass.isa("Complex")) {
-            node = convertToComplex(instance, needProp, map);
+        if (schemaClass.isa(ReactomeJavaConstants.Complex)) {
+        	if (GKApplicationUtilities.isDrug(instance))
+				node = convertToComplexDrug(instance, needProp, map);
+        	else
+				node = convertToComplex(instance, needProp, map);
         }
-        else if (schemaClass.isa("PhysicalEntity")) {
-            node = convertToEntity(instance, needProp, map);
+        else if (schemaClass.isa(ReactomeJavaConstants.PhysicalEntity)) {
+			node = convertToEntity(instance, needProp, map);
         }
-        else if (schemaClass.isa("Reaction")) {
+        else if (schemaClass.isa(ReactomeJavaConstants.EntitySet)) {
+        	if (GKApplicationUtilities.isDrug(instance))
+				node = convertToEntitySetDrug(instance, needProp, map);
+        	else
+				node = convertToEntitySet(instance, needProp, map);
+        }
+        else if (schemaClass.isa(ReactomeJavaConstants.Reaction)) {
             node = convertToReactionNode(instance, needProp, map);
         }
-        else if (schemaClass.isa("Pathway")) {
+        else if (schemaClass.isa(ReactomeJavaConstants.Pathway)) {
             node = convertToPathway(instance, needProp, map);
         }
         else if (schemaClass.isa(ReactomeJavaConstants.ConceptualEvent))
@@ -266,9 +277,41 @@ public class InstanceToRenderableConverter {
         convertedMap.put(instance, entity);
         return entity;
     }
+
+    private static RenderableEntitySet convertToEntitySet(GKInstance instance,
+														  boolean needProp,
+														  Map convertedMap)
+														  throws InvalidAttributeException, Exception {
+        RenderableEntitySet entity = (RenderableEntitySet) convertedMap.get(instance);
+        if (entity != null) {
+            RenderableEntitySet shortcut = (RenderableEntitySet) entity.generateShortcut();
+            return shortcut;
+        }
+        entity = new RenderableEntitySet(instance.getDisplayName());
+        addMembers(instance, needProp, convertedMap, entity);
+        convertedMap.put(instance, entity);
+        return entity;
+    }
+
+    private static RenderableEntitySetDrug convertToEntitySetDrug(GKInstance instance,
+																  boolean needProp,
+																  Map convertedMap)
+																  throws InvalidAttributeException, Exception {
+        RenderableEntitySetDrug entity = (RenderableEntitySetDrug) convertedMap.get(instance);
+        if (entity != null) {
+            RenderableEntitySetDrug shortcut = (RenderableEntitySetDrug) entity.generateShortcut();
+            return shortcut;
+        }
+        entity = new RenderableEntitySetDrug(instance.getDisplayName());
+        addMembers(instance, needProp, convertedMap, entity);
+        convertedMap.put(instance, entity);
+        return entity;
+    }
     
-    private static RenderableComplex convertToComplex(GKInstance instance, boolean needProp, Map convertedMap) 
-    		throws Exception {
+    private static RenderableComplex convertToComplex(GKInstance instance,
+													  boolean needProp,
+													  Map convertedMap) 
+													  throws Exception {
         RenderableComplex complex = (RenderableComplex) convertedMap.get(instance);
         if (complex != null) {
             // Create a shortcut
@@ -276,17 +319,7 @@ public class InstanceToRenderableConverter {
             return shortcut;
         }
         complex = new RenderableComplex(instance.getDisplayName());
-        java.util.List components = instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
-        if (components != null) {
-            for (Iterator it = components.iterator(); it.hasNext();) {
-                GKInstance tmp = (GKInstance) it.next();
-                Renderable node = convertToNode(tmp, needProp, convertedMap);
-                if (node != null) {
-                    complex.addComponent(node);
-                    node.setContainer(complex);
-                }
-            }
-        }
+        addMembers(instance, needProp, convertedMap, complex);
         if (complex.getPosition() == null)
             complex.setPosition(50, 50); // Assign an arbitrary position
         complex.layout();
@@ -297,10 +330,53 @@ public class InstanceToRenderableConverter {
                 node.move(150, 100); // These two values are arbitrary
             }
         }
+
+        convertedMap.put(instance, complex);
+        return complex;
+    }
+
+    private static RenderableComplexDrug convertToComplexDrug(GKInstance instance,
+															  boolean needProp,
+															  Map convertedMap) 
+															  throws Exception {
+        RenderableComplexDrug complex = (RenderableComplexDrug) convertedMap.get(instance);
+        if (complex != null) {
+            // Create a shortcut
+            RenderableComplexDrug shortcut = (RenderableComplexDrug) complex.generateShortcut();
+            return shortcut;
+        }
+        complex = new RenderableComplexDrug(instance.getDisplayName());
+        addMembers(instance, needProp, convertedMap, complex);
+        if (complex.getPosition() == null)
+            complex.setPosition(50, 50); // Assign an arbitrary position
+        complex.layout();
+        // Move a little bit
+        if (complex.getComponents() != null) {
+            for (Iterator it = complex.getComponents().iterator(); it.hasNext();) {
+                Renderable node = (Renderable) it.next();
+                node.move(150, 100); // These two values are arbitrary
+            }
+        }
+
         convertedMap.put(instance, complex);
         return complex;
     }
     
+    private static void addMembers(GKInstance instance, boolean needProp, Map convertedMap, Node containerNode)
+    		throws InvalidAttributeException, Exception {
+        java.util.List components = instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+        if (components != null) {
+            for (Iterator<GKInstance> it = components.iterator(); it.hasNext();) {
+                GKInstance tmp = it.next();
+                Renderable node = convertToNode(tmp, needProp, convertedMap);
+                if (node != null) {
+                    containerNode.addComponent(node);
+                    node.setContainer(containerNode);
+                }
+            }
+        }
+    }
+
     /**
      * Use this method to convert a GK Pathway to a RenderablePathway. This method is
      * used to convert three GKInstances, Pathway, ConceptualEvent, EquivalentEventSet
