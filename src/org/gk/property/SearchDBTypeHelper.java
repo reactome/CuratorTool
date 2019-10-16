@@ -190,8 +190,11 @@ public class SearchDBTypeHelper {
     
     public Class guessNodeType(GKInstance entity) throws Exception {
         SchemaClass cls = entity.getSchemClass();
-        if (cls.isa(ReactomeJavaConstants.Complex))
+        if (cls.isa(ReactomeJavaConstants.Complex)) {
+        	if (GKApplicationUtilities.isDrug(entity))
+				return RenderableComplexDrug.class;
             return RenderableComplex.class;
+        }
         else if (cls.isa(ReactomeJavaConstants.SimpleEntity))
             return RenderableChemical.class;
         // Rollback the original three sub drug types as of December 10, 2018.
@@ -233,9 +236,15 @@ public class SearchDBTypeHelper {
             else
                 return RenderableProtein.class; // Use the protein as the default type since it should dominate
         }
-        else if (cls.isa(ReactomeJavaConstants.EntitySet)) {
+        else if (cls.isa(ReactomeJavaConstants.EntitySet)
+        		|| cls.getOrderedAncestors()
+					  .stream()
+					  .anyMatch(ancestor -> ((SchemaClass) ancestor).isa(ReactomeJavaConstants.EntitySet))) {
             // As of December, 2013, use a single class for EntitySet
-            return RenderableEntitySet.class;
+
+        	if (GKApplicationUtilities.isDrug(entity))
+				return RenderableEntitySetDrug.class;
+			return RenderableEntitySet.class;
 //            // Get the represented PE
 //            Set<GKInstance> members = getRepresentedEntities(entity);
 //            if (members != null && members.size() > 0) {
