@@ -35,7 +35,6 @@ import org.gk.render.RenderableRNA;
 import org.gk.render.RenderableRNADrug;
 import org.gk.render.RenderableReaction;
 import org.gk.schema.SchemaClass;
-import org.gk.util.GKApplicationUtilities;
 
 /**
  * A helper class for mapping types to GKInstance, Renderable
@@ -200,7 +199,7 @@ public class SearchDBTypeHelper {
     public Class<?> guessNodeType(GKInstance entity) throws Exception {
         SchemaClass cls = entity.getSchemClass();
         if (cls.isa(ReactomeJavaConstants.Complex)) {
-        	if (GKApplicationUtilities.isDrug(entity))
+        	if (InstanceUtilities.isDrug(entity))
 				return RenderableComplexDrug.class;
             return RenderableComplex.class;
         }
@@ -249,7 +248,7 @@ public class SearchDBTypeHelper {
         {
             // As of December, 2013, use a single class for EntitySet
 
-        	if (GKApplicationUtilities.isDrug(entity))
+        	if (InstanceUtilities.isDrug(entity))
 				return RenderableEntitySetDrug.class;
 			return RenderableEntitySet.class;
 //            // Get the represented PE
