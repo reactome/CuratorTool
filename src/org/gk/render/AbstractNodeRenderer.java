@@ -56,6 +56,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     protected abstract void renderShapes(Graphics g);
 
     protected void renderDrugLabel(Graphics g) {
+    	// Default to rectangle.
 		renderDrugLabel(g, DRUG_SHAPE.RECTANGLE);
     }
 

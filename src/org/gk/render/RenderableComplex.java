@@ -619,20 +619,7 @@ public class RenderableComplex extends ContainerNode {
         }
         return false;
     }
-    
-    @Override
-    protected void setTextPositionFromBounds() {
-        if (bounds == null)
-            return; // Wait for bounds is setting.
-        if (textBounds == null) {
-            textBounds = new Rectangle(bounds);
-        }
-        else {
-            textBounds.x = bounds.x + (bounds.width - textBounds.width) / 2;
-            textBounds.y = bounds.y + bounds.height - textBounds.height;
-        }
-    }
-    
+ 
     /**
      * Break the links of this complex to other shortcuts.
      */

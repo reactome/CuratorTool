@@ -247,7 +247,6 @@ public class SearchDBTypeHelper {
         else if (cls.isa(ReactomeJavaConstants.EntitySet))
         {
             // As of December, 2013, use a single class for EntitySet
-
         	if (InstanceUtilities.isDrug(entity))
 				return RenderableEntitySetDrug.class;
 			return RenderableEntitySet.class;

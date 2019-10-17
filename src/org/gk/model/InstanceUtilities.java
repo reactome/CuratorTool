@@ -1476,7 +1476,7 @@ public class InstanceUtilities {
     	 entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
     	 assertEquals(false, isDrug(entitySet));
     	 
-    	 // Control Complex.
+    	 // Control Complex (activated NPR1/NH1 [cytosol]).
     	 GKInstance complex = testDBA.fetchInstance(6788198L);
     	 assertEquals(false, isDrug(complex));
 
