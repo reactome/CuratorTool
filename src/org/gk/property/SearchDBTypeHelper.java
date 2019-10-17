@@ -245,10 +245,8 @@ public class SearchDBTypeHelper {
             else
                 return RenderableProtein.class; // Use the protein as the default type since it should dominate
         }
-        else if (cls.isa(ReactomeJavaConstants.EntitySet)
-        		|| cls.getOrderedAncestors()
-					  .stream()
-					  .anyMatch(ancestor -> ((SchemaClass) ancestor).isa(ReactomeJavaConstants.EntitySet))) {
+        else if (cls.isa(ReactomeJavaConstants.EntitySet))
+        {
             // As of December, 2013, use a single class for EntitySet
 
         	if (GKApplicationUtilities.isDrug(entity))

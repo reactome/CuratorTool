@@ -3,8 +3,6 @@
  */
 package org.gk.util;
 
-import static org.junit.Assert.assertEquals;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -25,14 +23,11 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -57,13 +52,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
 import org.gk.osxAdapter.OSXApplication;
-import org.gk.persistence.MySQLAdaptor;
-import org.gk.schema.SchemaClass;
-import org.junit.Test;
 import org.w3c.dom.Document;
 /**
  * A list of utilities that can be used in the gk applications.
@@ -862,98 +851,5 @@ public class GKApplicationUtilities {
     	 catch(Exception e) {
     		 // Just don't do anything here! It is not a big deal!
     	 }
-     }
-
-     /**
-      * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).
-      *
-      * @param instance
-      * @throws Exception
-      * @returns boolean
-      */
-     public static boolean isDrug(GKInstance instance) throws Exception {
-    	 if (instance == null)
-    		 return false;
-
-    	 SchemaClass schemaClass = instance.getSchemClass();
-    	 // Check if instance is a drug.
-    	 if (schemaClass.isValidAttribute(ReactomeJavaConstants.Drug))
-    		 return true;
-
-    	 List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-												   ReactomeJavaConstants.Complex);
-    	 // Check id instance is an EntitySet or Complex.
-    	 if (validClasses.stream().noneMatch(schemaClass::isa))
-			 return false;
-
-    	 // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-    	 Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
-																		   ReactomeJavaConstants.hasMember,
-																		   ReactomeJavaConstants.hasCandidate);
-    	 // No members.
-    	 if (members.size() == 0 || members == null)
-    		 return false;
-
-    	 // Check if instance contains a drug by:
-    	 //   (1) Iterating over all schema classes of the instance's members.
-    	 //   (2) Getting a list of ancestor schema classes (for a given schema class).
-    	 //   (3) Checking if any of the ancestor schema class is a Drug class.
-    	 // This will miss the case where a member has a schema class of simply "Drug", but since all drug schema
-    	 // classes are currently classified as either "ChemicalDrug", "ProteinDrug", or "RNADrug", this should be OK.
-    	 return members.stream()
-					   .map(GKInstance::getSchemClass)
-					   .flatMap(member -> member.getOrderedAncestors().stream())
-					   .anyMatch(ancestor -> ((SchemaClass) ancestor).isa(ReactomeJavaConstants.Drug));
-     }
-
-    public MySQLAdaptor getTestDBA() throws SQLException {
-    	return new MySQLAdaptor("localhost",
-								"reactome",
-								"liam",
-								")8J7m]!%[<");
-    }
-
-     @Test
-     public void testIsDrug() throws Exception {
-    	 MySQLAdaptor testDBA = getTestDBA();
-    	 // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
-    	 GKInstance entitySet = testDBA.fetchInstance(5632097L);
-    	 assertEquals(false, isDrug(entitySet));
-
-    	 // Add drug instance (17-AAG [cytosol]) to member set.
-    	 GKInstance drug = testDBA.fetchInstance(1217506L);
-    	 entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
-
-    	 // Test to confirm it now contains a drug instance (should return true).
-    	 assertEquals(true, isDrug(entitySet));
-
-    	 // Remove added drug and retest (should return false).
-    	 entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
-    	 assertEquals(false, isDrug(entitySet));
-     }
-
-     @Test
-     public void testIsDrugIntegration() throws Exception {
-    	 MySQLAdaptor testDBA = getTestDBA();
-    	 // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
-    	 GKInstance entitySet = testDBA.fetchInstance(5632097L);
-    	 // Add drug instance (17-AAG [cytosol]) to member set.
-    	 GKInstance drug = testDBA.fetchInstance(1217506L);
-    	 entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
-
-    	 boolean needTransaction = testDBA.supportsTransactions();
-    	 try {
-    		 if (needTransaction)
-    			 testDBA.startTransaction();
-
-    		 testDBA.updateInstanceAttribute(entitySet, ReactomeJavaConstants.hasMember);
-    		 if (needTransaction)
-    			 testDBA.commit();
-    	 }
-    	 catch(Exception e) {
-    		 if (needTransaction)
-    			 testDBA.rollback();
-    	 }
-    	 // Test to confirm it now contains a drug instance (should be purple with "Rx" label in ELV).
      }
 }
