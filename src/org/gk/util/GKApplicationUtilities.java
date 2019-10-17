@@ -881,16 +881,18 @@ public class GKApplicationUtilities {
 					   .map(GKInstance::getSchemClass)
 					   .flatMap(member -> member.getOrderedAncestors().stream())
 					   .anyMatch(ancestor -> ((SchemaClass) ancestor).isa(ReactomeJavaConstants.Drug));
-
-
      }
+
+    public MySQLAdaptor getTestDBA() throws SQLException {
+    	return new MySQLAdaptor("localhost",
+								"reactome",
+								"liam",
+								")8J7m]!%[<");
+    }
 
      @Test
      public void testIsDrug() throws Exception {
-    	 MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
-												 "reactome",
-												 "liam",
-												 ")8J7m]!%[<");
+    	 MySQLAdaptor testDBA = getTestDBA();
     	 // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
     	 GKInstance entitySet = testDBA.fetchInstance(5632097L);
     	 assertEquals(false, isDrug(entitySet));
@@ -899,11 +901,36 @@ public class GKApplicationUtilities {
     	 GKInstance drug = testDBA.fetchInstance(1217506L);
     	 entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
 
-    	 // Test to confirm it now contains a drug instance (should return true.
+    	 // Test to confirm it now contains a drug instance (should return true).
     	 assertEquals(true, isDrug(entitySet));
 
     	 // Remove added drug and retest (should return false).
     	 entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
     	 assertEquals(false, isDrug(entitySet));
+     }
+
+     @Test
+     public void testIsDrugIntegration() throws Exception {
+    	 MySQLAdaptor testDBA = getTestDBA();
+    	 // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
+    	 GKInstance entitySet = testDBA.fetchInstance(5632097L);
+    	 // Add drug instance (17-AAG [cytosol]) to member set.
+    	 GKInstance drug = testDBA.fetchInstance(1217506L);
+    	 entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
+
+    	 boolean needTransaction = testDBA.supportsTransactions();
+    	 try {
+    		 if (needTransaction)
+    			 testDBA.startTransaction();
+
+    		 testDBA.updateInstanceAttribute(entitySet, ReactomeJavaConstants.hasMember);
+    		 if (needTransaction)
+    			 testDBA.commit();
+    	 }
+    	 catch(Exception e) {
+    		 if (needTransaction)
+    			 testDBA.rollback();
+    	 }
+    	 // Test to confirm it now contains a drug instance (should be purple with "Rx" label in ELV).
      }
 }
