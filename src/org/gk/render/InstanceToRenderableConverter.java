@@ -20,8 +20,6 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.model.Reference;
 import org.gk.model.Summation;
 import org.gk.schema.GKSchemaClass;
-import org.gk.schema.InvalidAttributeException;
-import org.gk.util.GKApplicationUtilities;
 import org.gk.util.GraphLayoutEngine;
 
 /**

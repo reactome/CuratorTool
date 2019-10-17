@@ -139,7 +139,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         if (!(converted instanceof RenderableReaction))
             return; // It cannot be displayed in the ELV.
         r = (RenderableReaction) converted;
-        pathwayEditor.insertEdge((HyperEdge)r, true);
+        pathwayEditor.insertEdge(r, true);
         handleInputs(reaction, r);
         handleOutputs(reaction, r);
         // Get the catalyst
@@ -239,6 +239,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             rPe = zoomableEditor.getFreeFormObject(pe);
         if (rPe == null)
             rPe = zoomableEditor.insertInstance(pe);
+        System.out.println("rPe: " + rPe);
         return rPe;
     }
     

@@ -10,5 +10,6 @@ public class RenderableChemicalDrug extends RenderableChemical implements Defaul
     public RenderableChemicalDrug() {
         setForegroundColor(DEFAULT_DRUG_FORGROUND); // As the default for the drugs
         setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        System.out.println("Rendering chemical drug.");
     }
 }

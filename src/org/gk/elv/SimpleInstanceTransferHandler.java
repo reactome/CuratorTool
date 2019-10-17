@@ -39,7 +39,8 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
     public SimpleInstanceTransferHandler() {
     }
     
-    public boolean importListOfRenderables(ArrayList aList, 
+    @Override
+	public boolean importListOfRenderables(ArrayList aList, 
                                            GraphEditorPane graphPane) {
         if (aList == null || aList.size() == 0)
             return true;
@@ -55,6 +56,7 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
 
     private boolean importObjectFromTree(ArrayList reactomeIds,
                                          PathwayEditor pathwayEditor) {
+
         InstanceZoomablePathwayEditor zoomableEditor = (InstanceZoomablePathwayEditor) SwingUtilities.getAncestorOfClass(InstanceZoomablePathwayEditor.class,
                                                                                                                          pathwayEditor);
         // Track newly added objects for selection
@@ -90,8 +92,10 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
 //                                              JOptionPane.WARNING_MESSAGE);
 //            }
 //            else {
-                for (GKInstance entity : entities)
+                for (GKInstance entity : entities) {
+                	System.out.println("entity: " + entity);
                     zoomableEditor.insertInstance(entity);
+                }
 //            }
         }
         if (reactions.size() > 0) {
@@ -155,7 +159,8 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
         }
     }
     
-    protected Transferable createTransferable(JComponent c) {
+    @Override
+	protected Transferable createTransferable(JComponent c) {
         ArrayList<Object> list = new ArrayList<Object>();
         if (c instanceof PathwayEditor) {
             return super.createTransferable(c);

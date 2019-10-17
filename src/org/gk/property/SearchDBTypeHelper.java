@@ -24,8 +24,10 @@ import org.gk.render.Renderable;
 import org.gk.render.RenderableChemical;
 import org.gk.render.RenderableChemicalDrug;
 import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableComplexDrug;
 import org.gk.render.RenderableEntity;
 import org.gk.render.RenderableEntitySet;
+import org.gk.render.RenderableEntitySetDrug;
 import org.gk.render.RenderableGene;
 import org.gk.render.RenderableProtein;
 import org.gk.render.RenderableProteinDrug;
@@ -33,6 +35,7 @@ import org.gk.render.RenderableRNA;
 import org.gk.render.RenderableRNADrug;
 import org.gk.render.RenderableReaction;
 import org.gk.schema.SchemaClass;
+import org.gk.util.GKApplicationUtilities;
 
 /**
  * A helper class for mapping types to GKInstance, Renderable
@@ -59,7 +62,7 @@ public class SearchDBTypeHelper {
         return types;
     }
     
-    public List mapTypeToReactomeCls(String type) {
+    public List<String> mapTypeToReactomeCls(String type) {
 //      "Protein",
 //      "Complex",
 //      "Compound",
@@ -67,7 +70,7 @@ public class SearchDBTypeHelper {
 //      "Pathway",
 //      "Gene",
 //      "RNA"
-        List clsNames = new ArrayList();
+        List<String> clsNames = new ArrayList<String>();
         if (type.equals("Protein") ||
             type.equals("Gene") ||
             type.equals("RNA"))
@@ -85,12 +88,12 @@ public class SearchDBTypeHelper {
         return clsNames;
     }
     
-    public List mapGKInstanceToRenderable(String type,
-                                          List instances) {
-        Map id2Renderable = new HashMap();
-        for (Iterator it = instances.iterator(); it.hasNext();) {
+    public List<Renderable> mapGKInstanceToRenderable(String type,
+                                          List<?> instances) {
+        Map<Long, Renderable> id2Renderable = new HashMap<Long, Renderable>();
+        for (Iterator<?> it = instances.iterator(); it.hasNext();) {
             GKInstance instance = (GKInstance) it.next();
-            Renderable r = (Renderable) id2Renderable.get(instance.getDBID());
+            Renderable r = id2Renderable.get(instance.getDBID());
             if (r == null) {
                 r = convertToRenderable(type, instance);
                 id2Renderable.put(instance.getDBID(), r);
@@ -101,35 +104,35 @@ public class SearchDBTypeHelper {
                                         instance,
                                         id2Renderable);
         }
-        return new ArrayList(id2Renderable.values());
+        return new ArrayList<Renderable>(id2Renderable.values());
     }
     
     private void pulloutNodesForReaction(RenderableReaction reaction,
                                          GKInstance instance,
-                                         Map id2Node) {
+                                         Map<Long, Renderable> id2Node) {
         try {
             // Stoichiometries are not supported as of Jan 11, 2007
-            List inputs = instance.getAttributeValuesList(ReactomeJavaConstants.input);
+            List<GKInstance> inputs = instance.getAttributeValuesList(ReactomeJavaConstants.input);
             if (inputs != null && inputs.size() > 0) {
-                for (Iterator it = inputs.iterator(); it.hasNext();) {
-                    GKInstance input = (GKInstance) it.next();
+                for (Iterator<GKInstance> it = inputs.iterator(); it.hasNext();) {
+                    GKInstance input = it.next();
                     Renderable r = getReactionNode(input, id2Node);
                     reaction.addInput((Node)r);
                 }
             }
-            List outputs = instance.getAttributeValuesList(ReactomeJavaConstants.output);
+            List<GKInstance> outputs = instance.getAttributeValuesList(ReactomeJavaConstants.output);
             if (outputs != null && outputs.size() > 0) {
-                for (Iterator it = outputs.iterator(); it.hasNext();) {
-                    GKInstance output = (GKInstance) it.next();
+                for (Iterator<GKInstance> it = outputs.iterator(); it.hasNext();) {
+                    GKInstance output = it.next();
                     Renderable r = getReactionNode(output, id2Node);
                     reaction.addOutput((Node)r);
                 }
             }
             // catalyst
-            List cas = instance.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
+            List<GKInstance> cas = instance.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
             if (cas != null && cas.size() > 0) {
-                for (Iterator it = cas.iterator(); it.hasNext();) {
-                    GKInstance ca = (GKInstance) it.next();
+                for (Iterator<GKInstance> it = cas.iterator(); it.hasNext();) {
+                    GKInstance ca = it.next();
                     GKInstance catalyst = (GKInstance) ca.getAttributeValue(ReactomeJavaConstants.physicalEntity);
                     if (catalyst == null)
                         continue;
@@ -138,9 +141,9 @@ public class SearchDBTypeHelper {
                 }
             }
             // Inhibitors
-            Collection regulations = InstanceUtilities.getRegulations(instance);
+            Collection<?> regulations = InstanceUtilities.getRegulations(instance);
             if (regulations != null && regulations.size() > 0) {
-                for (Iterator it = regulations.iterator(); it.hasNext();) {
+                for (Iterator<?> it = regulations.iterator(); it.hasNext();) {
                     GKInstance regulation = (GKInstance) it.next();
                     GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
                     // Want to handle only physical entity now
@@ -161,10 +164,10 @@ public class SearchDBTypeHelper {
     }
     
     private Renderable getReactionNode(GKInstance instance,
-                                       Map id2Node) throws Exception {
-        Renderable r = (Renderable) id2Node.get(instance.getDBID());
+                                       Map<Long, Renderable> id2Node) throws Exception {
+        Renderable r = id2Node.get(instance.getDBID());
         if (r == null) {
-            Class type = guessNodeType(instance);
+            Class<?> type = guessNodeType(instance);
             r = (Renderable) type.newInstance();
             convertToRenderable(instance, r);
             id2Node.put(instance.getDBID(), r);
@@ -188,7 +191,13 @@ public class SearchDBTypeHelper {
         return r;
     }
     
-    public Class guessNodeType(GKInstance entity) throws Exception {
+    /**
+     * {@link SearchDBTypeHelper#guessNodeType(GKInstance)
+     * @param entity
+     * @return
+     * @throws Exception
+     */
+    public Class<?> guessNodeType(GKInstance entity) throws Exception {
         SchemaClass cls = entity.getSchemClass();
         if (cls.isa(ReactomeJavaConstants.Complex)) {
         	if (GKApplicationUtilities.isDrug(entity))
@@ -267,12 +276,12 @@ public class SearchDBTypeHelper {
                     rtn.add(i);
                 else {
                     if (i.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasMember)) {
-                        List hasMember = i.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+                        List<GKInstance> hasMember = i.getAttributeValuesList(ReactomeJavaConstants.hasMember);
                         if (hasMember != null)
                             next.addAll(hasMember);
                     }
                     if (i.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasCandidate)) {
-                        List hasCandidate = i.getAttributeValuesList(ReactomeJavaConstants.hasCandidate);
+                        List<GKInstance> hasCandidate = i.getAttributeValuesList(ReactomeJavaConstants.hasCandidate);
                         if (hasCandidate != null)
                             next.addAll(hasCandidate);
                     }

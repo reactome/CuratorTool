@@ -63,17 +63,14 @@ import org.gk.render.ConnectWidget;
 import org.gk.render.FlowLine;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
-import org.gk.render.NodeAttachment;
 import org.gk.render.Note;
 import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableFeature;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
-import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 
@@ -191,7 +188,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     private void init() {
         // Link this selection to other displays
         pathwayEditor.getSelectionModel().addGraphEditorActionListener(new GraphEditorActionListener() {
-            public void graphEditorAction(GraphEditorActionEvent e) {
+            @Override
+			public void graphEditorAction(GraphEditorActionEvent e) {
                 if (e.getID() == GraphEditorActionEvent.SELECTION) {
                     selectionMediator.fireSelectionEvent(InstanceZoomablePathwayEditor.this);
                 }
@@ -247,7 +245,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private void installListeners() {
         PropertyChangeListener listener = new PropertyChangeListener() {
-            public void propertyChange(PropertyChangeEvent e) {
+            @Override
+			public void propertyChange(PropertyChangeEvent e) {
                 doGraphPropChange(e);
             }
         };
@@ -553,10 +552,15 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             Renderable container = pathwayEditor.getRenderable();
             // Don't set container so that the following simpleConvert()
             // will not add the converted instance directly to this container.
-            // Let the insert statments figure this out.
+            // Let the insert statements figure this out.
             //handler.setContainer(container);
             handler.setContainer(null);
             Renderable r = handler.simpleConvert(instance);
+//            Renderable r = InstanceToRenderableConverter.convertToNode(instance, false);
+            System.out.println("instance: " + instance);
+            System.out.println("handler: " + handler);
+            System.out.println("r: " + r);
+            System.out.println("r.getClass(): " + r.getClass());
             if (editHandler != null && !editHandler.isInsertable(instance, r)) {
                 JOptionPane.showMessageDialog(this,
                                               "\"" + instance.getDisplayName() + "\" cannot be inserted into the diagram.\n" +
@@ -722,7 +726,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         }
     }
 
-    public List<GKInstance> getSelection() {
+    @Override
+	public List<GKInstance> getSelection() {
         // Use set in case multiple Renderables pointing to the same GKInstance.
         Set<GKInstance> set = new HashSet<GKInstance>();
         List selection = getPathwayEditor().getSelection();
@@ -755,7 +760,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Set the selection in GKInstances to this ZoomablePathwayEditor.
      */
-    public void setSelection(List selection) {
+    @Override
+	public void setSelection(List selection) {
         List all = getPathwayEditor().getDisplayedObjects();
         if (all == null || all.size() == 0)
             return; // Nothing to be selected
@@ -798,7 +804,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private GraphEditorActionListener createGraphEditorListener() {
         GraphEditorActionListener listener = new GraphEditorActionListener() {
-            public void graphEditorAction(GraphEditorActionEvent e) {
+            @Override
+			public void graphEditorAction(GraphEditorActionEvent e) {
                 // Double click
                 if (e.getID() == GraphEditorActionEvent.ACTION_DOUBLE_CLICKED) {
                     showPropertyForSelection();
@@ -1220,7 +1227,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             getContentPane().add(contentPane, BorderLayout.CENTER);
             contentPane.setPreferredSize(new Dimension(350, 275));
             ActionListener listener = new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
+                @Override
+				public void actionPerformed(ActionEvent e) {
                     dispose();
                     if (e.getSource() == controlPane.getOKBtn())
                         isOkClicked = true;
