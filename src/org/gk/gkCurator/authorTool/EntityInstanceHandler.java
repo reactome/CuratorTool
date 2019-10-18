@@ -7,20 +7,14 @@ package org.gk.gkCurator.authorTool;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.property.SearchDBTypeHelper;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableFactory;
 
-public class EntityInstanceHandler extends InstanceHandler {
-    private SearchDBTypeHelper typeHelper;
-    
-    public EntityInstanceHandler() {
-        typeHelper = new SearchDBTypeHelper();
-    }
+public class EntityInstanceHandler extends InstanceHandlerNodeType {
     
     protected Renderable convertToRenderable(GKInstance instance) throws Exception {
         // Have to find the type for instance
-        Class type = typeHelper.guessNodeType(instance);
+        Class<?> type = typeHelper.guessNodeType(instance);
         Renderable r = RenderableFactory.generateRenderable(type, container);
         return r;
     }

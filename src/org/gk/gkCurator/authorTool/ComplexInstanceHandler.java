@@ -10,28 +10,20 @@ import java.util.Map;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.property.SearchDBTypeHelper;
 import org.gk.render.InstanceToRenderableConverter;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
 
-public class ComplexInstanceHandler extends InstanceHandler {
-    private SearchDBTypeHelper typeHelper;
+public class ComplexInstanceHandler extends InstanceHandlerNodeType {
 
-    public ComplexInstanceHandler() {
-        typeHelper = new SearchDBTypeHelper();
-    }
-    
-    @Override
 	protected Renderable convertToRenderable(GKInstance instance) throws Exception {
-        Class type = typeHelper.guessNodeType(instance);
+        Class<?> type = typeHelper.guessNodeType(instance);
         Renderable r = RenderableFactory.generateRenderable(type,
                                                             container);
         return r;
     }
 
-    @Override
 	public void convertProperties(GKInstance instance,
                                   Renderable r,
                                   Map iToRMap) throws Exception {
