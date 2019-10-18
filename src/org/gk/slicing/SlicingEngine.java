@@ -462,25 +462,6 @@ public class SlicingEngine {
     	if (ps != null)
 			ps.println(msg);
     }
-
-    /**
-     * Return true if at least one "previousSlice" value is provided by user.
-     * 
-     * @param args
-     * @return 
-     * @return boolean (true if previousSlice property is found, false otherwise).
-     * @throws IOException
-     */
-    private static boolean isPreviousSliceRequested(Properties properties) throws IOException {
-    	List<String> previousSliceProperties = Arrays.asList("previousSliceDbHost",
-    	                                                     "previousSliceDbName",
-    	                                                     "previousSliceDbPort",
-                                                             "previousSliceDbPwd");
-    	return previousSliceProperties.stream()
-							    .filter(previousSliceProperty -> properties.getProperty(previousSliceProperty) != null)
-							    .findAny()
-							    .isPresent();
-    }
     
     private void setStableIdReleased() throws Exception {
         if (!setReleasedInStableIdentifier)
