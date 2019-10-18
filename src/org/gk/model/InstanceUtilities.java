@@ -1427,18 +1427,18 @@ public class InstanceUtilities {
 
          // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
          // ifHasInstance()
-         Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
+         Set<GKInstance> containedInstances = InstanceUtilities.getContainedInstances(instance,
                                                                            ReactomeJavaConstants.hasMember,
                                                                            ReactomeJavaConstants.hasCandidate,
                                                                            ReactomeJavaConstants.hasComponent);
-         // No members.
-         if (members.size() == 0 || members == null)
+         // No containedInstances.
+         if (containedInstances.size() == 0 || containedInstances == null)
              return false;
 
          // Check if instance contains a drug by:
-         //   (1) Iterating over all schema classes of the instance's members.
+         //   (1) Iterating over all schema classes of the instance's containedInstances.
          //   (2) Checking if any of the ancestor schema class is a Drug class.
-         return members.stream()
+         return containedInstances.stream()
                        .map(GKInstance::getSchemClass)
                        .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
      }
