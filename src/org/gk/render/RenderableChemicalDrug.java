@@ -5,7 +5,7 @@ package org.gk.render;
  * @author wug
  *
  */
-public class RenderableChemicalDrug extends RenderableChemical implements DefaultRenderConstants {
+public class RenderableChemicalDrug extends RenderableChemical {
 
     public RenderableChemicalDrug() {
         setForegroundColor(DEFAULT_DRUG_FORGROUND); // As the default for the drugs

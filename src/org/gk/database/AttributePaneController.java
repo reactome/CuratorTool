@@ -15,6 +15,7 @@ import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -610,7 +611,7 @@ public class AttributePaneController {
 	    if (propTable.isEditing()) {
 	        propTable.getCellEditor().stopCellEditing();
 	    }
-	    // Make these variables final to be used in a inner class.
+	    // Make these variables final to be used in an inner class.
 	    PropertyTableModel model = (PropertyTableModel) propTable.getModel();
 	    int row = propTable.getSelectedRow();
 	    int col = propTable.getSelectedColumn();

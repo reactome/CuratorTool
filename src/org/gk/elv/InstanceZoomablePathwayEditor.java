@@ -556,7 +556,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             //handler.setContainer(container);
             handler.setContainer(null);
             Renderable r = handler.simpleConvert(instance);
-//            Renderable r = InstanceToRenderableConverter.convertToNode(instance, false);
             if (editHandler != null && !editHandler.isInsertable(instance, r)) {
                 JOptionPane.showMessageDialog(this,
                                               "\"" + instance.getDisplayName() + "\" cannot be inserted into the diagram.\n" +

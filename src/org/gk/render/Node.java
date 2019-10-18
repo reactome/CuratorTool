@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * @author  wgm
  */
-public class Node extends Renderable {
+public class Node extends Renderable implements DefaultRenderConstants {
     static final int RESIZE_WIDGET_WIDTH = 4;
 	// The node width. All nodes should have the same width currently.
 	private static int width = DefaultRenderConstants.DEFAULT_NODE_WIDTH;
