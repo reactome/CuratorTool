@@ -93,15 +93,15 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
-    // Compare (used for comparing against the current slice).
-    private String compareDbHost;
-    private String compareDbName;
-    private String compareDbUser;
-    private String compareDbPwd;
-    private List<String> compareClasses;
-    private int compareDbPort = 3306;
-    private boolean compareRequested = false;
-    private MySQLAdaptor compareDBA;
+    // PreviousSlice (used for comparing against the current slice).
+    private String previousSliceDbHost;
+    private String previousSliceDbName;
+    private String previousSliceDbUser;
+    private String previousSliceDbPwd;
+    private List<String> previousSliceClasses;
+    private int previousSliceDbPort = 3306;
+    private boolean previousSliceRequested = false;
+    private MySQLAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -183,44 +183,44 @@ public class SlicingEngine {
     }
     
    /**
-     * The name of the compare database. This database will be created at the same host
+     * The name of the previousSlice database. This database will be created at the same host
      * as the data source.
      * @param DbName
      */
-    public void setCompareDbName(String DbName) {
-        this.compareDbName = DbName;
+    public void setPreviousSliceDbName(String DbName) {
+        this.previousSliceDbName = DbName;
     }
 
-    public void setCompareDbHost(String host) {
-        this.compareDbHost = host;
+    public void setPreviousSliceDbHost(String host) {
+        this.previousSliceDbHost = host;
     }
 
-    public void setCompareDbUser(String dbUser) {
-        this.compareDbUser = dbUser;
+    public void setPreviousSliceDbUser(String dbUser) {
+        this.previousSliceDbUser = dbUser;
     }
 
-    public void setCompareDbPwd(String pwd) {
-        this.compareDbPwd = pwd;
+    public void setPreviousSliceDbPwd(String pwd) {
+        this.previousSliceDbPwd = pwd;
     }
 
-    public void setCompareDbPort(int dbPort) {
-        this.compareDbPort = dbPort;
+    public void setPreviousSliceDbPort(int dbPort) {
+        this.previousSliceDbPort = dbPort;
     }
 
-    public void initCompareDBA() throws SQLException {
-    	this.compareDBA = new MySQLAdaptor(compareDbHost,
-										   compareDbName,
-										   compareDbUser,
-										   compareDbPwd,
-										   compareDbPort);
+    public void initPreviousSliceDBA() throws SQLException {
+        this.previousSliceDBA = new MySQLAdaptor(previousSliceDbHost,
+                                                 previousSliceDbName,
+                                                 previousSliceDbUser,
+                                                 previousSliceDbPwd,
+                                                 previousSliceDbPort);
     }
 
-    public void setCompareClasses(List<String> compareClasses) {
-        this.compareClasses = compareClasses;
+    public void setPreviousSliceClasses(List<String> previousSliceClasses) {
+        this.previousSliceClasses = previousSliceClasses;
     }
 
-    public void setIsCompareRequested(boolean requested) {
-        this.compareRequested = requested;
+    public void setIsPreviousSliceRequested(boolean requested) {
+        this.previousSliceRequested = requested;
     }
 
     public void setProcessFileName(String fileName) {
@@ -259,8 +259,8 @@ public class SlicingEngine {
         return this.lastReleaseDate;
     }
     
-    public MySQLAdaptor getCompareDBA() {
-    	return this.compareDBA;
+    public MySQLAdaptor getPreviousSliceDBA() {
+    	return this.previousSliceDBA;
     }
 
     /**
@@ -299,13 +299,13 @@ public class SlicingEngine {
         fillIncludedLocationForComplex(output);
         logAndPrintln("\nFilling Attribute Values...", output);
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
-        if (compareRequested) {
+        if (previousSliceRequested) {
             logAndPrintln("\nRevision checking...", output);
             RevisionDetector revisionDetector = new RevisionDetector();
-            for (String compareClass : compareClasses)
-                revisionDetector.checkForRevisions(compareClass,
+            for (String previousSliceClass : previousSliceClasses)
+                revisionDetector.checkForRevisions(previousSliceClass,
                                                    sourceDBA,
-                                                   compareDBA,
+                                                   previousSliceDBA,
                                                    sliceMap,
                                                    output);
         }
@@ -456,11 +456,12 @@ public class SlicingEngine {
     }
     
     /**
+     * Log and print message.
      * 
      * @param msg
      * @param ps
      */
-    static void logAndPrintln(String msg, PrintStream ps) {
+    private void logAndPrintln(String msg, PrintStream ps) {
     	logger.info(msg);
     	if (ps != null)
 			ps.println(msg);
@@ -1534,40 +1535,33 @@ public class SlicingEngine {
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
             
-            // Compare database.
-            // Only ask for all "compare" values if at least one "compare" value is provided by user.
-            if (isCompareRequested(properties)) {
-				logger.info("Compare requested.");
-            	String compareDbHost = properties.getProperty("compareDbHost");
-            	if (compareDbHost == null || compareDbHost.trim().length() == 0)
-            		compareDbHost = getInput("Please input the compare databse host");
-            	String compareDbName = properties.getProperty("compareDbName");
-            	if (compareDbName == null || compareDbName.trim().length() == 0)
-            		compareDbName = getInput("Please input the compare database name");
-            	String compareDbUser = properties.getProperty("compareDbUser");
-            	if (compareDbUser == null || compareDbUser.trim().length() == 0)
-            		compareDbUser = getInput("Please input the compare database user");
-            	String compareDbPwd = properties.getProperty("compareDbPwd");
-            	if (compareDbPwd == null || compareDbPwd.trim().length() == 0)
-            		compareDbPwd = getInput("Please input the compare database password");
-            	String compareDbPort = properties.getProperty("compareDbPort");
-            	if (compareDbPort == null || compareDbPort.trim().length() == 0)
-            		compareDbPort = getInput("Please input the compare database port");
-            	String delim = ",";
-            	List<String> compareClasses = Arrays.asList(properties.getProperty("compareClasses").split(delim));
-            	compareClasses.replaceAll(String::trim);
-            	if (compareClasses == null || compareClasses.size() == 0)
-            		compareClasses = Arrays.asList(getInput("Please input the schema classes to compare (seperated by commas)")
-									     .split(delim));
+            // PreviousSlice database.
+            // Only ask for all "previousSlice" values if at least one "previousSlice" value is provided by user.
+            if (isPreviousSliceRequested(properties)) {
+				logger.info("PreviousSlice requested.");
+            	String previousSliceDbHost = properties.getProperty("previousSliceDbHost");
+            	if (previousSliceDbHost == null || previousSliceDbHost.trim().length() == 0)
+            		previousSliceDbHost = getInput("Please input the previousSlice databse host");
+            	String previousSliceDbName = properties.getProperty("previousSliceDbName");
+            	if (previousSliceDbName == null || previousSliceDbName.trim().length() == 0)
+            		previousSliceDbName = getInput("Please input the previousSlice database name");
+            	String previousSliceDbUser = properties.getProperty("previousSliceDbUser");
+            	if (previousSliceDbUser == null || previousSliceDbUser.trim().length() == 0)
+            		previousSliceDbUser = getInput("Please input the previousSlice database user");
+            	String previousSliceDbPwd = properties.getProperty("previousSliceDbPwd");
+            	if (previousSliceDbPwd == null || previousSliceDbPwd.trim().length() == 0)
+            		previousSliceDbPwd = getInput("Please input the previousSlice database password");
+            	String previousSliceDbPort = properties.getProperty("previousSliceDbPort");
+            	if (previousSliceDbPort == null || previousSliceDbPort.trim().length() == 0)
+            		previousSliceDbPort = getInput("Please input the previousSlice database port");
 
-            	engine.setIsCompareRequested(true);
-            	engine.setCompareClasses(compareClasses);
-            	engine.setCompareDbName(compareDbName);
-            	engine.setCompareDbHost(compareDbHost);
-            	engine.setCompareDbUser(compareDbUser);
-            	engine.setCompareDbPwd(compareDbPwd);
-            	engine.setCompareDbPort(new Integer(compareDbPort));
-            	engine.initCompareDBA();
+            	engine.setIsPreviousSliceRequested(true);
+            	engine.setPreviousSliceDbName(previousSliceDbName);
+            	engine.setPreviousSliceDbHost(previousSliceDbHost);
+            	engine.setPreviousSliceDbUser(previousSliceDbUser);
+            	engine.setPreviousSliceDbPwd(previousSliceDbPwd);
+            	engine.setPreviousSliceDbPort(new Integer(previousSliceDbPort));
+            	engine.initPreviousSliceDBA();
             }
 			
             String fileName = properties.getProperty("releaseTopicsFileName");

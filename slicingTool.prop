@@ -46,18 +46,13 @@ slicingDbName=test_slice_1
 # The following parameters are used for the comparing MySQLAdaptor information.
 # If no values are provided, then no comparison will be made.
 # The "compare" database will be used to detect revisions in schema classes.
-compareDbHost=localhost
-compareDbUser=liam
-compareDbPwd=)8J7m]!%[<
-compareDbPort=3306
+previousSliceDbHost=localhost
+previousSliceDbUser=liam
+previousSliceDbPwd=)8J7m]!%[<
+previousSliceDbPort=3306
 
 # Compare database name
-compareDbName=reactome
-
-# Compare schema classes (comma separated).
-# Leading/trailing whitespace is deleted with `trim()` before processing.
-# Currently only RLE's and Pathway's are supported.
-compareClasses=ReactionlikeEvent, Pathway
+previousSliceDbName=reactome
 
 # Check if the slicing is used for a non-human Reactome (e.g. Fly-Reactome). If it is set to true, a single layer of referred Events and their Event-type references will be in the slice.
 useForSpecies=false
