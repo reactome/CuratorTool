@@ -103,7 +103,7 @@ public class SearchDBTypeHelper {
                                         instance,
                                         id2Renderable);
         }
-        return new ArrayList<Renderable>(id2Renderable.values());
+        return new ArrayList(id2Renderable.values());
     }
     
     private void pulloutNodesForReaction(RenderableReaction reaction,
