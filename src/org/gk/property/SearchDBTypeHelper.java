@@ -113,8 +113,7 @@ public class SearchDBTypeHelper {
             // Stoichiometries are not supported as of Jan 11, 2007
             List<GKInstance> inputs = instance.getAttributeValuesList(ReactomeJavaConstants.input);
             if (inputs != null && inputs.size() > 0) {
-                for (Iterator<GKInstance> it = inputs.iterator(); it.hasNext();) {
-                    GKInstance input = it.next();
+                for (GKInstance input: inputs) {
                     Renderable r = getReactionNode(input, id2Node);
                     reaction.addInput((Node)r);
                 }

@@ -26,7 +26,7 @@ import org.gk.model.GKInstance;
  * pane.
  * @author  wgm
  */
-public abstract class Renderable implements Serializable, RenderablePropertyNames {
+public abstract class Renderable implements Serializable, RenderablePropertyNames, DefaultRenderConstants {
     // To control bounds
     protected int pad = 4;
     protected Point position;
