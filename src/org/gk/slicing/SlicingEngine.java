@@ -467,21 +467,20 @@ public class SlicingEngine {
     }
 
     /**
-     * Return true if at least one "compare" value is provided by user.
+     * Return true if at least one "previousSlice" value is provided by user.
      * 
      * @param args
      * @return 
-     * @return boolean (true if compare property is found, false otherwise).
+     * @return boolean (true if previousSlice property is found, false otherwise).
      * @throws IOException
      */
-    private static boolean isCompareRequested(Properties properties) throws IOException {
-    	List<String> compareProperties = Arrays.asList("compareClasses",	
-													   "compareDbHost", 	
-													   "compareDbName", 	
-													   "compareDbPort", 	
-													   "compareDbPwd");
-    	return compareProperties.stream()
-							    .filter(compareProperty -> properties.getProperty(compareProperty) != null)
+    private static boolean isPreviousSliceRequested(Properties properties) throws IOException {
+    	List<String> previousSliceProperties = Arrays.asList("previousSliceDbHost",
+    	                                                     "previousSliceDbName",
+    	                                                     "previousSliceDbPort",
+                                                             "previousSliceDbPwd");
+    	return previousSliceProperties.stream()
+							    .filter(previousSliceProperty -> properties.getProperty(previousSliceProperty) != null)
 							    .findAny()
 							    .isPresent();
     }
