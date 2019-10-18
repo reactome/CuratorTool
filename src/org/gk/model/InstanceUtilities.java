@@ -1411,83 +1411,79 @@ public class InstanceUtilities {
       * @returns boolean
       */
      public static boolean isDrug(GKInstance instance) throws Exception {
-    	 if (instance == null)
-    		 return false;
+         if (instance == null)
+             return false;
 
-    	 SchemaClass schemaClass = instance.getSchemClass();
-    	 // Check if instance is a drug.
-    	 if (schemaClass.isa(ReactomeJavaConstants.Drug))
-    		 return true;
+         SchemaClass schemaClass = instance.getSchemClass();
+         // Check if instance is a drug.
+         if (schemaClass.isa(ReactomeJavaConstants.Drug))
+             return true;
 
-    	 List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-												   ReactomeJavaConstants.Complex);
-    	 // Check id instance is an EntitySet or Complex.
-    	 if (validClasses.stream().noneMatch(schemaClass::isa))
-			 return false;
-    	 
-    	 // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-    	 // ifHasInstance()
-    	 Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
-																		   ReactomeJavaConstants.hasMember,
-																		   ReactomeJavaConstants.hasCandidate,
-																		   ReactomeJavaConstants.hasComponent);
-    	 // No members.
-    	 if (members.size() == 0 || members == null)
-    		 return false;
+         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+                                                   ReactomeJavaConstants.Complex);
+         // Check id instance is an EntitySet or Complex.
+         if (validClasses.stream().noneMatch(schemaClass::isa))
+             return false;
 
-    	 // Check if instance contains a drug by:
-    	 //   (1) Iterating over all schema classes of the instance's members.
-    	 //   (2) Checking if any of the ancestor schema class is a Drug class.
-    	 return members.stream()
-					   .map(GKInstance::getSchemClass)
-					   .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
+         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+         // ifHasInstance()
+         Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
+                                                                           ReactomeJavaConstants.hasMember,
+                                                                           ReactomeJavaConstants.hasCandidate,
+                                                                           ReactomeJavaConstants.hasComponent);
+         // No members.
+         if (members.size() == 0 || members == null)
+             return false;
+
+         // Check if instance contains a drug by:
+         //   (1) Iterating over all schema classes of the instance's members.
+         //   (2) Checking if any of the ancestor schema class is a Drug class.
+         return members.stream()
+                       .map(GKInstance::getSchemClass)
+                       .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
      }
-
-    private MySQLAdaptor getTestDBA() throws SQLException {
-    	return new MySQLAdaptor("localhost",
-								"reactome",
-								"liam",
-								")8J7m]!%[<");
-    }
 
      @Test
      public void testIsDrug() throws Exception {
-    	 MySQLAdaptor testDBA = getTestDBA();
+         MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
+                                                 "reactome",
+                                                 "liam",
+                                                 ")8J7m]!%[<");
 
-    	 // Protein (non-EntitySet/Complex).
-    	 GKInstance protein = testDBA.fetchInstance(976898L);
-    	 assertEquals(false, isDrug(protein));
+         // Protein (non-EntitySet/Complex).
+         GKInstance protein = testDBA.fetchInstance(976898L);
+         assertEquals(false, isDrug(protein));
 
-    	 // Drug (17-AAG [cytosol]).
-    	 GKInstance drug = testDBA.fetchInstance(1217506L);
-    	 assertEquals(true, isDrug(drug));
+         // Drug (17-AAG [cytosol]).
+         GKInstance drug = testDBA.fetchInstance(1217506L);
+         assertEquals(true, isDrug(drug));
 
-    	 // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
-    	 GKInstance entitySet = testDBA.fetchInstance(5632097L);
-    	 assertEquals(false, isDrug(entitySet));
+         // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
+         GKInstance entitySet = testDBA.fetchInstance(5632097L);
+         assertEquals(false, isDrug(entitySet));
 
-    	 // Add drug instance (17-AAG [cytosol]) to member set.
-    	 entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
+         // Add drug instance (17-AAG [cytosol]) to member set.
+         entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
 
-    	 // Test to confirm it now contains a drug instance (should return true).
-    	 assertEquals(true, isDrug(entitySet));
+         // Test to confirm it now contains a drug instance (should return true).
+         assertEquals(true, isDrug(entitySet));
 
-    	 // Remove added drug and retest (should return false).
-    	 entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
-    	 assertEquals(false, isDrug(entitySet));
-    	 
-    	 // Control Complex (activated NPR1/NH1 [cytosol]).
-    	 GKInstance complex = testDBA.fetchInstance(6788198L);
-    	 assertEquals(false, isDrug(complex));
+         // Remove added drug and retest (should return false).
+         entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
+         assertEquals(false, isDrug(entitySet));
+ 
+         // Control Complex (activated NPR1/NH1 [cytosol]).
+         GKInstance complex = testDBA.fetchInstance(6788198L);
+         assertEquals(false, isDrug(complex));
 
-    	 // Add drug instance to component set.
-    	 complex.addAttributeValue(ReactomeJavaConstants.hasComponent, drug);
+         // Add drug instance to component set.
+         complex.addAttributeValue(ReactomeJavaConstants.hasComponent, drug);
 
-    	 // Test to confirm it now contains a drug instance (should return true).
-    	 assertEquals(true, isDrug(complex));
+         // Test to confirm it now contains a drug instance (should return true).
+         assertEquals(true, isDrug(complex));
 
-    	 // Remove added drug and retest (should return false).
-    	 complex.removeAttributeValueNoCheck(ReactomeJavaConstants.hasComponent, drug);
-    	 assertEquals(false, isDrug(complex));
+         // Remove added drug and retest (should return false).
+         complex.removeAttributeValueNoCheck(ReactomeJavaConstants.hasComponent, drug);
+         assertEquals(false, isDrug(complex));
      }
 }
