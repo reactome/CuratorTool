@@ -207,16 +207,12 @@ public class SlicingEngine {
         this.previousSliceDbPort = dbPort;
     }
 
-    public void initPreviousSliceDBA() throws SQLException {
+    private void initPreviousSliceDBA() throws SQLException {
         this.previousSliceDBA = new MySQLAdaptor(previousSliceDbHost,
                                                  previousSliceDbName,
                                                  previousSliceDbUser,
                                                  previousSliceDbPwd,
                                                  previousSliceDbPort);
-    }
-
-    public void setPreviousSliceClasses(List<String> previousSliceClasses) {
-        this.previousSliceClasses = previousSliceClasses;
     }
 
     public void setIsPreviousSliceRequested(boolean requested) {
@@ -779,7 +775,7 @@ public class SlicingEngine {
         return false;
     }
     
-    //@Test
+    @Test
     public void testAddReleaseNumber() throws Exception {
         targetDBA = new MySQLAdaptor("localhost",
                                      "gk_current_ver37",
@@ -1505,9 +1501,9 @@ public class SlicingEngine {
             String dbHost = properties.getProperty("dbHost");
             if (dbHost == null || dbHost.trim().length() == 0)
                 dbHost = getInput("Please input the database host");
-            String DbName = properties.getProperty("dbName");
-            if (DbName == null || DbName.trim().length() == 0)
-                DbName = getInput("Please input the source database name");
+            String dbName = properties.getProperty("dbName");
+            if (dbName == null || dbName.trim().length() == 0)
+                dbName = getInput("Please input the source database name");
             String dbPort = properties.getProperty("dbPort");
             if (dbPort == null || dbPort.trim().length() == 0)
                 dbPort = getInput("Please input the source databse port");
@@ -1536,8 +1532,8 @@ public class SlicingEngine {
                 targetDbPort = getInput("Please input the slice database port");
             
             // PreviousSlice database.
-            // Only ask for all "previousSlice" values if at least one "previousSlice" value is provided by user.
-            if (isPreviousSliceRequested(properties)) {
+            // Only ask for all "previousSlice" values if "needCompareToPreviousSlice" is set to true.
+            if (properties.getProperty("needCompareToPreviousSlice").toLowerCase().equals("true")) {
 				logger.info("PreviousSlice requested.");
             	String previousSliceDbHost = properties.getProperty("previousSliceDbHost");
             	if (previousSliceDbHost == null || previousSliceDbHost.trim().length() == 0)
@@ -1598,7 +1594,7 @@ public class SlicingEngine {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
-                                                      DbName,
+                                                      dbName,
                                                       user,
                                                       pwd,
                                                       Integer.parseInt(dbPort));
@@ -1686,7 +1682,7 @@ public class SlicingEngine {
         return input;
     }
     
-    //@Test
+    @Test
     public void testTopics() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "test_gk_central",
@@ -1702,7 +1698,7 @@ public class SlicingEngine {
         }
     }
     
-    //@Test
+    @Test
     public void testInsert() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost", 
                                             "test_gk_central_slice",

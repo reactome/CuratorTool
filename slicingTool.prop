@@ -44,8 +44,8 @@ slicingDbName=test_slice_1
 #slicingDbName=test_gk_central_efs_new_updated_slice_67
 
 # The following parameters are used for the comparing MySQLAdaptor information.
-# If no values are provided, then no comparison will be made.
-# The "compare" database will be used to detect revisions in schema classes.
+# The "previousSlice" database will be used to detect revisions in schema classes.
+needCompareToPreviousSlice=true
 previousSliceDbHost=localhost
 previousSliceDbUser=liam
 previousSliceDbPwd=)8J7m]!%[<

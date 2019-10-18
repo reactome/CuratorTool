@@ -103,7 +103,7 @@ public class RevisionDetector {
 			return true;
 
 		// Finally check for changes in summation text.
-		if (isSummationRevised(pathway, targetInstance))
+		if (isSummationRevised(pathway, targetDBA))
 			return true;
 
 		// Recursively iterate over events in pathway.
@@ -113,11 +113,11 @@ public class RevisionDetector {
 			for (GKInstance event : events) {
 				// Pathway
 				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-					isPathwayRevised(event, targetInstance);
+					isPathwayRevised(event, targetDBA);
 
 				// RLE
 				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
-					 && isRLERevised(event, targetInstance))
+					 && isRLERevised(event, targetDBA))
 					return true;
 			}
 		}
