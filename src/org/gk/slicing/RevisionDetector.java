@@ -65,8 +65,6 @@ public class RevisionDetector {
 		 || !compareDBA.getSchema().isValidClass(schemaClassName))
 			return;
 
-		SlicingEngine.logAndPrintln(String.format("checkForRevisions(%s)", schemaClassName), ps);
-
 		// Iterate over all instances in the slice.
 		for (long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
@@ -83,7 +81,6 @@ public class RevisionDetector {
 			// If a "revised flag" condition is met, set "revised flag" on the instance.
 			if (revised) {
 				// TODO determine API database UpdateTrack schema class.
-				SlicingEngine.logAndPrintln("Revision detected in: " + inst, ps);
 			}
 		}
 	}
