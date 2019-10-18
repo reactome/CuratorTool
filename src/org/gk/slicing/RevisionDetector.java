@@ -60,13 +60,8 @@ public class RevisionDetector {
 								  MySQLAdaptor compareDBA,
 								  Map<Long,GKInstance> sliceMap,
 								  PrintStream ps) throws InvalidAttributeException, Exception {
-		// Verify that `schemaClass` is a valid schema class.
-		if (!sourceDBA.getSchema().isValidClass(schemaClassName)
-		 || !compareDBA.getSchema().isValidClass(schemaClassName))
-			return;
-
 		// Iterate over all instances in the slice.
-		for (long dbId : sliceMap.keySet()) {
+		for (Long dbId : sliceMap.keySet()) {
 			GKInstance inst = sliceMap.get(dbId);
 			// Sanity Check.
 			if (!inst.getSchemClass().isa(schemaClassName))
@@ -101,12 +96,14 @@ public class RevisionDetector {
 		if (pathway == null)
 			return false;
 
+		GKInstance targetInstance = targetDBA.fetchInstance(pathway.getDBID());
+
 		// Check if an immediate child Pathway is added or removed
-		if (isChildPathwayAddedOrRemoved(pathway, targetDBA))
+		if (isChildPathwayAddedOrRemoved(pathway, targetInstance))
 			return true;
 
 		// Finally check for changes in summation text.
-		if (isSummationRevised(pathway, targetDBA))
+		if (isSummationRevised(pathway, targetInstance))
 			return true;
 
 		// Recursively iterate over events in pathway.
@@ -116,11 +113,11 @@ public class RevisionDetector {
 			for (GKInstance event : events) {
 				// Pathway
 				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-					isPathwayRevised(event, targetDBA);
+					isPathwayRevised(event, targetInstance);
 
 				// RLE
 				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
-					 && isRLERevised(event, targetDBA))
+					 && isRLERevised(event, targetInstance))
 					return true;
 			}
 		}
@@ -137,11 +134,11 @@ public class RevisionDetector {
 	 * @throws SQLException
 	 * @throws Exception
 	 */
-	private boolean isChildPathwayAddedOrRemoved(GKInstance parent, MySQLAdaptor targetDBA)
+	private boolean isChildPathwayAddedOrRemoved(GKInstance parent, GKInstance targetInstance)
 			throws InvalidAttributeException, SQLException, Exception {
 
 		Collection<GKInstance> childPathways = getChildPathways(parent);
-		Collection<GKInstance> compareChildPathways = getChildPathways(getInstance(targetDBA, parent));
+		Collection<GKInstance> compareChildPathways = getChildPathways(targetInstance);
 
 		if (childPathways.isEmpty() && compareChildPathways.isEmpty())
 			return false;
