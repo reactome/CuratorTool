@@ -200,7 +200,7 @@ public class RevisionDetector {
 				ReactomeJavaConstants.catalystActivity);
 
 		for (String attrName : revisionList) {
-			if (attributesRevised(reactionlikeEvent, getInstance(targetDBA, reactionlikeEvent), attrName))
+			if (attributesRevised(reactionlikeEvent, targetDBA.fetchInstance(reactionlikeEvent.getDBID()), attrName))
 				return true;
 		}
 
@@ -209,7 +209,7 @@ public class RevisionDetector {
 				ReactomeJavaConstants.catalystActivity);
 
 		for (String attrName : additionsOrDeletionsList) {
-			if (additionOrDeletionInList(reactionlikeEvent, getInstance(targetDBA, reactionlikeEvent), attrName))
+			if (additionOrDeletionInList(reactionlikeEvent, targetDBA.fetchInstance(reactionlikeEvent.getDBID()), attrName))
 				return true;
 		}
 
@@ -320,33 +320,11 @@ public class RevisionDetector {
 		Collection<GKInstance> summations = instance.getAttributeValuesList(ReactomeJavaConstants.summation);
 		for (GKInstance summation : summations) {
 			// if a change in text is detected, then summation is considered revised.
-			if (attributesRevised(summation, getInstance(targetDBA, summation), ReactomeJavaConstants.text))
+			if (attributesRevised(summation, targetDBA.fetchInstance(summation.getDBID()), ReactomeJavaConstants.text))
 				return true;
 		}
 
 		return false;
-	}
-
-	/**
-	 * Given a particular GKInstance, return the associated GKInstance from the "compare" slice.
-	 *
-	 * @param instance
-	 * @return GKInstance
-	 * @throws SQLException
-	 * @throws Exception
-	 */
-	private GKInstance getInstance(MySQLAdaptor dba, GKInstance instance) throws SQLException, Exception {
-		return getInstance(dba, instance.getDBID());
-	}
-
-	private GKInstance getInstance(MySQLAdaptor dba, Long DBID) throws SQLException, Exception {
-		return dba.fetchInstance(DBID);
-	}
-
-	private GKInstance getInstanceShallow(MySQLAdaptor dba, Long DBID) throws SQLException, Exception {
-		GKInstance clone = (GKInstance) getInstance(dba, DBID).clone();
-		clone.setDBID(DBID);
-		return clone;
 	}
 
 	/**
@@ -365,39 +343,42 @@ public class RevisionDetector {
 	@Test
 	public void testIsRLERevised() throws Exception {
 		// Example RLE (DIT and MIT combine to form triiodothyronine).
-		GKInstance RLE = getInstanceShallow(testDBA, 209925L);
+		GKInstance RLE = (GKInstance) testDBA.fetchInstance(209925L).clone();
+		RLE.setDBID(209925L);
 		assertEquals(false, isRLERevised(RLE, testDBA));
 
 		// Example added attribute (Positive regulation by 'H+ [endosome lumen]').
-		RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, getInstance(testDBA, 5210962L));
+		RLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, testDBA.fetchInstance(5210962L));
 		assertEquals(true, isRLERevised(RLE, testDBA));
 
 		// Remove attribute.
-		RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, getInstance(testDBA, 5210962L));
+		RLE.removeAttributeValueNoCheck(ReactomeJavaConstants.regulatedBy, testDBA.fetchInstance(5210962L));
 		assertEquals(false, isRLERevised(RLE, testDBA));
 	}
 
 	@Test
 	public void testIsPathwayRevised() throws Exception {
 		// Example pathway #1 (xylitol degradation).
-		GKInstance xylitolDegradation = getInstanceShallow(testDBA, 5268107L);
+		GKInstance xylitolDegradation = (GKInstance) testDBA.fetchInstance(5268107L).clone();
+		xylitolDegradation.setDBID(5268107L);
 		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
 		// Example addition of a child pathway (tRNA processing).
-		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, getInstance(testDBA, 72306L));
+		GKInstance pathway = testDBA.fetchInstance(72306L);
+		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, pathway);
 		assertEquals(true, isPathwayRevised(xylitolDegradation, testDBA));
 		// Reset the addition.
-		xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent,
-				getInstance(testDBA, 72306L));
+		xylitolDegradation.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, pathway);
 		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
 
 		// Example pathway #2 (neuronal system).
-		GKInstance neuronalSystem = getInstanceShallow(testDBA, 112316L);
+		GKInstance neuronalSystem = (GKInstance) testDBA.fetchInstance(112316L).clone();
+		neuronalSystem.setDBID(112316L);
 		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
 
 		// Remove an existing child pathway.
-		GKInstance removedChildPathway = getInstance(testDBA, 1296071L);
+		GKInstance removedChildPathway = testDBA.fetchInstance(1296071L);
 		neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, removedChildPathway);
 		assertEquals(true, isPathwayRevised(neuronalSystem, testDBA));
 		// Reset the removal.
@@ -408,10 +389,10 @@ public class RevisionDetector {
 	@Test
 	public void testSliceAttributes() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance oldInstance = getInstance(testDBA, 8875579L);
+		GKInstance oldInstance = testDBA.fetchInstance(8875579L);
 
 		// ABI2 [cytosol]
-		GKInstance newInstance = getInstance(testDBA, 1671649L);
+		GKInstance newInstance = testDBA.fetchInstance(1671649L);
 
 		assertEquals(false, attributesRevised(oldInstance, oldInstance, ReactomeJavaConstants.stableIdentifier));
 		assertEquals(false, attributesRevised(newInstance, newInstance, ReactomeJavaConstants.stableIdentifier));
@@ -421,7 +402,8 @@ public class RevisionDetector {
 	@Test
 	public void testAdditionOrDeletionInLists() throws Exception {
 		// (DOCK7) [cytosol]
-		GKInstance oldInstance = getInstanceShallow(testDBA, 8875579L);
+		GKInstance oldInstance = (GKInstance) testDBA.fetchInstance(8875579L).clone();
+		oldInstance.setDBID(8875579L);
 		GKInstance newInstance = (GKInstance) oldInstance.clone();
 
 		assertEquals(false, additionOrDeletionInList(oldInstance, oldInstance, ReactomeJavaConstants.name));
