@@ -98,8 +98,4 @@ public interface DefaultRenderConstants {
     public static final int DEFAULT_NODE_WIDTH = 130;
     
     public static final int DEFAULT_RED_CROSS_WIDTH = 3;
-
-    public static enum RENDER_SHAPE {
-   	 	RECTANGLE, OVAL;
-    }
 }
