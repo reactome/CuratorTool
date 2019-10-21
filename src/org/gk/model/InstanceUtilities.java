@@ -8,7 +8,6 @@ package org.gk.model;
 
 import static org.junit.Assert.assertEquals;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
@@ -1443,47 +1441,4 @@ public class InstanceUtilities {
                        .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
      }
 
-     @Test
-     public void testIsDrug() throws Exception {
-         MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
-                                                 "reactome",
-                                                 "liam",
-                                                 ")8J7m]!%[<");
-
-         // Protein (non-EntitySet/Complex).
-         GKInstance protein = testDBA.fetchInstance(976898L);
-         assertEquals(false, isDrug(protein));
-
-         // Drug (17-AAG [cytosol]).
-         GKInstance drug = testDBA.fetchInstance(1217506L);
-         assertEquals(true, isDrug(drug));
-
-         // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
-         GKInstance entitySet = testDBA.fetchInstance(5632097L);
-         assertEquals(false, isDrug(entitySet));
-
-         // Add drug instance (17-AAG [cytosol]) to member set.
-         entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
-
-         // Test to confirm it now contains a drug instance (should return true).
-         assertEquals(true, isDrug(entitySet));
-
-         // Remove added drug and retest (should return false).
-         entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
-         assertEquals(false, isDrug(entitySet));
- 
-         // Control Complex (activated NPR1/NH1 [cytosol]).
-         GKInstance complex = testDBA.fetchInstance(6788198L);
-         assertEquals(false, isDrug(complex));
-
-         // Add drug instance to component set.
-         complex.addAttributeValue(ReactomeJavaConstants.hasComponent, drug);
-
-         // Test to confirm it now contains a drug instance (should return true).
-         assertEquals(true, isDrug(complex));
-
-         // Remove added drug and retest (should return false).
-         complex.removeAttributeValueNoCheck(ReactomeJavaConstants.hasComponent, drug);
-         assertEquals(false, isDrug(complex));
-     }
 }
