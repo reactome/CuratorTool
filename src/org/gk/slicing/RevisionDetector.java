@@ -15,6 +15,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.junit.Before;
@@ -226,7 +227,7 @@ public class RevisionDetector {
 	 * Compare the value of a given attribute between two instances.
 	 *
 	 * Valid attribute checks take place in
-	 * {@link org.gk.slicing.SlicingEngine#isValidAttributeOrThrow(SchemaAttribute attribute)}
+	 * {@link org.gk.slicing.SlicingEngine#isValidAttributeOrThrow(SchemaAttribute attribute)}.
 	 *
 	 * @param oldInstance
 	 * @param newInstance
@@ -236,44 +237,55 @@ public class RevisionDetector {
 	 */
 	private boolean attributesRevised(GKInstance oldInstance, GKInstance newInstance, String attrName)
 			throws Exception {
-		// Instance null checker.
-		if (oldInstance == null || newInstance == null) {
-			// if both instances are null, then there are no attributes to revise.
-			if (oldInstance == newInstance)
-				return false;
-			// if only one instance is null, then any attribute may be considered revised.
-			return true;
-		}
+        // If both instances are null, then there are no attributes to revise.
+        // If only one instance is null, then any attribute may be considered revised.
+		if (oldInstance == null || newInstance == null)
+			return oldInstance != newInstance;
 
-		// Attribute null checker.
-		if (oldInstance.getAttributeValue(attrName) == null || newInstance.getAttributeValue(attrName) == null) {
-			if (oldInstance.getAttributeValue(attrName) == newInstance.getAttributeValue(attrName))
-				return false;
-			return true;
-		}
+		Object oldAttributeValue = oldInstance.getAttributeValue(attrName);
+		Object newAttributeValue = newInstance.getAttributeValue(attrName);
 
-		// If the object will not be able to cast to GKInstance, then simply compare the
-		// values.
-		if (oldInstance.getAttributeValue(attrName) instanceof String)
-			return !oldInstance.getAttributeValue(attrName).equals(newInstance.getAttributeValue(attrName));
+        // If both attribute values are instances, then compare database id's
+		if (((GKSchemaAttribute) oldAttributeValue).isInstanceTypeAttribute() &&
+		    ((GKSchemaAttribute) newAttributeValue).isInstanceTypeAttribute())
+		    return ((GKInstance) oldAttributeValue).getDBID() != ((GKInstance) newAttributeValue).getDBID();
 
-		// In the case where an attribute has more than one value.
-		// Cast to GKInstance and compare the database ID's.
-		List<Long> oldAttributeDBIDs = (List<Long>) oldInstance.getAttributeValuesList(attrName).stream()
-                                                                                                .map(attr -> ((GKInstance) attr).getDBID())
-                                                                                                .collect(Collectors.toList());
-		List<Long> newAttributeDBIDs = (List<Long>) newInstance.getAttributeValuesList(attrName).stream()
-                                                                                                .map(attr -> ((GKInstance) attr).getDBID())
-                                                                                                .collect(Collectors.toList());
-		if (oldAttributeDBIDs.size() != newAttributeDBIDs.size())
-		    return true;
+		// If both attribute values are primitives, then compare directly.
+		if ((oldAttributeValue.getClass().isPrimitive() &&
+		     newAttributeValue.getClass().isPrimitive()))
+		    return oldAttributeValue != newAttributeValue;
 
-		for (Long oldAttributeDBID : oldAttributeDBIDs) {
-		    if (!newAttributeDBIDs.contains(oldAttributeDBID))
+		// If both attribute values are lists, then iterate over them and compare.
+		if (oldAttributeValue instanceof List &&
+		    oldAttributeValue instanceof List) {
+
+		    // Cast to GKInstance and compare attribute values.
+		    // Covers the case where an attribute has more than one value.
+		    List<Object> oldAttributeValues = oldInstance.getAttributeValuesList(attrName);
+		    List<Object> newAttributeValues = newInstance.getAttributeValuesList(attrName);
+		    if (oldAttributeValues.size() != newAttributeValues.size())
 		        return true;
+
+		    for (int i = 0; i < oldAttributeValues.size(); i++) {
+		        Object oldAttributeValueInList = oldAttributeValues.get(i);
+		        Object newAttributeValueInList = newAttributeValues.get(i);
+
+		        // If both attribute values are instances, then compare database id's
+		        if (((GKSchemaAttribute) oldAttributeValueInList).isInstanceTypeAttribute() &&
+                    ((GKSchemaAttribute) newAttributeValueInList).isInstanceTypeAttribute())
+		            return ((GKInstance) oldAttributeValueInList).getDBID() != ((GKInstance) newAttributeValue).getDBID();
+
+		        // If both attribute values are primitives, then compare directly.
+		        if ((oldAttributeValueInList.getClass().isPrimitive() &&
+                     newAttributeValue.getClass().isPrimitive()))
+		            return oldAttributeValueInList != newAttributeValue;
+
+		        return true;
+		    }
 		}
 
-		return false;
+		// Either the types of the attribute values do not match, or one of the instances is null.
+		return true;
 	}
 
 	/**
