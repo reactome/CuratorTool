@@ -270,8 +270,7 @@ public class RevisionDetector {
 		    }
 		}
 
-		// If types of the attribute values do not match.
-
+		// Attributes are not revised.
 		return false;
 	}
 
