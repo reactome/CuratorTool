@@ -99,7 +99,7 @@ public interface DefaultRenderConstants {
     
     public static final int DEFAULT_RED_CROSS_WIDTH = 3;
 
-    public static enum DRUG_SHAPE {
+    public static enum RENDER_SHAPE {
    	 	RECTANGLE, OVAL;
     }
 }

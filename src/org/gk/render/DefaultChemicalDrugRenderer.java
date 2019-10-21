@@ -11,6 +11,6 @@ public class DefaultChemicalDrugRenderer extends DefaultChemicalRenderer {
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);
-        renderDrugLabel(g, DRUG_SHAPE.OVAL);
+        renderDrugLabel(g, RENDER_SHAPE.OVAL);
     }
 }

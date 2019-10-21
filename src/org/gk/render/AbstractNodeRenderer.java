@@ -57,10 +57,10 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 
     protected void renderDrugLabel(Graphics g) {
     	// Default to rectangle.
-		renderDrugLabel(g, DRUG_SHAPE.RECTANGLE);
+		renderDrugLabel(g, RENDER_SHAPE.RECTANGLE);
     }
 
-    protected void renderDrugLabel(Graphics g, DRUG_SHAPE shape) {
+    protected void renderDrugLabel(Graphics g, RENDER_SHAPE shape) {
         // Want to use a smaller font
         Font font = g.getFont();
         Font oldFond = font;
@@ -108,9 +108,9 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 	 * @param labelCoordinates
 	 * @return Point
 	 */
-	protected Point getLabelCoordinates(Dimension labelDimensions, Rectangle bounds, DRUG_SHAPE shape) {
+	protected Point getLabelCoordinates(Dimension labelDimensions, Rectangle bounds, RENDER_SHAPE shape) {
 		double x, y;
-		if (shape.equals(DRUG_SHAPE.OVAL)) {
+		if (shape.equals(RENDER_SHAPE.OVAL)) {
 			// Bottom right coordinates.
 			double radians = (7. * Math.PI / 4.);
 			double a = bounds.getWidth() / 2.0;
