@@ -284,7 +284,6 @@ public class GKInstance implements Instance, Cloneable {
 	 * returns attribute values as a List regardless of if 
 	 * it's a single value or a List already.
 	 */
-
 	public List getAttributeValuesList(SchemaAttribute attribute) throws Exception {
 		((GKSchemaClass) schemaClass).isValidAttributeOrThrow(attribute);
 		if (! isAttributeValueLoaded(attribute) && ! isInflated) {

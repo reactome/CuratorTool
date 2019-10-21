@@ -6,6 +6,7 @@ import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -256,10 +257,23 @@ public class RevisionDetector {
 		if (oldInstance.getAttributeValue(attrName) instanceof String)
 			return !oldInstance.getAttributeValue(attrName).equals(newInstance.getAttributeValue(attrName));
 
-		// Default option is to cast to GKInstance and compare the database ID's.
-		Long oldInstanceDBID = ((GKInstance) oldInstance.getAttributeValue(attrName)).getDBID();
-		Long newInstanceDBID = ((GKInstance) newInstance.getAttributeValue(attrName)).getDBID();
-		return !oldInstanceDBID.equals(newInstanceDBID);
+		// In the case where an attribute has more than one value.
+		// Cast to GKInstance and compare the database ID's.
+		List<Long> oldAttributeDBIDs = (List<Long>) oldInstance.getAttributeValuesList(attrName).stream()
+                                                                                                .map(attr -> ((GKInstance) attr).getDBID())
+                                                                                                .collect(Collectors.toList());
+		List<Long> newAttributeDBIDs = (List<Long>) newInstance.getAttributeValuesList(attrName).stream()
+                                                                                                .map(attr -> ((GKInstance) attr).getDBID())
+                                                                                                .collect(Collectors.toList());
+		if (oldAttributeDBIDs.size() != newAttributeDBIDs.size())
+		    return true;
+
+		for (Long oldAttributeDBID : oldAttributeDBIDs) {
+		    if (!newAttributeDBIDs.contains(oldAttributeDBID))
+		        return true;
+		}
+
+		return false;
 	}
 
 	/**
