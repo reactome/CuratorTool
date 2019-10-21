@@ -63,17 +63,16 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Graphics2D g2 = (Graphics2D) g;
         Rectangle2D textBounds = font.getStringBounds(DRUG_SYMBOL, g2.getFontRenderContext());
         // Make sure it is drawn at the bottom right corner
-        Rectangle bounds = node.getBounds();
+        Rectangle labelBounds = node.getBounds();
 
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
         Dimension labelDimensions = new Dimension(w, h);
 
-        // Translated dimension of the label.
-        Point newCoordinates = getLabelCoordinates(labelDimensions, bounds);
-        int x = (int) newCoordinates.getX();
-        int y = (int) newCoordinates.getY();
+        // Bottom right coordinates.
+        int x = (int) (labelBounds.getMaxX() - labelDimensions.getWidth());
+        int y = (int) (labelBounds.getMaxY() - labelDimensions.getHeight());
         // Some shapes for the labeling
         if (background == null) {
             g2.setPaint(DEFAULT_BACKGROUND);
@@ -94,27 +93,6 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         g2.setFont(oldFond);
         g2.setColor(oldColor);
     }
-
-	/**
-	 * Returns a dimension corresponding to a bottomright point on an ellipse.
-	 * "Corrects" the label coordinates by moving it left, right, up, or down to fit within the ellipses' boundary.
-	 *
-	 * @param position
-	 * @param labelCoordinates
-	 * @return Point
-	 */
-	protected Point getLabelCoordinates(Dimension labelDimensions, Rectangle bounds) {
-        // Bottom right coordinates.
-        double radians = (7. * Math.PI / 4.);
-        double a = bounds.getWidth() / 2.0;
-        double b = bounds.getHeight() / 2.0;
-        double x = bounds.getCenterX() + a * Math.cos(radians) - labelDimensions.getWidth();
-        double y = bounds.getCenterY() - b * Math.sin(radians) - labelDimensions.getHeight();
-
-		Point newCoordinates = new Point();
-		newCoordinates.setLocation(x, y);
-		return newCoordinates;
-	}
 
     protected void setDrawPaintAndStroke(Graphics2D g2) {
         // Set line color first
