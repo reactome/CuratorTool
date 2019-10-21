@@ -240,52 +240,39 @@ public class RevisionDetector {
         // If both instances are null, then there are no attributes to revise.
         // If only one instance is null, then any attribute may be considered revised.
 		if (oldInstance == null || newInstance == null)
-			return oldInstance != newInstance;
+			return oldInstance.equals(newInstance);
 
-		Object oldAttributeValue = oldInstance.getAttributeValue(attrName);
-		Object newAttributeValue = newInstance.getAttributeValue(attrName);
+		// Cast to GKInstance and compare attribute values.
+		// Covers the case where an attribute has more than one value.
+		List<Object> oldAttributeValues = oldInstance.getAttributeValuesList(attrName);
+		List<Object> newAttributeValues = newInstance.getAttributeValuesList(attrName);
+		if (oldAttributeValues.size() != newAttributeValues.size())
+		    return true;
 
-        // If both attribute values are instances, then compare database id's
-		if (((GKSchemaAttribute) oldAttributeValue).isInstanceTypeAttribute() &&
-		    ((GKSchemaAttribute) newAttributeValue).isInstanceTypeAttribute())
-		    return ((GKInstance) oldAttributeValue).getDBID() != ((GKInstance) newAttributeValue).getDBID();
+		for (int i = 0; i < oldAttributeValues.size(); i++) {
+		    Object oldAttributeValue = oldAttributeValues.get(i);
+		    Object newAttributeValue = newAttributeValues.get(i);
 
-		// If both attribute values are primitives, then compare directly.
-		if ((oldAttributeValue.getClass().isPrimitive() &&
-		     newAttributeValue.getClass().isPrimitive()))
-		    return oldAttributeValue != newAttributeValue;
+		    // If attribute values are instances, then compare database id's
+		    if (oldAttributeValue instanceof GKInstance || newAttributeValue instanceof GKInstance) {
+		        // Check for type mismatch.
+		        if (!oldAttributeValue.getClass().equals(newAttributeValue.getClass()))
+		            return true;
+		        // Check database id's.
+		        if (!((GKInstance) oldAttributeValue).getDBID().equals(((GKInstance) newAttributeValue).getDBID()))
+		            return true;
+		    }
 
-		// If both attribute values are lists, then iterate over them and compare.
-		if (oldAttributeValue instanceof List &&
-		    oldAttributeValue instanceof List) {
-
-		    // Cast to GKInstance and compare attribute values.
-		    // Covers the case where an attribute has more than one value.
-		    List<Object> oldAttributeValues = oldInstance.getAttributeValuesList(attrName);
-		    List<Object> newAttributeValues = newInstance.getAttributeValuesList(attrName);
-		    if (oldAttributeValues.size() != newAttributeValues.size())
-		        return true;
-
-		    for (int i = 0; i < oldAttributeValues.size(); i++) {
-		        Object oldAttributeValueInList = oldAttributeValues.get(i);
-		        Object newAttributeValueInList = newAttributeValues.get(i);
-
-		        // If both attribute values are instances, then compare database id's
-		        if (((GKSchemaAttribute) oldAttributeValueInList).isInstanceTypeAttribute() &&
-                    ((GKSchemaAttribute) newAttributeValueInList).isInstanceTypeAttribute())
-		            return ((GKInstance) oldAttributeValueInList).getDBID() != ((GKInstance) newAttributeValue).getDBID();
-
-		        // If both attribute values are primitives, then compare directly.
-		        if ((oldAttributeValueInList.getClass().isPrimitive() &&
-                     newAttributeValue.getClass().isPrimitive()))
-		            return oldAttributeValueInList != newAttributeValue;
-
-		        return true;
+		    // If attribute values are primitives or Strings, then compare directly.
+		    else {
+		        if (!oldAttributeValue.equals(newAttributeValue))
+                    return true;
 		    }
 		}
 
-		// Either the types of the attribute values do not match, or one of the instances is null.
-		return true;
+		// If types of the attribute values do not match.
+
+		return false;
 	}
 
 	/**
@@ -413,7 +400,7 @@ public class RevisionDetector {
 	}
 
 	@Test
-	public void testSliceAttributes() throws Exception {
+	public void testAttributesRevised() throws Exception {
 		// (DOCK7) [cytosol]
 		GKInstance oldInstance = testDBA.fetchInstance(8875579L);
 
