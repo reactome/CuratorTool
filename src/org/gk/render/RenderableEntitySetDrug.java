@@ -5,8 +5,7 @@ public class RenderableEntitySetDrug extends RenderableEntitySet implements Defa
      * Default constructor.
      */
     public RenderableEntitySetDrug() {
-        setForegroundColor(DEFAULT_DRUG_FORGROUND); // As the default for the drugs
-        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        this(null);
     }
 
     /**

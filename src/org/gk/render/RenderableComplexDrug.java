@@ -5,8 +5,7 @@ public class RenderableComplexDrug extends RenderableComplex implements DefaultR
      * Default constructor.
      */
     public RenderableComplexDrug() {
-        setForegroundColor(DEFAULT_DRUG_FORGROUND); // As the default for the drugs
-        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        this(null);
     }
 
     /**
