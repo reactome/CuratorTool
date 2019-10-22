@@ -71,8 +71,8 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Dimension labelDimensions = new Dimension(w, h);
 
         // Bottom right coordinates.
-        int x = (int) (labelBounds.getMaxX() - labelDimensions.getWidth());
-        int y = (int) (labelBounds.getMaxY() - labelDimensions.getHeight());
+        int x = (int)(labelBounds.getMaxX() - labelDimensions.getWidth());
+        int y = (int)(labelBounds.getMaxY() - labelDimensions.getHeight());
         // Some shapes for the labeling
         if (background == null) {
             g2.setPaint(DEFAULT_BACKGROUND);
