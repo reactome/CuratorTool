@@ -233,10 +233,97 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
+        // Turn off for the further discussion.
+//        populateEntitySetCompartments();
+        cleanUpPathwayFigures();
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+    }
+    
+    /**
+     * This method is used to take only the first figure attribute listed for
+     * a pathway instance (https://reactome.atlassian.net/browse/DEV-1810).
+     * @throws Exception
+     */
+    private void cleanUpPathwayFigures() throws Exception {
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = sliceMap.get(dbId);
+            // Work with pathways only
+            if (!instance.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                continue;
+            // Just in case
+            if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.figure))
+                continue;
+            List<GKInstance> figures = instance.getAttributeValuesList(ReactomeJavaConstants.figure);
+            if (figures == null || figures.size() == 0 || figures.size() == 1)
+                continue; // All is fine. Nothing to be changed
+            List<GKInstance> copy = new ArrayList<>(1);
+            copy.add(figures.get(0));
+            instance.setAttributeValue(ReactomeJavaConstants.figure, copy);
+            logger.info(instance + ": Only the first Figure value is kept.");
+        }
+    }
+    
+    /**
+     * EntitySet's compartment slot will be auto-populated by from its members and candidates
+     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The 
+     * disease part will not be handled.).
+     * @throws Exception
+     */
+    private void populateEntitySetCompartments() throws Exception {
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = sliceMap.get(dbId);
+            if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+                continue;
+            populateEntitySet(instance, ReactomeJavaConstants.compartment);
+        }
+    }
+    
+    /**
+     * Iterate through EntitySet instances and populate each instance's
+     * disease and compartment attributes.
+     * 
+     * @param instance
+     * @throws Exception
+     */
+    private void populateEntitySet(GKInstance instance,
+                                   String attributeName) throws Exception {
+        if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+            return;
+        // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance, 
+                                                                          ReactomeJavaConstants.hasMember,
+                                                                          ReactomeJavaConstants.hasCandidate);
+        Set<GKInstance> memberAttributeValues = new HashSet<>();
+        for (GKInstance member : members) {
+            if (!member.getSchemClass().isValidAttribute(attributeName))
+                continue;
+            List<GKInstance> list = member.getAttributeValuesList(attributeName);
+            if (list == null || list.size() == 0)
+                continue;
+            memberAttributeValues.addAll(list);
+        }
+        List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
+        InstanceUtilities.sortInstances(memberList);
+        instance.setAttributeValue(attributeName, memberList);
+        logger.info(instance + ": populated compartment for EntitySet.");
+    }
+    
+    @Test
+    public void testPopulateEntitySet() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_091119",
+                                            "root",
+                                            "macmysql01");
+        Long dbId = 9619112L;
+        GKInstance entitySet = dba.fetchInstance(dbId);
+        List<GKInstance> disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
+        System.out.println("Disease before handling: " + disease);
+        populateEntitySet(entitySet, ReactomeJavaConstants.disease);
+        disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
+        System.out.println("Disease after handling: " + disease);
     }
     
     private void setStableIdReleased() throws Exception {
@@ -800,7 +887,7 @@ public class SlicingEngine {
 
     
     /**
-     * Take only those cooridates whose locatedEvent are in the slice.
+     * Take only those coordinates whose locatedEvent are in the slice.
      *
      */
     private void extractReactionCoordinates() throws Exception {
