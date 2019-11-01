@@ -1425,10 +1425,10 @@ public class InstanceUtilities {
 
          // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
          // ifHasInstance()
-         Set<GKInstance> containedInstances = InstanceUtilities.getContainedInstances(instance,
-                                                                           ReactomeJavaConstants.hasMember,
-                                                                           ReactomeJavaConstants.hasCandidate,
-                                                                           ReactomeJavaConstants.hasComponent);
+         Set<GKInstance> containedInstances = getContainedInstances(instance,
+                                                                    ReactomeJavaConstants.hasMember,
+                                                                    ReactomeJavaConstants.hasCandidate,
+                                                                    ReactomeJavaConstants.hasComponent);
          // No containedInstances.
          if (containedInstances.size() == 0 || containedInstances == null)
              return false;

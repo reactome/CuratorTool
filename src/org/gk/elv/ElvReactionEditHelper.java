@@ -239,7 +239,6 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             rPe = zoomableEditor.getFreeFormObject(pe);
         if (rPe == null)
             rPe = zoomableEditor.insertInstance(pe);
-        System.out.println("rPe: " + rPe);
         return rPe;
     }
     

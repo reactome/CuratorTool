@@ -92,10 +92,8 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
 //                                              JOptionPane.WARNING_MESSAGE);
 //            }
 //            else {
-                for (GKInstance entity : entities) {
-                	System.out.println("entity: " + entity);
+                for (GKInstance entity : entities)
                     zoomableEditor.insertInstance(entity);
-                }
 //            }
         }
         if (reactions.size() > 0) {
