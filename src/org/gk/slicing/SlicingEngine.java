@@ -307,6 +307,9 @@ public class SlicingEngine {
         }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
+        // Turn off for the further discussion.
+//        populateEntitySetCompartments();
+        cleanUpPathwayFigures();
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -343,22 +346,61 @@ public class SlicingEngine {
     }
 
     /**
+     * This method is used to take only the first figure attribute listed for
+     * a pathway instance (https://reactome.atlassian.net/browse/DEV-1810).
+     * @throws Exception
+     */
+    private void cleanUpPathwayFigures() throws Exception {
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = sliceMap.get(dbId);
+            // Work with pathways only
+            if (!instance.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                continue;
+            // Just in case
+            if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.figure))
+                continue;
+            List<GKInstance> figures = instance.getAttributeValuesList(ReactomeJavaConstants.figure);
+            if (figures == null || figures.size() == 0 || figures.size() == 1)
+                continue; // All is fine. Nothing to be changed
+            List<GKInstance> copy = new ArrayList<>(1);
+            copy.add(figures.get(0));
+            instance.setAttributeValue(ReactomeJavaConstants.figure, copy);
+            logger.info(instance + ": Only the first Figure value is kept.");
+        }
+    }
+
+    /**
+     * EntitySet's compartment slot will be auto-populated by from its members and candidates
+     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The
+     * disease part will not be handled.).
+     * @throws Exception
+     */
+    private void populateEntitySetCompartments() throws Exception {
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = sliceMap.get(dbId);
+            if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+                continue;
+            populateEntitySet(instance, ReactomeJavaConstants.compartment);
+        }
+    }
+
+    /**
      * Iterate through EntitySet instances and populate each instance's
      * compartment attributes.
-     * 
+     *
      * The recursive iteration takes place in the
      * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
      *
+
      * @param instance
      * @throws Exception
      */
     private void populateEntitySet(GKInstance instance,
-                                   String attributeName,
-                                   PrintStream ps) throws Exception {
+                                   String attributeName) throws Exception {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
             return;
         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance, 
+        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
                                                                           ReactomeJavaConstants.hasMember,
                                                                           ReactomeJavaConstants.hasCandidate);
         Set<GKInstance> memberAttributeValues = new HashSet<>();
@@ -409,7 +451,7 @@ public class SlicingEngine {
         populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
         attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(2, attrValue.size());
-        
+
         // Remove the added compartment.
         member.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
         populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
