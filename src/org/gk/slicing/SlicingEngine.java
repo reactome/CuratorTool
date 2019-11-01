@@ -293,10 +293,10 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        logAndPrintln("\nFilling Attribute Values...", output);
+        logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
         if (previousSliceRequested) {
-            logAndPrintln("\nRevision checking...", output);
+            logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
             for (String previousSliceClass : previousSliceClasses)
                 revisionDetector.checkForRevisions(previousSliceClass,
@@ -334,10 +334,10 @@ public class SlicingEngine {
     		return;
     	for (Long dbId : sliceMap.keySet()) {
     		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().getSuperClasses().contains(entitySet))
+    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
     			continue;
 
-			logAndPrintln(String.format("Populating %s in %s", attributeName, inst), ps);
+			logger.info(String.format("Populating %s in %s", attributeName, inst));
     		populateEntitySet(inst, attributeName, ps);
     	}
     }
@@ -372,7 +372,7 @@ public class SlicingEngine {
 
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
-        memberList.forEach(member -> logAndPrintln(String.format("-> %s", member), ps));
+        memberList.forEach(member -> logger.info(String.format("-> %s", member)));
         instance.setAttributeValue(attributeName, memberList);
     }
 
@@ -450,19 +450,7 @@ public class SlicingEngine {
     		assertEquals(1, attrValue.size());
     	}
     }
-    
-    /**
-     * Log and print message.
-     * 
-     * @param msg
-     * @param ps
-     */
-    private void logAndPrintln(String msg, PrintStream ps) {
-    	logger.info(msg);
-    	if (ps != null)
-			ps.println(msg);
-    }
-    
+
     private void setStableIdReleased() throws Exception {
         if (!setReleasedInStableIdentifier)
             return; // There is no need to do this.
