@@ -341,7 +341,7 @@ public class SlicingEngine {
     			continue;
 
 			logger.info(String.format("Populating %s in %s", attributeName, inst));
-    		populateEntitySet(inst, attributeName, ps);
+    		populateEntitySet(inst, attributeName);
     	}
     }
 
@@ -448,13 +448,13 @@ public class SlicingEngine {
         assertEquals(1, attrValue.size());
 
         // Populate the compartments.
-        populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+        populateEntitySet(entity, ReactomeJavaConstants.compartment);
         attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(2, attrValue.size());
 
         // Remove the added compartment.
         member.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
-        populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+        populateEntitySet(entity, ReactomeJavaConstants.compartment);
         attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
 		// System.out.println(attrValue);
         assertEquals(1, attrValue.size());
@@ -479,7 +479,7 @@ public class SlicingEngine {
     		assertEquals(1, attrValue.size());
 
     		// Fill attribute values.
-			populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+			populateEntitySet(entity, ReactomeJavaConstants.compartment);
 			entity.addAttributeValue(ReactomeJavaConstants.compartment, plasmaMembrane);
 			attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
 			System.out.println(attrValue);
@@ -487,7 +487,7 @@ public class SlicingEngine {
 
     		// Remove added attribute values.
 			entity.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
-			populateEntitySet(entity, ReactomeJavaConstants.compartment, null);
+			populateEntitySet(entity, ReactomeJavaConstants.compartment);
 			attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
     		assertEquals(1, attrValue.size());
     	}

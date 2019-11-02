@@ -85,7 +85,7 @@ public class RevisionDetector {
 	/**
 	 * Check if Pathway is revised.
 	 *
-	 * TODO Is the "in-method" recursive approach that
+	 * TODO Is the recursive approach that
 	 * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} takes recommended?
 	 *
 	 * @param pathway
@@ -104,7 +104,7 @@ public class RevisionDetector {
 		if (isChildPathwayAddedOrRemoved(pathway, targetInstance))
 			return true;
 
-		// Finally check for changes in summation text.
+		// Check for changes in summation text.
 		if (isSummationRevised(pathway, targetDBA))
 			return true;
 
@@ -114,8 +114,9 @@ public class RevisionDetector {
 		if (events != null && events.size() > 0) {
 			for (GKInstance event : events) {
 				// Pathway
-				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-					isPathwayRevised(event, targetDBA);
+				if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)
+				 && isPathwayRevised(event, targetDBA))
+                    return true;
 
 				// RLE
 				else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
@@ -139,50 +140,36 @@ public class RevisionDetector {
 	private boolean isChildPathwayAddedOrRemoved(GKInstance parent, GKInstance targetInstance)
 			throws InvalidAttributeException, SQLException, Exception {
 
-		Collection<GKInstance> childPathways = getChildPathways(parent);
-		Collection<GKInstance> compareChildPathways = getChildPathways(targetInstance);
+		Collection<GKInstance> parentPathways = parent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+		Collection<GKInstance> targetPathways = targetInstance.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
 
-		if (childPathways.isEmpty() && compareChildPathways.isEmpty())
+		if (parentPathways.isEmpty() && targetPathways.isEmpty())
 			return false;
 
 		// If the number of child pathways is different between the two parents,
 		// then an addition or deletion has taken place.
-		if (childPathways.size() != compareChildPathways.size())
+		if (parentPathways.size() != targetPathways.size())
 			return true;
 
 		// List of child pathway IDs.
-		Collection<Long> childPathwayDBIDs = childPathways.stream()
-				.map(attrValue -> attrValue.getDBID())
-				.collect(Collectors.toList());
+		Collection<Long> parentPathwayDBIDs = parentPathways.stream()
+                                                            .map(attrValue -> attrValue.getDBID())
+                                                            .collect(Collectors.toList());
 
-		// Check if there is a child pathway not associated with both parents.
-		Optional<Long> commonDBID = compareChildPathways.stream()
-				// Get database ID.
-				.map(attrValue -> attrValue.getDBID())
-				// Set match criteria (identical database ID's).
-				.filter(comparePathwayDBID -> childPathwayDBIDs.contains(comparePathwayDBID))
-				// Find match (or null if no match).
-				.findAny();
-
-		if (!commonDBID.isPresent())
+		// Check if there is a child pathway not shared by both parents.
+		Optional<Long> unsharedDBID = targetPathways.stream()
+                                                    // Get database ID.
+                                                    .map(attrValue -> attrValue.getDBID())
+                                                    // Set match criteria (parent does not contain given pathway).
+                                                    .filter(targetPathwayDBID -> !parentPathwayDBIDs.contains(targetPathwayDBID))
+                                                    // Find match (or null if no match).
+                                                    .findAny();
+		// A child pathway has been added or removed.
+		if (unsharedDBID.isPresent())
 			return true;
 
+		// No child pathway has been added or removed.
 		return false;
-	}
-
-	/**
-	 * Return a list of child pathways for a given parent.
-	 *
-	 * @param parent
-	 * @return List
-	 * @throws InvalidAttributeException
-	 * @throws Exception
-	 */
-	private Collection<GKInstance> getChildPathways(GKInstance parent) throws InvalidAttributeException, Exception {
-		Collection<GKInstance> events = parent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-		return events.stream()
-				.filter(attr -> attr.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-				.collect(Collectors.toList());
 	}
 
 	/**
@@ -375,7 +362,7 @@ public class RevisionDetector {
 		xylitolDegradation.setDBID(5268107L);
 		assertEquals(false, isPathwayRevised(xylitolDegradation, testDBA));
 
-		// Example addition of a child pathway (tRNA processing).
+		// Add a new child pathway (tRNA processing).
 		GKInstance pathway = testDBA.fetchInstance(72306L);
 		xylitolDegradation.addAttributeValue(ReactomeJavaConstants.hasEvent, pathway);
 		assertEquals(true, isPathwayRevised(xylitolDegradation, testDBA));
@@ -389,13 +376,45 @@ public class RevisionDetector {
 		neuronalSystem.setDBID(112316L);
 		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
 
-		// Remove an existing child pathway.
-		GKInstance removedChildPathway = testDBA.fetchInstance(1296071L);
-		neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, removedChildPathway);
+		// Remove an existing child pathway (potassium channels).
+		GKInstance potassiumChannels = testDBA.fetchInstance(1296071L);
+		neuronalSystem.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, potassiumChannels);
 		assertEquals(true, isPathwayRevised(neuronalSystem, testDBA));
 		// Reset the removal.
-		neuronalSystem.addAttributeValue(ReactomeJavaConstants.hasEvent, removedChildPathway);
+		neuronalSystem.addAttributeValue(ReactomeJavaConstants.hasEvent, potassiumChannels);
 		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
+
+		// Revise a child pathway (by changing it's summation text).
+		GKInstance potassiumChannelsSummation = (GKInstance) testDBA.fetchInstance(1297383L).clone();
+		potassiumChannelsSummation.setDBID(1297383L);
+		String originalSummationText = (String) potassiumChannelsSummation.getAttributeValue(ReactomeJavaConstants.text);
+		potassiumChannelsSummation.setAttributeValue(ReactomeJavaConstants.text, "");
+		potassiumChannels.setAttributeValue(ReactomeJavaConstants.summation, potassiumChannelsSummation);
+		assertEquals(true, isPathwayRevised(neuronalSystem, testDBA));
+
+		// Reset the revision.
+		potassiumChannelsSummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
+		assertEquals(false, isPathwayRevised(neuronalSystem, testDBA));
+	}
+
+	@Test
+	public void testIsSummationRevised() throws Exception {
+		// Example pathway (neuronal system).
+		GKInstance neuronalSystem = (GKInstance) testDBA.fetchInstance(112316L).clone();
+		neuronalSystem.setDBID(112316L);
+		assertEquals(false, isSummationRevised(neuronalSystem, testDBA));
+
+        // Revise a pathway's summation text.
+		GKInstance neuronalSystemSummation = (GKInstance) testDBA.fetchInstance(349546L).clone();
+		neuronalSystemSummation.setDBID(349546L);
+		String originalSummationText = (String) neuronalSystemSummation.getAttributeValue(ReactomeJavaConstants.text);
+		neuronalSystemSummation.setAttributeValue(ReactomeJavaConstants.text, "");
+		neuronalSystem.setAttributeValue(ReactomeJavaConstants.summation, neuronalSystemSummation);
+		assertEquals(true, isSummationRevised(neuronalSystem, testDBA));
+
+		// Reset the revision,
+		neuronalSystemSummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
+		assertEquals(false, isSummationRevised(neuronalSystem, testDBA));
 	}
 
 	@Test
