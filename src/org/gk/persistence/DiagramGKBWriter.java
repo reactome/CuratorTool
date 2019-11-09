@@ -5,11 +5,13 @@
 package org.gk.persistence;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.Note;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableEntitySet;
+import org.gk.render.RenderableEntitySetDrug;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderablePropertyNames;
 import org.jdom.Element;
@@ -110,8 +112,12 @@ public class DiagramGKBWriter extends GKBWriter {
 //                    }
                     
                     // Do a modification for old PathwayDiagrams
-                    if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-                        elm.setName(RenderableEntitySet.class.getName());
+                    if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
+                        if (InstanceUtilities.isDrug(inst))
+                            elm.setName(RenderableEntitySetDrug.class.getName());
+                        else
+                            elm.setName(RenderableEntitySet.class.getName());
+                    }
                 }
             }
             catch (Exception e) {

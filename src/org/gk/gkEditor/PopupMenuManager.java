@@ -179,6 +179,7 @@ public class PopupMenuManager {
                 menu.add(actionCollection.getRemoveCompartFromNameAction());
                 menu.add(actionCollection.getPrivateNoteAction());
                 menu.add(actionCollection.getTightBoundsAction());
+                menu.add(actionCollection.getRefreshNodesAction());
                 menu.add(actionCollection.getWrapTextIntoNodesAction());
                 menu.add(actionCollection.getResetNodeFeaturesAction());
                 menu.add(actionCollection.getDoNotReleaseAction());

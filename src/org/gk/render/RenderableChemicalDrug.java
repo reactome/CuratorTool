@@ -8,7 +8,7 @@ package org.gk.render;
 public class RenderableChemicalDrug extends RenderableChemical {
 
     public RenderableChemicalDrug() {
-        setForegroundColor(DEFAULT_DRUG_FORGROUND); // As the default for the drugs
+        setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
         setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
 }
