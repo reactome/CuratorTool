@@ -20,10 +20,15 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import org.gk.database.EventCentricViewPane;
+import org.gk.database.FrameManager;
+import org.gk.elv.ElvDiagramHandler;
 import org.gk.graphEditor.GraphEditorActionEvent.ActionType;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.PersistenceManager;
+import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.ContainerNode;
 import org.gk.render.DefaultNodeEditor;
 import org.gk.render.FlowLine;
@@ -1045,38 +1050,43 @@ public class PathwayEditor extends GraphEditorPane {
     }
 
 
+    /**
+     * Refresh all rendered nodes in the graph editor.
+     * TODO Add event listener for automatic refresh.
+     *
+     * @throws Exception
+     */
     public void refreshNodes() throws Exception {
-       List objects = getDisplayedObjects();
-       Renderable r = null;
-       for (Iterator it = objects.iterator(); it.hasNext();) {
+        // Get all displayed objects.
+        List objects = getDisplayedObjects();
+        Renderable r = null;
+        // Iterate over list of objects.
+        for (Iterator it = objects.iterator(); it.hasNext();) {
             r = (Renderable) it.next();
-           if (r instanceof Node) {
-               Node node = (Node) r;
-               Long dbId = node.getReactomeId();
-               if (dbId != null) {
-                   MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                                       "gk_central_091119",
-                                                       "root",
-                                                       "macmysql01");
-                   GKInstance inst = dba.fetchInstance(node.getReactomeId());
-                   node.setInstance(inst);
-                   if (InstanceUtilities.isDrug(node.getInstance())) {
-                       final Color DEFAULT_DRUG_BACKGROUND = new Color(184, 154, 230);
-                       final Color DEFAULT_DRUG_FOREGROUND = new Color(161, 1, 2);
-                       node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
-                       node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
-                   }
-                   else {
-                       final Color DEFAULT_BACKGROUND = new Color(204, 255, 204);
-                       final Color DEFAULT_FOREGROUND = Color.black;
-                       node.setBackgroundColor(DEFAULT_BACKGROUND);
-                       node.setForegroundColor(DEFAULT_FOREGROUND);
-                   }
-               }
-           }
-       }
+            if (r instanceof Node) {
+                Node node = (Node) r;
+                Long dbId = node.getReactomeId();
+                if (dbId != null) {
+                    // Retrieve instance from data file.
+                    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+                    
+                    if (InstanceUtilities.isDrug(fileAdaptor.fetchInstance(dbId))) {
+                        final Color DEFAULT_DRUG_BACKGROUND = new Color(184, 154, 230);
+                        final Color DEFAULT_DRUG_FOREGROUND = new Color(161, 1, 2);
+                        node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+                        node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
+                    }
+                    else {
+                        final Color DEFAULT_BACKGROUND = new Color(204, 255, 204);
+                        final Color DEFAULT_FOREGROUND = Color.black;
+                        node.setBackgroundColor(DEFAULT_BACKGROUND);
+                        node.setForegroundColor(DEFAULT_FOREGROUND);
+                    }
+                }
+            }
+        }
     }
-    
+
     /**
      * Tight nodes so that text can be fitted into the bounds of a node. 
      * @param applyToOverflowNodesOnly true the action should be applied to nodes having text overflowed.
