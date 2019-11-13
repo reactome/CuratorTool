@@ -98,7 +98,6 @@ public class AuthorToolActionCollection {
     private Action removeComptFromNameAction;
     // This method is used to right the bounds for nodes
     private Action tightBoundsAction;
-    private Action refreshNodesAction;
     // Make sure all text are wrapped in node bounds
     private Action wrapTextIntoNodesAction;
     // Action used to append compartments to display names
@@ -234,22 +233,6 @@ public class AuthorToolActionCollection {
             };
         }
         return tightBoundsAction;
-    }
-    
-    public Action getRefreshNodesAction() {
-        if (refreshNodesAction == null) {
-            refreshNodesAction = new AbstractAction("Refresh Nodes") {
-                public void actionPerformed(ActionEvent e) {
-                    try {
-                        pathwayEditor.refreshNodes();
-                    } catch (Exception e1) {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
-                    }
-                }
-            };
-        }
-        return refreshNodesAction;
     }
 
     public Action getWrapTextIntoNodesAction() {
