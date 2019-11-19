@@ -10,6 +10,8 @@ public class DefaultEntitySetDrugRenderer extends DefaultEntitySetRenderer {
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);
+        node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        node.setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
         renderDrugLabel(g);
     }
 

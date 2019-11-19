@@ -13,7 +13,5 @@ public class RenderableEntitySetDrug extends RenderableEntitySet implements Defa
      */
     public RenderableEntitySetDrug(String displayName) {
         super(displayName);
-        setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
-        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
 }

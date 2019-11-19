@@ -13,7 +13,5 @@ public class RenderableComplexDrug extends RenderableComplex implements DefaultR
      */
     public RenderableComplexDrug(String displayName) {
         super(displayName);
-        setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
-        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
 }
