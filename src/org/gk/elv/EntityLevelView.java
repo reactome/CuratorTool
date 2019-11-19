@@ -48,8 +48,6 @@ import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.render.RenderUtility;
-import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
@@ -294,18 +292,6 @@ public class EntityLevelView extends JPanel {
             List<GKInstance> pathways = fileAdaptor.getRepresentedPathwaysInDiagram(diagram);
             overviewPane.setRenderable(diagram);
             objectListPane.displayEvents(pathways, diagram);
-
-            for (Object renderable : diagram.getComponents()) {
-                GKInstance instance = ((Renderable) renderable).getInstance();
-                if (instance == null) {
-                    PersistenceAdaptor persistenceAdaptor = zoomableEditor.getXMLFileAdaptor();
-                    instance = persistenceAdaptor.fetchInstance(((Renderable) renderable).getReactomeId());
-                    if (instance == null)
-                        continue;
-                }
-                if (!RenderUtility.checkDrugMatch((Renderable) renderable, instance))
-                    zoomableEditor.reInsertInstance(instance);
-            }
         }
     }
     
@@ -539,7 +525,7 @@ public class EntityLevelView extends JPanel {
      * @param editEvent Event for editing attribute value
      * @throws Exception 
      */
-    public void updateInstance(AttributeEditEvent editEvent) throws Exception {
+    public void updateInstance(AttributeEditEvent editEvent) {
         objectListPane.updateInstance(editEvent);
         zoomableEditor.updateInstance(editEvent);
     }

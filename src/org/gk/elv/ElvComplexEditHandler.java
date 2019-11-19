@@ -13,11 +13,13 @@ import java.util.List;
 import org.gk.database.AttributeEditEvent;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
+import org.gk.schema.InvalidAttributeException;
 
 /**
  * This helper class is used to handle attribute edit for complex.
@@ -188,8 +190,8 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
 //                return;
 //            }
             RenderableComplex complex1 = (RenderableComplex) complex;
-            if (complex1.isComponentsHidden())
-                return;
+//            if (complex1.isComponentsHidden())
+//                return;
             // It is possible the complex can be displayed as 
             List removed = edit.getRemovedInstances();
             List components = complex.getComponents();
@@ -211,6 +213,16 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
+                GKInstance instance = edit.getEditingInstance();
+                try {
+                    for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
+                        // Check if a removal event resulted in an instance no longer being a drug.
+                        if (!InstanceUtilities.isDrug((GKInstance) member))
+                            zoomableEditor.reInsertInstance(instance);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
@@ -227,6 +239,16 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                                             instance);
                         needRepaint = true;
                     }
+                }
+                GKInstance instance = edit.getEditingInstance();
+                try {
+                    for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
+                        // Check if an addition event resulted in an instance becoming a drug.
+                        if (InstanceUtilities.isDrug((GKInstance) member))
+                            zoomableEditor.reInsertInstance(instance);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }

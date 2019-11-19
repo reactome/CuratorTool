@@ -69,11 +69,9 @@ import org.gk.database.SynchronizationManager;
 import org.gk.graphEditor.EntityLevelView;
 import org.gk.graphEditor.GraphEditorActionEvent;
 import org.gk.graphEditor.GraphEditorActionListener;
-import org.gk.graphEditor.PathwayEditor;
 import org.gk.graphEditor.ReactionLevelView;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.model.InstanceUtilities;
 import org.gk.osxAdapter.OSXApplication;
 import org.gk.persistence.Bookmarks;
 import org.gk.persistence.PersistenceManager;
@@ -500,11 +498,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 					eventView.updateInstance(e);
 				}
 				// To synchronize the view
-				try {
-                    entityView.updateInstance(e);
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                }
+				entityView.updateInstance(e);
 				Component attributePane = e.getEditingComponent();
 				// Need to update
 				if (schemaView.getAttributePane().getInstance() == instance

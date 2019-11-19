@@ -391,33 +391,6 @@ public class RenderUtility {
 	}
 	
 	/**
-	 *
-	 * @param renderable
-	 * @param instance
-	 * @return boolean, true if both the instance and renderable classes are valid drug classes, false otherwise.
-	 * @throws Exception
-	 */
-	public static boolean checkDrugMatch(Renderable renderable, GKInstance instance) throws Exception {
-	    final List<String> instanceClasses = Arrays.asList(ReactomeJavaConstants.Complex,
-                                                           ReactomeJavaConstants.EntitySet);
-	    final List<String> renderableDrugClasses = Arrays.asList("RenderableComplexDrug",
-                                                                 "RenderableEntitySetDrug");
-	    final List<String> renderableClasses = Arrays.asList("RenderableComplex",
-                                                             "RenderableEntitySet");
-	    if (instanceClasses.stream().anyMatch(instance.getSchemClass()::isa)) {
-	        if (InstanceUtilities.isDrug(instance) &&
-                renderableDrugClasses.stream().anyMatch(renderable.getClass().getSimpleName()::equals))
-	            return true;
-
-	        if (!InstanceUtilities.isDrug(instance) &&
-                renderableClasses.stream().anyMatch(renderable.getClass().getSimpleName()::equals))
-	            return true;
-	    }
-
-	    return false;
-	}
-
-	/**
 	 * Set the property value for a container's descendent.
 	 * 
 	 * @param renderable The container

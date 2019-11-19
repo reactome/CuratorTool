@@ -67,9 +67,8 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             }
             for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
                 // Check if an addition event resulted in an instance becoming a drug.
-                if (InstanceUtilities.isDrug((GKInstance) member)) {
+                if (InstanceUtilities.isDrug((GKInstance) member))
                     zoomableEditor.reInsertInstance(inst);
-                }
             }
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {

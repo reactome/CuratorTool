@@ -537,7 +537,11 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         else if (schemaClass.isa(ReactomeJavaConstants.ModifiedResidue))
             ewasHelper.modifiedResidueEdit(editEvent);
         else if (schemaClass.isa(ReactomeJavaConstants.EntitySet))
-            peHelper.entitySetEdit(editEvent);
+            try {
+                peHelper.entitySetEdit(editEvent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
     }
     
     protected Renderable addComplexComponent(RenderableComplex complex,
