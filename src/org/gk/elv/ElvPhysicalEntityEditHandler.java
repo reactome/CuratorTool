@@ -33,8 +33,8 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     
     public ElvPhysicalEntityEditHandler() {
     }
-    
-    protected void entitySetEdit(AttributeEditEvent editEvent) {
+
+    protected void entitySetEdit(AttributeEditEvent editEvent) throws Exception {
         if (!editEvent.getAttributeName().equals(ReactomeJavaConstants.hasMember) &&
             !editEvent.getAttributeName().equals(ReactomeJavaConstants.hasCandidate))
             return;
@@ -65,11 +65,23 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                 if (InstanceUtilities.hasSharedMembers(inst, tmp))
                     addEntitySetAndEntitySetLink(sets, instanceToNodes.get(tmp));
             }
+            for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
+                // Check if an addition event resulted in an instance becoming a drug.
+                if (InstanceUtilities.isDrug((GKInstance) member)) {
+                    zoomableEditor.reInsertInstance(inst);
+                }
+            }
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {
             List<GKInstance> removedInsts = editEvent.getRemovedInstances();
             removeEntitySetAndMemberLink(sets, removedInsts);
             removeSetAndSetLink(inst, sets);
+
+            for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
+                // Check if a removal event resulted in an instance no longer being a drug.
+                if (!InstanceUtilities.isDrug((GKInstance) member))
+                    zoomableEditor.reInsertInstance(inst);
+            }
         }
     }
     

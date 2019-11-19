@@ -113,10 +113,9 @@ public class DiagramGKBWriter extends GKBWriter {
                     
                     // Do a modification for old PathwayDiagrams
                     if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-                        if (InstanceUtilities.isDrug(inst))
-                            elm.setName(RenderableEntitySetDrug.class.getName());
-                        else
+                        if (!(r instanceof RenderableEntitySet)) { // This a hard fix for old pathway diagrams that don't use this Renderable class.
                             elm.setName(RenderableEntitySet.class.getName());
+                        }
                     }
                 }
             }
