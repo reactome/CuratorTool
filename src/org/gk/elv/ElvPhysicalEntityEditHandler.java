@@ -4,6 +4,7 @@
  */
 package org.gk.elv;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
+import org.gk.render.RenderablePathway;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -67,8 +69,10 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             }
             for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
                 // Check if an addition event resulted in an instance becoming a drug.
-                if (InstanceUtilities.isDrug((GKInstance) member))
+                if (InstanceUtilities.isDrug((GKInstance) member)) {
                     zoomableEditor.reInsertInstance(inst);
+                    break;
+                }
             }
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {
@@ -78,8 +82,10 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
 
             for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
                 // Check if a removal event resulted in an instance no longer being a drug.
-                if (!InstanceUtilities.isDrug((GKInstance) member))
+                if (!InstanceUtilities.isDrug((GKInstance) member)) {
                     zoomableEditor.reInsertInstance(inst);
+                    break;
+                }
             }
         }
     }
@@ -257,6 +263,51 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             }
         }
         return peToRenderables;
+    }
+    
+    private Node getPathway(Node node) {
+        if (node == null)
+            return null;
+        final String className = "RenderablePathway";
+        while (node.getContainer() != null &&
+               !node.getContainer().getClass().getSimpleName().equals(className)) {
+            node = (Node) node.getContainer();     
+        }
+        return (Node) node.getContainer();
+    }
+
+    protected void reInsertAffectedNodes(Node affectedNode) {
+        final RenderablePathway pathway = (RenderablePathway) getPathway(affectedNode);
+        final String affectedNodeClassName = affectedNode.getClass().getSimpleName();
+        if (pathway == null)
+            return;
+        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
+                                                          "RenderableComplexDrug",
+                                                          "RenderableEntitySet",
+                                                          "RenderableEntitySetDrug");
+        for (Object pathwayComponent : pathway.getComponents()) {
+            // Limit to Complexes and EntitySets.
+            if (allowedClasses.stream()
+                              .noneMatch(className -> className.equals(pathwayComponent.getClass().getSimpleName())))
+                continue;
+            
+            List<Node> parentComponents = ((Node) pathwayComponent).getComponents();
+            
+            if (parentComponents == null)
+                continue;
+            
+            // Compare class names. TODO This is not a very robust solution, as comparing raw Strings can
+            // become questionable.
+            if (parentComponents.stream()
+                                .map(component -> component.getClass().getSimpleName())
+                                .anyMatch(className -> className.equals(affectedNodeClassName))) {
+                // Reinsert all parent complexes/entity sets of the affected instance.
+                zoomableEditor.reInsertInstance(((Node) pathwayComponent).getInstance());
+            }
+        }
+
+        // Reinsert the affected instance.
+        zoomableEditor.reInsertInstance(affectedNode.getInstance());
     }
     
 }

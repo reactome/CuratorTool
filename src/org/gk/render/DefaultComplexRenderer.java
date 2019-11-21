@@ -23,6 +23,8 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
+        node.setBackgroundColor(DEFAULT_COMPLEX_BACKGROUND);
+        node.setForegroundColor(DEFAULT_FOREGROUND);
         Graphics2D g2 = (Graphics2D) g;
         // Draw three overlapping rectangles
         Stroke oldStroke = g2.getStroke();

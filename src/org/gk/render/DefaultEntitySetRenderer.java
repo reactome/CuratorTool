@@ -19,8 +19,8 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     
     @Override
     protected void renderShapes(Graphics g) {
-        node.setForegroundColor(DEFAULT_FOREGROUND); // As the default for the drugs
         node.setBackgroundColor(DEFAULT_BACKGROUND);
+        node.setForegroundColor(DEFAULT_FOREGROUND);
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
         // The following code is used to draw two same size shapes with a little shift

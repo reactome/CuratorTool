@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.database.AttributeEditEvent;
+import org.gk.database.FrameManager;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -19,6 +20,7 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
+import org.gk.render.RenderablePathway;
 import org.gk.schema.InvalidAttributeException;
 
 /**
@@ -214,21 +216,28 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                     }
                 }
                 GKInstance instance = edit.getEditingInstance();
+                boolean hasDrugs = false;
                 try {
                     for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
                         // Check if a removal event resulted in an instance no longer being a drug.
-                        if (!InstanceUtilities.isDrug((GKInstance) member))
-                            zoomableEditor.reInsertInstance(instance);
+                        if (InstanceUtilities.isDrug((GKInstance) member)) {
+                            hasDrugs = true;
+                            break;
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                if (!hasDrugs) {
+                    reInsertAffectedNodes(complex);
+                }
+
             }
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
             RenderableComplex complex1 = (RenderableComplex) complex;
-            if (complex1.isComponentsHidden())
-                return;
+//            if (complex1.isComponentsHidden())
+//                return;
             List added = edit.getAddedInstances();
             if (added != null && added.size() > 0) {
                 for (Iterator it = added.iterator(); it.hasNext();) {
@@ -244,8 +253,10 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                 try {
                     for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
                         // Check if an addition event resulted in an instance becoming a drug.
-                        if (InstanceUtilities.isDrug((GKInstance) member))
-                            zoomableEditor.reInsertInstance(instance);
+                        if (InstanceUtilities.isDrug((GKInstance) member)) {
+                            reInsertAffectedNodes(complex);
+                            break;
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
