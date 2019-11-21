@@ -4,6 +4,7 @@
  */
 package org.gk.elv;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -264,50 +265,75 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         }
         return peToRenderables;
     }
+
+    protected void refreshContainingNodes(Node affectedNode) {
+        // Default is to limit to Complexes and EntitySets.
+        // TODO remove complexes from this, move to subclass.
+        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
+                                                          "RenderableComplexDrug",
+                                                          "RenderableEntitySet",
+                                                          "RenderableEntitySetDrug");
+       List<GKInstance> containingInstances = getContainingInstances(affectedNode, allowedClasses);
+       for (GKInstance instance : containingInstances) {
+           // Reinsert the affected instance.
+           zoomableEditor.reInsertInstance(instance);
+       }
+    } 
+
+    private List<GKInstance> getContainingInstances(Node node, List<String> allowedClasses) {
+        List<Object> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
+        if (displayedObjects == null)
+            return null;
+        List<GKInstance> containingInstances = new ArrayList<GKInstance>();
+        
+        for (Object pathwayComponent : pathway.getComponents()) {
+            if (allowedClasses != null) {
+            if (allowedClasses.stream()
+                              .noneMatch(className -> className.equals(pathwayComponent.getClass().getSimpleName())))
+                continue;
+            }
+
+            // The nodes contained by the Complexes/EntitySets in the diagram.
+            List<Node> parentComponents = ((Node) pathwayComponent).getComponents();
+            if (parentComponents == null)
+                continue;
+
+            // Determine if the given Complex/EntitySet contains the affected node.
+            // Do so by comparing Reactome ID's.
+            if (parentComponents.stream()
+                    .map(component -> component.getReactomeId())
+                    .anyMatch(reactomeId -> reactomeId.equals(node.getReactomeId())))
+                containingInstances.add(getInstance((Node) pathwayComponent));
+        }
+        
+        return containingInstances;
+    }
+
+    private GKInstance getInstance(Node node) {
+        GKInstance instance = null;
+        XMLFileAdaptor fileAdaptor = null;
+
+        instance = ((Node) node).getInstance();
+        if (instance == null) {
+            if (fileAdaptor == null)
+                fileAdaptor = zoomableEditor.getXMLFileAdaptor();
+            instance = fileAdaptor.fetchInstance(node.getReactomeId()); 
+        }
+        
+        return instance;
+    }
     
     private Node getPathway(Node node) {
         if (node == null)
             return null;
         final String className = "RenderablePathway";
+        // TODO This is not a very robust solution (comparing raw Strings).
         while (node.getContainer() != null &&
                !node.getContainer().getClass().getSimpleName().equals(className)) {
             node = (Node) node.getContainer();     
         }
+
+        // Return the rendererablePathway, or null if it was not found.
         return (Node) node.getContainer();
     }
-
-    protected void reInsertAffectedNodes(Node affectedNode) {
-        final RenderablePathway pathway = (RenderablePathway) getPathway(affectedNode);
-        final String affectedNodeClassName = affectedNode.getClass().getSimpleName();
-        if (pathway == null)
-            return;
-        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
-                                                          "RenderableComplexDrug",
-                                                          "RenderableEntitySet",
-                                                          "RenderableEntitySetDrug");
-        for (Object pathwayComponent : pathway.getComponents()) {
-            // Limit to Complexes and EntitySets.
-            if (allowedClasses.stream()
-                              .noneMatch(className -> className.equals(pathwayComponent.getClass().getSimpleName())))
-                continue;
-            
-            List<Node> parentComponents = ((Node) pathwayComponent).getComponents();
-            
-            if (parentComponents == null)
-                continue;
-            
-            // Compare class names. TODO This is not a very robust solution, as comparing raw Strings can
-            // become questionable.
-            if (parentComponents.stream()
-                                .map(component -> component.getClass().getSimpleName())
-                                .anyMatch(className -> className.equals(affectedNodeClassName))) {
-                // Reinsert all parent complexes/entity sets of the affected instance.
-                zoomableEditor.reInsertInstance(((Node) pathwayComponent).getInstance());
-            }
-        }
-
-        // Reinsert the affected instance.
-        zoomableEditor.reInsertInstance(affectedNode.getInstance());
-    }
-    
 }

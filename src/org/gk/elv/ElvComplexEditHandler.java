@@ -229,7 +229,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                     e.printStackTrace();
                 }
                 if (!hasDrugs) {
-                    reInsertAffectedNodes(complex);
+                    refreshContainingNodes(complex);
                 }
 
             }
@@ -254,7 +254,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                     for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
                         // Check if an addition event resulted in an instance becoming a drug.
                         if (InstanceUtilities.isDrug((GKInstance) member)) {
-                            reInsertAffectedNodes(complex);
+                            refreshContainingNodes(complex);
                             break;
                         }
                     }
