@@ -1408,11 +1408,11 @@ public class InstanceUtilities {
       * @throws Exception
       * @returns boolean
       */
-     public static boolean isDrug(GKInstance instance) throws Exception {
+     public static boolean isDrug(Object instance) {
          if (instance == null)
              return false;
 
-         SchemaClass schemaClass = instance.getSchemClass();
+         SchemaClass schemaClass = ((GKInstance) instance).getSchemClass();
          // Check if instance is a drug.
          if (schemaClass.isa(ReactomeJavaConstants.Drug))
              return true;
@@ -1424,11 +1424,15 @@ public class InstanceUtilities {
              return false;
 
          // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-         // ifHasInstance()
-         Set<GKInstance> containedInstances = getContainedInstances(instance,
-                                                                    ReactomeJavaConstants.hasMember,
-                                                                    ReactomeJavaConstants.hasCandidate,
-                                                                    ReactomeJavaConstants.hasComponent);
+         Set<GKInstance> containedInstances = new HashSet<GKInstance>();
+         try {
+             containedInstances = getContainedInstances((GKInstance) instance,
+                                                        ReactomeJavaConstants.hasMember,
+                                                        ReactomeJavaConstants.hasCandidate,
+                                                        ReactomeJavaConstants.hasComponent);
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
          // No containedInstances.
          if (containedInstances.size() == 0 || containedInstances == null)
              return false;

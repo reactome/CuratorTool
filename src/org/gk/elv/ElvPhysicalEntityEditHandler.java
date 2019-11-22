@@ -69,11 +69,20 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                     addEntitySetAndEntitySetLink(sets, instanceToNodes.get(tmp));
             }
             for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
-                // Check if an addition event resulted in an instance becoming a drug.
                 if (InstanceUtilities.isDrug((GKInstance) member)) {
                     zoomableEditor.reInsertInstance(inst);
                     break;
                 }
+            }
+            try {
+                // Iterate over all members of the editing EntitySet.
+                // Check if an addition event resulted in an instance becoming a drug.
+                if (inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)
+                        .stream()
+                        .anyMatch(InstanceUtilities::isDrug))
+                    refreshContainingNodes(inst.getDBID());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {
@@ -87,6 +96,16 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                     zoomableEditor.reInsertInstance(inst);
                     break;
                 }
+            }
+            try {
+                // Iterate over all components of the editing EntitySet.
+                // Check if a removal event resulted in the instance no longer being a drug.
+                if (inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)
+                        .stream()
+                        .noneMatch(InstanceUtilities::isDrug))
+                    refreshContainingNodes(inst.getDBID());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -266,19 +285,22 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         return peToRenderables;
     }
 
-    protected void refreshContainingNodes(Node affectedNode) {
-        // Default is to limit to Complexes and EntitySets.
-        // TODO remove complexes from this, move to subclass.
+    /**
+     *
+     * @param id
+     */
+    protected void refreshContainingNodes(Long id) {
+        // Limit to Complexes and EntitySets.
         final List<String> allowedClasses = Arrays.asList("RenderableComplex",
                                                           "RenderableComplexDrug",
                                                           "RenderableEntitySet",
                                                           "RenderableEntitySetDrug");
-       Set<GKInstance> containingInstances = getContainingInstances(affectedNode, allowedClasses);
-       for (GKInstance instance : containingInstances) {
-           // Reinsert the affected instance.
-           // TODO Delete or reinsert old complex components. Currently they remain "detached".
-           zoomableEditor.reInsertInstance(instance);
-       }
+        Set<GKInstance> containingInstances = getContainingInstances(id, allowedClasses);
+        for (GKInstance instance : containingInstances) {
+            // Reinsert the affected instance.
+            // TODO Delete or reinsert old complex components. Currently they become "detached".
+            zoomableEditor.reInsertInstance(instance);
+        }
     } 
 
     /**
@@ -287,36 +309,36 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @param allowedClasses
      * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
      */
-    private Set<GKInstance> getContainingInstances(Node node, List<String> allowedClasses) {
+    private Set<GKInstance> getContainingInstances(Long id, List<String> allowedClasses) {
         List<Object> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects == null)
             return null;
         Set<GKInstance> containingInstances = new HashSet<GKInstance>();
-        for (Object pathwayComponent : displayedObjects) {
-            if (allowedClasses != null) {
-            // Limit the search to allowed classes.
-            if (allowedClasses.stream()
-                              .noneMatch(className -> className.equals(pathwayComponent.getClass().getSimpleName())))
+        for (Object parentNode : displayedObjects) {
+            if (allowedClasses == null)
                 continue;
-            }
 
-            if (((Node) pathwayComponent).getReactomeId().equals(node.getReactomeId())) {
-                containingInstances.add(getInstance((Node) pathwayComponent));
+            // Limit the search to allowed classes.
+            // TODO Comparing class names is not a very robust solution. What may be a better way?
+            if (allowedClasses.stream()
+                              .noneMatch(parentNode.getClass().getSimpleName()::equals))
                 continue;
-            }
 
             // The nodes contained by the Complexes/EntitySets in the diagram.
-            Set<Node> parentComponents = new HashSet<Node>();
-            getNestedComponents((Node) pathwayComponent, parentComponents);
-            if (parentComponents == null)
+            Set<Long> containedInstanceIds = new HashSet<Long>();
+            GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
+            if (parentInstance == null)
+                continue;
+            
+            getNestedComponents(parentInstance, containedInstanceIds);
+            if (containedInstanceIds == null)
                 continue;
 
             // Determine if the given Complex/EntitySet contains the affected node.
             // If so, add to the list of containing instances.
-            if (parentComponents.stream()
-                                .map(component -> component.getReactomeId())
-                                .anyMatch(reactomeId -> reactomeId.equals(node.getReactomeId())))
-                containingInstances.add(getInstance((Node) pathwayComponent));
+            if (containedInstanceIds.stream()
+                                    .anyMatch(id::equals))
+                containingInstances.add(getInstanceFromNode((Node) parentNode));
         }
 
         return containingInstances;
@@ -324,25 +346,43 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
 
     /**
      *
-     * @param node
-     * @param nodes
+     * TODO Should this be moved to {@link org.gk.model.InstanceUtilities}?
+     * @param parentInstance, the instance that (may or may not) contain other instances.
+     * @param containedInstanceIds, the set of instance Reactome id's that are contained in the parent node.
      */
-    private void getNestedComponents(Node node, Set<Node> nodes) {
-        List<Node> components = node.getComponents();
-        if (components == null)
+    protected void getNestedComponents(GKInstance parentInstance, Set<Long> containedInstanceIds) {
+        if (parentInstance == null)
             return;
-        for (Node component : components) {
-            nodes.add(component);
-            getNestedComponents(component, nodes);
+
+        // Add component's Reactome id to the set.
+        containedInstanceIds.add(parentInstance.getDBID());
+
+        List<GKInstance> components = new ArrayList<GKInstance>();
+        try {
+            if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
+                components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+            else if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
+                components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+            else
+                return;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        
+        if (components == null || components.size() == 0)
+            return;
+        
+        // Recursive call.
+        for (GKInstance component : components)
+            getNestedComponents(component, containedInstanceIds);
     }
 
     /**
      *
-     * @param node
-     * @return
+     * @param node, the Node to get the instance of.
+     * @return instance pointed to by the given node.
      */
-    private GKInstance getInstance(Node node) {
+    protected GKInstance getInstanceFromNode(Node node) {
         GKInstance instance = null;
         XMLFileAdaptor fileAdaptor = null;
 

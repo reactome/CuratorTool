@@ -7,8 +7,11 @@ package org.gk.elv;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
 import org.gk.database.FrameManager;
@@ -39,13 +42,37 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
             return;
         }
         GKInstance instance = e.getEditingInstance();
-        // TODO find way to create list if instance is a node contained by a complex/entityset.
-        // So add any complexes/entitysets to list if they contain instance.
-        // for node in zoomablEeditor.getDisplayedObjects
-        // if node is a complex or entitySet
-        // if node contains instance
-        // add node to list.
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
+
+        // Add all Complex/EntitySet nodes to the list that contain the editing instance as a component/member.
+        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
+                                                          "RenderableComplexDrug",
+                                                          "RenderableEntitySet",
+                                                          "RenderableEntitySetDrug");
+        // Iterate over all displayed objects.
+        for (Object parentNode : zoomableEditor.getPathwayEditor().getDisplayedObjects()) {
+            // Limit to Complex/EntitySet nodes.
+            // TODO Comparing class names is not a very robust solution. What may be a better way?
+            if (allowedClasses.stream()
+                              .noneMatch(className -> className.equals(parentNode.getClass().getSimpleName())))
+                continue;
+
+            // Components contained in the parent node.
+            Set<Long> containedInstanceIds = new HashSet<Long>();
+            GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
+            if (parentInstance == null)
+                continue;
+
+            getNestedComponents(parentInstance, containedInstanceIds);
+            if (containedInstanceIds == null || containedInstanceIds.size() == 0)
+                continue;
+
+            // If the Complex/EntitySet node contains the editing instance, add it to the list.
+            if (containedInstanceIds.stream()
+                                    .anyMatch(instance.getDBID()::equals))
+                list.add((Node) parentNode);
+        }
+
         if (list == null || list.size() == 0)
             return;
         // Only complex having subunits displayed need to be checked
@@ -188,6 +215,9 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         // The node should be a complex if it is not displayed as multimer
         if (!(complex instanceof RenderableComplex))
             return;
+        GKInstance complexInstance = edit.getEditingInstance();
+        if (complexInstance == null || !complexInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
+            return;
         boolean needRepaint = false;
         if (edit.getEditingType() == AttributeEditEvent.REMOVING) {
             // Check if multimer should be used
@@ -198,6 +228,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
 //                return;
 //            }
             RenderableComplex complex1 = (RenderableComplex) complex;
+            // TODO Uncomment this?
 //            if (complex1.isComponentsHidden())
 //                return;
             // It is possible the complex can be displayed as 
@@ -221,27 +252,22 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
-                GKInstance instance = edit.getEditingInstance();
-                boolean hasDrugs = false;
+
                 try {
-                    for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
-                        // Check if a removal event resulted in an instance no longer being a drug.
-                        if (InstanceUtilities.isDrug((GKInstance) member)) {
-                            hasDrugs = true;
-                            break;
-                        }
-                    }
+                    // Iterate over all components of the editing Complex.
+                    // Check if a removal event resulted in the instance no longer being a drug.
+                    if (complexInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)
+                                       .stream()
+                                       .noneMatch(InstanceUtilities::isDrug))
+                        refreshContainingNodes(complexInstance.getDBID());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                if (!hasDrugs) {
-                    refreshContainingNodes(complex);
-                }
-
             }
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
             RenderableComplex complex1 = (RenderableComplex) complex;
+            // TODO Uncomment this?
 //            if (complex1.isComponentsHidden())
 //                return;
             List added = edit.getAddedInstances();
@@ -255,15 +281,13 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
-                GKInstance instance = edit.getEditingInstance();
                 try {
-                    for (Object member : instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
-                        // Check if an addition event resulted in an instance becoming a drug.
-                        if (InstanceUtilities.isDrug((GKInstance) member)) {
-                            refreshContainingNodes(complex);
-                            break;
-                        }
-                    }
+                    // Iterate over all components of the editing Complex.
+                    // Check if an addition event resulted in the instance becoming a drug.
+                    if (complexInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)
+                                       .stream()
+                                       .anyMatch(InstanceUtilities::isDrug))
+                        refreshContainingNodes(complexInstance.getDBID());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
