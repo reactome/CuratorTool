@@ -83,22 +83,22 @@
         <!-- /copy -->
     </target>
 
-	<!-- the whole process -->
-	<target name="build" depends="copy, createUpdateFile">
-		<copy file="${updateTargetDir}/update.xml" todir="${targetDir}/resources" />
-		<copy file="${updateTargetDir}/update.xml" todir="${resourcesDir}" />
-	</target>
+    <!-- the whole process -->
+    <target name="build" depends="copy, createUpdateFile">
+        <copy file="${updateTargetDir}/update.xml" todir="${targetDir}/resources" />
+        <copy file="${updateTargetDir}/update.xml" todir="${resourcesDir}" />
+    </target>
 
-	<!-- A Test Run -->
-	<target name="runOnly">
-		<java dir="${targetDir}" classpath="${targetDir}" classname="launcher.Launcher" fork="true">
-			<classpath>
-				<fileset dir="lib">
-					<include name="**/*.jar"/>
-				</fileset>
-			</classpath>
-		</java>
-	</target>
+    <!-- A Test Run -->
+    <target name="runOnly">
+        <java dir="${targetDir}" classpath="${targetDir}" classname="launcher.Launcher" fork="true">
+            <classpath>
+                <fileset dir="lib">
+                    <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
 
     <!-- Create Jar files for updating -->
     <target name="cleanJarDir">
@@ -116,10 +116,10 @@
         </jar>
     </target>
 
-	<taskdef name="updateFile"
-		classname="org.reactome.ant.UpdateFileTask"
-		classpath="${basedir}/classes">
-	</taskdef>
+    <taskdef name="updateFile"
+        classname="org.reactome.ant.UpdateFileTask"
+        classpath="${basedir}/classes">
+    </taskdef>
     <target name="createUpdateFile" depends="updateJar">
         <updateFile dir="${updateTargetDir}" uri="https://www.reactome.org/download/tools/curatorTool/update">
             <!-- Just a mark. Curators have to manually update the installed curator tool. -->
@@ -127,33 +127,33 @@
         </updateFile>
     </target>
 
-	<target name="createReactomeCuratorToolJar">
-		<jar destfile="${targetDir}/ReactomeCuratorTool.jar">
-			<fileset dir="${clsDir}">
-				<include name="org/**" />
-				<include name="launcher/**" />
-				<exclude name="org/gk/IDGeneration/**" />
-				<exclude name="org/gk/scripts/**" />
-			</fileset>
-			<zipgroupfileset dir="${libDir}">
-				<include name="*.jar"/>
-				<!-- the version we will use is 5.1.28 to support ssl connection -->
-				<exclude name="mysql/mysql-connector-java-5.0.8-bin.jar" />
-				<!-- Use version 5.1.47 for better performance for slicing -->
-				<exclude name="mysql/mysql-connector-java-5.1.28-bin.jar" />
-				<include name="batik/**.jar" />
-				<include name="jdom/**.jar" />
-				<include name="junit/**.jar" />
-				<include name="ols-client/**.jar" />
-				<include name="jsonpath/**.jar" />
-				<include name="uniprotjapi/commons*.jar" />
-			</zipgroupfileset>
-			<manifest>
-				<attribute name="Main-Class" value="launcher.Launcher" />
-				<attribute name="Class-Path" value="ReactomeCuratorTool.jar" />
-			</manifest>
-		</jar>
-	</target>
+    <target name="createReactomeCuratorToolJar">
+        <jar destfile="${targetDir}/ReactomeCuratorTool.jar">
+            <fileset dir="${clsDir}">
+                <include name="org/**" />
+                <include name="launcher/**" />
+                <exclude name="org/gk/IDGeneration/**" />
+                <exclude name="org/gk/scripts/**" />
+            </fileset>
+            <zipgroupfileset dir="${libDir}">
+                <include name="*.jar"/>
+                <!-- the version we will use is 5.1.28 to support ssl connection -->
+                <exclude name="mysql/mysql-connector-java-5.0.8-bin.jar" />
+                <!-- Use version 5.1.47 for better performance for slicing -->
+                <exclude name="mysql/mysql-connector-java-5.1.28-bin.jar" />
+                <include name="batik/**.jar" />
+                <include name="jdom/**.jar" />
+                <include name="junit/**.jar" />
+                <include name="ols-client/**.jar" />
+                <include name="jsonpath/**.jar" />
+                <include name="uniprotjapi/commons*.jar" />
+            </zipgroupfileset>
+            <manifest>
+                <attribute name="Main-Class" value="launcher.Launcher" />
+                <attribute name="Class-Path" value="ReactomeCuratorTool.jar" />
+            </manifest>
+        </jar>
+    </target>
 
     <!-- New way to create Mac app based on Oracle appbundler. Copied from  http://stackoverflow.com/questions/14806709/application-is-using-java-6-from-apple-instead-of-java-7-from-oracle-on-mac-os-x-->
     <!-- October 4, 2016 -->
