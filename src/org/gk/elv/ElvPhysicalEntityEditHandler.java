@@ -273,42 +273,75 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                                                           "RenderableComplexDrug",
                                                           "RenderableEntitySet",
                                                           "RenderableEntitySetDrug");
-       List<GKInstance> containingInstances = getContainingInstances(affectedNode, allowedClasses);
+       Set<GKInstance> containingInstances = getContainingInstances(affectedNode, allowedClasses);
        for (GKInstance instance : containingInstances) {
            // Reinsert the affected instance.
+           // TODO Delete or reinsert old complex components. Currently they remain "detached".
            zoomableEditor.reInsertInstance(instance);
        }
     } 
 
-    private List<GKInstance> getContainingInstances(Node node, List<String> allowedClasses) {
+    /**
+     *
+     * @param node
+     * @param allowedClasses
+     * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
+     */
+    private Set<GKInstance> getContainingInstances(Node node, List<String> allowedClasses) {
         List<Object> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects == null)
             return null;
-        List<GKInstance> containingInstances = new ArrayList<GKInstance>();
-        
-        for (Object pathwayComponent : pathway.getComponents()) {
+        Set<GKInstance> containingInstances = new HashSet<GKInstance>();
+        for (Object pathwayComponent : displayedObjects) {
             if (allowedClasses != null) {
+            // Limit the search to allowed classes.
             if (allowedClasses.stream()
                               .noneMatch(className -> className.equals(pathwayComponent.getClass().getSimpleName())))
                 continue;
             }
 
+            if (((Node) pathwayComponent).getReactomeId().equals(node.getReactomeId())) {
+                containingInstances.add(getInstance((Node) pathwayComponent));
+                continue;
+            }
+
             // The nodes contained by the Complexes/EntitySets in the diagram.
-            List<Node> parentComponents = ((Node) pathwayComponent).getComponents();
+            Set<Node> parentComponents = new HashSet<Node>();
+            getNestedComponents((Node) pathwayComponent, parentComponents);
             if (parentComponents == null)
                 continue;
 
             // Determine if the given Complex/EntitySet contains the affected node.
-            // Do so by comparing Reactome ID's.
+            // If so, add to the list of containing instances.
             if (parentComponents.stream()
-                    .map(component -> component.getReactomeId())
-                    .anyMatch(reactomeId -> reactomeId.equals(node.getReactomeId())))
+                                .map(component -> component.getReactomeId())
+                                .anyMatch(reactomeId -> reactomeId.equals(node.getReactomeId())))
                 containingInstances.add(getInstance((Node) pathwayComponent));
         }
-        
+
         return containingInstances;
     }
 
+    /**
+     *
+     * @param node
+     * @param nodes
+     */
+    private void getNestedComponents(Node node, Set<Node> nodes) {
+        List<Node> components = node.getComponents();
+        if (components == null)
+            return;
+        for (Node component : components) {
+            nodes.add(component);
+            getNestedComponents(component, nodes);
+        }
+    }
+
+    /**
+     *
+     * @param node
+     * @return
+     */
     private GKInstance getInstance(Node node) {
         GKInstance instance = null;
         XMLFileAdaptor fileAdaptor = null;
@@ -317,23 +350,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         if (instance == null) {
             if (fileAdaptor == null)
                 fileAdaptor = zoomableEditor.getXMLFileAdaptor();
-            instance = fileAdaptor.fetchInstance(node.getReactomeId()); 
-        }
-        
-        return instance;
-    }
-    
-    private Node getPathway(Node node) {
-        if (node == null)
-            return null;
-        final String className = "RenderablePathway";
-        // TODO This is not a very robust solution (comparing raw Strings).
-        while (node.getContainer() != null &&
-               !node.getContainer().getClass().getSimpleName().equals(className)) {
-            node = (Node) node.getContainer();     
+            instance = fileAdaptor.fetchInstance(node.getReactomeId());
         }
 
-        // Return the rendererablePathway, or null if it was not found.
-        return (Node) node.getContainer();
+        return instance;
     }
 }

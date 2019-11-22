@@ -39,6 +39,12 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
             return;
         }
         GKInstance instance = e.getEditingInstance();
+        // TODO find way to create list if instance is a node contained by a complex/entityset.
+        // So add any complexes/entitysets to list if they contain instance.
+        // for node in zoomablEeditor.getDisplayedObjects
+        // if node is a complex or entitySet
+        // if node contains instance
+        // add node to list.
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
         if (list == null || list.size() == 0)
             return;
