@@ -138,9 +138,9 @@
             <zipgroupfileset dir="${libDir}">
                 <include name="*.jar"/>
                 <!-- the version we will use is 5.1.28 to support ssl connection -->
-                <exclude name="mysql/mysql-connector-java-5.0.8-bin.jar" />
+                <exclude name="mysql-connector-java-5.0.8-bin.jar" />
                 <!-- Use version 5.1.47 for better performance for slicing -->
-                <exclude name="mysql/mysql-connector-java-5.1.28-bin.jar" />
+                <exclude name="mysql-connector-java-5.1.28-bin.jar" />
                 <include name="batik/**.jar" />
                 <include name="jdom/**.jar" />
                 <include name="junit/**.jar" />
@@ -279,7 +279,7 @@
     <property name="jwsTargetDir" value="../ReactomeTools/WebContent/CuratorTool/" />
     <property name="jwsTemp" value="jwsTemp" />
     <target name="deployAsJWS">
-        <copy file="lib/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
+        <copy file="lib/mysql-connector-java-5.0.8-bin.jar" tofile="${jwsTargetDir}/mysql.jar" />
         <copy file="lib/osxAdapter.jar" tofile="${jwsTargetDir}/osxAdapter.jar" />
         <mkdir dir="${jwsTemp}" />
         <copy todir="${jwsTemp}/org">
