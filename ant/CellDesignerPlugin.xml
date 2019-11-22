@@ -35,7 +35,9 @@
                 <include name="org/reactome/celldesigner/**.class" />
                 <include name="org/gk/model/**.class" />
                 <include name="org/gk/schema/**.class" />
+                <include name="org/gk/persistence/**.class" />
                 <include name="org/gk/util/**.class" />
+                <include name="org/gk/render/**.class" />
             </fileset>
         </jar>
     </target>
