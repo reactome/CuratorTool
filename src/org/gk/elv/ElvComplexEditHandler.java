@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
-import org.gk.database.FrameManager;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -23,8 +22,6 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderablePathway;
-import org.gk.schema.InvalidAttributeException;
 
 /**
  * This helper class is used to handle attribute edit for complex.

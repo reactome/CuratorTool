@@ -23,7 +23,6 @@ import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
-import org.gk.render.RenderablePathway;
 import org.gk.util.GKApplicationUtilities;
 
 /**
