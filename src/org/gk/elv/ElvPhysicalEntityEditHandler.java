@@ -68,45 +68,17 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                 if (InstanceUtilities.hasSharedMembers(inst, tmp))
                     addEntitySetAndEntitySetLink(sets, instanceToNodes.get(tmp));
             }
-            for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
-                if (InstanceUtilities.isDrug((GKInstance) member)) {
-                    zoomableEditor.reInsertInstance(inst);
-                    break;
-                }
-            }
-            try {
-                // Iterate over all members of the editing EntitySet.
-                // Check if an addition event resulted in an instance becoming a drug.
-                if (inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)
-                        .stream()
-                        .anyMatch(InstanceUtilities::isDrug))
-                    refreshContainingNodes(inst.getDBID());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            // Check if an addition event resulted in an instance becoming a drug.
+            if (InstanceUtilities.isDrug(inst))
+                refreshContainingNodes(inst.getDBID());
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {
             List<GKInstance> removedInsts = editEvent.getRemovedInstances();
             removeEntitySetAndMemberLink(sets, removedInsts);
             removeSetAndSetLink(inst, sets);
-
-            for (Object member : inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)) {
-                // Check if a removal event resulted in an instance no longer being a drug.
-                if (!InstanceUtilities.isDrug((GKInstance) member)) {
-                    zoomableEditor.reInsertInstance(inst);
-                    break;
-                }
-            }
-            try {
-                // Iterate over all components of the editing EntitySet.
-                // Check if a removal event resulted in the instance no longer being a drug.
-                if (inst.getAttributeValuesList(ReactomeJavaConstants.hasMember)
-                        .stream()
-                        .noneMatch(InstanceUtilities::isDrug))
-                    refreshContainingNodes(inst.getDBID());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            // Check if a removal event resulted in the instance no longer being a drug.
+            if (!InstanceUtilities.isDrug(inst))
+                refreshContainingNodes(inst.getDBID());
         }
     }
     
@@ -286,6 +258,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     }
 
     /**
+     * Refresh (via reinserting) the nodes that contain a given instance (represented by its Reactome id).
      *
      * @param id
      */
@@ -295,6 +268,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                                                           "RenderableComplexDrug",
                                                           "RenderableEntitySet",
                                                           "RenderableEntitySetDrug");
+        // The Complexes/EntitySets that contain the given instance.
         Set<GKInstance> containingInstances = getContainingInstances(id, allowedClasses);
         for (GKInstance instance : containingInstances) {
             // Reinsert the affected instance.
@@ -304,6 +278,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     } 
 
     /**
+     * Return a list of Complex/EntitySets that contain a given instance (represented by its Reactome id).
      *
      * @param node
      * @param allowedClasses
@@ -345,6 +320,8 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     }
 
     /**
+     * Return a Set of child instances (represented by their Reactome id's)
+     * that are contained by a given parent instance.
      *
      * TODO Should this be moved to {@link org.gk.model.InstanceUtilities}?
      * @param parentInstance, the instance that (may or may not) contain other instances.
@@ -361,14 +338,14 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         try {
             if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
                 components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
-            else if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
+            else if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
                 components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasMember);
             else
                 return;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+        // Check for null or empty components list.
         if (components == null || components.size() == 0)
             return;
         
@@ -378,18 +355,15 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     }
 
     /**
+     * Return the instance represented by a given node.
      *
      * @param node, the Node to get the instance of.
      * @return instance pointed to by the given node.
      */
     protected GKInstance getInstanceFromNode(Node node) {
-        GKInstance instance = null;
-        XMLFileAdaptor fileAdaptor = null;
-
-        instance = ((Node) node).getInstance();
+        GKInstance instance = ((Node) node).getInstance();
         if (instance == null) {
-            if (fileAdaptor == null)
-                fileAdaptor = zoomableEditor.getXMLFileAdaptor();
+            XMLFileAdaptor fileAdaptor = zoomableEditor.getXMLFileAdaptor();
             instance = fileAdaptor.fetchInstance(node.getReactomeId());
         }
 

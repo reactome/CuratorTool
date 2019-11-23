@@ -253,16 +253,9 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                     }
                 }
 
-                try {
-                    // Iterate over all components of the editing Complex.
-                    // Check if a removal event resulted in the instance no longer being a drug.
-                    if (complexInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)
-                                       .stream()
-                                       .noneMatch(InstanceUtilities::isDrug))
-                        refreshContainingNodes(complexInstance.getDBID());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                // Check if a removal event resulted in the instance no longer being a drug.
+                if (!InstanceUtilities.isDrug(complexInstance))
+                    refreshContainingNodes(complexInstance.getDBID());
             }
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
@@ -281,16 +274,9 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
-                try {
-                    // Iterate over all components of the editing Complex.
-                    // Check if an addition event resulted in the instance becoming a drug.
-                    if (complexInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent)
-                                       .stream()
-                                       .anyMatch(InstanceUtilities::isDrug))
-                        refreshContainingNodes(complexInstance.getDBID());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                // Check if an addition event resulted in the instance becoming a drug.
+                if (InstanceUtilities.isDrug(complexInstance))
+                    refreshContainingNodes(complexInstance.getDBID());
             }
         }
         if (needRepaint) {
