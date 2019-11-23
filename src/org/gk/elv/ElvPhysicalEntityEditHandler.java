@@ -37,7 +37,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     public ElvPhysicalEntityEditHandler() {
     }
 
-    protected void entitySetEdit(AttributeEditEvent editEvent) throws Exception {
+    protected void entitySetEdit(AttributeEditEvent editEvent) {
         if (!editEvent.getAttributeName().equals(ReactomeJavaConstants.hasMember) &&
             !editEvent.getAttributeName().equals(ReactomeJavaConstants.hasCandidate))
             return;
@@ -299,12 +299,13 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                               .noneMatch(parentNode.getClass().getSimpleName()::equals))
                 continue;
 
-            // The nodes contained by the Complexes/EntitySets in the diagram.
-            Set<Long> containedInstanceIds = new HashSet<Long>();
+            // The parent Complex/EntitySet.
             GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
             if (parentInstance == null)
                 continue;
             
+            // The nodes contained by the parent Complex/EntitySet.
+            Set<Long> containedInstanceIds = new HashSet<Long>();
             getNestedComponents(parentInstance, containedInstanceIds);
             if (containedInstanceIds == null)
                 continue;
