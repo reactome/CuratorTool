@@ -23,6 +23,10 @@ import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableComplexDrug;
+import org.gk.render.RenderableEntitySet;
+import org.gk.render.RenderableEntitySetDrug;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -263,12 +267,14 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      */
     protected void refreshContainingNodes(Long id) {
         // Limit to Complexes and EntitySets.
-        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
-                                                          "RenderableComplexDrug",
-                                                          "RenderableEntitySet",
-                                                          "RenderableEntitySetDrug");
+        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
+                                                                   RenderableComplexDrug.class,
+                                                                   RenderableEntitySet.class,
+                                                                   RenderableEntitySetDrug.class);
         // The Complexes/EntitySets that contain the given instance.
         Set<GKInstance> containingInstances = getContainingInstances(id, allowedClasses);
+        if (containingInstances == null || containingInstances.size() == 0)
+            return;
         for (GKInstance instance : containingInstances) {
             // Reinsert the affected instance.
             // TODO Delete or reinsert old complex components. Currently they become "detached".
@@ -283,9 +289,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @param allowedClasses
      * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
      */
-    private Set<GKInstance> getContainingInstances(Long id, List<String> allowedClasses) {
-        List<Object> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
-        if (displayedObjects == null)
+    private Set<GKInstance> getContainingInstances(Long id, List<Class<? extends Node>> allowedClasses) {
+        List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
+        if (displayedObjects.size() == 0)
             return null;
         Set<GKInstance> containingInstances = new HashSet<GKInstance>();
         for (Object parentNode : displayedObjects) {
@@ -293,9 +299,8 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                 continue;
 
             // Limit the search to allowed classes.
-            // TODO Comparing class names is not a very robust solution. What may be a better way?
             if (allowedClasses.stream()
-                              .noneMatch(parentNode.getClass().getSimpleName()::equals))
+                              .noneMatch(cls -> cls.isInstance(parentNode)))
                 continue;
 
             // The parent Complex/EntitySet.
@@ -305,14 +310,27 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             
             // The nodes contained by the parent Complex/EntitySet.
             Set<Long> containedInstanceIds = new HashSet<Long>();
-            getNestedComponents(parentInstance, containedInstanceIds);
-            if (containedInstanceIds == null)
-                continue;
+
+            // Add component's Reactome id to the set.
+            containedInstanceIds.add(parentInstance.getDBID());
+
+            try {
+                // Populate a Set of child instances (represented by their Reactome id's)
+                // that are contained by a given parent instance.
+                InstanceUtilities.getContainedInstances(parentInstance,
+                                                        ReactomeJavaConstants.hasComponent,
+                                                        ReactomeJavaConstants.hasCandidate,
+                                                        ReactomeJavaConstants.hasMember)
+                                 .stream()
+                                 .map(GKInstance::getDBID)
+                                 .forEach(containedInstanceIds::add);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             // Determine if the given Complex/EntitySet contains the affected node.
             // If so, add to the list of containing instances.
-            if (containedInstanceIds.stream()
-                                    .anyMatch(id::equals))
+            if (containedInstanceIds != null && containedInstanceIds.contains(id))
                 containingInstances.add(getInstanceFromNode((Node) parentNode));
         }
 
@@ -320,53 +338,16 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     }
 
     /**
-     * Return a Set of child instances (represented by their Reactome id's)
-     * that are contained by a given parent instance.
-     *
-     * TODO Should this be moved to {@link org.gk.model.InstanceUtilities}?
-     * @param parentInstance, the instance that (may or may not) contain other instances.
-     * @param containedInstanceIds, the set of instance Reactome id's that are contained in the parent node.
-     */
-    protected void getNestedComponents(GKInstance parentInstance, Set<Long> containedInstanceIds) {
-        if (parentInstance == null)
-            return;
-
-        // Add component's Reactome id to the set.
-        containedInstanceIds.add(parentInstance.getDBID());
-
-        List<GKInstance> components = new ArrayList<GKInstance>();
-        try {
-            if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
-                components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
-            else if (parentInstance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-                components = parentInstance.getAttributeValuesList(ReactomeJavaConstants.hasMember);
-            else
-                return;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Check for null or empty components list.
-        if (components == null || components.size() == 0)
-            return;
-        
-        // Recursive call.
-        for (GKInstance component : components)
-            getNestedComponents(component, containedInstanceIds);
-    }
-
-    /**
      * Return the instance represented by a given node.
+     * TODO This very likely duplicates an existing method.
      *
      * @param node, the Node to get the instance of.
      * @return instance pointed to by the given node.
      */
     protected GKInstance getInstanceFromNode(Node node) {
         GKInstance instance = ((Node) node).getInstance();
-        if (instance == null) {
-            XMLFileAdaptor fileAdaptor = zoomableEditor.getXMLFileAdaptor();
-            instance = fileAdaptor.fetchInstance(node.getReactomeId());
-        }
-
+        if (instance == null)
+            instance = zoomableEditor.getXMLFileAdaptor().fetchInstance(node.getReactomeId());
         return instance;
     }
 }

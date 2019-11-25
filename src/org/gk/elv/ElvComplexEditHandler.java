@@ -60,13 +60,27 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
             if (parentInstance == null)
                 continue;
 
-            getNestedComponents(parentInstance, containedInstanceIds);
+            // Add component's Reactome id to the set.
+            containedInstanceIds.add(parentInstance.getDBID());
+
+            try {
+                // Populate a Set of child instances (represented by their Reactome id's)
+                // that are contained by a given parent instance.
+                InstanceUtilities.getContainedInstances(parentInstance,
+                                                        ReactomeJavaConstants.hasComponent,
+                                                        ReactomeJavaConstants.hasCandidate,
+                                                        ReactomeJavaConstants.hasMember)
+                                 .stream()
+                                 .map(GKInstance::getDBID)
+                                 .forEach(containedInstanceIds::add);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
             if (containedInstanceIds == null || containedInstanceIds.size() == 0)
                 continue;
 
             // If the Complex/EntitySet node contains the editing instance, add it to the list.
-            if (containedInstanceIds.stream()
-                                    .anyMatch(instance.getDBID()::equals))
+            if (containedInstanceIds.contains(instance.getDBID()))
                 list.add((Node) parentNode);
         }
 
