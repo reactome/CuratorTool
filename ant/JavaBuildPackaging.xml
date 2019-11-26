@@ -5,19 +5,21 @@
 	<property name="JAVA_HOME" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home"/>
 	<property name="targetDir" value="${basedir}/../../Documents/ReactomeBuild/CuratorToolBuildFiles" />
 	<property name="MacOSDir" value="${targetDir}/bundler" />
-
+	
 	<path>
 		<filelist>
 			<file name="${targetDir}" />
 		</filelist>
 	</path>
-
+	
 	<target name="default">
-		<taskdef resource="com/sun/javafx/tools/ant/antlib.xml"
-				 uri="javafx:com.sun.javafx.tools.ant"
-				 classpath="${targetDir}:/Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/lib/ant-javafx.jar"/>
+		<taskdef resource="com/sun/javafx/tools/ant/antlib.xml"      
+		         uri="javafx:com.sun.javafx.tools.ant"
+		         classpath="${targetDir}:/Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/lib/ant-javafx.jar"/>
 
-		<fx:application id="ReactomeCuratorTool" name="ReactomeCuratorTool" mainClass="launcher.Launcher"/>
+		<fx:application id="ReactomeCuratorTool"
+       		            name="ReactomeCuratorTool"
+       					mainClass="launcher.Launcher"/>
 
 		<fx:resources id="appRes">
 			<fx:fileset dir="${targetDir}" includes="ReactomeCuratorTool.jar" />
@@ -29,7 +31,11 @@
 
 		<fx:preferences menu="true" />
 
-		<fx:deploy outdir="${MacOSDir}" outfile="ReactomeCuratorTool" nativeBundles="dmg">
+		<fx:deploy 
+       	    outdir="${MacOSDir}" 
+       		outfile="ReactomeCuratorTool"
+     		nativeBundles="dmg">
+
 			<fx:platform>
 				<fx:jvmuserarg name="-Xmx" value="8G"/>
 				<fx:jvmuserarg name="-Dfile.encoding" value="UTF-8"/>
@@ -42,6 +48,10 @@
 			<fx:info title="ReactomeCuratorTool"  vendor="Reactome">
 				<fx:icon href="images/Reactome.icns" />
 			</fx:info>
+
 		</fx:deploy>
+
 	</target>
+
+
 </project>

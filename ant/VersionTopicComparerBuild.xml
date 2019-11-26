@@ -1,48 +1,49 @@
 <?xml version="1.0"?>
 <!-- ======================================================================
-    February 4, 2019
+	February 4, 2019
 
-    project		Version Topic Comparison Script
-    description	Create jar file for the version topic comparison script
-    notes	The version topic comparison script will compare two version topic
-            text files and report the topics (top-level pathways) that have
-            been added to or removed from the more recent version.
-    Joel Weiser
-     ====================================================================== -->
+	project		Version Topic Comparison Script
+	description	Create jar file for the version topic comparison script
+	notes	The version topic comparison script will compare two version topic
+			text files and report the topics (top-level pathways) that have
+			been added to or removed from the more recent version.
+	Joel Weiser
+	 ====================================================================== -->
 <project name="VersionTopicComparerJar" default="jar" basedir="..">
-    <!-- Defining a list of directory names to be used -->
-    <property name="targetDir" value="${basedir}/target/VersionTopicComparer" />
-    <property name="classDir" value="${basedir}/classes" />
-    <property name="srcDir" value="${basedir}/src" />
+	<!-- Defining a list of directory names to be used -->
+	<property name="targetDir" value="${basedir}/target/VersionTopicComparer" />
+	<property name="classDir" value="${basedir}/classes" />
+	<property name="srcDir" value="${basedir}/src" />
 
-    <target name="deleteTargetDirectory">
-        <delete dir="${targetDir}" />
-    </target>
+	<target name="deleteTargetDirectory">
+		<delete dir="${targetDir}" />
+	</target>
 
-    <target name="makeTargetDirectory" depends="deleteTargetDirectory">
-        <mkdir dir="${targetDir}" />
-    </target>
+	<target name="makeTargetDirectory" depends="deleteTargetDirectory">
+		<mkdir dir="${targetDir}" />
+	</target>
 
-    <target name="clean">
-        <delete dir="${classDir}" />
-    </target>
+	<target name="clean">
+		<delete dir="${classDir}" />
+	</target>
 
-    <target name="compile" depends="clean">
-        <mkdir dir="${classDir}" />
-        <javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
-            <include name="org/gk/scripts/VersionTopicComparer.java" />
-        </javac>
-    </target>
+	<target name="compile" depends="clean">
+		<mkdir dir="${classDir}" />
+		<javac includeantruntime="false" srcdir="${srcDir}" destdir="${classDir}">
+			<include name="org/gk/scripts/VersionTopicComparer.java" />
+		</javac>
+	</target>
 
-    <!-- make runnable jar file for the script -->
-    <target name="jar" depends="compile, makeTargetDirectory">
-        <jar destfile="${targetDir}/VersionTopicComparer.jar">
-            <fileset dir="${classDir}">
-                <include name="org/gk/scripts/VersionTopicComparer.class" />
-            </fileset>
-            <manifest>
-                <attribute name="Main-Class" value="org.gk.scripts.VersionTopicComparer" />
-            </manifest>
-        </jar>
-    </target>
+	<!-- make runnable jar file for the script -->
+	<target name="jar" depends="compile,makeTargetDirectory">
+		<jar destfile="${targetDir}/VersionTopicComparer.jar">
+			<fileset dir="${classDir}">
+				<include name="org/gk/scripts/VersionTopicComparer.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.gk.scripts.VersionTopicComparer" />
+			</manifest>
+		</jar>
+	</target>
 </project>
+
