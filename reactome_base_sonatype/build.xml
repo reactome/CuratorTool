@@ -4,16 +4,22 @@
     <property name="srcDir" value="${projectDir}/src" />
     <property name="libDir" value="${projectDir}/lib" />
     <property name="classDir" value="${basedir}/classes" />
-    <property name="dist" location="dist" />
+    <property name="distDir" location="dist" />
 
     <!-- define Maven coordinates -->
     <property name="groupId" value="org.reactome.base" />
     <property name="artifactId" value="reactome-base" />
     <property name="version" value="1.2.22-SNAPSHOT" />
+
+    <!-- define values related to Manifest file -->
+    <property name="user-name" value="Reactome Developer Team (help@reactome.org)" />
+    <property name="meta-infDir" value="${distDir}/META-INF" />
+    <property name="manifest-file" value="${meta-infDir}/MANIFEST.MF" />
+
     <!-- define artifacts' name, which follows the convention of Maven -->
-    <property name="jar" value="${dist}/lib/${artifactId}-${version}.jar" />
-    <property name="javadocs-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
-    <property name="sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+    <property name="jar" value="${distDir}/lib/${artifactId}-${version}.jar" />
+    <property name="javadocs-jar" value="${distDir}/lib/${artifactId}-${version}-javadoc.jar" />
+    <property name="sources-jar" value="${distDir}/lib/${artifactId}-${version}-sources.jar" />
 
     <!-- define maven snapshots and staging repository id and url -->
     <property name="ossrh-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots" />
@@ -99,12 +105,12 @@
 
     <target name="clean" description="clean up">
         <delete dir="${classDir}" />
-        <delete dir="${dist}" />
+        <delete dir="${distDir}" />
     </target>
 
     <target name="init" depends="clean">
         <mkdir dir="${classDir}" />
-        <mkdir dir="${dist}/lib" />
+        <mkdir dir="${distDir}/lib" />
     </target>
 
     <target name="compile" depends="init">
@@ -130,17 +136,31 @@
             <include name="org/gk/util/*.java" />
         </javac>
     </target>
+    
+    <target name="manifest" depends="init">
+        <mkdir dir="${meta-infDir}" />
+        <manifest file="${manifest-file}">
+            <attribute name="Built-By" value="${user-name}"/>
+            <attribute name="Specification-Title" value="Reactome Base API"/>
+            <attribute name="Specification-Vendor" value="Reactome"/>
+            <attribute name="Specification-Version" value="${version}"/>
+            <attribute name="Implementation-Title" value="${groupId}.${artifactId}"/>
+            <attribute name="Implementation-Vendor" value="Reactome"/>
+            <attribute name="Implementation-Vendor-Id" value="${groupId}"/>
+            <attribute name="Implementation-Version" value="${version}"/>
+        </manifest>
+    </target>
 
-    <target name="jar" depends="compile">
+    <target name="jar" depends="compile, manifest">
         <!-- build the main artifact -->
-        <jar destfile="${jar}">
+        <jar manifest="${manifest-file}" destfile="${jar}">
             <fileset refid="classFiles" />
         </jar>
     </target>
 
     <target name="dist" depends="jar">
         <!-- build the javadoc jar -->
-        <javadoc access="public" author="true" destdir="${dist}/javadoc" nodeprecated="false"
+        <javadoc access="public" author="true" destdir="${distDir}/javadoc" nodeprecated="false"
             nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" classpathref="class.path"
             source="1.8" splitindex="true" use="true" version="true" >
 
@@ -163,12 +183,12 @@
                 <include name="org/gk/util/**" />
             </packageset>
         </javadoc>
-        <jar jarfile="${javadocs-jar}">
-            <fileset dir="${dist}/javadoc" />
+        <jar manifest="${manifest-file}" jarfile="${javadocs-jar}">
+            <fileset dir="${distDir}/javadoc" />
         </jar>
 
         <!-- build the source jar -->
-        <jar jarfile="${sources-jar}">
+        <jar manifest="${manifest-file}" jarfile="${sources-jar}">
             <fileset refid="sourceFiles" />
         </jar>
     </target>
