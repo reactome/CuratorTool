@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="lib/commons-lang-2.3.jar" sourcepath="/Users/wug/.m2/repository/commons-lang/commons-lang/2.3/commons-lang-2.3-sources.jar"/>
 	<classpathentry kind="lib" path="lib/gwt-crypto-1.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/itext-2.0.4.jar"/>
 	<classpathentry kind="lib" path="lib/javaws.jar"/>
-	<classpathentry kind="lib" path="lib/jgraph.5.7.4.6.jar"/>
-	<classpathentry kind="lib" path="lib/log4j-1.2.12.jar"/>
 	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
 	<classpathentry kind="lib" path="lib/ant/ant.jar"/>
-	<classpathentry kind="lib" path="lib/batik/batik-awt-util.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-bridge.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-css.jar"/>
-	<classpathentry kind="lib" path="lib/batik/batik-dom.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-ext.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-extension.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-gui-util.jar"/>
@@ -20,7 +14,6 @@
 	<classpathentry kind="lib" path="lib/batik/batik-parser.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-script.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-svg-dom.jar"/>
-	<classpathentry kind="lib" path="lib/batik/batik-svggen.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-swing.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-transcoder.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-util.jar"/>
@@ -31,11 +24,8 @@
 	<classpathentry kind="lib" path="lib/batik/xml-apis.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-core.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-jdom.jar"/>
-	<classpathentry kind="lib" path="lib/jdom/jdom.jar" sourcepath="/Users/guanming/ProgramFiles/jdom-1.0/src/java"/>
 	<classpathentry kind="lib" path="lib/jdom/saxpath.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/axis-1.4.jar"/>
-	<classpathentry kind="lib" path="lib/ols-client/commons-discovery-0.2.jar"/>
-	<classpathentry kind="lib" path="lib/ols-client/commons-logging-1.0.4.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/jaxrpc.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/saaj.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/wsdl4j-1.5.1.jar"/>
@@ -48,8 +38,6 @@
 	<classpathentry kind="lib" path="lib/javamail/pop3.jar"/>
 	<classpathentry kind="lib" path="lib/javamail/smtp.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/aopalliance.jar"/>
-	<classpathentry kind="lib" path="lib/uniprotjapi/commons-codec.jar"/>
-	<classpathentry kind="lib" path="lib/uniprotjapi/commons-httpclient.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.aop.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.beans.jar"/>
 	<classpathentry kind="lib" path="lib/uniprotjapi/spring.context.jar"/>
@@ -66,9 +54,24 @@
 			<attribute name="owner.project.facets" value="java"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.47-bin.jar"/>
 	<classpathentry kind="lib" path="lib/osxAdapter.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/ols-client-1.18.jar"/>
 	<classpathentry kind="lib" path="lib/jsonpath/jackson-databind-2.6.3.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-awt-util-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-constants-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-dom-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-i18n-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-svggen-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/batik/batik-util-1.11.jar"/>
+	<classpathentry kind="lib" path="lib/commons/commons-lang-2.5.jar"/>
+	<classpathentry kind="lib" path="lib/jdom/jdom-1.1.3.jar"/>
+	<classpathentry kind="lib" path="lib/log4j/log4j-1.2.17.jar"/>
+	<classpathentry kind="lib" path="lib/mysql/mysql-connector-java-5.1.47-bin.jar"/>
+	<classpathentry kind="lib" path="lib/commons/commons-codec-1.4.jar"/>
+	<classpathentry kind="lib" path="lib/commons/commons-discovery-0.2.jar"/>
+	<classpathentry kind="lib" path="lib/commons/commons-httpclient-3.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons/commons-logging-1.0.4.jar"/>
+	<classpathentry kind="lib" path="lib/itext/itext-2.0.6.jar"/>
+	<classpathentry kind="lib" path="lib/jgraph/jgraph-5.13.0.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
