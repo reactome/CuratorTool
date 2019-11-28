@@ -232,7 +232,7 @@
             <arg value="-Durl=${ossrh-staging-repository-url}" />
             <arg value="-DrepositoryId=${ossrh-server-id}" />
             <arg value="-DpomFile=pom.xml" />
-            <arg value="-Dfile=${javadoc-jar}" />
+            <arg value="-Dfile=${javadocs-jar}" />
             <arg value="-Dclassifier=javadoc" />
             <arg value="-Pgpg" />
         </artifact:mvn>
