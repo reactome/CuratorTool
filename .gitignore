@@ -17,6 +17,8 @@ tmp/*
 
 QA_Output
 qa_weekly
+
+reactome_base_sonatype/*.asc
 reactome_base_sonatype/dist/lib/
 reactome_base_sonatype/classes/
 reactome_base_sonatype/dist/javadoc/
