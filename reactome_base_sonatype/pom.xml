@@ -6,7 +6,7 @@
     <groupId>org.reactome.base</groupId>
     <artifactId>reactome-base</artifactId>
     <packaging>jar</packaging>
-    <version>1.2.22</version>
+    <version>1.2.23-SNAPSHOT</version>
     <name>Reactome Base</name>
     <description>Reactome Java API</description>
     <url>https://reactome.org</url>
