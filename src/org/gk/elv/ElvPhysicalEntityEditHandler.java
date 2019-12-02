@@ -268,9 +268,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     protected void refreshContainingNodes(Long id) {
         // Limit to Complexes and EntitySets.
         List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
-                                                                   RenderableComplexDrug.class,
-                                                                   RenderableEntitySet.class,
-                                                                   RenderableEntitySetDrug.class);
+                                                                   RenderableEntitySet.class);
         // The Complexes/EntitySets that contain the given instance.
         Set<GKInstance> containingInstances = getContainingInstances(id, allowedClasses);
         if (containingInstances == null || containingInstances.size() == 0)
@@ -330,8 +328,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
 
             // Determine if the given Complex/EntitySet contains the affected node.
             // If so, add to the list of containing instances.
-            if (containedInstanceIds != null && containedInstanceIds.contains(id))
+            if (containedInstanceIds.contains(id)) {
                 containingInstances.add(getInstanceFromNode((Node) parentNode));
+            }
         }
 
         return containingInstances;
@@ -339,9 +338,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
 
     /**
      * Return the instance represented by a given node.
-     * TODO This very likely duplicates an existing method.
+     * TODO This very likely duplicates an existing method. I haven't been able to find it as of yet.
      *
-     * @param node, the Node to get the instance of.
+     * @param node, the Node to get the instance of. Returns null if instance is not found.
      * @return instance pointed to by the given node.
      */
     protected GKInstance getInstanceFromNode(Node node) {
