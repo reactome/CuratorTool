@@ -22,6 +22,8 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableComplexDrug;
+import org.gk.render.RenderableEntitySet;
 
 /**
  * This helper class is used to handle attribute edit for complex.
@@ -41,17 +43,14 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         GKInstance instance = e.getEditingInstance();
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
 
-        // Add all Complex/EntitySet nodes to the list that contain the editing instance as a component/member.
-        final List<String> allowedClasses = Arrays.asList("RenderableComplex",
-                                                          "RenderableComplexDrug",
-                                                          "RenderableEntitySet",
-                                                          "RenderableEntitySetDrug");
+        // Limit to Complexes and EntitySets.
+        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
+                                                                   RenderableEntitySet.class);
         // Iterate over all displayed objects.
         for (Object parentNode : zoomableEditor.getPathwayEditor().getDisplayedObjects()) {
-            // Limit to Complex/EntitySet nodes.
-            // TODO Comparing class names is not a very robust solution. What may be a better way?
+            // Limit the search to allowed classes.
             if (allowedClasses.stream()
-                              .noneMatch(className -> className.equals(parentNode.getClass().getSimpleName())))
+                              .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
                 continue;
 
             // Components contained in the parent node.
@@ -226,8 +225,8 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         // The node should be a complex if it is not displayed as multimer
         if (!(complex instanceof RenderableComplex))
             return;
-        GKInstance complexInstance = edit.getEditingInstance();
-        if (complexInstance == null || !complexInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
+        GKInstance editingInstance = edit.getEditingInstance();
+        if (editingInstance == null || !editingInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
             return;
         boolean needRepaint = false;
         if (edit.getEditingType() == AttributeEditEvent.REMOVING) {
@@ -263,10 +262,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
-
-                // Check if a removal event resulted in the instance no longer being a drug.
-                if (!InstanceUtilities.isDrug(complexInstance))
-                    refreshContainingNodes(complexInstance.getDBID());
             }
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
@@ -285,15 +280,22 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                         needRepaint = true;
                     }
                 }
-                // Check if an addition event resulted in the instance becoming a drug.
-                if (InstanceUtilities.isDrug(complexInstance))
-                    refreshContainingNodes(complexInstance.getDBID());
             }
         }
         if (needRepaint) {
             PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
             pathwayEditor.repaint(pathwayEditor.getVisibleRect());
         }
+        // Check if a edit event resulted in a parent instance changing drug-renderable type.
+
+        // If the editing instance is a drug, and at least one of its rendered nodes
+        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+
+        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+        List<Renderable> sets = zoomableEditor.searchConvertedRenderables(editingInstance);
+        if (InstanceUtilities.isDrug(editingInstance) != sets.get(0) instanceof RenderableComplexDrug)
+            refreshContainingNodes(editingInstance);
     }
 
     private void deleteComplexComponent(Node complex, Renderable foundComp) {

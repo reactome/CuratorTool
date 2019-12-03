@@ -71,18 +71,21 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                 if (InstanceUtilities.hasSharedMembers(inst, tmp))
                     addEntitySetAndEntitySetLink(sets, instanceToNodes.get(tmp));
             }
-            // Check if an addition event resulted in an instance becoming a drug.
-            if (InstanceUtilities.isDrug(inst))
-                refreshContainingNodes(inst.getDBID());
         }
         else if (editEvent.getEditingType() == AttributeEditEvent.REMOVING) {
             List<GKInstance> removedInsts = editEvent.getRemovedInstances();
             removeEntitySetAndMemberLink(sets, removedInsts);
             removeSetAndSetLink(inst, sets);
-            // Check if a removal event resulted in the instance no longer being a drug.
-            if (!InstanceUtilities.isDrug(inst))
-                refreshContainingNodes(inst.getDBID());
         }
+        // Check if a edit event resulted in a parent instance changing drug-renderable type.
+
+        // If the editing instance is a drug, and at least one of its rendered nodes
+        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+
+        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+        if (InstanceUtilities.isDrug(inst) != sets.get(0) instanceof RenderableEntitySetDrug)
+            refreshContainingNodes(inst);
     }
     
     /**
@@ -263,20 +266,20 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     /**
      * Refresh (via reinserting) the nodes that contain a given instance (represented by its Reactome id).
      *
-     * @param id
+     * @param childInstance
      */
-    protected void refreshContainingNodes(Long id) {
+    protected void refreshContainingNodes(GKInstance childInstance) {
         // Limit to Complexes and EntitySets.
         List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
                                                                    RenderableEntitySet.class);
         // The Complexes/EntitySets that contain the given instance.
-        Set<GKInstance> containingInstances = getContainingInstances(id, allowedClasses);
-        if (containingInstances == null || containingInstances.size() == 0)
+        Set<GKInstance> parentInstances = getParentInstances(childInstance, allowedClasses);
+        if (parentInstances == null || parentInstances.size() == 0)
             return;
-        for (GKInstance instance : containingInstances) {
+        for (GKInstance parentInstance : parentInstances) {
             // Reinsert the affected instance.
             // TODO Delete or reinsert old complex components. Currently they become "detached".
-            zoomableEditor.reInsertInstance(instance);
+            zoomableEditor.reInsertInstance(parentInstance);
         }
     } 
 
@@ -287,18 +290,18 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @param allowedClasses
      * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
      */
-    private Set<GKInstance> getContainingInstances(Long id, List<Class<? extends Node>> allowedClasses) {
+    private Set<GKInstance> getParentInstances(GKInstance instance, List<Class<? extends Node>> allowedClasses) {
         List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects.size() == 0)
             return null;
-        Set<GKInstance> containingInstances = new HashSet<GKInstance>();
+        Set<GKInstance> parentInstances = new HashSet<GKInstance>();
         for (Object parentNode : displayedObjects) {
             if (allowedClasses == null)
                 continue;
 
             // Limit the search to allowed classes.
             if (allowedClasses.stream()
-                              .noneMatch(cls -> cls.isInstance(parentNode)))
+                              .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
                 continue;
 
             // The parent Complex/EntitySet.
@@ -306,34 +309,34 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             if (parentInstance == null)
                 continue;
             
-            // The nodes contained by the parent Complex/EntitySet.
-            Set<Long> containedInstanceIds = new HashSet<Long>();
+            // The nodes child by the parent Complex/EntitySet.
+            Set<Long> childInstanceIds = new HashSet<Long>();
 
             // Add component's Reactome id to the set.
-            containedInstanceIds.add(parentInstance.getDBID());
+            childInstanceIds.add(parentInstance.getDBID());
 
             try {
                 // Populate a Set of child instances (represented by their Reactome id's)
-                // that are contained by a given parent instance.
+                // that are child by a given parent instance.
                 InstanceUtilities.getContainedInstances(parentInstance,
                                                         ReactomeJavaConstants.hasComponent,
                                                         ReactomeJavaConstants.hasCandidate,
                                                         ReactomeJavaConstants.hasMember)
                                  .stream()
                                  .map(GKInstance::getDBID)
-                                 .forEach(containedInstanceIds::add);
+                                 .forEach(childInstanceIds::add);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
             // Determine if the given Complex/EntitySet contains the affected node.
-            // If so, add to the list of containing instances.
-            if (containedInstanceIds.contains(id)) {
-                containingInstances.add(getInstanceFromNode((Node) parentNode));
+            // If so, add to the list of parent instances.
+            if (childInstanceIds.contains(instance.getDBID())) {
+                parentInstances.add(getInstanceFromNode((Node) parentNode));
             }
         }
 
-        return containingInstances;
+        return parentInstances;
     }
 
     /**
