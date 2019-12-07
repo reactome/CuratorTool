@@ -85,7 +85,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
         // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
         if (InstanceUtilities.isDrug(inst) != sets.get(0) instanceof RenderableEntitySetDrug)
-            refreshContainingNodes(inst);
+            refreshParentNodes(inst);
     }
     
     /**
@@ -268,7 +268,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      *
      * @param childInstance
      */
-    protected void refreshContainingNodes(GKInstance childInstance) {
+    protected void refreshParentNodes(GKInstance childInstance) {
         // Limit to Complexes and EntitySets.
         List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
                                                                    RenderableEntitySet.class);
@@ -276,21 +276,28 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         Set<GKInstance> parentInstances = getParentInstances(childInstance, allowedClasses);
         if (parentInstances == null || parentInstances.size() == 0)
             return;
-        for (GKInstance parentInstance : parentInstances) {
-            // Reinsert the affected instance.
-            // TODO Delete or reinsert old complex components. Currently they become "detached".
+
+        // Reinsert the affected instances
+        for (GKInstance parentInstance : parentInstances)
             zoomableEditor.reInsertInstance(parentInstance);
-        }
     } 
 
     /**
      * Return a list of Complex/EntitySets that contain a given instance (represented by its Reactome id).
      *
+     * This is a costly method by which we work "backwards" to find all parent instances of a given "childInstance":
+     * (1) Iterate over all displayed objects in the current pathway.
+     * (2) Only consider nodes that may contain other nodes (e.g. complexes, entity sets).
+     * (3) Get all contained instances for each node.
+     * (4) If the child instance is found within a node's contained instances, add that node's instance to the returned set.
+     *
+     * Note: this does not return a hierarchy of instances, simply an unordered Set.
+     *
      * @param node
      * @param allowedClasses
      * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
      */
-    private Set<GKInstance> getParentInstances(GKInstance instance, List<Class<? extends Node>> allowedClasses) {
+    private Set<GKInstance> getParentInstances(GKInstance childInstance, List<Class<? extends Node>> allowedClasses) {
         List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects.size() == 0)
             return null;
@@ -309,31 +316,29 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             if (parentInstance == null)
                 continue;
             
-            // The nodes child by the parent Complex/EntitySet.
-            Set<Long> childInstanceIds = new HashSet<Long>();
+            // The set of child instances.
+            Set<GKInstance> containedInstances = new HashSet<GKInstance>();
 
             // Add component's Reactome id to the set.
-            childInstanceIds.add(parentInstance.getDBID());
+            containedInstances.add(parentInstance);
 
             try {
-                // Populate a Set of child instances (represented by their Reactome id's)
-                // that are child by a given parent instance.
+                // Populate the Set of a parent instance's contained instances.
                 InstanceUtilities.getContainedInstances(parentInstance,
                                                         ReactomeJavaConstants.hasComponent,
                                                         ReactomeJavaConstants.hasCandidate,
                                                         ReactomeJavaConstants.hasMember)
-                                 .stream()
-                                 .map(GKInstance::getDBID)
-                                 .forEach(childInstanceIds::add);
+                                 .forEach(containedInstances::add);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            // Determine if the given Complex/EntitySet contains the affected node.
+            // Determine if the given Complex/EntitySet contains the given child instance.
             // If so, add to the list of parent instances.
-            if (childInstanceIds.contains(instance.getDBID())) {
+            if (containedInstances.stream()
+                                  .map(GKInstance::getDBID)
+                                  .anyMatch(childInstance.getDBID()::equals))
                 parentInstances.add(getInstanceFromNode((Node) parentNode));
-            }
         }
 
         return parentInstances;

@@ -295,7 +295,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
         List<Renderable> sets = zoomableEditor.searchConvertedRenderables(editingInstance);
         if (InstanceUtilities.isDrug(editingInstance) != sets.get(0) instanceof RenderableComplexDrug)
-            refreshContainingNodes(editingInstance);
+            refreshParentNodes(editingInstance);
     }
 
     private void deleteComplexComponent(Node complex, Renderable foundComp) {

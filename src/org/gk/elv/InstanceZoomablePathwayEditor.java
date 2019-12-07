@@ -68,6 +68,8 @@ import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableComplexDrug;
+import org.gk.render.ContainerNode;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
@@ -620,10 +622,31 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                                                 r, 
                                                 null);
                 if (r instanceof Node) {
+                    if (r instanceof RenderableComplex ||
+                        r instanceof RenderableComplexDrug) {
+                       // Copy components to the new renderable node.
+                       ((Node) r).setComponents(existed.getComponents());
+                       ((RenderableComplex) r).rebuildHierarchy();
+                       ((ContainerNode) r).setIsComponentsHidden(((ContainerNode) existed).isComponentsHidden());
+
+                       // TODO Reinsert components so that they always remain "in front of" the container.
+
+                        // Set the container and add to it the new renderable node.
+                        if (existed.getContainer() != null) {
+                            r.setContainer(existed.getContainer());
+
+                            if (r.getContainer() instanceof RenderableComplex ||
+                                r.getContainer() instanceof RenderableComplexDrug) {
+                                r.getContainer().addComponent(r);
+                                ((RenderableComplex) r.getContainer()).rebuildHierarchy();
+                            }
+                        }
+                    }
+
                     pathwayEditor.insertNode((Node)r);
                 }
                 else if (r instanceof HyperEdge)
-                    pathwayEditor.insertEdge((HyperEdge) r, 
+                    pathwayEditor.insertEdge((HyperEdge) r,
                                              true);
                 RenderUtility.switchRenderInfo(existed, r);
                 pathwayEditor.delete(existed);
