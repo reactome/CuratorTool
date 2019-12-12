@@ -12,6 +12,8 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.geom.GeneralPath;
+
+import org.gk.model.InstanceUtilities;
 /**
  * This class is for drawing a RenderableComplex.
  * @author  wgm
@@ -23,8 +25,17 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
-        node.setBackgroundColor(DEFAULT_COMPLEX_BACKGROUND);
-        node.setForegroundColor(DEFAULT_FOREGROUND);
+//        // If node is a drug.
+//        if (InstanceUtilities.isDrug(node.getInstance())) {
+//            node.setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
+//            node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+//            renderDrugLabel(g);
+//        }
+//        // If node is not a drug.
+//        else {
+            node.setBackgroundColor(DEFAULT_COMPLEX_BACKGROUND);
+            node.setForegroundColor(DEFAULT_FOREGROUND);
+//        }
         Graphics2D g2 = (Graphics2D) g;
         // Draw three overlapping rectangles
         Stroke oldStroke = g2.getStroke();

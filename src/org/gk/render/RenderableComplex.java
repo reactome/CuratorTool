@@ -260,6 +260,9 @@ public class RenderableComplex extends ContainerNode {
             return;
         for (Renderable r : componentsInHiearchy) {
             Node node = (Node) r;
+            // TODO Setting this node to be visible results in duplicate components due to this line:
+            // zoomableEditor.addComplexComponent(complex, comp);
+            // org.gk.elv.ElvActionCollection#showComplexComponents method
             node.setIsVisible(!hide);
             if (r instanceof RenderableComplex) {
                 ((RenderableComplex)r).hideComponents = hide;

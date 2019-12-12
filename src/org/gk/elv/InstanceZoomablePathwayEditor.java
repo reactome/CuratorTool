@@ -621,28 +621,28 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                 handler.simpleConvertProperties(instance, 
                                                 r, 
                                                 null);
-                if (r instanceof Node) {
-                    if (r instanceof RenderableComplex ||
-                        r instanceof RenderableComplexDrug) {
-                       // Copy components to the new renderable node.
-                       ((Node) r).setComponents(existed.getComponents());
-                       ((RenderableComplex) r).rebuildHierarchy();
-                       ((ContainerNode) r).setIsComponentsHidden(((ContainerNode) existed).isComponentsHidden());
+                if (r instanceof RenderableComplex) {
+                    // Copy components to the new renderable node.
+                    RenderableComplex complex = (RenderableComplex) r;
+                    complex.setComponents(existed.getComponents());
+                    for (Object component : complex.getComponents())
+                        ((Renderable) component).setContainer(complex);
 
-                       // TODO Reinsert components so that they always remain "in front of" the container.
+                    complex.rebuildHierarchy();
+                    complex.setIsComponentsHidden(((ContainerNode) existed).isComponentsHidden());
 
-                        // Set the container and add to it the new renderable node.
-                        if (existed.getContainer() != null) {
-                            r.setContainer(existed.getContainer());
+                    // Set the container and add to it the new renderable node.
+                    if (existed.getContainer() == null)
+                        continue;
+                    else {
+                        r.setContainer(existed.getContainer());
 
-                            if (r.getContainer() instanceof RenderableComplex ||
-                                r.getContainer() instanceof RenderableComplexDrug) {
-                                r.getContainer().addComponent(r);
-                                ((RenderableComplex) r.getContainer()).rebuildHierarchy();
-                            }
-                        }
+                        if (r.getContainer() instanceof RenderableComplex)
+                            r.getContainer().addComponent(r);
                     }
+                }
 
+                if (r instanceof Node) {
                     pathwayEditor.insertNode((Node)r);
                 }
                 else if (r instanceof HyperEdge)

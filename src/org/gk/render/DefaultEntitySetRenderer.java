@@ -8,6 +8,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 
+import org.gk.model.InstanceUtilities;
+
 /**
  * @author gwu
  *
@@ -19,8 +21,16 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     
     @Override
     protected void renderShapes(Graphics g) {
-        node.setBackgroundColor(DEFAULT_BACKGROUND);
-        node.setForegroundColor(DEFAULT_FOREGROUND);
+        // If node is a drug.
+//        if (InstanceUtilities.isDrug(node.getInstance())) {
+//            node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+//            node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
+//            renderDrugLabel(g);
+//        }
+//        else {
+            node.setBackgroundColor(DEFAULT_BACKGROUND);
+            node.setForegroundColor(DEFAULT_FOREGROUND);
+//        }
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
         // The following code is used to draw two same size shapes with a little shift

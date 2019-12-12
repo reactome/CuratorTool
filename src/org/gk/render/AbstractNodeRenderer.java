@@ -297,4 +297,5 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         textLayouts = node.getTextLayouts();
         boundsBuffer = node.boundsBuffer;
     }  
+
 }

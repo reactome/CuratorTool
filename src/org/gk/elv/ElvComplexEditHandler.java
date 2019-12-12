@@ -54,13 +54,13 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                 continue;
 
             // Components contained in the parent node.
-            Set<Long> containedInstanceIds = new HashSet<Long>();
+            Set<GKInstance> containedInstances = new HashSet<GKInstance>();
             GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
             if (parentInstance == null)
                 continue;
 
-            // Add component's Reactome id to the set.
-            containedInstanceIds.add(parentInstance.getDBID());
+            // Add component's instance to the set.
+//            containedInstances.add(parentInstance);
 
             try {
                 // Populate a Set of child instances (represented by their Reactome id's)
@@ -68,18 +68,17 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                 InstanceUtilities.getContainedInstances(parentInstance,
                                                         ReactomeJavaConstants.hasComponent,
                                                         ReactomeJavaConstants.hasCandidate,
-                                                        ReactomeJavaConstants.hasMember)
-                                 .stream()
-                                 .map(GKInstance::getDBID)
-                                 .forEach(containedInstanceIds::add);
+                                                        ReactomeJavaConstants.hasMember);
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
-            if (containedInstanceIds == null || containedInstanceIds.size() == 0)
+            if (containedInstances == null || containedInstances.size() == 0)
                 continue;
 
             // If the Complex/EntitySet node contains the editing instance, add it to the list.
-            if (containedInstanceIds.contains(instance.getDBID()))
+            if (containedInstances.stream()
+                                  .map(GKInstance::getDBID)
+                                  .anyMatch(instance.getDBID()::equals))
                 list.add((Node) parentNode);
         }
 
@@ -266,9 +265,8 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         }
         else if (edit.getEditingType() == AttributeEditEvent.ADDING) {
             RenderableComplex complex1 = (RenderableComplex) complex;
-            // TODO Uncomment this?
-//            if (complex1.isComponentsHidden())
-//                return;
+            if (complex1.isComponentsHidden())
+                return;
             List added = edit.getAddedInstances();
             if (added != null && added.size() > 0) {
                 for (Iterator it = added.iterator(); it.hasNext();) {
