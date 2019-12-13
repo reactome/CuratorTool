@@ -100,7 +100,8 @@ public class RendererFactory {
     }
     
     public Renderer getRenderer(Renderable r) {
-        return clsToRenderer.get(r.getClass());
+        Renderer renderer = clsToRenderer.get(r.getClass());
+        return renderer;
     }
     
     public Renderer getRenderer(Class<? extends Renderable> cls) {

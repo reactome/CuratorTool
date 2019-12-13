@@ -6,8 +6,6 @@
  */
 package org.gk.model;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,7 +26,6 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
-import org.junit.Test;
 
 
 /**
@@ -352,7 +349,6 @@ public class InstanceUtilities {
 	
 	public static void sortSchemaClasses(java.util.List schemaClasses) {
 		Collections.sort(schemaClasses, new Comparator() {
-			@Override
 			public int compare(Object obj1, Object obj2) {
 				GKSchemaClass class1 = (GKSchemaClass) obj1;
 				GKSchemaClass class2 = (GKSchemaClass) obj2;
@@ -397,7 +393,6 @@ public class InstanceUtilities {
 	
 	public static void sortInstances(java.util.List instances) {
 		Collections.sort(instances, new Comparator() {
-			@Override
 			public int compare(Object obj1, Object obj2) {
 				Instance instance1 = (Instance) obj1;
 				Instance instance2 = (Instance) obj2;
@@ -420,7 +415,6 @@ public class InstanceUtilities {
      */
     public static void groupInstances(java.util.List instances) {
         Collections.sort(instances, new Comparator() {
-            @Override
 			public int compare(Object obj1, Object obj2) {
                 GKInstance instance1 = (GKInstance) obj1;
                 GKInstance instance2 = (GKInstance) obj2;

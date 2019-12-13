@@ -4,8 +4,6 @@
  */
 package org.gk.elv;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,8 +21,6 @@ import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
-import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableEntitySet;
 import org.gk.util.GKApplicationUtilities;
 
 /**

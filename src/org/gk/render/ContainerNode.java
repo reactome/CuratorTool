@@ -44,11 +44,6 @@ public abstract class ContainerNode extends Node {
         return hideComponents;
     }
 
-    // TODO Temporary method for development.
-    public void setIsComponentsHidden(boolean hideComponents) {
-        this.hideComponents = hideComponents;
-    }
-
     /**
      * This method is used to ensure the text is still encapsulated 
      * by the bounds during resizing.

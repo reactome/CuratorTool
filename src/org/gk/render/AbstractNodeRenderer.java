@@ -12,7 +12,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
@@ -34,7 +33,6 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     /**
      * Render method.
      */
-    @Override
 	public void render(Graphics g) {
         if (!node.isVisible() && !node.isSelected())
             return;
@@ -146,7 +144,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     }
         
     /**
-     * A helper method is used to draw RenderableFeature
+     * A helper method is used to draw RenderaleFeature
      * @param attachment
      * @param g
      */
@@ -280,13 +278,12 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
                     2 * Node.RESIZE_WIDGET_WIDTH);
     }
     
-    @Override
 	public void setRenderable(Renderable r) {
         node = (Node) r;
     }
     
     /**
-     * Prepare this Renderer with information in Renderable.
+     * Prepare this Renderer with infomation in Renderable.
      */
     protected void setProperties(Renderable renderable) {
         Node node = (Node) renderable;

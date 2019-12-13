@@ -7,22 +7,17 @@ package org.gk.elv;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableEntitySet;
 
 /**
  * This helper class is used to handle attribute edit for complex.
@@ -182,9 +177,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
 //        }
         // The node should be a complex if it is not displayed as multimer
         if (!(complex instanceof RenderableComplex))
-            return;
-        GKInstance editingInstance = edit.getEditingInstance();
-        if (editingInstance == null || !editingInstance.getSchemClass().isa(ReactomeJavaConstants.Complex))
             return;
         boolean needRepaint = false;
         if (edit.getEditingType() == AttributeEditEvent.REMOVING) {

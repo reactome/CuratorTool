@@ -223,13 +223,13 @@ public class InstanceToRenderableConverter {
         GKSchemaClass schemaClass = (GKSchemaClass)instance.getSchemClass();
         Node node = null;
         if (schemaClass.isa(ReactomeJavaConstants.Complex)) {
-        	node = convertToComplex(instance, needProp, map);
+            node = convertToComplex(instance, needProp, map);
         }
         else if (schemaClass.isa(ReactomeJavaConstants.PhysicalEntity)) {
-        	node = convertToEntity(instance, needProp, map);
+            node = convertToEntity(instance, needProp, map);
         }
         else if (schemaClass.isa(ReactomeJavaConstants.Reaction)) {
-        	node = convertToReactionNode(instance, needProp, map);
+            node = convertToReactionNode(instance, needProp, map);
         }
         else if (schemaClass.isa(ReactomeJavaConstants.Pathway)) {
             node = convertToPathway(instance, needProp, map);
@@ -278,8 +278,8 @@ public class InstanceToRenderableConverter {
         complex = new RenderableComplex(instance.getDisplayName());
         java.util.List components = instance.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
         if (components != null) {
-            for (Iterator<GKInstance> it = components.iterator(); it.hasNext();) {
-                GKInstance tmp = it.next();
+            for (Iterator it = components.iterator(); it.hasNext();) {
+                GKInstance tmp = (GKInstance) it.next();
                 Renderable node = convertToNode(tmp, needProp, convertedMap);
                 if (node != null) {
                     complex.addComponent(node);

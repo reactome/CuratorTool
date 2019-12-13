@@ -63,11 +63,13 @@ import org.gk.render.ConnectWidget;
 import org.gk.render.FlowLine;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
+import org.gk.render.NodeAttachment;
 import org.gk.render.Note;
 import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFeature;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
@@ -188,7 +190,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     private void init() {
         // Link this selection to other displays
         pathwayEditor.getSelectionModel().addGraphEditorActionListener(new GraphEditorActionListener() {
-            @Override
 			public void graphEditorAction(GraphEditorActionEvent e) {
                 if (e.getID() == GraphEditorActionEvent.SELECTION) {
                     selectionMediator.fireSelectionEvent(InstanceZoomablePathwayEditor.this);
@@ -245,7 +246,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private void installListeners() {
         PropertyChangeListener listener = new PropertyChangeListener() {
-            @Override
 			public void propertyChange(PropertyChangeEvent e) {
                 doGraphPropChange(e);
             }
@@ -537,11 +537,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         else if (schemaClass.isa(ReactomeJavaConstants.ModifiedResidue))
             ewasHelper.modifiedResidueEdit(editEvent);
         else if (schemaClass.isa(ReactomeJavaConstants.EntitySet))
-            try {
-                peHelper.entitySetEdit(editEvent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            peHelper.entitySetEdit(editEvent);
     }
     
     protected Renderable addComplexComponent(RenderableComplex complex,
@@ -556,7 +552,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             Renderable container = pathwayEditor.getRenderable();
             // Don't set container so that the following simpleConvert()
             // will not add the converted instance directly to this container.
-            // Let the insert statements figure this out.
+            // Let the insert statments figure this out.
             //handler.setContainer(container);
             handler.setContainer(null);
             Renderable r = handler.simpleConvert(instance);
@@ -725,7 +721,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         }
     }
 
-    @Override
 	public List<GKInstance> getSelection() {
         // Use set in case multiple Renderables pointing to the same GKInstance.
         Set<GKInstance> set = new HashSet<GKInstance>();
@@ -759,7 +754,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Set the selection in GKInstances to this ZoomablePathwayEditor.
      */
-    @Override
 	public void setSelection(List selection) {
         List all = getPathwayEditor().getDisplayedObjects();
         if (all == null || all.size() == 0)
@@ -803,7 +797,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private GraphEditorActionListener createGraphEditorListener() {
         GraphEditorActionListener listener = new GraphEditorActionListener() {
-            @Override
 			public void graphEditorAction(GraphEditorActionEvent e) {
                 // Double click
                 if (e.getID() == GraphEditorActionEvent.ACTION_DOUBLE_CLICKED) {
@@ -1226,7 +1219,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             getContentPane().add(contentPane, BorderLayout.CENTER);
             contentPane.setPreferredSize(new Dimension(350, 275));
             ActionListener listener = new ActionListener() {
-                @Override
 				public void actionPerformed(ActionEvent e) {
                     dispose();
                     if (e.getSource() == controlPane.getOKBtn())

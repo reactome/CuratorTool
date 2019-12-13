@@ -13,7 +13,6 @@ import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.geom.GeneralPath;
 
-import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 /**
  * This class is for drawing a RenderableComplex.

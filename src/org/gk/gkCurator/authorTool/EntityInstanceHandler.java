@@ -20,7 +20,7 @@ public class EntityInstanceHandler extends InstanceHandler {
     
     protected Renderable convertToRenderable(GKInstance instance) throws Exception {
         // Have to find the type for instance
-        Class<?> type = typeHelper.guessNodeType(instance);
+        Class type = typeHelper.guessNodeType(instance);
         Renderable r = RenderableFactory.generateRenderable(type, container);
         return r;
     }

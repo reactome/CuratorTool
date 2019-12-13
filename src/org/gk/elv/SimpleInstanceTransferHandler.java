@@ -55,7 +55,6 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
 
     private boolean importObjectFromTree(ArrayList reactomeIds,
                                          PathwayEditor pathwayEditor) {
-
         InstanceZoomablePathwayEditor zoomableEditor = (InstanceZoomablePathwayEditor) SwingUtilities.getAncestorOfClass(InstanceZoomablePathwayEditor.class,
                                                                                                                          pathwayEditor);
         // Track newly added objects for selection
@@ -156,7 +155,6 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
         }
     }
     
-    @Override
 	protected Transferable createTransferable(JComponent c) {
         ArrayList<Object> list = new ArrayList<Object>();
         if (c instanceof PathwayEditor) {
