@@ -6,4 +6,5 @@ public class RenderableRNADrug extends RenderableRNA {
     
     public RenderableRNADrug() {
     }
+
 }

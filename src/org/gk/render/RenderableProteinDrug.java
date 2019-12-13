@@ -6,4 +6,5 @@ public class RenderableProteinDrug extends RenderableProtein {
     
     public RenderableProteinDrug() {
     }
+
 }

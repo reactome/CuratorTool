@@ -3,8 +3,8 @@ package org.gk.render;
 import java.awt.Graphics;
 
 public class DefaultChemicalDrugRenderer extends DefaultChemicalRenderer {
+    
     public DefaultChemicalDrugRenderer() {
-
     }
 
     @Override
@@ -14,4 +14,5 @@ public class DefaultChemicalDrugRenderer extends DefaultChemicalRenderer {
         node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
         renderDrugLabel(g);
     }
+    
 }

@@ -13,7 +13,7 @@ import org.gk.render.RenderableFactory;
 
 public class EntityInstanceHandler extends InstanceHandler {
     private SearchDBTypeHelper typeHelper;
-
+    
     public EntityInstanceHandler() {
         typeHelper = new SearchDBTypeHelper();
     }

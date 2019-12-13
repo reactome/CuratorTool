@@ -33,7 +33,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     
     public ElvPhysicalEntityEditHandler() {
     }
-
+    
     protected void entitySetEdit(AttributeEditEvent editEvent) {
         if (!editEvent.getAttributeName().equals(ReactomeJavaConstants.hasMember) &&
             !editEvent.getAttributeName().equals(ReactomeJavaConstants.hasCandidate))
@@ -247,5 +247,5 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         }
         return peToRenderables;
     }
-
+    
 }

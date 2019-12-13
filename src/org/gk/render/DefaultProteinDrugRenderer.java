@@ -13,4 +13,5 @@ public class DefaultProteinDrugRenderer extends DefaultProteinRenderer {
         super.renderShapes(g);
         super.renderDrugLabel(g);
     }
+
 }

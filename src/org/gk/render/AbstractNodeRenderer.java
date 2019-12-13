@@ -33,7 +33,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     /**
      * Render method.
      */
-	public void render(Graphics g) {
+    public void render(Graphics g) {
         if (!node.isVisible() && !node.isSelected())
             return;
         node.validateBounds(g);
@@ -91,7 +91,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         g2.setFont(oldFond);
         g2.setColor(oldColor);
     }
-
+    
     protected void setDrawPaintAndStroke(Graphics2D g2) {
         // Set line color first
         if (isSelected)
@@ -278,7 +278,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
                     2 * Node.RESIZE_WIDGET_WIDTH);
     }
     
-	public void setRenderable(Renderable r) {
+    public void setRenderable(Renderable r) {
         node = (Node) r;
     }
     
@@ -294,5 +294,4 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         textLayouts = node.getTextLayouts();
         boundsBuffer = node.boundsBuffer;
     }  
-
 }

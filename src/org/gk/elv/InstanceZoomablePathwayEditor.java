@@ -73,6 +73,7 @@ import org.gk.render.RenderableFeature;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
+import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 
@@ -190,7 +191,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     private void init() {
         // Link this selection to other displays
         pathwayEditor.getSelectionModel().addGraphEditorActionListener(new GraphEditorActionListener() {
-			public void graphEditorAction(GraphEditorActionEvent e) {
+            public void graphEditorAction(GraphEditorActionEvent e) {
                 if (e.getID() == GraphEditorActionEvent.SELECTION) {
                     selectionMediator.fireSelectionEvent(InstanceZoomablePathwayEditor.this);
                 }
@@ -246,7 +247,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private void installListeners() {
         PropertyChangeListener listener = new PropertyChangeListener() {
-			public void propertyChange(PropertyChangeEvent e) {
+            public void propertyChange(PropertyChangeEvent e) {
                 doGraphPropChange(e);
             }
         };
@@ -619,7 +620,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                     pathwayEditor.insertNode((Node)r);
                 }
                 else if (r instanceof HyperEdge)
-                    pathwayEditor.insertEdge((HyperEdge) r,
+                    pathwayEditor.insertEdge((HyperEdge) r, 
                                              true);
                 RenderUtility.switchRenderInfo(existed, r);
                 pathwayEditor.delete(existed);
@@ -721,7 +722,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         }
     }
 
-	public List<GKInstance> getSelection() {
+    public List<GKInstance> getSelection() {
         // Use set in case multiple Renderables pointing to the same GKInstance.
         Set<GKInstance> set = new HashSet<GKInstance>();
         List selection = getPathwayEditor().getSelection();
@@ -754,7 +755,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Set the selection in GKInstances to this ZoomablePathwayEditor.
      */
-	public void setSelection(List selection) {
+    public void setSelection(List selection) {
         List all = getPathwayEditor().getDisplayedObjects();
         if (all == null || all.size() == 0)
             return; // Nothing to be selected
@@ -797,7 +798,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     
     private GraphEditorActionListener createGraphEditorListener() {
         GraphEditorActionListener listener = new GraphEditorActionListener() {
-			public void graphEditorAction(GraphEditorActionEvent e) {
+            public void graphEditorAction(GraphEditorActionEvent e) {
                 // Double click
                 if (e.getID() == GraphEditorActionEvent.ACTION_DOUBLE_CLICKED) {
                     showPropertyForSelection();
@@ -1219,7 +1220,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             getContentPane().add(contentPane, BorderLayout.CENTER);
             contentPane.setPreferredSize(new Dimension(350, 275));
             ActionListener listener = new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
+                public void actionPerformed(ActionEvent e) {
                     dispose();
                     if (e.getSource() == controlPane.getOKBtn())
                         isOkClicked = true;

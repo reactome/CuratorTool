@@ -234,7 +234,7 @@ public class AuthorToolActionCollection {
         }
         return tightBoundsAction;
     }
-
+    
     public Action getWrapTextIntoNodesAction() {
         if (wrapTextIntoNodesAction == null) {
             wrapTextIntoNodesAction = new AbstractAction("Wrap Text into Nodes") {
