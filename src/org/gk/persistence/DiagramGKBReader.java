@@ -16,7 +16,6 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableEntitySet;
-import org.gk.render.RenderableEntitySetDrug;
 import org.gk.render.RenderablePathway;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
@@ -154,8 +153,7 @@ public class DiagramGKBReader extends GKBReader {
                 GKInstance inst = persistenceAdaptor.fetchInstance(r.getReactomeId());
                 if (inst != null) {
                     if (inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-                        if (r.getClass() != RenderableEntitySet.class
-                         && r.getClass() != RenderableEntitySetDrug.class) {
+                        if (r.getClass() != RenderableEntitySet.class) {
                             // Old format. Needs to be updated!
                             Renderable r1 = new RenderableEntitySet();
                             r1.setID(r.getID());

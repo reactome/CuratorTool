@@ -22,7 +22,6 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableComplexDrug;
 import org.gk.render.RenderableEntitySet;
 
 /**
