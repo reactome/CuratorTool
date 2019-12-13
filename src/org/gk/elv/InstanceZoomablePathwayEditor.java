@@ -68,8 +68,6 @@ import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableComplexDrug;
-import org.gk.render.ContainerNode;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;

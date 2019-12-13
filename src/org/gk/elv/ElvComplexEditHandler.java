@@ -197,9 +197,8 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
 //                return;
 //            }
             RenderableComplex complex1 = (RenderableComplex) complex;
-            // TODO Uncomment this?
-//            if (complex1.isComponentsHidden())
-//                return;
+            if (complex1.isComponentsHidden())
+                return;
             // It is possible the complex can be displayed as 
             List removed = edit.getRemovedInstances();
             List components = complex.getComponents();

@@ -523,7 +523,6 @@ public class EntityLevelView extends JPanel {
     /**
      * Call to update the display of an edited event
      * @param editEvent Event for editing attribute value
-     * @throws Exception 
      */
     public void updateInstance(AttributeEditEvent editEvent) {
         objectListPane.updateInstance(editEvent);

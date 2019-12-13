@@ -39,8 +39,7 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
     public SimpleInstanceTransferHandler() {
     }
     
-    @Override
-	public boolean importListOfRenderables(ArrayList aList, 
+	public boolean importListOfRenderables(ArrayList aList,
                                            GraphEditorPane graphPane) {
         if (aList == null || aList.size() == 0)
             return true;

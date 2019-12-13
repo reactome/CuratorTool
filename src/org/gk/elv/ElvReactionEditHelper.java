@@ -139,7 +139,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         if (!(converted instanceof RenderableReaction))
             return; // It cannot be displayed in the ELV.
         r = (RenderableReaction) converted;
-        pathwayEditor.insertEdge(r, true);
+        pathwayEditor.insertEdge((HyperEdge)r, true);
         handleInputs(reaction, r);
         handleOutputs(reaction, r);
         // Get the catalyst
