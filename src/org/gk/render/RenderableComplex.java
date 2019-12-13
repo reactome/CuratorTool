@@ -49,7 +49,7 @@ public class RenderableComplex extends ContainerNode {
     private void init() {
         stoichiometries = new HashMap();
         components = new ArrayList();
-        backgroundColor = new Color(204, 255, 255);
+        backgroundColor = DEFAULT_COMPLEX_BACKGROUND;
         isFeatureAddable = true;
         isStateAddable = true;
         isMultimerFormable = true;

@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.gk.persistence.PersistenceManager;
+import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
@@ -1394,4 +1396,62 @@ public class InstanceUtilities {
 	//public static String encodeLineSeparators(String text) {
 	//    return text.replaceAll(FileAdaptor.LINE_END + "", "<br>");
 	//}
+
+     /**
+      *
+      * @param id
+      * @return
+      */
+     public static boolean isDrug(Long id) {
+         if (id == null)
+             return false;
+
+         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+         return isDrug(fileAdaptor.fetchInstance(id));
+     }
+
+     /**
+      * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).
+      *
+      * @param instance
+      * @throws Exception
+      * @returns boolean
+      */
+     public static boolean isDrug(Object instance) {
+         if (instance == null)
+             return false;
+
+         SchemaClass schemaClass = ((GKInstance) instance).getSchemClass();
+         // Check if instance is a drug.
+         if (schemaClass.isa(ReactomeJavaConstants.Drug))
+             return true;
+
+         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+                                                   ReactomeJavaConstants.Complex);
+         // Check id instance is an EntitySet or Complex.
+         if (validClasses.stream().noneMatch(schemaClass::isa))
+             return false;
+
+         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
+         Set<GKInstance> containedInstances = new HashSet<GKInstance>();
+         try {
+             containedInstances = getContainedInstances((GKInstance) instance,
+                                                        ReactomeJavaConstants.hasMember,
+                                                        ReactomeJavaConstants.hasCandidate,
+                                                        ReactomeJavaConstants.hasComponent);
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
+         // No containedInstances.
+         if (containedInstances.size() == 0 || containedInstances == null)
+             return false;
+
+         // Check if instance contains a drug by:
+         //   (1) Iterating over all schema classes of the instance's containedInstances.
+         //   (2) Checking if any of the ancestor schema class is a Drug class.
+         return containedInstances.stream()
+                       .map(GKInstance::getSchemClass)
+                       .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
+     }
+
 }

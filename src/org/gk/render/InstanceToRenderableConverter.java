@@ -222,16 +222,16 @@ public class InstanceToRenderableConverter {
     private static Node convertToNode(GKInstance instance, boolean needProp, Map map) throws Exception {
         GKSchemaClass schemaClass = (GKSchemaClass)instance.getSchemClass();
         Node node = null;
-        if (schemaClass.isa("Complex")) {
+        if (schemaClass.isa(ReactomeJavaConstants.Complex)) {
             node = convertToComplex(instance, needProp, map);
         }
-        else if (schemaClass.isa("PhysicalEntity")) {
+        else if (schemaClass.isa(ReactomeJavaConstants.PhysicalEntity)) {
             node = convertToEntity(instance, needProp, map);
         }
-        else if (schemaClass.isa("Reaction")) {
+        else if (schemaClass.isa(ReactomeJavaConstants.Reaction)) {
             node = convertToReactionNode(instance, needProp, map);
         }
-        else if (schemaClass.isa("Pathway")) {
+        else if (schemaClass.isa(ReactomeJavaConstants.Pathway)) {
             node = convertToPathway(instance, needProp, map);
         }
         else if (schemaClass.isa(ReactomeJavaConstants.ConceptualEvent))
