@@ -621,27 +621,6 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                 handler.simpleConvertProperties(instance, 
                                                 r, 
                                                 null);
-                if (r instanceof RenderableComplex) {
-                    // Copy components to the new renderable node.
-                    RenderableComplex complex = (RenderableComplex) r;
-                    complex.setComponents(existed.getComponents());
-                    for (Object component : complex.getComponents())
-                        ((Renderable) component).setContainer(complex);
-
-                    complex.rebuildHierarchy();
-                    complex.setIsComponentsHidden(((ContainerNode) existed).isComponentsHidden());
-
-                    // Set the container and add to it the new renderable node.
-                    if (existed.getContainer() == null)
-                        continue;
-                    else {
-                        r.setContainer(existed.getContainer());
-
-                        if (r.getContainer() instanceof RenderableComplex)
-                            r.getContainer().addComponent(r);
-                    }
-                }
-
                 if (r instanceof Node) {
                     pathwayEditor.insertNode((Node)r);
                 }

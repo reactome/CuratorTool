@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.gk.persistence.PersistenceManager;
+import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
@@ -1400,6 +1402,19 @@ public class InstanceUtilities {
 	//public static String encodeLineSeparators(String text) {
 	//    return text.replaceAll(FileAdaptor.LINE_END + "", "<br>");
 	//}
+
+     /**
+      *
+      * @param id
+      * @return
+      */
+     public static boolean isDrug(Long id) {
+         if (id == null)
+             return false;
+
+         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+         return isDrug(fileAdaptor.fetchInstance(id));
+     }
 
      /**
       * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).

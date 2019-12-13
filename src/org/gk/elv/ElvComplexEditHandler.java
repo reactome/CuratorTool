@@ -42,46 +42,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         }
         GKInstance instance = e.getEditingInstance();
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
-
-        // Limit to Complexes and EntitySets.
-        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
-                                                                   RenderableEntitySet.class);
-        // Iterate over all displayed objects.
-        for (Object parentNode : zoomableEditor.getPathwayEditor().getDisplayedObjects()) {
-            // Limit the search to allowed classes.
-            if (allowedClasses.stream()
-                              .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
-                continue;
-
-            // Components contained in the parent node.
-            Set<GKInstance> containedInstances = new HashSet<GKInstance>();
-            GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
-            if (parentInstance == null)
-                continue;
-
-            // Add component's instance to the set.
-//            containedInstances.add(parentInstance);
-
-            try {
-                // Populate a Set of child instances (represented by their Reactome id's)
-                // that are contained by a given parent instance.
-                InstanceUtilities.getContainedInstances(parentInstance,
-                                                        ReactomeJavaConstants.hasComponent,
-                                                        ReactomeJavaConstants.hasCandidate,
-                                                        ReactomeJavaConstants.hasMember);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-            if (containedInstances == null || containedInstances.size() == 0)
-                continue;
-
-            // If the Complex/EntitySet node contains the editing instance, add it to the list.
-            if (containedInstances.stream()
-                                  .map(GKInstance::getDBID)
-                                  .anyMatch(instance.getDBID()::equals))
-                list.add((Node) parentNode);
-        }
-
         if (list == null || list.size() == 0)
             return;
         // Only complex having subunits displayed need to be checked
@@ -284,16 +244,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
             PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
             pathwayEditor.repaint(pathwayEditor.getVisibleRect());
         }
-        // Check if a edit event resulted in a parent instance changing drug-renderable type.
-
-        // If the editing instance is a drug, and at least one of its rendered nodes
-        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
-
-        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
-        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
-        List<Renderable> sets = zoomableEditor.searchConvertedRenderables(editingInstance);
-        if (InstanceUtilities.isDrug(editingInstance) != sets.get(0) instanceof RenderableComplexDrug)
-            refreshParentNodes(editingInstance);
     }
 
     private void deleteComplexComponent(Node complex, Renderable foundComp) {
