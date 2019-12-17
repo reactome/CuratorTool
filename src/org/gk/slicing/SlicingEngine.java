@@ -135,14 +135,6 @@ public class SlicingEngine {
     public void setSource(MySQLAdaptor dba) {
         this.sourceDBA = dba;
     }
-
-    /**
-     * Get the data source for slicing.
-     * @return dba
-     */
-    public MySQLAdaptor getSource() {
-        return this.sourceDBA;
-    }
     
     /**
      * The name of the target database. This database will be created at the same host
@@ -241,16 +233,9 @@ public class SlicingEngine {
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-<<<<<<< HEAD
         // Turn off for the further discussion.
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
-=======
-        // check for revision in RLE's.
-        checkForAttributeRevision(ReactomeJavaConstants.ReactionlikeEvent);
-        // check for revision in pathways.
-        checkForAttributeRevision(ReactomeJavaConstants.Pathway);
->>>>>>> b655799... Update revision checks for Pathways and RLE's.
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
@@ -258,7 +243,6 @@ public class SlicingEngine {
     }
     
     /**
-<<<<<<< HEAD
      * This method is used to take only the first figure attribute listed for
      * a pathway instance (https://reactome.atlassian.net/browse/DEV-1810).
      * @throws Exception
@@ -280,60 +264,6 @@ public class SlicingEngine {
             instance.setAttributeValue(ReactomeJavaConstants.figure, copy);
             logger.info(instance + ": Only the first Figure value is kept.");
         }
-=======
-     * TODO remove dev notes below.
-     * 
-     * <p><strong>An RLE gets a revised flag if:</strong></p>
-     * <ol>
-     *   <li>An immediate child RLE revised</li>
-     *   <ul>
-     *     <li>A Catalyst added/removed/changed</li>
-     *     <li>A regulator added/removed/changed</li>
-     *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation (?) (curator discretion(?))</li>
-     *   </ul>
-     * </ol>
-     * 
-     * <p><strong>A pathway gets a revised flag if:</strong></p>
-     * <ol>
-     *   <li>An immediate child RLE revised 
-     *   <ul>
-     *     <li>A Catalyst added/removed/changed</li>
-     *     <li>A regulator added/removed/changed</li>
-     *     <li>A change is made in inputs/outputs</li>
-     *     <li>A significant change in summation (?) (curator discretion(?))</li>
-     *   </ul>
-     *   <li>An immediate child RLE is added/removed</li>
-     *   <li>An immediate child Pathway added/removed</li>
-     *   <li>An immediate child Pathway is revised as in B</li>
-     * </ol>
-     * 
-     * @param AttributeName
-     * @throws Exception 
-     * @throws InvalidAttributeException 
-     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
-     */
-    private void checkForAttributeRevision(String attrName) throws InvalidAttributeException, Exception {
-    	
-		// Iterate over all instances in the slice.
-		for (long dbId : sliceMap.keySet()) {
-			GKInstance inst = sliceMap.get(dbId);
-			if (!inst.getSchemClass().isa(attrName))
-				continue;
-			
-			Boolean revised = false;
-			if (attrName.equals(ReactomeJavaConstants.Pathway))
-				revised = isPathwayRevised(inst);
-			else if (attrName.equals(ReactomeJavaConstants.ReactionlikeEvent))
-				revised = isRLERevised(inst);
-
-			// If a "revised flag" condition is met, set "revised flag" on the instance.
-			// TODO determine form of "revised flag"
-			if (revised) {
-				// TODO set revised flag on instance.
-			}
-		}
->>>>>>> b655799... Update revision checks for Pathways and RLE's.
     }
     
     /**
@@ -351,7 +281,6 @@ public class SlicingEngine {
         }
     }
     
-<<<<<<< HEAD
     /**
      * Iterate through EntitySet instances and populate each instance's
      * disease and compartment attributes.
@@ -395,47 +324,6 @@ public class SlicingEngine {
         populateEntitySet(entitySet, ReactomeJavaConstants.disease);
         disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
         System.out.println("Disease after handling: " + disease);
-=======
-    private boolean isRLERevised(GKInstance reactionlikeEvent) throws InvalidAttributeException, Exception {
-    	// Check if a catalyst is added, removed, or changed.
-    	// Check if a regulator is added, removed, or changed.
-    	// Check for changes in inputs
-    	List<GKInstance> inputs = reactionlikeEvent.getAttributeValuesList("input");
-    	for (GKInstance input : inputs) {
-    		// TODO if slice input differs database input
-    		return true;
-    	}
-    	// Check for changes in outputs
-    	List<GKInstance> outputs = reactionlikeEvent.getAttributeValuesList("output");	
-    	for (GKInstance output : outputs) {
-    		// TODO if slice input differs database input
-    		return true;
-    	}
-    	// Check for changes in summation text.
-    	if (isSummationRevised(reactionlikeEvent))
-    		return true;
-    	
-    	return false;	
-    }
-
-    /**
-     * @param instance
-     * @return
-     * @throws InvalidAttributeException
-     * @throws Exception
-     * 
-     * @see {@link org.gk.model.Summation}
-     */
-    private boolean isSummationRevised(GKInstance instance) throws InvalidAttributeException, Exception {
-    	List<GKInstance> summations = instance.getAttributeValuesList("summation");	
-  
-    	for (GKInstance summation : summations) {
-    		if (summation.isDirty())
-    			return true;
-    	}
-
-    	return false;
->>>>>>> b655799... Update revision checks for Pathways and RLE's.
     }
     
     private void setStableIdReleased() throws Exception {
