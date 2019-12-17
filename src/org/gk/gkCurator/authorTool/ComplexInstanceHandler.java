@@ -16,14 +16,14 @@ import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
 
 public class ComplexInstanceHandler extends InstanceHandler {
-
-	protected Renderable convertToRenderable(GKInstance instance) throws Exception {
-        Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class,
+    
+    protected Renderable convertToRenderable(GKInstance instance) {
+        Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class, 
                                                             container);
         return r;
     }
 
-	public void convertProperties(GKInstance instance,
+    public void convertProperties(GKInstance instance,
                                   Renderable r,
                                   Map iToRMap) throws Exception {
         RenderableComplex complex = (RenderableComplex) r;

@@ -625,7 +625,7 @@ public class RenderableComplex extends ContainerNode {
         }
         return false;
     }
-
+    
     @Override
     protected void setTextPositionFromBounds() {
         if (bounds == null)
@@ -638,7 +638,7 @@ public class RenderableComplex extends ContainerNode {
             textBounds.y = bounds.y + bounds.height - textBounds.height;
         }
     }
-
+    
     /**
      * Break the links of this complex to other shortcuts.
      */

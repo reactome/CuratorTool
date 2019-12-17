@@ -15,7 +15,7 @@ public class DefaultProteinRenderer extends AbstractNodeRenderer {
         
     }
     
-	protected void renderShapes(Graphics g) {
+    protected void renderShapes(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
         renderShapes(bounds, g2);
@@ -46,5 +46,5 @@ public class DefaultProteinRenderer extends AbstractNodeRenderer {
                          ROUND_RECT_ARC_WIDTH);
         g2.setStroke(stroke);
     }
-
+    
 }

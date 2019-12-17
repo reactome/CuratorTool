@@ -39,7 +39,7 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
     public SimpleInstanceTransferHandler() {
     }
     
-	public boolean importListOfRenderables(ArrayList aList,
+    public boolean importListOfRenderables(ArrayList aList, 
                                            GraphEditorPane graphPane) {
         if (aList == null || aList.size() == 0)
             return true;
@@ -155,7 +155,7 @@ public class SimpleInstanceTransferHandler extends GraphEditorTransferHandler {
         }
     }
     
-	protected Transferable createTransferable(JComponent c) {
+    protected Transferable createTransferable(JComponent c) {
         ArrayList<Object> list = new ArrayList<Object>();
         if (c instanceof PathwayEditor) {
             return super.createTransferable(c);

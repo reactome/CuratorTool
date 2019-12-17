@@ -415,7 +415,7 @@ public class InstanceUtilities {
      */
     public static void groupInstances(java.util.List instances) {
         Collections.sort(instances, new Comparator() {
-			public int compare(Object obj1, Object obj2) {
+            public int compare(Object obj1, Object obj2) {
                 GKInstance instance1 = (GKInstance) obj1;
                 GKInstance instance2 = (GKInstance) obj2;
                 boolean isChanged1 = instance1.isDirty();

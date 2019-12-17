@@ -266,7 +266,7 @@ public class InstanceToRenderableConverter {
         convertedMap.put(instance, entity);
         return entity;
     }
-
+    
     private static RenderableComplex convertToComplex(GKInstance instance, boolean needProp, Map convertedMap) 
     		throws Exception {
         RenderableComplex complex = (RenderableComplex) convertedMap.get(instance);
@@ -297,11 +297,10 @@ public class InstanceToRenderableConverter {
                 node.move(150, 100); // These two values are arbitrary
             }
         }
-
         convertedMap.put(instance, complex);
         return complex;
     }
-
+    
     /**
      * Use this method to convert a GK Pathway to a RenderablePathway. This method is
      * used to convert three GKInstances, Pathway, ConceptualEvent, EquivalentEventSet
