@@ -73,7 +73,7 @@
             </manifest>
         </jar>
         <copy file="${libDir}/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${targetDir}/mysql.jar" />
-        <copy file="${libDir}/jgraph/jgraph.5.13.0.0.jar" tofile="${targetDir}/jgraph.jar" />
+        <copy file="${libDir}/jgraph/jgraph-5.13.0.0.jar" tofile="${targetDir}/jgraph.jar" />
         <copy file="${libDir}/log4j/log4j-1.2.17.jar" tofile="${targetDir}/log4j.jar" />
         <copy file="${libDir}/jdom/jdom-1.1.3.jar" tofile="${targetDir}/jdom.jar" />
         <copy file="${libDir}/batik/xerces_2_5_0.jar" tofile="${targetDir}/xerces.jar" />
