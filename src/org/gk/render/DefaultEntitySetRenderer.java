@@ -21,15 +21,15 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     
     @Override
     protected void renderShapes(Graphics g) {
-        // If node is a drug.
-        if (InstanceUtilities.isDrug(node.getReactomeId())) {
-            node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
-            node.setForegroundColor(DEFAULT_DRUG_FOREGROUND);
+        // If node is a drug (if it has the "isForDrug" attribute set to true).
+        if (node.isForDrug()) {
+            background = DEFAULT_DRUG_FOREGROUND; // As the default for the drugs
+            background = DEFAULT_DRUG_BACKGROUND;
             renderDrugLabel(g);
         }
         else {
-            node.setBackgroundColor(DEFAULT_BACKGROUND);
-            node.setForegroundColor(DEFAULT_FOREGROUND);
+            background = DEFAULT_COMPLEX_BACKGROUND;
+            background = DEFAULT_FOREGROUND;
         }
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();

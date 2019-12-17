@@ -4,6 +4,8 @@
  */
 package org.gk.elv;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +23,8 @@ import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableEntitySet;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -70,6 +74,19 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             List<GKInstance> removedInsts = editEvent.getRemovedInstances();
             removeEntitySetAndMemberLink(sets, removedInsts);
             removeSetAndSetLink(inst, sets);
+        }
+        // Check if a edit event resulted in a parent instance changing drug-renderable type.
+
+        // If the editing instance is a drug, and at least one of its rendered nodes
+        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+
+        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+        try {
+            if (InstanceUtilities.isDrug(inst) != ((Node) sets.get(0)).isForDrug())
+                refreshParentNodes(inst);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
@@ -248,4 +265,98 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         return peToRenderables;
     }
 
+    /**
+     * Refresh (via reinserting) the nodes that contain a given instance (represented by its Reactome id).
+     *
+     * @param childInstance
+     */
+    protected void refreshParentNodes(GKInstance childInstance) {
+        // Limit to Complexes and EntitySets.
+        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
+                                                                   RenderableEntitySet.class);
+        // The Complexes/EntitySets that contain the given instance.
+        Set<GKInstance> parentInstances = getParentInstances(childInstance, allowedClasses);
+        if (parentInstances == null || parentInstances.size() == 0)
+            return;
+
+        // Reinsert the affected instances
+        for (GKInstance parentInstance : parentInstances)
+            zoomableEditor.reInsertInstance(parentInstance);
+    }
+
+    /**
+     * Return a list of Complex/EntitySets that contain a given instance (represented by its Reactome id).
+     *
+     * This is a costly method by which we work "backwards" to find all parent instances of a given "childInstance":
+     * (1) Iterate over all displayed objects in the current pathway.
+     * (2) Only consider nodes that may contain other nodes (e.g. complexes, entity sets).
+     * (3) Get all contained instances for each node.
+     * (4) If the child instance is found within a node's contained instances, add that node's instance to the returned set.
+     *
+     * Note: this does not return a hierarchy of instances, simply an unordered Set.
+     *
+     * @param node
+     * @param allowedClasses
+     * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
+     */
+    private Set<GKInstance> getParentInstances(GKInstance childInstance, List<Class<? extends Node>> allowedClasses) {
+        List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
+        if (displayedObjects.size() == 0)
+            return null;
+        Set<GKInstance> parentInstances = new HashSet<GKInstance>();
+        for (Object parentNode : displayedObjects) {
+            if (allowedClasses == null)
+                continue;
+
+            // Limit the search to allowed classes.
+            if (allowedClasses.stream()
+                              .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
+                continue;
+
+            // The parent Complex/EntitySet.
+            GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
+            if (parentInstance == null)
+                continue;
+
+            // The set of child instances.
+            Set<GKInstance> containedInstances = new HashSet<GKInstance>();
+
+            // Add component's Reactome id to the set.
+            containedInstances.add(parentInstance);
+
+            try {
+                // Populate the Set of a parent instance's contained instances.
+                InstanceUtilities.getContainedInstances(parentInstance,
+                                                        ReactomeJavaConstants.hasComponent,
+                                                        ReactomeJavaConstants.hasCandidate,
+                                                        ReactomeJavaConstants.hasMember)
+                                 .forEach(containedInstances::add);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Determine if the given Complex/EntitySet contains the given child instance.
+            // If so, add to the list of parent instances.
+            if (containedInstances.stream()
+                                  .map(GKInstance::getDBID)
+                                  .anyMatch(childInstance.getDBID()::equals))
+                parentInstances.add(getInstanceFromNode((Node) parentNode));
+        }
+
+        return parentInstances;
+    }
+
+    /**
+     * Return the instance represented by a given node.
+     * TODO This very likely duplicates an existing method. I haven't been able to find it as of yet.
+     *
+     * @param node, the Node to get the instance of. Returns null if instance is not found.
+     * @return instance pointed to by the given node.
+     */
+    protected GKInstance getInstanceFromNode(Node node) {
+        GKInstance instance = ((Node) node).getInstance();
+        if (instance == null)
+            instance = zoomableEditor.getXMLFileAdaptor().fetchInstance(node.getReactomeId());
+        return instance;
+    }
 }

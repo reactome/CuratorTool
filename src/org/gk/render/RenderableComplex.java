@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.gk.model.InstanceUtilities;
 import org.gk.util.GKApplicationUtilities;
 /**
  * This class describes a renderable Complex.
@@ -54,6 +55,11 @@ public class RenderableComplex extends ContainerNode {
         isStateAddable = true;
         isMultimerFormable = true;
         textPadding = 0;
+        try {
+            isForDrug = InstanceUtilities.isDrug(getReactomeId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     public void addComponent(Renderable renderable) {

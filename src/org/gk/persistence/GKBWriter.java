@@ -94,6 +94,10 @@ public class GKBWriter implements RenderablePropertyNames {
             if (node.isNeedDashedBorder()) {
                 parentElm.setAttribute("needDashedBorder", node.isNeedDashedBorder() + "");
             }
+            if (node.isForDrug()) {
+                // TODO Is `+ ""` preferred to `String.valueOf()`?
+                parentElm.setAttribute("isForDrug", String.valueOf(node.isForDrug()));
+            }
         }
         // Check if it is a multimer
         if (renderable instanceof Node) {

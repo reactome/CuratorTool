@@ -25,16 +25,16 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
-        // If node is a drug.
-        if (InstanceUtilities.isDrug(node.getReactomeId())) {
-            node.setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
-            node.setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
+        // If node is a drug (if it has the "isForDrug" attribute set to true).
+        if (node.isForDrug()) {
+            background = DEFAULT_DRUG_FOREGROUND; // As the default for the drugs
+            background = DEFAULT_DRUG_BACKGROUND;
             renderDrugLabel(g);
         }
         // If node is not a drug.
         else {
-            node.setBackgroundColor(DEFAULT_COMPLEX_BACKGROUND);
-            node.setForegroundColor(DEFAULT_FOREGROUND);
+            background = DEFAULT_COMPLEX_BACKGROUND;
+            background = DEFAULT_FOREGROUND;
         }
         Graphics2D g2 = (Graphics2D) g;
         // Draw three overlapping rectangles

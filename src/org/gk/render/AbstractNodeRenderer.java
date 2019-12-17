@@ -66,11 +66,10 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
-        Dimension labelDimensions = new Dimension(w, h);
 
         // Bottom right coordinates.
-        int x = (int)(labelBounds.getMaxX() - labelDimensions.getWidth());
-        int y = (int)(labelBounds.getMaxY() - labelDimensions.getHeight());
+        int x = (int)(labelBounds.getMaxX() - w);
+        int y = (int)(labelBounds.getMaxY() - h);
         // Some shapes for the labeling
         if (background == null) {
             g2.setPaint(DEFAULT_BACKGROUND);

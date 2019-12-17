@@ -1401,8 +1401,9 @@ public class InstanceUtilities {
       *
       * @param id
       * @return
+     * @throws Exception
       */
-     public static boolean isDrug(Long id) {
+     public static boolean isDrug(Long id) throws Exception {
          if (id == null)
              return false;
 
@@ -1417,11 +1418,11 @@ public class InstanceUtilities {
       * @throws Exception
       * @returns boolean
       */
-     public static boolean isDrug(Object instance) {
+     public static boolean isDrug(GKInstance instance) throws Exception {
          if (instance == null)
              return false;
 
-         SchemaClass schemaClass = ((GKInstance) instance).getSchemClass();
+         SchemaClass schemaClass = instance.getSchemClass();
          // Check if instance is a drug.
          if (schemaClass.isa(ReactomeJavaConstants.Drug))
              return true;
@@ -1434,14 +1435,10 @@ public class InstanceUtilities {
 
          // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
          Set<GKInstance> containedInstances = new HashSet<GKInstance>();
-         try {
-             containedInstances = getContainedInstances((GKInstance) instance,
-                                                        ReactomeJavaConstants.hasMember,
-                                                        ReactomeJavaConstants.hasCandidate,
-                                                        ReactomeJavaConstants.hasComponent);
-         } catch (Exception e) {
-             e.printStackTrace();
-         }
+         containedInstances = getContainedInstances(instance,
+                                                    ReactomeJavaConstants.hasMember,
+                                                    ReactomeJavaConstants.hasCandidate,
+                                                    ReactomeJavaConstants.hasComponent);
          // No containedInstances.
          if (containedInstances.size() == 0 || containedInstances == null)
              return false;
@@ -1450,8 +1447,8 @@ public class InstanceUtilities {
          //   (1) Iterating over all schema classes of the instance's containedInstances.
          //   (2) Checking if any of the ancestor schema class is a Drug class.
          return containedInstances.stream()
-                       .map(GKInstance::getSchemClass)
-                       .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
+                                  .map(GKInstance::getSchemClass)
+                                  .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
      }
 
 }

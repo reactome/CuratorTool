@@ -190,6 +190,10 @@ public class GKBReader implements RenderablePropertyNames {
                 note.setPrivate(new Boolean(isPrivate));
             }
         }
+        String isForDrug = nodeElm.getAttributeValue("isForDrug");
+        if (isForDrug != null && isForDrug.length() > 0) {
+            ((Node)node).setIsForDrug(new Boolean(isForDrug));
+        }
         if (node instanceof RenderableCompartment) {
             String insets = nodeElm.getAttributeValue("insets");
             if (insets != null && insets.length() > 0) {
