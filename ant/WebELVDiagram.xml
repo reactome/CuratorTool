@@ -72,14 +72,14 @@
                 <attribute name="Class-Path" value="mysql.jar jgraph.jar log4j.jar jdom.jar xerces.jar xml-apis.jar commons-lang.jar" />
             </manifest>
         </jar>
-        <copy file="${libDir}/mysql-connector-java-5.0.8-bin.jar" tofile="${targetDir}/mysql.jar" />
-        <copy file="${libDir}/jgraph.5.7.4.6.jar" tofile="${targetDir}/jgraph.jar" />
-        <copy file="${libDir}/log4j-1.2.12.jar" tofile="${targetDir}/log4j.jar" />
-        <copy file="${libDir}/jdom/jdom.jar" tofile="${targetDir}/jdom.jar" />
+        <copy file="${libDir}/mysql/mysql-connector-java-5.0.8-bin.jar" tofile="${targetDir}/mysql.jar" />
+        <copy file="${libDir}/jgraph/jgraph.5.13.0.0.jar" tofile="${targetDir}/jgraph.jar" />
+        <copy file="${libDir}/log4j/log4j-1.2.17.jar" tofile="${targetDir}/log4j.jar" />
+        <copy file="${libDir}/jdom/jdom-1.1.3.jar" tofile="${targetDir}/jdom.jar" />
         <copy file="${libDir}/batik/xerces_2_5_0.jar" tofile="${targetDir}/xerces.jar" />
         <copy file="${libDir}/batik/xml-apis.jar" tofile="${targetDir}/xml-apis.jar" />
-        <copy file="${libDir}/commons-lang-2.3.jar" tofile="${targetDir}/commons-lang.jar" />
-        <copy file="${libDir}/itext-2.0.4.jar" tofile="${targetDir}/itext-2.0.4.jar" />
+        <copy file="${libDir}/commons/commons-lang-2.5.jar" tofile="${targetDir}/commons-lang.jar" />
+        <copy file="${libDir}/itext/itext-2.0.6.jar" tofile="${targetDir}/itext-2.0.4.jar" />
         <copy file="${basedir}/shell/runWebELVTool.sh" todir="${targetDir}" />
         <copy file="${resourcesDir}/log4j.properties" todir="${targetDir}/resources" />
         <copy file="${basedir}/shell/runDiagramDumper.sh" todir="${targetDir}" />
