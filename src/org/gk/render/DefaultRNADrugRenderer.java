@@ -8,7 +8,6 @@ public class DefaultRNADrugRenderer extends DefaultRNARenderer {
         
     }
 
-    // Set default drug color, if no background color.
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);

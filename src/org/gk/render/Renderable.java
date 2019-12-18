@@ -70,6 +70,7 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     // so that two shortcuts in different compartments can have different values
     private String localization;
     protected Float lineWidth;
+    protected boolean isForDrug;
     
     public Renderable() {
         init();
@@ -472,4 +473,17 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     public Float getLineWidth() {
     	return this.lineWidth;
     }
+
+    /**
+     * If the node represents or contains a drug.
+     * @param isForDrug
+     */
+    public void setIsForDrug(boolean isForDrug) {
+        this.isForDrug = isForDrug;
+    }
+
+    public boolean getIsForDrug() {
+        return isForDrug;
+    }
+
 }

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.FlowLine;
 import org.gk.render.InstanceToRenderableConverter;
@@ -66,6 +67,7 @@ public abstract class InstanceHandler {
             container.addComponent(r);
             r.setContainer(container);
         }
+        r.setIsForDrug(InstanceUtilities.isDrug(r.getReactomeId()));
         return r;
     }
     

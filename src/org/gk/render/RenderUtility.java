@@ -196,7 +196,10 @@ public class RenderUtility {
             g2.setPaint(DefaultRenderConstants.SELECTION_WIDGET_COLOR);
         }
         else if (node.getForegroundColor() == null)
-            g2.setPaint(DefaultRenderConstants.DEFAULT_FOREGROUND);
+            if (node.getIsForDrug())
+                g2.setPaint(DefaultRenderConstants.DEFAULT_DRUG_FOREGROUND);
+            else
+                g2.setPaint(DefaultRenderConstants.DEFAULT_FOREGROUND);
         else
             g2.setPaint(node.getForegroundColor());
         Rectangle bounds = node.getTextBounds();

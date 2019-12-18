@@ -83,8 +83,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
         // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
         try {
-            if (InstanceUtilities.isDrug(inst) != ((Node) sets.get(0)).isForDrug())
-                refreshParentNodes(inst);
+            boolean isForDrug = InstanceUtilities.isDrug(inst);
+            if (isForDrug != ((Node) sets.get(0)).getIsForDrug())
+                refreshParentNodes(inst, isForDrug);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -270,80 +271,84 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      *
      * @param childInstance
      */
-    protected void refreshParentNodes(GKInstance childInstance) {
+    protected void refreshParentNodes(GKInstance childInstance, boolean isForDrug) {
         // Limit to Complexes and EntitySets.
         List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
                                                                    RenderableEntitySet.class);
         // The Complexes/EntitySets that contain the given instance.
-        Set<GKInstance> parentInstances = getParentInstances(childInstance, allowedClasses);
-        if (parentInstances == null || parentInstances.size() == 0)
+        List<Node> parentNodes = getParentNodes(childInstance, allowedClasses);
+        if (parentNodes == null || parentNodes.size() == 0)
             return;
 
-        // Reinsert the affected instances
-        for (GKInstance parentInstance : parentInstances)
-            zoomableEditor.reInsertInstance(parentInstance);
+        // Updated the affected instances
+        for (Node parentNode : parentNodes)
+            parentNode.setIsForDrug(isForDrug);
     }
 
     /**
-     * Return a list of Complex/EntitySets that contain a given instance (represented by its Reactome id).
+     * Return a list of Complex/EntitySets that contain a given instance (including the instance's nodes themselves).
      *
      * This is a costly method by which we work "backwards" to find all parent instances of a given "childInstance":
      * (1) Iterate over all displayed objects in the current pathway.
      * (2) Only consider nodes that may contain other nodes (e.g. complexes, entity sets).
-     * (3) Get all contained instances for each node.
-     * (4) If the child instance is found within a node's contained instances, add that node's instance to the returned set.
+     * (3) Get all contained nodes for each parent node.
+     * (4) If the contained node is found within the parent node, add that parent node to the returned list.
      *
      * Note: this does not return a hierarchy of instances, simply an unordered Set.
      *
      * @param node
      * @param allowedClasses
-     * @return Set of Complex/EntitySet instances that contain the instance represented by a given node.
+     * @return List of Complex/EntitySet nodes that contain the instance represented by a given node.
      */
-    private Set<GKInstance> getParentInstances(GKInstance childInstance, List<Class<? extends Node>> allowedClasses) {
+    private List<Node> getParentNodes(GKInstance childInstance, List<Class<? extends Node>> allowedClasses) {
+        if (allowedClasses == null || childInstance == null)
+            return null;
+
         List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects.size() == 0)
             return null;
-        Set<GKInstance> parentInstances = new HashSet<GKInstance>();
-        for (Object parentNode : displayedObjects) {
-            if (allowedClasses == null)
-                continue;
 
+        List<Node> parentNodes = new ArrayList<Node>();
+        for (Object parentNode : displayedObjects) {
             // Limit the search to allowed classes.
             if (allowedClasses.stream()
                               .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
                 continue;
 
-            // The parent Complex/EntitySet.
+            // The parent Complex/EntitySet instance.
             GKInstance parentInstance = getInstanceFromNode((Node) parentNode);
             if (parentInstance == null)
                 continue;
 
             // The set of child instances.
-            Set<GKInstance> containedInstances = new HashSet<GKInstance>();
-
-            // Add component's Reactome id to the set.
-            containedInstances.add(parentInstance);
+            Set<GKInstance> childInstances = new HashSet<GKInstance>();
 
             try {
                 // Populate the Set of a parent instance's contained instances.
-                InstanceUtilities.getContainedInstances(parentInstance,
-                                                        ReactomeJavaConstants.hasComponent,
-                                                        ReactomeJavaConstants.hasCandidate,
-                                                        ReactomeJavaConstants.hasMember)
-                                 .forEach(containedInstances::add);
+                childInstances = InstanceUtilities.getContainedInstances(parentInstance,
+                                                                         ReactomeJavaConstants.hasComponent,
+                                                                         ReactomeJavaConstants.hasCandidate,
+                                                                         ReactomeJavaConstants.hasMember);
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+            
+            // Add the node representing the instance to the list.
+            // TODO Is this preferred over an additional call to zoomableEditor.searchConvertedRenderables(instance)?
+            if (((Node) parentNode).getReactomeId().equals(childInstance.getDBID())) {
+                parentNodes.add((Node) parentNode);
+                continue;
             }
 
             // Determine if the given Complex/EntitySet contains the given child instance.
             // If so, add to the list of parent instances.
-            if (containedInstances.stream()
-                                  .map(GKInstance::getDBID)
-                                  .anyMatch(childInstance.getDBID()::equals))
-                parentInstances.add(getInstanceFromNode((Node) parentNode));
+            if (childInstances.stream()
+                              .map(GKInstance::getDBID)
+                              .anyMatch(childInstance.getDBID()::equals))
+                parentNodes.add((Node) parentNode);
         }
 
-        return parentInstances;
+        return parentNodes;
     }
 
     /**
@@ -353,7 +358,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @param node, the Node to get the instance of. Returns null if instance is not found.
      * @return instance pointed to by the given node.
      */
-    protected GKInstance getInstanceFromNode(Node node) {
+    private GKInstance getInstanceFromNode(Node node) {
         GKInstance instance = ((Node) node).getInstance();
         if (instance == null)
             instance = zoomableEditor.getXMLFileAdaptor().fetchInstance(node.getReactomeId());

@@ -75,7 +75,6 @@ public class Node extends Renderable {
     protected transient List<Renderable> shortcuts;
     protected Integer minWidth = 10;
     protected boolean needDashedBorder;
-    protected boolean isForDrug;
     
     /** Creates a new instance of GraphNode */
     public Node() {
@@ -331,18 +330,6 @@ public class Node extends Renderable {
     	needCheckBounds = true;
     }
 
-    /**
-     * If the node represents or contains a drug.
-     * @param isForDrug
-     */
-    public void setIsForDrug(boolean isForDrug) {
-        this.isForDrug = isForDrug;
-    }
-
-    public boolean isForDrug() {
-        return isForDrug;
-    }
-        
     /**
      * This method is used to validate text bounds for nodes that can display
      * texts. This method should be called when the bounds of the node changes

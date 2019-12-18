@@ -13,6 +13,7 @@ import java.util.List;
 import org.gk.database.AttributeEditEvent;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
@@ -179,6 +180,24 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         if (!(complex instanceof RenderableComplex))
             return;
         boolean needRepaint = false;
+
+        // Check if a edit event resulted in a parent instance changing drug-renderable type.
+
+        // If the editing instance is a drug, and at least one of its rendered nodes
+        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+
+        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+        GKInstance inst = edit.getEditingInstance();
+        List<Renderable> sets = zoomableEditor.searchConvertedRenderables(inst);
+        try {
+            boolean isForDrug = InstanceUtilities.isDrug(inst);
+            if (isForDrug != ((Node) sets.get(0)).getIsForDrug())
+                refreshParentNodes(inst, isForDrug);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         if (edit.getEditingType() == AttributeEditEvent.REMOVING) {
             // Check if multimer should be used
 //            Map<GKInstance, Integer> compMap = getCompMap(complex);

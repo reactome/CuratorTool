@@ -22,15 +22,10 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     @Override
     protected void renderShapes(Graphics g) {
         // If node is a drug (if it has the "isForDrug" attribute set to true).
-        if (node.isForDrug()) {
-            background = DEFAULT_DRUG_FOREGROUND; // As the default for the drugs
+        if (node.getIsForDrug())
             background = DEFAULT_DRUG_BACKGROUND;
-            renderDrugLabel(g);
-        }
-        else {
-            background = DEFAULT_COMPLEX_BACKGROUND;
-            background = DEFAULT_FOREGROUND;
-        }
+        else
+            background = DEFAULT_BACKGROUND;
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
         // The following code is used to draw two same size shapes with a litte shift
@@ -46,6 +41,8 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
         bounds1.height += 2 * MULTIMER_RECT_DIST;
         renderShapes(bounds1, g2);
         renderShapes(bounds, g2);
+        if (node.getIsForDrug())
+            renderDrugLabel(g);
     }
     
 }
