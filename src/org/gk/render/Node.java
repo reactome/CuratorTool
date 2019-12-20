@@ -673,8 +673,8 @@ public class Node extends Renderable {
 	public java.util.List getComponents() {
 		return this.components;
 	}
-
-
+	
+    
 	public void addComponent(Renderable renderable) {
 		if (components == null)
 			components = new ArrayList();
