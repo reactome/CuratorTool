@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
-import org.gk.gkEditor.PathwayOverviewPane;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;

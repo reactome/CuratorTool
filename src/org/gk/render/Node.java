@@ -674,6 +674,7 @@ public class Node extends Renderable {
 		return this.components;
 	}
 
+
 	public void addComponent(Renderable renderable) {
 		if (components == null)
 			components = new ArrayList();

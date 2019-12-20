@@ -11,4 +11,5 @@ public class RenderableChemicalDrug extends RenderableChemical {
         setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
         setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
+
 }

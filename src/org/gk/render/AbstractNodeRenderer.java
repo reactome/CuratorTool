@@ -60,14 +60,14 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Graphics2D g2 = (Graphics2D) g;
         Rectangle2D textBounds = font.getStringBounds(DRUG_SYMBOL, g2.getFontRenderContext());
         // Make sure it is drawn at the bottom right corner
-        Rectangle labelBounds = node.getBounds();
+        Rectangle nodeBounds = node.getBounds();
 
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
         // Bottom right coordinates.
-        int x = (int)(labelBounds.getMaxX() - w);
-        int y = (int)(labelBounds.getMaxY() - h);
+        int x = (int)(nodeBounds.getMaxX() - w);
+        int y = (int)(nodeBounds.getMaxY() - h);
 
         // Some shapes for the labeling
         if (background == null) {
