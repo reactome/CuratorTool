@@ -1398,19 +1398,6 @@ public class InstanceUtilities {
 	//}
 
      /**
-      * @param id
-      * @return
-      * @throws Exception
-      */
-     public static boolean isDrug(Long id) throws Exception {
-         if (id == null)
-             return false;
-
-         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-         return isDrug(fileAdaptor.fetchInstance(id));
-     }
-
-     /**
       * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).
       *
       * @param instance
