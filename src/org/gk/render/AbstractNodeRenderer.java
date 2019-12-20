@@ -6,7 +6,6 @@ package org.gk.render;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -52,7 +51,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     }
 
     protected abstract void renderShapes(Graphics g);
-
+    
     protected void renderDrugLabel(Graphics g) {
         // Want to use a smaller font
         Font font = g.getFont();

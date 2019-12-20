@@ -329,7 +329,7 @@ public class Node extends Renderable {
     	invalidateConnectWidgets();
     	needCheckBounds = true;
     }
-
+        
     /**
      * This method is used to validate text bounds for nodes that can display
      * texts. This method should be called when the bounds of the node changes
@@ -674,10 +674,6 @@ public class Node extends Renderable {
 		return this.components;
 	}
 
-	public void setComponents(List<Renderable> components) {
-	    this.components = components;
-	}
-    
 	public void addComponent(Renderable renderable) {
 		if (components == null)
 			components = new ArrayList();
