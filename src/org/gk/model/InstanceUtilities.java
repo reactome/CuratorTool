@@ -1398,10 +1398,9 @@ public class InstanceUtilities {
 	//}
 
      /**
-      *
       * @param id
       * @return
-     * @throws Exception
+      * @throws Exception
       */
      public static boolean isDrug(Long id) throws Exception {
          if (id == null)

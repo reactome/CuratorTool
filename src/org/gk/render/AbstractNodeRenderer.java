@@ -66,13 +66,13 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
-
         // Bottom right coordinates.
         int x = (int)(labelBounds.getMaxX() - w);
         int y = (int)(labelBounds.getMaxY() - h);
+
         // Some shapes for the labeling
         if (background == null) {
-            g2.setPaint(DEFAULT_BACKGROUND);
+            g2.setPaint(DEFAULT_DRUG_BACKGROUND);
         }
         else {
             g2.setPaint(background);
@@ -80,7 +80,12 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         // Draw the drug label
         g2.setFont(font);
         Color oldColor = g2.getColor();
-        g2.setColor(node.getForegroundColor());
+        if (foreground == null) {
+            g2.setColor(DEFAULT_DRUG_FOREGROUND);
+        }
+        else {
+            g2.setColor(foreground);
+        }
         DrawUtilities.drawString(DRUG_SYMBOL,
                 x,
                 y,

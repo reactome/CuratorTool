@@ -192,8 +192,11 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         List<Renderable> sets = zoomableEditor.searchConvertedRenderables(inst);
         try {
             boolean isForDrug = InstanceUtilities.isDrug(inst);
-            if (isForDrug != ((Node) sets.get(0)).getIsForDrug())
+            if (isForDrug != ((Node) sets.get(0)).getIsForDrug()) {
                 refreshParentNodes(inst, isForDrug);
+                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

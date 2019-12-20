@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
+import org.gk.gkEditor.PathwayOverviewPane;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -84,8 +85,11 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
         try {
             boolean isForDrug = InstanceUtilities.isDrug(inst);
-            if (isForDrug != ((Node) sets.get(0)).getIsForDrug())
+            if (isForDrug != ((Node) sets.get(0)).getIsForDrug()) {
                 refreshParentNodes(inst, isForDrug);
+                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
