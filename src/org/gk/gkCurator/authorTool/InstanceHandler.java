@@ -67,7 +67,7 @@ public abstract class InstanceHandler {
             container.addComponent(r);
             r.setContainer(container);
         }
-        r.setIsForDrug(InstanceUtilities.isDrug(instance));
+        ((Node) r).setIsForDrug(InstanceUtilities.isDrug(instance));
         return r;
     }
     

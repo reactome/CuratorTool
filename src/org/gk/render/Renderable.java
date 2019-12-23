@@ -474,16 +474,4 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     	return this.lineWidth;
     }
 
-    /**
-     * If the node represents or contains a drug.
-     * @param isForDrug
-     */
-    public void setIsForDrug(boolean isForDrug) {
-        this.isForDrug = isForDrug;
-    }
-
-    public boolean getIsForDrug() {
-        return isForDrug;
-    }
-
 }

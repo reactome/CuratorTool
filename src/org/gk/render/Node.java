@@ -124,6 +124,18 @@ public class Node extends Renderable {
     public int getMultimerMonomerNumber() {
         return this.multimerMonomerNumber;
     }
+
+    /**
+     * If the node represents or contains a drug.
+     * @param isForDrug
+     */
+    public void setIsForDrug(boolean isForDrug) {
+        this.isForDrug = isForDrug;
+    }
+
+    public boolean getIsForDrug() {
+        return isForDrug;
+    }
     
     public boolean isPicked(Point p) {
         // A node should not be picked if it is hidden
