@@ -75,17 +75,27 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             removeEntitySetAndMemberLink(sets, removedInsts);
             removeSetAndSetLink(inst, sets);
         }
-        // Check if a edit event resulted in a parent instance changing drug-renderable type.
 
-        // If the editing instance is a drug, and at least one of its rendered nodes
-        // is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+        checkForDrug(inst, sets);
+    }
 
-        // Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
-        // is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+    /**
+     * Check if a edit event resulted in a parent instance changing drug-renderable type.
+     *
+     * If the editing instance is a drug, and at least one of its rendered nodes
+     * is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
+     *
+     * Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+     * is of a drug class, then refresh its own rendered node, as well as all parent nodes.
+     *
+     * @param instance
+     * @param renderables
+     */
+    protected void checkForDrug(GKInstance instance, List<Renderable> renderables) {
         try {
-            boolean isForDrug = InstanceUtilities.isDrug(inst);
-            if (isForDrug != ((Node) sets.get(0)).getIsForDrug()) {
-                refreshParentNodes(inst, isForDrug);
+            boolean isForDrug = InstanceUtilities.isDrug(instance);
+            if (isForDrug != ((Node) renderables.get(0)).getIsForDrug()) {
+                refreshParentNodes(instance, isForDrug);
                 PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
                 pathwayEditor.repaint(pathwayEditor.getVisibleRect());
             }
