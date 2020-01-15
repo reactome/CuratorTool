@@ -71,6 +71,7 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     private String localization;
     protected Float lineWidth;
     protected boolean isForDrug;
+    protected boolean isForDisease;
     
     public Renderable() {
         init();

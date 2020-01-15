@@ -23,10 +23,8 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
-        // If node is a drug (if it has the "isForDrug" attribute set to true).
         if (node.getIsForDrug())
             background = DEFAULT_DRUG_BACKGROUND;
-        // If node is not a drug.
         else
             background = DEFAULT_COMPLEX_BACKGROUND;
         Graphics2D g2 = (Graphics2D) g;

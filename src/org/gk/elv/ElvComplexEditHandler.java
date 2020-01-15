@@ -31,13 +31,18 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
     
     public void complexEdit(AttributeEditEvent e) {
         String attName = e.getAttributeName();
-        if (!attName.equals(ReactomeJavaConstants.hasComponent)) {
+        if (!attName.equals(ReactomeJavaConstants.hasComponent) &&
+            !attName.equals(ReactomeJavaConstants.disease)) {
             return;
         }
         GKInstance instance = e.getEditingInstance();
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
         if (list == null || list.size() == 0)
             return;
+        if (attName.equals(ReactomeJavaConstants.disease)) {
+            refreshParentNodes(instance, ((Node) list.get(0)));
+            return;
+        }
         // Only complex having subunits displayed need to be checked
         for (Renderable r : list) {
             // For sure it should be a node
@@ -45,7 +50,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                 continue; // There is a bug somewhere
             complexEdit((Node)r, e);
         }
-        checkForDrug(instance, list);
     }
     
     public void validateDisplayedComplex(RenderableComplex complex) {

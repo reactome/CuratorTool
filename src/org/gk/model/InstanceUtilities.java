@@ -1403,36 +1403,56 @@ public class InstanceUtilities {
       * @returns boolean
       */
      public static boolean isDrug(GKInstance instance) throws Exception {
-         if (instance == null)
+         return containsA(instance, ReactomeJavaConstants.Drug);
+     }
+
+     /**
+      * Determines if an instance is a disease or contains a disease (in the case of EntitySets and Complexes).
+      *
+      * @param instance
+      * @throws Exception
+      * @returns boolean
+      */
+     public static boolean isDisease(GKInstance instance) throws Exception {
+         return containsA(instance, ReactomeJavaConstants.disease);
+     }
+
+     /**
+      * Determines if an instance is or contains a given attribute.
+      *
+      * @param instance
+      * @param schemaAttribute
+      * @return boolean
+      * @throws Exception
+      */
+     private static boolean containsA(GKInstance instance, String schemaAttribute) throws Exception {
+         if (instance == null || schemaAttribute == null || schemaAttribute.length() == 0)
              return false;
 
-         SchemaClass schemaClass = instance.getSchemClass();
-         // Check if instance is a drug.
-         if (schemaClass.isa(ReactomeJavaConstants.Drug))
+         // Check if instance itself is the attribute.
+         if (instance.getSchemClass().isa(schemaAttribute))
              return true;
 
-         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-                                                   ReactomeJavaConstants.Complex);
-         // Check id instance is an EntitySet or Complex.
-         if (validClasses.stream().noneMatch(schemaClass::isa))
-             return false;
+         // Check if the instance contains the attribute as a non-null value.
+         if (instance.getSchemClass().isValidAttribute(schemaAttribute) &&
+             instance.getAttributeValue(schemaAttribute) != null)
+             return true;
 
-         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-         Set<GKInstance> containedInstances = new HashSet<GKInstance>();
-         containedInstances = getContainedInstances(instance,
-                                                    ReactomeJavaConstants.hasMember,
-                                                    ReactomeJavaConstants.hasCandidate,
-                                                    ReactomeJavaConstants.hasComponent);
+         // Check if instance is an EntitySet or Complex.
+         Set<GKInstance> containedInstances = getContainedInstances(instance,
+                                                                    ReactomeJavaConstants.hasMember,
+                                                                    ReactomeJavaConstants.hasCandidate,
+                                                                    ReactomeJavaConstants.hasComponent);
          // No containedInstances.
-         if (containedInstances.size() == 0 || containedInstances == null)
+         if (containedInstances == null || containedInstances.size() == 0)
              return false;
 
          // Check if instance contains a drug by:
          //   (1) Iterating over all schema classes of the instance's containedInstances.
-         //   (2) Checking if any of the ancestor schema class is a Drug class.
+         //   (2) Checking if any of the ancestor schema class is the attribute.
          return containedInstances.stream()
                                   .map(GKInstance::getSchemClass)
-                                  .anyMatch(cls -> cls.isa(ReactomeJavaConstants.Drug));
+                                  .anyMatch(cls -> cls.isa(schemaAttribute));
      }
 
 }

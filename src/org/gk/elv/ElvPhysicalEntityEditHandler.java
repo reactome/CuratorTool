@@ -40,7 +40,8 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     
     protected void entitySetEdit(AttributeEditEvent editEvent) {
         if (!editEvent.getAttributeName().equals(ReactomeJavaConstants.hasMember) &&
-            !editEvent.getAttributeName().equals(ReactomeJavaConstants.hasCandidate))
+            !editEvent.getAttributeName().equals(ReactomeJavaConstants.hasCandidate) &&
+            !editEvent.getAttributeName().equals(ReactomeJavaConstants.disease))
             return;
         GKInstance inst = editEvent.getEditingInstance();
         if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
@@ -76,34 +77,9 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             removeSetAndSetLink(inst, sets);
         }
 
-        checkForDrug(inst, sets);
+        refreshParentNodes(inst, ((Node) sets.get(0)));
     }
 
-    /**
-     * Check if a edit event resulted in a parent instance changing drug-renderable type.
-     *
-     * If the editing instance is a drug, and at least one of its rendered nodes
-     * is not of a drug class, then refresh its own rendered node, as well as all parent nodes.
-     *
-     * Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
-     * is of a drug class, then refresh its own rendered node, as well as all parent nodes.
-     *
-     * @param instance
-     * @param renderables
-     */
-    protected void checkForDrug(GKInstance instance, List<Renderable> renderables) {
-        try {
-            boolean isForDrug = InstanceUtilities.isDrug(instance);
-            if (isForDrug != ((Node) renderables.get(0)).getIsForDrug()) {
-                refreshParentNodes(instance, isForDrug);
-                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
-                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
     /**
      * This method is called if some members in the set instance have been removed from editing.
      * @param set
@@ -283,19 +259,72 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * Refresh (via reinserting) the nodes that contain a given instance (represented by its Reactome id).
      *
      * @param childInstance
+     * @param node
      */
-    protected void refreshParentNodes(GKInstance childInstance, boolean isForDrug) {
-        // Limit to Complexes and EntitySets.
-        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class,
-                                                                   RenderableEntitySet.class);
-        // The Complexes/EntitySets that contain the given instance.
-        List<Node> parentNodes = getParentNodes(childInstance, allowedClasses);
-        if (parentNodes == null || parentNodes.size() == 0)
+    protected void refreshParentNodes(GKInstance childInstance, Node node) {
+        if (childInstance == null || node == null)
             return;
 
-        // Updated the affected instances
-        for (Node parentNode : parentNodes)
-            parentNode.setIsForDrug(isForDrug);
+        boolean drugChange = false;
+        boolean diseaseChange = false;
+        try {
+            List<Node> parentNodes = getParentNodes(childInstance);
+            drugChange = checkForDrugChange(childInstance, node, parentNodes);
+            diseaseChange = checkForDiseaseChange(childInstance, node, parentNodes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (drugChange || diseaseChange) {
+            PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+            pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+        }
+    }
+
+    /**
+     * Check if a edit event resulted in a parent instance changing drug-renderable type.
+     *
+     * If the editing instance is a drug, and at least one of its rendered nodes
+     * is not a drug  class, then refresh its own rendered node, as well as all parent nodes.
+     *
+     * Alternatively, if the editing instance is not a drug, and at least one of its rendered nodes
+     * is a drug  class, then refresh its own rendered node, as well as all parent nodes.
+     *
+     * @param instance
+     * @param node
+     * @param parentNodes
+     * @return boolean, true if a "mismatch" is detected and a refresh is required, false otherwise.
+     * @throws Exception
+     */
+    private boolean checkForDrugChange(GKInstance instance, Node node, List<Node> parentNodes) throws Exception {
+        boolean isForDrug = InstanceUtilities.isDrug(instance);
+        if (isForDrug != node.getIsForDrug()) {
+            for (Node parentNode : parentNodes)
+                parentNode.setIsForDrug(isForDrug);
+
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Same as {@link #checkForDrugChange(GKInstance, Node)}, adapted for diseases.
+     *
+     * @param instance
+     * @param node
+     * @param parentNodes
+     * @return boolean, true if a "mismatch" is detected and a refresh is required, false otherwise.
+     * @throws Exception
+     */
+    private boolean checkForDiseaseChange(GKInstance instance, Node node, List<Node> parentNodes) throws Exception {
+        boolean isForDisease = InstanceUtilities.isDisease(instance);
+        if (isForDisease != node.getIsForDisease()) {
+            for (Node parentNode : parentNodes)
+                parentNode.setIsForDisease(isForDisease);
+
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -309,23 +338,25 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      *
      * Note: this does not return a hierarchy of instances, simply an unordered Set.
      *
-     * @param node
-     * @param allowedClasses
+     * @param childInstance
      * @return List of Complex/EntitySet nodes that contain the instance represented by a given node.
+     * @throws Exception
      */
-    private List<Node> getParentNodes(GKInstance childInstance, List<Class<? extends Node>> allowedClasses) {
-        if (allowedClasses == null || childInstance == null)
+    private List<Node> getParentNodes(GKInstance childInstance) throws Exception {
+        if (childInstance == null)
             return null;
 
         List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
         if (displayedObjects.size() == 0)
             return null;
 
+        // Limit to Complexes and EntitySets.
+        List<Class<? extends Node>> allowedClasses = Arrays.asList(RenderableComplex.class, RenderableEntitySet.class);
         List<Node> parentNodes = new ArrayList<Node>();
+
         for (Object parentNode : displayedObjects) {
             // Limit the search to allowed classes.
-            if (allowedClasses.stream()
-                              .noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
+            if (allowedClasses.stream().noneMatch(allowedClass -> allowedClass.isInstance(parentNode)))
                 continue;
 
             // The parent Complex/EntitySet instance.
@@ -333,26 +364,21 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             if (parentInstance == null)
                 continue;
 
-            // The set of child instances.
-            Set<GKInstance> childInstances = new HashSet<GKInstance>();
-
-            try {
-                // Populate the Set of a parent instance's contained instances.
-                childInstances = InstanceUtilities.getContainedInstances(parentInstance,
-                                                                         ReactomeJavaConstants.hasComponent,
-                                                                         ReactomeJavaConstants.hasCandidate,
-                                                                         ReactomeJavaConstants.hasMember);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            
             // Add the node representing the instance to the list.
             // TODO Is this preferred over an additional call to zoomableEditor.searchConvertedRenderables(instance)?
-            if (((Node) parentNode).getReactomeId().equals(childInstance.getDBID())) {
+            if (parentInstance.getDBID().equals(childInstance.getDBID())) {
                 parentNodes.add((Node) parentNode);
                 continue;
             }
 
+            // The set of child instances.
+            Set<GKInstance> childInstances = new HashSet<GKInstance>();
+
+            // Populate the Set of a parent instance's contained instances.
+            childInstances = InstanceUtilities.getContainedInstances(parentInstance,
+                                                                     ReactomeJavaConstants.hasComponent,
+                                                                     ReactomeJavaConstants.hasCandidate,
+                                                                     ReactomeJavaConstants.hasMember);
             // Determine if the given Complex/EntitySet contains the given child instance.
             // If so, add to the list of parent instances.
             if (childInstances.stream()
@@ -360,7 +386,6 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                               .anyMatch(childInstance.getDBID()::equals))
                 parentNodes.add((Node) parentNode);
         }
-
         return parentNodes;
     }
 
