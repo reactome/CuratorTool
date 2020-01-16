@@ -394,8 +394,35 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                                          instance,
                                          attName);
         }
+        refreshReactions(instance, reaction);
     }
     
+    /**
+     * Refresh the reactions that contain a given instance (represented by its Reactome id).
+     *
+     * @param instance
+     * @param reaction
+     */
+    protected void refreshReactions(GKInstance instance, RenderableReaction reaction) {
+        if (instance == null || reaction == null)
+            return;
+
+        boolean diseaseChange = false;
+        boolean isForDisease = false;
+        try {
+            isForDisease = InstanceUtilities.isDisease(instance);
+            diseaseChange = (isForDisease != reaction.getIsForDisease());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (diseaseChange) {
+            reaction.setIsForDisease(isForDisease);
+            PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+            pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+        }
+    }
+
     public void regulationEdit(AttributeEditEvent editEvent) {
         GKInstance regulation = editEvent.getEditingInstance();
         int type = editEvent.getEditingType();

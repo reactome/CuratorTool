@@ -97,10 +97,10 @@ public class GKBWriter implements RenderablePropertyNames {
             if (node.getIsForDrug()) {
                 parentElm.setAttribute("isForDrug", node.getIsForDrug() + "");
             }
-        }
-        // Check if it is a multimer
-        if (renderable instanceof Node) {
-            Node node = (Node) renderable;
+            if (node.getIsForDisease()) {
+                parentElm.setAttribute("isForDisease", node.getIsForDisease() + "");
+            }
+            // Check if it is a multimer
             int number = node.getMultimerMonomerNumber();
             if (number >= 2) {
                 parentElm.setAttribute("multimerMonomerNumber", number + "");
@@ -489,6 +489,8 @@ public class GKBWriter implements RenderablePropertyNames {
         elm.setAttribute("lineWidth", reaction.getLineWidth() + "");
         if (reaction.getLineColor() != null)
             elm.setAttribute("lineColor", convertToString(reaction.getLineColor()));
+        if (reaction.getIsForDisease())
+            elm.setAttribute("isForDisease", reaction.getIsForDisease() + "");
         // Type for reaction
         if (reaction instanceof RenderableReaction) {
             RenderableReaction rxt = (RenderableReaction) reaction;

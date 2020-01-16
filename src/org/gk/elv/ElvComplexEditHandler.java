@@ -40,7 +40,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
         if (list == null || list.size() == 0)
             return;
         if (attName.equals(ReactomeJavaConstants.disease)) {
-            refreshParentNodes(instance, ((Node) list.get(0)));
+            refreshNodes(instance, ((Node) list.get(0)));
             return;
         }
         // Only complex having subunits displayed need to be checked
@@ -50,6 +50,7 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
                 continue; // There is a bug somewhere
             complexEdit((Node)r, e);
         }
+        refreshNodes(instance, ((Node) list.get(0)));
     }
     
     public void validateDisplayedComplex(RenderableComplex complex) {

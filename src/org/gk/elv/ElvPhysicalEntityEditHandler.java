@@ -25,6 +25,7 @@ import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableEntitySet;
+import org.gk.render.RenderableReaction;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -77,7 +78,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             removeSetAndSetLink(inst, sets);
         }
 
-        refreshParentNodes(inst, ((Node) sets.get(0)));
+        refreshNodes(inst, ((Node) sets.get(0)));
     }
 
     /**
@@ -256,12 +257,12 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     }
 
     /**
-     * Refresh (via reinserting) the nodes that contain a given instance (represented by its Reactome id).
+     * Refresh the nodes that contain a given instance (represented by its Reactome id).
      *
      * @param childInstance
      * @param node
      */
-    protected void refreshParentNodes(GKInstance childInstance, Node node) {
+    protected void refreshNodes(GKInstance childInstance, Node node) {
         if (childInstance == null || node == null)
             return;
 
@@ -325,6 +326,28 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Return a list of Reactions that contain a given instance as input or output.
+     *
+     * @param instance
+     * @return List of edges that contain the instance as input or output.
+     */
+    private List<HyperEdge> getEdges(GKInstance instance) {
+        List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
+        if (displayedObjects.size() == 0)
+            return null;
+
+        // Limit to Reactions.
+        Class<RenderableReaction> allowedClass = RenderableReaction.class;
+        List<Node> parentNodes = new ArrayList<Node>();
+
+        for (Object parentNode : displayedObjects) {
+
+        }
+
+        return null;
     }
 
     /**

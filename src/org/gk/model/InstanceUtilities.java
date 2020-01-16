@@ -25,6 +25,8 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 
+import jp.sbi.celldesigner.symbol.species.Complex;
+
 
 /**
  * @author vastrik
@@ -1403,7 +1405,11 @@ public class InstanceUtilities {
       * @returns boolean
       */
      public static boolean isDrug(GKInstance instance) throws Exception {
-         return containsA(instance, ReactomeJavaConstants.Drug);
+         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+                                                   ReactomeJavaConstants.Complex);
+         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
+             return false;
+         return isAttributeContained(instance, ReactomeJavaConstants.Drug);
      }
 
      /**
@@ -1414,7 +1420,12 @@ public class InstanceUtilities {
       * @returns boolean
       */
      public static boolean isDisease(GKInstance instance) throws Exception {
-         return containsA(instance, ReactomeJavaConstants.disease);
+         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+                                                   ReactomeJavaConstants.Complex,
+                                                   ReactomeJavaConstants.Reaction);
+         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
+             return false;
+         return isAttributeContained(instance, ReactomeJavaConstants.disease);
      }
 
      /**
@@ -1425,7 +1436,41 @@ public class InstanceUtilities {
       * @return boolean
       * @throws Exception
       */
-     private static boolean containsA(GKInstance instance, String schemaAttribute) throws Exception {
+     private static boolean isAttributeContained(GKInstance instance, String schemaAttribute) throws Exception {
+         if (isAttributePresent(instance, schemaAttribute))
+             return true;
+
+         // Check if instance is an EntitySet, Complex, or RLE
+         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
+                                                   ReactomeJavaConstants.Complex,
+                                                   ReactomeJavaConstants.ReactionlikeEvent);
+         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
+             return false;
+         Set<GKInstance> containedInstances = getContainedInstances(instance,
+                                                                    ReactomeJavaConstants.hasMember,
+                                                                    ReactomeJavaConstants.hasCandidate,
+                                                                    ReactomeJavaConstants.hasComponent,
+                                                                    ReactomeJavaConstants.input,
+                                                                    ReactomeJavaConstants.output);
+         // No containedInstances.
+         if (containedInstances == null || containedInstances.size() == 0)
+             return false;
+
+         for (GKInstance containedInstance : containedInstances) {
+             if (isAttributePresent(containedInstance, schemaAttribute))
+                 return true;
+         }
+
+        return false;
+     }
+
+     /**
+      * @param instance
+      * @param schemaAttribute
+      * @return boolean
+      * @throws Exception
+      */
+     private static boolean isAttributePresent(GKInstance instance, String schemaAttribute) throws Exception {
          if (instance == null || schemaAttribute == null || schemaAttribute.length() == 0)
              return false;
 
@@ -1438,21 +1483,7 @@ public class InstanceUtilities {
              instance.getAttributeValue(schemaAttribute) != null)
              return true;
 
-         // Check if instance is an EntitySet or Complex.
-         Set<GKInstance> containedInstances = getContainedInstances(instance,
-                                                                    ReactomeJavaConstants.hasMember,
-                                                                    ReactomeJavaConstants.hasCandidate,
-                                                                    ReactomeJavaConstants.hasComponent);
-         // No containedInstances.
-         if (containedInstances == null || containedInstances.size() == 0)
-             return false;
-
-         // Check if instance contains a drug by:
-         //   (1) Iterating over all schema classes of the instance's containedInstances.
-         //   (2) Checking if any of the ancestor schema class is the attribute.
-         return containedInstances.stream()
-                                  .map(GKInstance::getSchemClass)
-                                  .anyMatch(cls -> cls.isa(schemaAttribute));
+        return false;
      }
 
 }
