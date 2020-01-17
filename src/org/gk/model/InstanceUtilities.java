@@ -1420,10 +1420,9 @@ public class InstanceUtilities {
       * @returns boolean
       */
      public static boolean isDisease(GKInstance instance) throws Exception {
-         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-                                                   ReactomeJavaConstants.Complex,
-                                                   ReactomeJavaConstants.Reaction);
-         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
+         // TODO make sure that only PE's have disease attribute.
+         String validClass = ReactomeJavaConstants.PhysicalEntity;
+         if (!instance.getSchemClass().isa(validClass))
              return false;
          return isAttributeContained(instance, ReactomeJavaConstants.disease);
      }

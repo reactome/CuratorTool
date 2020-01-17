@@ -29,28 +29,27 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
     public ElvComplexEditHandler() {
     }
     
-    public void complexEdit(AttributeEditEvent e) {
-        String attName = e.getAttributeName();
-        if (!attName.equals(ReactomeJavaConstants.hasComponent) &&
-            !attName.equals(ReactomeJavaConstants.disease)) {
+    public void complexEdit(AttributeEditEvent editEvent) {
+        physicalEntityEdit(editEvent);
+        String attName = editEvent.getAttributeName();
+        if (!attName.equals(ReactomeJavaConstants.hasComponent))
             return;
-        }
-        GKInstance instance = e.getEditingInstance();
+        GKInstance instance = editEvent.getEditingInstance();
         List<Renderable> list = zoomableEditor.searchConvertedRenderables(instance);
         if (list == null || list.size() == 0)
             return;
-        if (attName.equals(ReactomeJavaConstants.disease)) {
-            refreshNodes(instance, ((Node) list.get(0)));
-            return;
-        }
         // Only complex having subunits displayed need to be checked
         for (Renderable r : list) {
             // For sure it should be a node
             if (!(r instanceof Node))
                 continue; // There is a bug somewhere
-            complexEdit((Node)r, e);
+            complexEdit((Node)r, editEvent);
         }
-        refreshNodes(instance, ((Node) list.get(0)));
+        try {
+            checkForDrugChange(instance, (Node) list.get(0));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     public void validateDisplayedComplex(RenderableComplex complex) {
