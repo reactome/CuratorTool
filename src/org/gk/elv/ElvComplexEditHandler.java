@@ -30,7 +30,6 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
     }
     
     public void complexEdit(AttributeEditEvent editEvent) {
-        physicalEntityEdit(editEvent);
         String attName = editEvent.getAttributeName();
         if (!attName.equals(ReactomeJavaConstants.hasComponent))
             return;
