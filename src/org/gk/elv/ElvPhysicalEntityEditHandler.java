@@ -283,8 +283,6 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * is a drug  class, then refresh its own rendered node, as well as all parent nodes.
      *
      * @param instance
-     * @param node
-     * @param parentNodes
      * @throws Exception
      */
     protected void checkForDrugChange(GKInstance instance, Node node) throws Exception {
@@ -299,8 +297,6 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      *
      * @param instance
      * @param nodes
-     * @param parentNodes
-     * @param edges
      * @throws Exception
      */
     private void checkForDiseaseChange(GKInstance instance, List<Renderable> nodes) throws Exception {
@@ -356,7 +352,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     /**
      * Return a list of reactions (as HyperEdges) that contain a any node in a given list as input or output.
      *
-     * @param instances
+     * @param nodes
      * @return List of edges that contain the instance as input or output.
      */
     private List<HyperEdge> getEdges(List<Node> nodes) {
@@ -394,7 +390,7 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * (1) Iterate over all displayed objects in the current pathway.
      * (2) Only consider nodes that may contain other nodes (e.g. complexes, entity sets).
      * (3) Get all contained nodes for each parent node.
-     * (4) If the contained node is found within the parent node, add that parent node to the returned list.
+     * (4) If the child node is found within the contained nodes, add the parent node to the returned list.
      *
      * Note: this does not return a hierarchy of instances, simply an unordered Set.
      *
