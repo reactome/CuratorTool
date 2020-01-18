@@ -475,15 +475,4 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     	return this.lineWidth;
     }
 
-    /**
-     * If the renderable represents or contains a disease.
-     * @param isForDisease
-     */
-    public void setIsForDisease(boolean isForDisease) {
-        this.isForDisease = isForDisease;
-    }
-
-    public boolean getIsForDisease() {
-        return isForDisease;
-    }
 }

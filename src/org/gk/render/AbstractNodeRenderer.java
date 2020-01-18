@@ -103,8 +103,6 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
             g2.setPaint(HIGHLIGHTED_COLOR);
         else if (node.lineColor != null)
             g2.setPaint(node.lineColor);
-        else if (node.getIsForDisease())
-            g2.setPaint(DEFAULT_DISEASE_FOREGROUND);
         else
             g2.setPaint(DEFAULT_OUTLINE_COLOR);
         // Set stroke
