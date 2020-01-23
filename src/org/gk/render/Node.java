@@ -889,6 +889,8 @@ public class Node extends Renderable {
         }
         shortcut.setBackgroundColor(getBackgroundColor());
         shortcut.setForegroundColor(getForegroundColor());
+        shortcut.setIsForDisease(getIsForDisease());
+        shortcut.setIsForDrug(getIsForDrug());
         if (isMultimerFormable)
             shortcut.setMultimerMonomerNumber(multimerMonomerNumber);
         // use an original bounds
