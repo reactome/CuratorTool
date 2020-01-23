@@ -6,6 +6,9 @@
  */
 package org.gk.model;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,11 +22,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
+import org.junit.Test;
 
 import jp.sbi.celldesigner.symbol.species.Complex;
 
@@ -1398,91 +1403,66 @@ public class InstanceUtilities {
 	//}
 
      /**
-      * Determines if an instance is a drug or contains a drug (in the case of EntitySets and Complexes).
+      * Determines if an instance contains a drug.
       *
       * @param instance
       * @throws Exception
       * @returns boolean
       */
-     public static boolean isDrug(GKInstance instance) throws Exception {
-         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-                                                   ReactomeJavaConstants.Complex);
-         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
+     public static boolean hasDrug(GKInstance instance) throws Exception {
+         if (instance == null)
              return false;
-         return isAttributeContained(instance, ReactomeJavaConstants.Drug);
+         if (!instance.getSchemClass().isa(ReactomeJavaConstants.Complex) &&
+             !instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+             return false;
+
+         //TODO first level only.
+         return getContainedInstances(instance,
+                 ReactomeJavaConstants.hasMember,
+                 ReactomeJavaConstants.hasCandidate,
+                 ReactomeJavaConstants.hasComponent).stream()
+                 .anyMatch(inst -> inst.getSchemClass().isa(ReactomeJavaConstants.Drug));
      }
 
-     /**
-      * Determines if an instance is a disease or contains a disease (in the case of EntitySets and Complexes).
-      *
-      * @param instance
-      * @throws Exception
-      * @returns boolean
-      */
-     public static boolean isDisease(GKInstance instance) throws Exception {
-         // TODO make sure that only PE's have disease attribute.
-         String validClass = ReactomeJavaConstants.PhysicalEntity;
-         if (!instance.getSchemClass().isa(validClass))
-             return false;
-         return isAttributeContained(instance, ReactomeJavaConstants.disease);
-     }
+    @Test
+    public void testHasDrug() throws Exception {
+        MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
+                                                "reactome",
+                                                "liam",
+                                                ")8J7m]!%[<");
+        // Protein (non-EntitySet/Complex).
+        GKInstance protein = testDBA.fetchInstance(976898L);
+        assertFalse(InstanceUtilities.hasDrug(protein));
 
-     /**
-      * Determines if an instance is or contains a given attribute.
-      *
-      * @param instance
-      * @param schemaAttribute
-      * @return boolean
-      * @throws Exception
-      */
-     private static boolean isAttributeContained(GKInstance instance, String schemaAttribute) throws Exception {
-         if (isAttributePresent(instance, schemaAttribute))
-             return true;
+        // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
+        GKInstance entitySet = testDBA.fetchInstance(5632097L);
+        assertFalse(InstanceUtilities.hasDrug(entitySet));
 
-         // Check if instance is an EntitySet, Complex, or RLE
-         List<String> validClasses = Arrays.asList(ReactomeJavaConstants.EntitySet,
-                                                   ReactomeJavaConstants.Complex,
-                                                   ReactomeJavaConstants.ReactionlikeEvent);
-         if (validClasses.stream().noneMatch(instance.getSchemClass()::isa))
-             return false;
-         Set<GKInstance> containedInstances = getContainedInstances(instance,
-                                                                    ReactomeJavaConstants.hasMember,
-                                                                    ReactomeJavaConstants.hasCandidate,
-                                                                    ReactomeJavaConstants.hasComponent,
-                                                                    ReactomeJavaConstants.input,
-                                                                    ReactomeJavaConstants.output);
-         // No containedInstances.
-         if (containedInstances == null || containedInstances.size() == 0)
-             return false;
+        // Drug (17-AAG [cytosol]).
+        GKInstance drug = testDBA.fetchInstance(1217506L);
 
-         for (GKInstance containedInstance : containedInstances) {
-             if (isAttributePresent(containedInstance, schemaAttribute))
-                 return true;
-         }
+        // Add drug instance (17-AAG [cytosol]) to member set.
+        entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
 
-        return false;
-     }
+        // Test to confirm it now contains a drug instance (should return true).
+        assertTrue(InstanceUtilities.hasDrug(entitySet));
 
-     /**
-      * @param instance
-      * @param schemaAttribute
-      * @return boolean
-      * @throws Exception
-      */
-     private static boolean isAttributePresent(GKInstance instance, String schemaAttribute) throws Exception {
-         if (instance == null || schemaAttribute == null || schemaAttribute.length() == 0)
-             return false;
+        // Remove added drug and retest (should return false).
+        entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
+        assertFalse(InstanceUtilities.hasDrug(entitySet));
 
-         // Check if instance itself is the attribute.
-         if (instance.getSchemClass().isa(schemaAttribute))
-             return true;
+        // Control Complex (activated NPR1/NH1 [cytosol]).
+        GKInstance complex = testDBA.fetchInstance(6788198L);
+        assertFalse(InstanceUtilities.hasDrug(complex));
 
-         // Check if the instance contains the attribute as a non-null value.
-         if (instance.getSchemClass().isValidAttribute(schemaAttribute) &&
-             instance.getAttributeValue(schemaAttribute) != null)
-             return true;
+        // Add drug instance to component set.
+        complex.addAttributeValue(ReactomeJavaConstants.hasComponent, drug);
 
-        return false;
-     }
+        // Test to confirm it now contains a drug instance (should return true).
+        assertTrue(InstanceUtilities.hasDrug(complex));
 
+        // Remove added drug and retest (should return false).
+        complex.removeAttributeValueNoCheck(ReactomeJavaConstants.hasComponent, drug);
+        assertFalse(InstanceUtilities.hasDrug(complex));
+    }
 }

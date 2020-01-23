@@ -14,11 +14,11 @@ import org.gk.database.AttributeEditEvent;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableEntitySet;
+import org.gk.schema.InvalidAttributeException;
 
 /**
  * A customized EvlInstanceEditHandler to process common tasks related to
@@ -31,21 +31,21 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     public ElvPhysicalEntityEditHandler() {
     }
     
-    protected void physicalEntityEdit(AttributeEditEvent editEvent) {
-        List<String> validEdits = Arrays.asList(ReactomeJavaConstants.disease,
-                                                ReactomeJavaConstants.hasComponent,
-                                                ReactomeJavaConstants.hasCandidate,
-                                                ReactomeJavaConstants.hasMember);
-        if (validEdits.stream().noneMatch(editEvent.getAttributeName()::equals))
-            return;
+    protected void physicalEntityEdit(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         GKInstance instance = editEvent.getEditingInstance();
-        List<Renderable> sets = zoomableEditor.searchConvertedRenderables(instance);
-        if (sets == null || sets.size() == 0)
+        if (instance == null)
             return;
-        try {
-            checkForDiseaseChange(instance, sets);
-        } catch (Exception e) {
-            e.printStackTrace();
+        List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
+        if (renderables == null || renderables.size() == 0)
+            return;
+
+        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+        if (isForDisease != renderables.get(0).getIsForDisease()) {
+            for (Renderable renderable : renderables) {
+                renderable.setIsForDisease(isForDisease);
+                Node node = (Node) renderable;
+                node.getConnectedReactions().forEach(reaction -> reaction.setIsForDisease(isForDisease));
+            }
         }
     }
 
@@ -62,109 +62,15 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @throws Exception
      */
     protected void checkForDrugChange(GKInstance instance, Node node) throws Exception {
+        if (instance == null || node == null)
+            return;
+         if (!instance.getSchemClass().isa(ReactomeJavaConstants.Complex) &&
+             !instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+             return;
         List<Node> parentNodes = getParentNodes(instance);
-        boolean isForDrug = InstanceUtilities.isDrug(instance);
+        boolean isForDrug = InstanceUtilities.hasDrug(instance);
         if (isForDrug != node.getIsForDrug())
             parentNodes.forEach(parentNode -> parentNode.setIsForDrug(isForDrug));
-    }
-
-    /**
-     * Same as {@link #checkForDrugChange(GKInstance, Node)}, adapted for diseases.
-     *
-     * @param instance
-     * @param nodes
-     * @throws Exception
-     */
-    private void checkForDiseaseChange(GKInstance instance, List<Renderable> nodes) throws Exception {
-        List<Node> parentNodes = getParentNodes(instance);
-        List<HyperEdge> edges = getEdges(parentNodes);
-        boolean isForDisease = InstanceUtilities.isDisease(instance);
-
-        // With classes that change appearance based on drug/disease attributes,
-        // we can then be sure that comparing the disease flag of their respective nodes
-        // with isForDisease will detect a mismatch (and then set the correct flags accordingly).
-        //
-        // Thus, if the instance is an EntitySet or Complex, the comparison has been made,
-        // and we can safely return.
-        if (instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet) ||
-            instance.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-            if (isForDisease != nodes.get(0).getIsForDisease()) {
-                parentNodes.forEach(parentNode -> parentNode.setIsForDisease(isForDisease));
-                edges.forEach(edge -> edge.setIsForDisease(isForDisease));
-                return;
-            }
-        }
-
-        // With classes that do not change appearance based on drug/disease attributes,
-        // we can not compare the disease flag of their respective nodes with isForDisease.
-        //
-        // To determine whether to set the flags for parent nodes and edges, we check the
-        // disease state of all "sibling" nodes (i.e. nodes that are present in the same
-        // container node). If they are all false, then the current value of
-        // isForDisease defines the disease flag for all parentNodes.
-        for (Renderable node : nodes) {
-            GKInstance parentInstance = getInstanceFromNode((Node) node.getContainer());
-            if (parentInstance == null)
-                continue;
-            List<String> containedClasses = Arrays.asList(ReactomeJavaConstants.hasComponent,
-                                                          ReactomeJavaConstants.hasCandidate,
-                                                          ReactomeJavaConstants.hasMember);
-            Set<Boolean> siblingIsForDiseases = new HashSet<Boolean>();
-            for (String containedClass : containedClasses) {
-                if (!parentInstance.getSchemClass().isValidAttribute(containedClass))
-                    continue;
-                List<Object> containedObjects = parentInstance.getAttributeValuesList(containedClass);
-                if (containedObjects == null || containedObjects.size() == 0)
-                    continue;
-                for (Object containedObject : containedObjects) {
-                    GKInstance containedInstance = (GKInstance) containedObject;
-                    if (!(containedInstance.getDBID().equals(node.getReactomeId()))) {
-                        boolean siblingIsForDisease = InstanceUtilities.isDisease(containedInstance);
-                        siblingIsForDiseases.add(siblingIsForDisease);
-                    }
-                }
-            }
-
-            if (!siblingIsForDiseases.contains(Boolean.TRUE)) {
-                parentNodes.forEach(parentNode -> parentNode.setIsForDisease(isForDisease));
-                edges.forEach(edge -> edge.setIsForDisease(isForDisease));
-                return;
-            }
-        }
-    }
-
-    /**
-     * Return a list of reactions (as HyperEdges) that contain a any node in a given list as input or output.
-     *
-     * @param nodes
-     * @return List of edges that contain the instance as input or output.
-     */
-    private List<HyperEdge> getEdges(List<Node> nodes) {
-        if (nodes == null || nodes.size() == 0)
-            return null;
-
-        List<?> displayedObjects = zoomableEditor.getPathwayEditor().getDisplayedObjects();
-        if (displayedObjects.size() == 0)
-            return null;
-
-        // Limit to HyperEdges.
-        Class<HyperEdge> allowedClass = HyperEdge.class;
-        List<HyperEdge> edges = new ArrayList<HyperEdge>();
-
-        for (Object displayedObject : displayedObjects) {
-            if (!allowedClass.isInstance(displayedObject))
-                continue;
-            HyperEdge edge = (HyperEdge) displayedObject;
-
-            for (Node node : nodes) {
-                if (edge.getInputNodes().contains(node))
-                    edges.add(edge);
-                else if (edge.getOutputNodes().contains(node))
-                    edges.add(edge);
-            }
-        }
-
-        return edges;
     }
 
     /**
