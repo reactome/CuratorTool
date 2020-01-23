@@ -195,6 +195,9 @@ public class GKBReader implements RenderablePropertyNames {
             ((Node)node).setIsForDrug(new Boolean(isForDrug));
         }
         String isForDisease = nodeElm.getAttributeValue("isForDisease");
+        if (isForDisease != null && isForDisease.length() > 0) {
+            node.setIsForDisease(new Boolean(isForDisease));
+        }
         if (node instanceof RenderableCompartment) {
             String insets = nodeElm.getAttributeValue("insets");
             if (insets != null && insets.length() > 0) {
@@ -231,6 +234,9 @@ public class GKBReader implements RenderablePropertyNames {
         if (text != null && text.length() > 0)
             edge.setLineWidth(Float.parseFloat(text));
         String isForDisease = edgeElm.getAttributeValue("isForDisease");
+        if (isForDisease != null && isForDisease.length() > 0) {
+            edge.setIsForDisease(new Boolean(isForDisease));
+        }
         String pointsStr = edgeElm.getAttributeValue("points");
         StringTokenizer tokenizer = new StringTokenizer(pointsStr, ",");
         java.util.List points = new ArrayList();

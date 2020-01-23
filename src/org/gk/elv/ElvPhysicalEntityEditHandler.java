@@ -18,6 +18,7 @@ import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableEntitySet;
+import org.gk.schema.InvalidAttributeException;
 
 /**
  * A customized EvlInstanceEditHandler to process common tasks related to
@@ -30,11 +31,22 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     public ElvPhysicalEntityEditHandler() {
     }
     
-    protected void physicalEntityEdit(AttributeEditEvent editEvent) {
+    protected void physicalEntityEdit(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         GKInstance instance = editEvent.getEditingInstance();
-        List<Renderable> nodes = zoomableEditor.searchConvertedRenderables(instance);
-        if (nodes == null || nodes.size() == 0)
+        if (instance == null)
             return;
+        List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
+        if (renderables == null || renderables.size() == 0)
+            return;
+
+        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+        if (isForDisease != renderables.get(0).getIsForDisease()) {
+            for (Renderable renderable : renderables) {
+                renderable.setIsForDisease(isForDisease);
+                Node node = (Node) renderable;
+                node.getConnectedReactions().forEach(reaction -> reaction.setIsForDisease(isForDisease));
+            }
+        }
     }
 
     /**
@@ -50,6 +62,11 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
      * @throws Exception
      */
     protected void checkForDrugChange(GKInstance instance, Node node) throws Exception {
+        if (instance == null || node == null)
+            return;
+         if (!instance.getSchemClass().isa(ReactomeJavaConstants.Complex) &&
+             !instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+             return;
         List<Node> parentNodes = getParentNodes(instance);
         boolean isForDrug = InstanceUtilities.hasDrug(instance);
         if (isForDrug != node.getIsForDrug())
