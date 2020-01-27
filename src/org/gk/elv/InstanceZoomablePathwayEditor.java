@@ -74,6 +74,7 @@ import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 
@@ -487,8 +488,10 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     /**
      * Call this method if any attribute editing has occurred.
      * @param editEvent Event for editing attribute value
+     * @throws Exception
+     * @throws InvalidAttributeException
      */
-    public void updateInstance(AttributeEditEvent editEvent) {
+    public void updateInstance(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         if (changeFromEditor)
             return; // Don't need to edit self
         GKInstance instance = editEvent.getEditingInstance();

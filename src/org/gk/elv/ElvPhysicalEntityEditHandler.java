@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.database.AttributeEditEvent;
+import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -33,18 +34,15 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     
     protected void physicalEntityEdit(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         GKInstance instance = editEvent.getEditingInstance();
-        if (instance == null)
-            return;
         List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
-        if (renderables == null || renderables.size() == 0)
-            return;
-
-        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
-        if (isForDisease != renderables.get(0).getIsForDisease()) {
-            for (Renderable renderable : renderables) {
-                renderable.setIsForDisease(isForDisease);
-                Node node = (Node) renderable;
-                node.getConnectedReactions().forEach(reaction -> reaction.setIsForDisease(isForDisease));
+        if (editEvent.getAttributeName().equals(ReactomeJavaConstants.disease)) {
+            boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+            if (isForDisease != renderables.get(0).getIsForDisease()) {
+                for (Renderable renderable : renderables) {
+                    renderable.setIsForDisease(isForDisease);
+                }
+                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
             }
         }
     }
@@ -69,8 +67,11 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
              return;
         List<Node> parentNodes = getParentNodes(instance);
         boolean isForDrug = InstanceUtilities.hasDrug(instance);
-        if (isForDrug != node.getIsForDrug())
+        if (isForDrug != node.getIsForDrug()) {
             parentNodes.forEach(parentNode -> parentNode.setIsForDrug(isForDrug));
+            PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+            pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+        }
     }
 
     /**

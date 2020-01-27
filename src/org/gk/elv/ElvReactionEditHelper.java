@@ -380,7 +380,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
     }
     
     public void reactionEdit(AttributeEditEvent editEvent,
-                             RenderableReaction reaction) {
+                             RenderableReaction reaction) throws InvalidAttributeException, Exception {
         GKInstance instance = editEvent.getEditingInstance();
         // Just in case
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
@@ -388,6 +388,17 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         String attName = editEvent.getAttributeName();
         if (attName.equals(ReactomeJavaConstants._doRelease)) {
             updateDoNotReleaseEventVisible(instance);
+        }
+        else if (editEvent.getAttributeName().equals(ReactomeJavaConstants.disease)) {
+            List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
+            boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+            if (isForDisease != renderables.get(0).getIsForDisease()) {
+                for (Renderable renderable : renderables) {
+                    renderable.setIsForDisease(isForDisease);
+                }
+                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+            }
         }
         else {
             validateDisplayedLinkedNodes(reaction,

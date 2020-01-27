@@ -50,6 +50,7 @@ import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 
@@ -523,8 +524,10 @@ public class EntityLevelView extends JPanel {
     /**
      * Call to update the display of an edited event
      * @param editEvent Event for editing attribute value
+     * @throws Exception
+     * @throws InvalidAttributeException
      */
-    public void updateInstance(AttributeEditEvent editEvent) {
+    public void updateInstance(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         objectListPane.updateInstance(editEvent);
         zoomableEditor.updateInstance(editEvent);
     }

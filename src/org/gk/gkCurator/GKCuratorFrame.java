@@ -497,8 +497,12 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 				    attName.equals(ReactomeJavaConstants._doNotRelease)) {
 					eventView.updateInstance(e);
 				}
-				// To synchronize the view
-				entityView.updateInstance(e);
+				try {
+				    // To synchronize the view
+                    entityView.updateInstance(e);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
 				Component attributePane = e.getEditingComponent();
 				// Need to update
 				if (schemaView.getAttributePane().getInstance() == instance
