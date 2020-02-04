@@ -192,8 +192,12 @@ public class DefaultNodeEditor implements Editor, DefaultRenderConstants{
     
     public void drawName(Node node, Graphics2D g2) {
         // Draw the text: Draw the text at the center of the bounding rectangle
-        if (node.getForegroundColor() == null)
-            g2.setPaint(DEFAULT_FOREGROUND);
+        if (node.getForegroundColor() == null) {
+            if (node.getIsForDrug())
+                g2.setPaint(DEFAULT_DRUG_FOREGROUND);
+            else
+                g2.setPaint(DEFAULT_FOREGROUND);
+        }
         else
             g2.setPaint(node.getForegroundColor());
         Rectangle bounds = node.getTextBounds();

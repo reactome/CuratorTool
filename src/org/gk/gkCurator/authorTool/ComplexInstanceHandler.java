@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.InstanceToRenderableConverter;
 import org.gk.render.Renderable;
@@ -17,9 +18,14 @@ import org.gk.render.RenderableFactory;
 
 public class ComplexInstanceHandler extends InstanceHandler {
     
-    protected Renderable convertToRenderable(GKInstance instance) {
+    protected Renderable convertToRenderable(GKInstance instance) throws Exception {
         Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class, 
                                                             container);
+
+        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+        r.setIsForDisease(isForDisease);
+        boolean isForDrug = InstanceUtilities.hasDrug(instance);
+        r.setIsForDrug(isForDrug);
         return r;
     }
 

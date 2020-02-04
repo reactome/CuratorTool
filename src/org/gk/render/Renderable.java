@@ -26,7 +26,7 @@ import org.gk.model.GKInstance;
  * pane.
  * @author  wgm
  */
-public abstract class Renderable implements Serializable, RenderablePropertyNames {
+public abstract class Renderable implements Serializable, RenderablePropertyNames, DefaultRenderConstants {
     // To control bounds
     protected int pad = 4;
     protected Point position;
@@ -70,6 +70,8 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     // so that two shortcuts in different compartments can have different values
     private String localization;
     protected Float lineWidth;
+    protected boolean isForDrug;
+    protected boolean isForDisease;
     
     public Renderable() {
         init();
@@ -471,5 +473,25 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 
     public Float getLineWidth() {
     	return this.lineWidth;
+    }
+
+    /**
+     * If the renderable represents or contains a disease.
+     * @param isForDisease
+     */
+    public void setIsForDisease(boolean isForDisease) {
+        this.isForDisease = isForDisease;
+    }
+
+    public boolean getIsForDisease() {
+        return isForDisease;
+    }
+    
+    public void setIsForDrug(boolean isForDrug) {
+        this.isForDrug = isForDrug;
+    }
+    
+    public boolean getIsForDrug() {
+        return this.isForDrug;
     }
 }

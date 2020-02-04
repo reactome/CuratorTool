@@ -23,6 +23,10 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
+        if (node.getIsForDrug())
+            background = DEFAULT_DRUG_BACKGROUND;
+        else
+            background = DEFAULT_COMPLEX_BACKGROUND;
         Graphics2D g2 = (Graphics2D) g;
         // Draw three overlapping rectangles
         Stroke oldStroke = g2.getStroke();
@@ -33,6 +37,8 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
             g2.setStroke(DEFAULT_THICK_STROKE);
         Rectangle bounds = node.getBounds();
         drawRectangle(bounds, g2, false);
+        if (node.getIsForDrug())
+            renderDrugLabel(g);
 //        Rectangle rect = new Rectangle();
 //        rect.x = bounds.x + RECTANGLE_DIST;
 //        rect.y = bounds.y + RECTANGLE_DIST;

@@ -1,7 +1,5 @@
 package org.gk.render;
 
-import java.awt.Color;
-
 /**
  * This customized Renderer is for ChemicalDrug.
  * @author wug
@@ -10,7 +8,8 @@ import java.awt.Color;
 public class RenderableChemicalDrug extends RenderableChemical {
 
     public RenderableChemicalDrug() {
-        setForegroundColor(Color.RED); // As the default for the drugs
+        setForegroundColor(DEFAULT_DRUG_FOREGROUND); // As the default for the drugs
+        setBackgroundColor(DEFAULT_DRUG_BACKGROUND);
     }
     
 }
