@@ -18,14 +18,17 @@ import org.gk.render.RenderableFactory;
 
 public class ComplexInstanceHandler extends InstanceHandler {
     
-    protected Renderable convertToRenderable(GKInstance instance) throws Exception {
+    protected Renderable convertToRenderable(GKInstance instance) {
         Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class, 
                                                             container);
-
-        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
-        r.setIsForDisease(isForDisease);
-        boolean isForDrug = InstanceUtilities.hasDrug(instance);
-        r.setIsForDrug(isForDrug);
+        try {
+            boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+            r.setIsForDisease(isForDisease);
+            boolean isForDrug = InstanceUtilities.hasDrug(instance);
+            r.setIsForDrug(isForDrug);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return r;
     }
 
