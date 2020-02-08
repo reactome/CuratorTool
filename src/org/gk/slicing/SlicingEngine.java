@@ -98,7 +98,6 @@ public class SlicingEngine {
     private String previousSliceDbName;
     private String previousSliceDbUser;
     private String previousSliceDbPwd;
-    private List<String> previousSliceClasses;
     private int previousSliceDbPort = 3306;
     private boolean previousSliceRequested = false;
     private MySQLAdaptor previousSliceDBA;
@@ -298,12 +297,7 @@ public class SlicingEngine {
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
-            for (String previousSliceClass : previousSliceClasses)
-                revisionDetector.checkForRevisions(previousSliceClass,
-                                                   sourceDBA,
-                                                   previousSliceDBA,
-                                                   sliceMap,
-                                                   output);
+            revisionDetector.checkForRevisions(sourceDBA, previousSliceDBA, sliceMap);
         }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
@@ -317,13 +311,14 @@ public class SlicingEngine {
     } 
 
     /**
-     * Front-end for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.
+     * <p>Front-end for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
      * 
-     * <h5>Integration Testing Notes</h5>
+     * <p>Integration Testing Notes:</p>
      * <ul>
      *   <li>zofenopril (9619010) is a member of ACEI pro-drugs [endoplasmic reticulum] (9619052).</li>
      *   <li>Both entities have endoplasmic reticulum as their compartments.</li>
-     *   <li>By changeing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
+     *   <li>By changeing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs
+     *       [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
      * </ul>
      * 
      * @param attributeName
@@ -385,8 +380,7 @@ public class SlicingEngine {
     }
 
     /**
-     * Iterate through EntitySet instances and populate each instance's
-     * compartment attributes.
+     * Iterate through EntitySet instances and populate each instance's compartment attributes.
      *
      * The recursive iteration takes place in the
      * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
@@ -431,9 +425,7 @@ public class SlicingEngine {
 		List<GKInstance> attrValue;
 		GKInstance originalCompartment;
 
-		/*
-		 * Changing the compartments of the member entity sets.
-		 */
+		// Changing the compartments of the member entity sets.
         // ACEI pro-drugs [extracellular region], has one compartment (extracellular region),
         // and eleven members. By changing the compartment of one of these members (e.g. zofenopril),
         // ACEI pro-drugs should then have two compartments.
