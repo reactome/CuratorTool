@@ -294,6 +294,7 @@ public class SlicingEngine {
         fillIncludedLocationForComplex(output);
         logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
+        // Create and check in _UpdateTracker instances for all updated instances in the slice.
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
@@ -311,7 +312,7 @@ public class SlicingEngine {
     } 
 
     /**
-     * <p>Front-end for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
+     * <p>Frontend for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
      * 
      * <p>Integration Testing Notes:</p>
      * <ul>
