@@ -12,7 +12,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -355,28 +354,6 @@ public class RevisionDetector {
         ) {
 	        objectOutput.writeObject(map);
 	    }
-	}
-
-	/**
-	 * Alter a slice map and return the result (for use in debugging).
-	 *
-	 * @param inFile
-	 * @param outFile
-	 * @return Map
-	 * @throws IOException
-	 * @throws ClassNotFoundException
-	 */
-	private Map<Long, GKInstance> transmorgifySliceMap(String inFile, String outFile) throws IOException, ClassNotFoundException {
-	    Map<Long, GKInstance> map = new HashMap<Long, GKInstance>();
-	    map = readSliceMap(inFile);
-
-	    // Copy values from the original map to the new map.
-	    for (Map.Entry<Long, GKInstance> entry : map.entrySet()) {
-	        if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
-	            map.remove(entry.getKey());
-	    }
-
-	    return map;
 	}
 
 	/**

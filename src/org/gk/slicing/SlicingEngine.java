@@ -286,24 +286,21 @@ public class SlicingEngine {
 
         // Serialize sliceMap object to file for use in debugging RevisionDetector class.
         try (
-            FileOutputStream fileOutput = new FileOutputStream("sliceMap-b.ser");
+            FileOutputStream fileOutput = new FileOutputStream("sliceMap.ser");
             BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
             ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
         ) {
             Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
             int i = 0;
-            int n = 0;
             for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
                 if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
                     continue;
-                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-                    smallSliceMap.put(entry.getKey(), entry.getValue());
+
+                smallSliceMap.put(entry.getKey(), entry.getValue());
+
+                // Stop if 20 pathways are added to the slice file.
+                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway))
                     if (i++ > 20) break;
-                }
-                else if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-                    if (n++ < 40)
-                        smallSliceMap.put(entry.getKey(), entry.getValue());
-                }
             }
             objectOutput.writeObject(smallSliceMap);
         }
