@@ -6,7 +6,9 @@ package org.gk.slicing;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -14,12 +16,16 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,6 +41,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -276,6 +283,31 @@ public class SlicingEngine {
         extractReactionCoordinates();
         extractSpecies();
         extractPathwayDiagrams();
+
+        // Serialize sliceMap object to file for use in debugging RevisionDetector class.
+        try (
+            FileOutputStream fileOutput = new FileOutputStream("sliceMap-b.ser");
+            BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
+            ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
+        ) {
+            Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
+            int i = 0;
+            int n = 0;
+            for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
+                if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
+                    continue;
+                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                    smallSliceMap.put(entry.getKey(), entry.getValue());
+                    if (i++ > 20) break;
+                }
+                else if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                    if (n++ < 40)
+                        smallSliceMap.put(entry.getKey(), entry.getValue());
+                }
+            }
+            objectOutput.writeObject(smallSliceMap);
+        }
+
         PrintStream output = null;
         if (logFileName != null)
             output = new PrintStream(new FileOutputStream(logFileName));
@@ -287,14 +319,13 @@ public class SlicingEngine {
         qa.validateExistence(output);
         qa.validateEventsInHierarchy(topLevelIDs,
                                      output);
-        qa.validateAttributes(output);
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
         logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
-        // Create and check in _UpdateTracker instances for all updated instances in the slice.
+        // Create _UpdateTracker instances for all updated instances in the slice (and check them in).
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
@@ -318,7 +349,7 @@ public class SlicingEngine {
      * <ul>
      *   <li>zofenopril (9619010) is a member of ACEI pro-drugs [endoplasmic reticulum] (9619052).</li>
      *   <li>Both entities have endoplasmic reticulum as their compartments.</li>
-     *   <li>By changeing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs
+     *   <li>By changing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs
      *       [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
      * </ul>
      * 

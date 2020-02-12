@@ -6,7 +6,7 @@ dbHost=localhost
 # Database name. Usually it should be gk_central.
 #dbName=gk_central_110818
 #dbName=gk_central_082417
-dbName=reactome
+dbName=central
 
 # Port number. Default 3306.
 dbPort=3306
@@ -26,7 +26,7 @@ releaseTopicsFileName=small_topics.txt
 # Name of the file containing a list of species that should be in the slice even though some of
 
 # them might not be used by insances in the slice.
-speciesFileName=small_species.txt
+speciesFileName=species.txt
 
 # Name of the file the checking results will be saved to.
 logFileName=SlicingLog.txt
@@ -52,7 +52,7 @@ previousSliceDbPwd=)8J7m]!%[<
 previousSliceDbPort=3306
 
 # Compare database name
-previousSliceDbName=reactome
+previousSliceDbName=previous_slice
 
 # Check if the slicing is used for a non-human Reactome (e.g. Fly-Reactome). If it is set to true, a single layer of referred Events and their Event-type references will be in the slice.
 useForSpecies=false
