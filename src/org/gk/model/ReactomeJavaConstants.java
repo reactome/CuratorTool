@@ -352,4 +352,13 @@ public class ReactomeJavaConstants {
     public static final String regulation = "regulation";
     public static final String ControlReference = "ControlReference";
     public static final String surroundedBy = "surroundedBy";
+
+	// SlicingEngine/RevisionDetecteor constants
+	public static final String add = "add";
+	public static final String addRemove = "add/remove";
+	public static final String modify = "modify";
+	public static final String remove = "remove";
+	public static final String catalyst = "catalyst";
+	public static final String pathway = "pathway";
+	public static final String reaction = "reaction";
 }

@@ -326,7 +326,8 @@ public class SlicingEngine {
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
-            revisionDetector.checkForRevisions(sourceDBA, previousSliceDBA, sliceMap);
+            List<GKInstance> updateTrackers = revisionDetector.checkForRevisions(sourceDBA, previousSliceDBA, sliceMap);
+            updateTrackers.forEach(tracker -> pushToMap(tracker, sliceMap));
         }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
