@@ -306,7 +306,8 @@ public class SlicingEngine {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
             List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, previousSliceDBA, sliceMap);
-            updateTrackers.forEach(tracker -> pushToMap(tracker, sliceMap));
+	        // Add updateTracker instance to sliceMap (so it can be committed to the target database).
+            updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
