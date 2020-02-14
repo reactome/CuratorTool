@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -283,28 +284,6 @@ public class SlicingEngine {
         extractReactionCoordinates();
         extractSpecies();
         extractPathwayDiagrams();
-
-        // Serialize sliceMap object to file for use in debugging RevisionDetector class.
-        try (
-            FileOutputStream fileOutput = new FileOutputStream("sliceMap.ser");
-            BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
-            ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
-        ) {
-            Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
-            int i = 0;
-            for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
-                if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
-                    continue;
-
-                smallSliceMap.put(entry.getKey(), entry.getValue());
-
-                // Stop if 20 pathways are added to the slice file.
-                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway))
-                    if (i++ > 20) break;
-            }
-            objectOutput.writeObject(smallSliceMap);
-        }
-
         PrintStream output = null;
         if (logFileName != null)
             output = new PrintStream(new FileOutputStream(logFileName));
@@ -326,7 +305,7 @@ public class SlicingEngine {
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
-            List<GKInstance> updateTrackers = revisionDetector.checkForRevisions(sourceDBA, previousSliceDBA, sliceMap);
+            List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, previousSliceDBA, sliceMap);
             updateTrackers.forEach(tracker -> pushToMap(tracker, sliceMap));
         }
         if (logFileName != null)
@@ -339,6 +318,37 @@ public class SlicingEngine {
         addReleaseNumber();
         setStableIdReleased();
     } 
+
+    /**
+	 * Temporary test utility method.
+	 * Write a slice map object to file (for caching use in debugging).
+     *
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    private void writeSliceMap() throws FileNotFoundException, IOException {
+        // Serialize sliceMap object to file for use in debugging RevisionDetector class.
+        try (
+                FileOutputStream fileOutput = new FileOutputStream("sliceMap.ser");
+                BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
+                ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
+                ) {
+            Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
+            int i = 0;
+            for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
+                if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
+                    continue;
+
+                smallSliceMap.put(entry.getKey(), entry.getValue());
+
+                // Stop if 20 pathways are added to the slice file.
+                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                    if (i++ > 20) break;
+            }
+            objectOutput.writeObject(smallSliceMap);
+        }
+    }
+
 
     /**
      * <p>Frontend for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
