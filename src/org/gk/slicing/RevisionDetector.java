@@ -4,14 +4,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -26,8 +35,13 @@ public class RevisionDetector {
 	// Database adaptors used for test.
 	private MySQLAdaptor sourceDBATest;
 	private MySQLAdaptor previousSliceDBATest;
-	private String sliceMapFile;
+
+	// SliceMap cache file.
+	private String sliceMapFile = "sliceMap.ser";
 	private final String delimiter = ",";
+
+	public RevisionDetector() {
+	}
 
 	/**
 	 * <p>The frontend for detecting revisions in pathways and RLE's between a slice and a previous slice.</p>
@@ -73,7 +87,10 @@ public class RevisionDetector {
 	    GKInstance updatedEvent = null;
 	    SchemaClass cls = null;
 	    List<GKInstance> updateTrackers = new ArrayList<GKInstance>();
-	    List<String> actions = null;
+	    Set<String> actions = null;
+
+	    // Uncomment to write "n" number of pathways from the sliceMap to a cache file (used for testing).
+	    // writeSliceMap(sliceMap, sliceMapFile, 20);
 
 	    // Iterate over all instances in the slice.
         for (GKInstance sourceEvent : sliceMap.values()) {
@@ -91,19 +108,22 @@ public class RevisionDetector {
 	        // If a revision condition is met, create new _UpdateTracker instance.
 	        cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	        updateTracker = new GKInstance(cls);
+
+	        // action
+	        updateTracker.setAttributeValue(ReactomeJavaConstants.action, collectionToString(actions));
+
+	        // updatedEvent
 	        updatedEvent = sourceDBA.fetchInstance(sourceEvent.getDBID());
-
-	        updateTracker.setAttributeValue(ReactomeJavaConstants.action, listToString(actions));
-
-	        updateTracker.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
-
 	        updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
 
-	        updateTracker.setAttributeValue(ReactomeJavaConstants._release, null);
-
+	        // _displayName
 	        updateTracker.setDisplayName(updatedEvent.toString());
 
-	        updateTracker.setDBID(sourceDBA.storeInstance(updatedEvent));
+	        // dbAdaptor
+	        updateTracker.setDbAdaptor(sourceDBA);
+
+	        // DBID (the updateTracker instance is added to the "source" database to get a new DBID).
+	        updateTracker.setDBID(sourceDBA.storeInstance(updateTracker));
 
 	        updateTrackers.add(updateTracker);
         }
@@ -123,19 +143,19 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private List<String> isPathwayRevised(GKInstance sourcePathway, GKInstance targetPathway)
+	private Set<String> isPathwayRevised(GKInstance sourcePathway, GKInstance targetPathway)
 			throws InvalidAttributeException, Exception {
 
 	    if (!sourcePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
 	        return null;
 
 	    // Check if a child event (pathway or RLE) is added or removed.
-	    List<String> actions = getAttributeRevisions(sourcePathway, targetPathway, ReactomeJavaConstants.hasEvent);
+	    Set<String> actions = getAttributeRevisions(sourcePathway, targetPathway, ReactomeJavaConstants.hasEvent);
 
 		List<Object> sourceEvents = sourcePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
 		List<Object> targetEvents = targetPathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
 	    GKInstance targetEvent = null;
-	    List<String> tmp = null;
+	    Set<String> tmp = null;
 
 	    // Recursively iterate over and apply revision detection to all events in the pathway.
 	    for (Object sourceEvent : sourceEvents) {
@@ -164,20 +184,19 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private List<String> isRLERevised(GKInstance sourceRLE, GKInstance targetRLE)
+	private Set<String> isRLERevised(GKInstance sourceRLE, GKInstance targetRLE)
 			throws InvalidAttributeException, Exception {
 
 	    if (!sourceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
 	        return null;
-
-	    List<String> actions = new ArrayList<String>();
-	    List<String> tmp = null;
 
 		// Check for changes in inputs, outputs, regulators, and catalysts.
 		List<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
                                                   ReactomeJavaConstants.output,
                                                   ReactomeJavaConstants.regulatedBy,
                                                   ReactomeJavaConstants.catalystActivity);
+	    Set<String> actions = new HashSet<String>();
+	    Set<String> tmp = null;
 		for (String attrName : revisionList) {
 			tmp = getAttributeRevisions(sourceRLE, targetRLE, attrName);
 		    if (tmp != null)
@@ -201,10 +220,10 @@ public class RevisionDetector {
 	 *
 	 * @see {@link org.gk.model.Summation}
 	 */
-	private List<String> isRLESummationRevised(GKInstance sourceRLE, GKInstance targetRLE)
+	private Set<String> isRLESummationRevised(GKInstance sourceRLE, GKInstance targetRLE)
 			throws InvalidAttributeException, Exception {
 
-	    List<String> actions = getAttributeRevisions(sourceRLE, targetRLE, ReactomeJavaConstants.summation);
+	    Set<String> actions = getAttributeRevisions(sourceRLE, targetRLE, ReactomeJavaConstants.summation);
 		List<Object> sourceSummations = sourceRLE.getAttributeValuesList(ReactomeJavaConstants.summation);
 		List<Object> targetSummations = targetRLE.getAttributeValuesList(ReactomeJavaConstants.summation);
 
@@ -227,53 +246,62 @@ public class RevisionDetector {
 	 * @return List
 	 * @throws Exception
 	 */
-	private List<String> getAttributeRevisions(Object sourceInstance, Object targetInstance, String attribute) throws Exception {
+	private Set<String> getAttributeRevisions(Object sourceInstance, Object targetInstance, String attribute) throws Exception {
 
 		List<Object> sourceAttributes = ((GKInstance) sourceInstance).getAttributeValuesList(attribute);
 		List<Object> targetAttributes = ((GKInstance) targetInstance).getAttributeValuesList(attribute);
+        Set<String> actions = new HashSet<String>();
 
 		// Both attribute lists are empty.
 		if (sourceAttributes.size() == 0 && targetAttributes.size() == 0)
 		    return null;
 
-        List<String> actions = new ArrayList<String>();
-
 	    // Check for additions.
-		int addedInstances = numberOfUniqueAttributes(sourceAttributes, targetAttributes);
-		for (int i = 0; i < addedInstances; i++)
-		    actions.add(ReactomeJavaConstants.add + format(attribute));
+		boolean addedInstances = numberOfUniqueAttributes(sourceAttributes, targetAttributes);
 
 		// Check for deletions.
-		int removedInstances = numberOfUniqueAttributes(targetAttributes, sourceAttributes);
-		for (int i = 0; i < removedInstances; i++)
+		boolean removedInstances = numberOfUniqueAttributes(targetAttributes, sourceAttributes);
+
+		if (addedInstances && removedInstances) {
+		    // GKInstance attributes.
+		    if (sourceAttributes.get(0) instanceof GKInstance)
+		        actions.add(ReactomeJavaConstants.addRemove + format(attribute));
+
+		    // Non-GKInstance attributes (e.g. summary text).
+		    else
+		        actions.add(ReactomeJavaConstants.modify + format(attribute));
+		}
+
+		else if (addedInstances)
+		    actions.add(ReactomeJavaConstants.add + format(attribute));
+
+		else if (removedInstances)
 		    actions.add(ReactomeJavaConstants.remove + format(attribute));
 
 		return actions;
 	}
 
 	/**
-	 * Return the number of all instances that are not shared between two parent lists.
+	 * Return true if not all instances are shared between two parent lists.
 	 *
 	 * @param sourceAttributes
 	 * @param targetAttributes
-	 * @return List
+	 * @return boolean
 	 */
-	private int numberOfUniqueAttributes(List<Object> sourceAttributes, List<Object> targetAttributes) {
-	    int numberUniqueAttributes = 0;
-
+	private boolean numberOfUniqueAttributes(List<Object> sourceAttributes, List<Object> targetAttributes) {
 	    // If targetInstances does not contain an instance in sourceInstances, then sourceInstances has had an addition.
 	    Object matchingAttribute = null;
 	    for (Object sourceInstance: sourceAttributes) {
 	        matchingAttribute = getMatchingAttribute(targetAttributes, sourceInstance);
 	        if (matchingAttribute == null)
-	            numberUniqueAttributes += 1;
+	            return true;
 	    }
 
-	    return numberUniqueAttributes;
+	    return false;
 	}
 
 	/**
-	 * Search a list of attribute values for a given instance value or DBID.
+	 * Search a list of attribute values for a given DBID (for GKInstance attributes) or value (for text attributes).
 	 *
 	 * This method allows attributes to be compared even when they occupy different positions in respective attribute lists.
 	 *
@@ -319,25 +347,26 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Convert a String list to a delimited String.
+	 * Convert a String collection to a delimited String (e.g. [x, y, z] -> "x,y,z").
 	 *
 	 * @param list
 	 * @return String
 	 */
-	private String listToString(List<String> list) {
+	private String collectionToString(Collection<String> list) {
 	    if (list == null || list.size() == 0)
 	        return null;
 
 	    if (list.size() == 1)
-	        return list.get(0);
+	        return (String) list.iterator().next();
 
-	    String output = list.get(0);
-	    for (String string : list.subList(1, list.size()))
-	        output += delimiter + string;
+	    Iterator<String> iterator = list.iterator();
+	    String output = (String) iterator.next();
+        while (iterator.hasNext())
+	        output += delimiter + iterator.next();
 	    return output;
 	}
 
-	/*
+	/**
 	 * Test utility method.
 	 * Read a slice map object from file (for caching use in debugging).
 	 *
@@ -346,7 +375,7 @@ public class RevisionDetector {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	private Map<Long, GKInstance> readSliceMap(String inFile) throws IOException, ClassNotFoundException {
+	public Map<Long, GKInstance> readSliceMap(String inFile) throws IOException, ClassNotFoundException {
 	    try (
             FileInputStream fileInput = new FileInputStream(inFile);
             BufferedInputStream bufferedInput = new BufferedInputStream(fileInput);
@@ -356,29 +385,58 @@ public class RevisionDetector {
 	    }
 	}
 
-	@Before
-	public void setUp() throws SQLException {
-	    String host = "localhost";
-	    String user = "liam";
+    /**
+	 * Test utility method.
+	 * Write a slice map object to file (for caching use in debugging).
+     *
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    private void writeSliceMap(Map<Long, GKInstance> sliceMap, String outFile, int limit) throws FileNotFoundException, IOException {
+        try (
+                FileOutputStream fileOutput = new FileOutputStream(outFile);
+                BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
+                ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
+        ) {
+            Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
+            int i = 0;
+            for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
+                // Limit to event instances.
+                if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
+                    continue;
+
+                smallSliceMap.put(entry.getKey(), entry.getValue());
+
+                // Stop early if the desired number of pathways are added to the cache file.
+                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                    if (i++ > limit) break;
+            }
+            // Serialize sliceMap object to file.
+            objectOutput.writeObject(smallSliceMap);
+        }
+    }
+
+    /**
+     * <p>In the tests below:</p>
+     * <ol>
+     *   <li>A "source" instance is fetched from the test database "central"</li>
+     *   <li>A "target" instance is fetched from the test database "previous_slice".</li>
+     *   <li>The "source" instance is modified and compared against the "target" instance --
+     *       "assertEquals(source instance is revised)".</li>
+     *   <li>The revision is reset.</li>
+     *   <li>The "source" instance is again compared against the "target" instance --
+     *        "assertEquals(source instance is revised)".</li>
+     * </ol>
+     */
+    @Before
+    public void setUp() throws SQLException {
+        String host = "localhost";
+        String user = "liam";
 	    String pass = ")8J7m]!%[<";
 		sourceDBATest = new MySQLAdaptor(host, "central", user, pass);
 		previousSliceDBATest = new MySQLAdaptor(host, "previous_slice", user, pass);
-		// Slice map cache file.
-		sliceMapFile = "sliceMap.ser";
 	}
 
-	/**
-	 * <p>In the tests below:</p>
-	 * <ol>
-	 *   <li>A "source" instance is fetched from the test database "central"</li>
-	 *   <li>A "target" instance is fetched from the test database "previous_slice".</li>
-	 *   <li>The "source" instance is modified and compared against the "target" instance --
-	 *       "assertEquals(source instance is revised)".</li>
-	 *   <li>The revision is reset.</li>
-	 *   <li>The "source" instance is again compared against the "target" instance --
-	 *        "assertEquals(source instance is revised)".</li>
-	 * </ol>
-	 */
 	@Test
 	public void testGetRevisions() throws InvalidAttributeException, Exception {
 	    List<GKInstance> updateTrackers = null;
@@ -400,34 +458,34 @@ public class RevisionDetector {
 		// Example pathway #1 (Acetylation).
 		sourcePathway = (GKInstance) sourceDBATest.fetchInstance(156582L);
 		targetPathway = (GKInstance) previousSliceDBATest.fetchInstance(156582L);
-		actions = listToString(isPathwayRevised(sourcePathway, targetPathway));
+		actions = collectionToString(isPathwayRevised(sourcePathway, targetPathway));
 		assertNull(actions);
 
 		// Add a new child pathway (tRNA processing).
 		sourceChildPathway = sourceDBATest.fetchInstance(72306L);
 		sourcePathway.addAttributeValue(ReactomeJavaConstants.hasEvent, sourcePathway);
 		actions = "addHasEvent";
-		assertEquals(actions, listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertEquals(actions, collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 		// Reset the addition.
 		sourcePathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, sourcePathway);
-		assertNull(listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertNull(collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 
 		// Example pathway #2 (DNA repair).
 		sourcePathway = (GKInstance) sourceDBATest.fetchInstance(353377L);
 		targetPathway = (GKInstance) previousSliceDBATest.fetchInstance(353377L);
-		assertNull(listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertNull(collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 		// Remove an existing child pathway (Base Excision Repair).
 		sourceChildPathway = (GKInstance) sourcePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent).get(0);
 		sourcePathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, sourceChildPathway);
 		actions = "removeHasEvent";
-		assertEquals(actions, listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertEquals(actions, collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 		// Reset the removal.
 		sourcePathway.addAttributeValue(ReactomeJavaConstants.hasEvent, sourceChildPathway);
-		assertNull(listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertNull(collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 
 		// Revise a child pathway (by changing the summation text of one of it's RLEs).
@@ -435,12 +493,12 @@ public class RevisionDetector {
 		GKInstance sourceRLESummation = (GKInstance) sourceRLE.getAttributeValue(ReactomeJavaConstants.summation);
 		String originalSummationText = (String) sourceRLESummation.getAttributeValue(ReactomeJavaConstants.text);
 		sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, "revised");
-		actions = "addText,removeText";
-		assertEquals(actions, listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		actions = "modifyText";
+		assertEquals(actions, collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 
 		// Reset the revision.
 		sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
-		assertNull(listToString(isPathwayRevised(sourcePathway, targetPathway)));
+		assertNull(collectionToString(isPathwayRevised(sourcePathway, targetPathway)));
 	}
 
 	@Test
@@ -448,12 +506,11 @@ public class RevisionDetector {
 	    String actions = null;
 	    String attribute = null;
 		Long revisedAttributeDBID = null;
-		List<Object> originalAttributes = null;
 
 		// Example RLE (AXL binds SRC-1).
 		GKInstance sourceRLE = (GKInstance) sourceDBATest.fetchInstance(5357432L);
 		GKInstance targetRLE = (GKInstance) previousSliceDBATest.fetchInstance(5357432L);
-		assertNull(listToString(isRLERevised(sourceRLE, targetRLE)));
+		assertNull(collectionToString(isRLERevised(sourceRLE, targetRLE)));
 
 		// Revise input (ALS2 dimer [cytosol]).
 	    attribute = ReactomeJavaConstants.input;
@@ -509,11 +566,11 @@ public class RevisionDetector {
 		// Add attribute value.
 	    GKInstance revisedAttribute = (GKInstance) sourceDBATest.fetchInstance(revisedAttributeDBID);
 	    sourceRLE.addAttributeValue(attribute, revisedAttribute);
-	    assertEquals(actions, listToString(isRLERevised(sourceRLE, targetRLE)));
+	    assertEquals(actions, collectionToString(isRLERevised(sourceRLE, targetRLE)));
 
 	    // Reset revision.
 	    sourceRLE.setAttributeValue(attribute, originalAttributes);
-	    assertNull(listToString(isRLERevised(sourceRLE, targetRLE)));
+	    assertNull(collectionToString(isRLERevised(sourceRLE, targetRLE)));
 	}
 
 	@Test
@@ -524,19 +581,19 @@ public class RevisionDetector {
 		// Example RLE (A1 and A3 receptors bind adenosine).
 		GKInstance sourceRLE = (GKInstance) sourceDBATest.fetchInstance(418904L);
 		GKInstance targetRLE = (GKInstance) previousSliceDBATest.fetchInstance(418904L);
-		assertNull(listToString(isRLESummationRevised(sourceRLE, targetRLE)));
+		assertNull(collectionToString(isRLESummationRevised(sourceRLE, targetRLE)));
 
         // Revise summation text.
 		GKInstance sourceSummation = (GKInstance) sourceRLE.getAttributeValuesList(ReactomeJavaConstants.summation).get(0);
 		sourceSummation.setAttributeValue(attribute, "revised");
-		actions = "addText,removeText";
-		assertEquals(actions, listToString(isRLESummationRevised(sourceRLE, targetRLE)));
+		actions = "modifyText";
+		assertEquals(actions, collectionToString(isRLESummationRevised(sourceRLE, targetRLE)));
 
 		// Reset the revision,
 		GKInstance targetSummation = (GKInstance) targetRLE.getAttributeValuesList(ReactomeJavaConstants.summation).get(0);
 		String targetSummationText = (String) targetSummation.getAttributeValue(attribute);
 		sourceSummation.setAttributeValue(ReactomeJavaConstants.text, targetSummationText);
-		assertNull(listToString(isRLESummationRevised(sourceRLE, targetRLE)));
+		assertNull(collectionToString(isRLESummationRevised(sourceRLE, targetRLE)));
 	}
 
 	@Test
@@ -555,16 +612,16 @@ public class RevisionDetector {
 		// (DOCK7) [cytosol]
 		sourceInstance = sourceDBATest.fetchInstance(8875579L);
 		targetInstance = previousSliceDBATest.fetchInstance(8875579L);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Change attribute value.
 		sourceInstance.setAttributeValue(attribute, "revised");
-		actions = "add_displayName,remove_displayName";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		actions = "modify_displayName";
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Reset change.
 		sourceInstance.setAttributeValue(attribute, targetInstance.getAttributeValue(attribute));
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		//----------------------------------//
 		// Revision detection (GKInstance). //
@@ -575,28 +632,30 @@ public class RevisionDetector {
 		// Example RLE (DIT and MIT combine to form triiodothyronine).
 		sourceInstance = (GKInstance) sourceDBATest.fetchInstance(209925L);
 		targetInstance = (GKInstance) previousSliceDBATest.fetchInstance(209925L);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+
+		// Original attributes.
+		List<Object> originalAttributes = new ArrayList<Object>(sourceInstance.getAttributeValuesList(attribute));
 
 		// Example added attribute (Positive regulation by 'H+ [endosome lumen]').
-		List<Object> originalAttributes = new ArrayList<Object>(sourceInstance.getAttributeValuesList(attribute));
 		GKInstance newAttributeInstance = sourceDBATest.fetchInstance(5210962L);
 		sourceInstance.addAttributeValue(attribute, newAttributeInstance);
 		actions = "addRegulatedBy";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Remove original attribute instance.
 		sourceInstance.setAttributeValue(attribute, newAttributeInstance);
-		actions = "addRegulatedBy,removeRegulatedBy";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		actions = "add/removeRegulatedBy";
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Remove all attribute instances.
 		sourceInstance.setAttributeValue(attribute, null);
 		actions = "removeRegulatedBy";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Reset revisions.
 		sourceInstance.setAttributeValue(attribute, originalAttributes);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		//------------------------------------//
 		// Event addition/deletion detection. //
@@ -607,29 +666,33 @@ public class RevisionDetector {
 	    // Example pathway (2-LTR circle formation).
 	    sourceInstance = sourceDBATest.fetchInstance(164843L);
 	    targetInstance = previousSliceDBATest.fetchInstance(164843L);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 	    // Get a reference to the source instance's event list.
 	    List<Object> events = sourceInstance.getAttributeValuesList(attribute);
+	    originalAttributes = new ArrayList<Object>(events);
 
 	    // Add RLE (Reaction (1,25(OH)2D [nucleoplasm])).
 	    GKInstance newRLE = sourceDBATest.fetchInstance(8963915L);
 	    events.add(newRLE);
 		actions = "addHasEvent";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Reset revision.
 	    events.remove(newRLE);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
-	    // Add pathway (Pathway (ABC transporters disorders)).
+	    // Add pathway (ABC transporters disorders).
 	    GKInstance newPathway = sourceDBATest.fetchInstance(5619084L);
 	    events.add(newPathway);
+	    // Add second pathway (Actin assembly).
+	    newPathway = sourceDBATest.fetchInstance(419989L);
+	    events.add(newPathway);
 		actions = "addHasEvent";
-		assertEquals(actions, listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		assertEquals(actions, collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 
 		// Reset revision.
-	    events.remove(newPathway);
-		assertNull(listToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
+		sourceInstance.setAttributeValue(attribute, originalAttributes);
+		assertNull(collectionToString(getAttributeRevisions(sourceInstance, targetInstance, attribute)));
 	}
 }

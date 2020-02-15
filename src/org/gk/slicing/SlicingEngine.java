@@ -301,12 +301,15 @@ public class SlicingEngine {
         fillIncludedLocationForComplex(output);
         logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
-        // Create _UpdateTracker instances for all updated instances in the slice (and check them in).
+        // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
         if (previousSliceRequested) {
             logger.info("\nRevision checking...");
             RevisionDetector revisionDetector = new RevisionDetector();
+            // Uncomment to read from cached slice map (used for testing).
+            //String sliceMapFile = "sliceMap.ser";
+            //sliceMap = revisionDetector.readSliceMap(sliceMapFile);
             List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, previousSliceDBA, sliceMap);
-	        // Add updateTracker instance to sliceMap (so it can be committed to the target database).
+	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
             updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
         if (logFileName != null)
@@ -319,37 +322,6 @@ public class SlicingEngine {
         addReleaseNumber();
         setStableIdReleased();
     } 
-
-    /**
-	 * Temporary test utility method.
-	 * Write a slice map object to file (for caching use in debugging).
-     *
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    private void writeSliceMap() throws FileNotFoundException, IOException {
-        // Serialize sliceMap object to file for use in debugging RevisionDetector class.
-        try (
-                FileOutputStream fileOutput = new FileOutputStream("sliceMap.ser");
-                BufferedOutputStream bufferedOutput = new BufferedOutputStream(fileOutput);
-                ObjectOutputStream objectOutput = new ObjectOutputStream(bufferedOutput);
-                ) {
-            Map<Long, GKInstance> smallSliceMap = new HashMap<Long, GKInstance>();
-            int i = 0;
-            for (Map.Entry<Long, GKInstance> entry : sliceMap.entrySet()) {
-                if (!entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Event))
-                    continue;
-
-                smallSliceMap.put(entry.getKey(), entry.getValue());
-
-                // Stop if 20 pathways are added to the slice file.
-                if (entry.getValue().getSchemClass().isa(ReactomeJavaConstants.Pathway))
-                    if (i++ > 20) break;
-            }
-            objectOutput.writeObject(smallSliceMap);
-        }
-    }
-
 
     /**
      * <p>Frontend for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
