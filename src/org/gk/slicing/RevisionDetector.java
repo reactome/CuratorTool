@@ -301,7 +301,7 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Search a list of attribute values for a given DBID (for GKInstance attributes) or value (for text attributes).
+	 * Search a list of attribute values for a given DBID (for GKInstance attributes) or .
 	 *
 	 * This method allows attributes to be compared even when they occupy different positions in respective attribute lists.
 	 *
@@ -425,7 +425,7 @@ public class RevisionDetector {
      *       "assertEquals(source instance is revised)".</li>
      *   <li>The revision is reset.</li>
      *   <li>The "source" instance is again compared against the "target" instance --
-     *        "assertEquals(source instance is revised)".</li>
+     *        "assertNull(source instance is revised)".</li>
      * </ol>
      */
     @Before
