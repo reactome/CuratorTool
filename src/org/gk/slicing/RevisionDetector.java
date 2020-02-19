@@ -302,7 +302,7 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Search a list of attribute values for a given DBID (for GKInstance attributes) or .
+	 * Search a list of attribute values for a given DBID (for GKInstance attributes) or a given value for non-GKInstance attributes.
 	 *
 	 * This method allows attributes to be compared even when they occupy different positions in respective attribute lists.
 	 *
