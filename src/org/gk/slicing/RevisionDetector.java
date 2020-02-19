@@ -257,12 +257,12 @@ public class RevisionDetector {
 		    return null;
 
 	    // Check for additions.
-		boolean addedInstances = numberOfUniqueAttributes(sourceAttributes, targetAttributes);
+		boolean addedInstances = containsNewAttribute(sourceAttributes, targetAttributes);
 
 		// Check for deletions.
-		boolean removedInstances = numberOfUniqueAttributes(targetAttributes, sourceAttributes);
+		boolean removedInstances = containsNewAttribute(targetAttributes, sourceAttributes);
 
-		if (addedInstances && removedInstances) {
+		if (!addedInstances && !removedInstances) {
 		    // GKInstance attributes.
 		    if (sourceAttributes.get(0) instanceof GKInstance)
 		        actions.add(ReactomeJavaConstants.addRemove + format(attribute));
@@ -282,13 +282,14 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Return true if not all instances are shared between two parent lists.
+	 * Return true if a new attribute is added to targetAttributes.
+	 * (i.e. not all instances in "sourceAttributes" are also contained in "targetAttributes").
 	 *
 	 * @param sourceAttributes
 	 * @param targetAttributes
 	 * @return boolean
 	 */
-	private boolean numberOfUniqueAttributes(List<Object> sourceAttributes, List<Object> targetAttributes) {
+	private boolean containsNewAttribute(List<Object> sourceAttributes, List<Object> targetAttributes) {
 	    // If targetInstances does not contain an instance in sourceInstances, then sourceInstances has had an addition.
 	    Object matchingAttribute = null;
 	    for (Object sourceInstance: sourceAttributes) {
