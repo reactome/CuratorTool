@@ -20,7 +20,7 @@ import org.gk.schema.SchemaClass;
 
 /**
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
- * 
+ *
  * TODO change method's package visibility to private following testing.
  */
 public class RevisionDetector {
