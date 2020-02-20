@@ -101,14 +101,6 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
-    // PreviousSlice (used for comparing against the current slice).
-    private String previousSliceDbHost;
-    private String previousSliceDbName;
-    private String previousSliceDbUser;
-    private String previousSliceDbPwd;
-    private int previousSliceDbPort = 3306;
-    private boolean previousSliceRequested = false;
-    private MySQLAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
@@ -137,6 +129,7 @@ public class SlicingEngine {
     private String path = "/usr/local/mysql/bin/";
     private boolean setReleasedInStableIdentifier = false;
     private Long defaultPersonId = null;
+    private RevisionDetector revisionDetector = null;
     
     /**
      * Default constructor
@@ -189,43 +182,6 @@ public class SlicingEngine {
         this.targetDbPort = dbPort;
     }
     
-   /**
-     * The name of the previousSlice database. This database will be created at the same host
-     * as the data source.
-     * @param DbName
-     */
-    public void setPreviousSliceDbName(String DbName) {
-        this.previousSliceDbName = DbName;
-    }
-
-    public void setPreviousSliceDbHost(String host) {
-        this.previousSliceDbHost = host;
-    }
-
-    public void setPreviousSliceDbUser(String dbUser) {
-        this.previousSliceDbUser = dbUser;
-    }
-
-    public void setPreviousSliceDbPwd(String pwd) {
-        this.previousSliceDbPwd = pwd;
-    }
-
-    public void setPreviousSliceDbPort(int dbPort) {
-        this.previousSliceDbPort = dbPort;
-    }
-
-    private void initPreviousSliceDBA() throws SQLException {
-        this.previousSliceDBA = new MySQLAdaptor(previousSliceDbHost,
-                                                 previousSliceDbName,
-                                                 previousSliceDbUser,
-                                                 previousSliceDbPwd,
-                                                 previousSliceDbPort);
-    }
-
-    public void setIsPreviousSliceRequested(boolean requested) {
-        this.previousSliceRequested = requested;
-    }
-
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
@@ -261,9 +217,13 @@ public class SlicingEngine {
     public String getLastReleaseDate() {
         return this.lastReleaseDate;
     }
-    
-    public MySQLAdaptor getPreviousSliceDBA() {
-    	return this.previousSliceDBA;
+
+    public void setRevisionDetector(RevisionDetector revisionDetector) {
+        this.revisionDetector = revisionDetector;
+    }
+
+    public RevisionDetector getRevisionDetector() {
+        return this.revisionDetector;
     }
 
     /**
@@ -302,14 +262,11 @@ public class SlicingEngine {
         logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
         // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
-        if (previousSliceRequested) {
+        RevisionDetector revisionDetector;
+        if ((revisionDetector = getRevisionDetector()) != null) {
             logger.info("\nRevision checking...");
-            RevisionDetector revisionDetector = new RevisionDetector();
-            // Uncomment to read from cached slice map (used for testing).
-            //String sliceMapFile = "sliceMap.ser";
-            //sliceMap = revisionDetector.readSliceMap(sliceMapFile);
-            List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, previousSliceDBA, sliceMap);
-	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
+            List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, sliceMap);
+	        // Add updateTracker instances to sliceMap (so they are committed to the target database).
             updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
         if (logFileName != null)
@@ -1547,35 +1504,6 @@ public class SlicingEngine {
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
             
-            // PreviousSlice database.
-            // Only ask for all "previousSlice" values if "needCompareToPreviousSlice" is set to true.
-            if (properties.getProperty("needCompareToPreviousSlice").toLowerCase().equals("true")) {
-				logger.info("PreviousSlice requested.");
-            	String previousSliceDbHost = properties.getProperty("previousSliceDbHost");
-            	if (previousSliceDbHost == null || previousSliceDbHost.trim().length() == 0)
-            		previousSliceDbHost = getInput("Please input the previousSlice databse host");
-            	String previousSliceDbName = properties.getProperty("previousSliceDbName");
-            	if (previousSliceDbName == null || previousSliceDbName.trim().length() == 0)
-            		previousSliceDbName = getInput("Please input the previousSlice database name");
-            	String previousSliceDbUser = properties.getProperty("previousSliceDbUser");
-            	if (previousSliceDbUser == null || previousSliceDbUser.trim().length() == 0)
-            		previousSliceDbUser = getInput("Please input the previousSlice database user");
-            	String previousSliceDbPwd = properties.getProperty("previousSliceDbPwd");
-            	if (previousSliceDbPwd == null || previousSliceDbPwd.trim().length() == 0)
-            		previousSliceDbPwd = getInput("Please input the previousSlice database password");
-            	String previousSliceDbPort = properties.getProperty("previousSliceDbPort");
-            	if (previousSliceDbPort == null || previousSliceDbPort.trim().length() == 0)
-            		previousSliceDbPort = getInput("Please input the previousSlice database port");
-
-            	engine.setIsPreviousSliceRequested(true);
-            	engine.setPreviousSliceDbName(previousSliceDbName);
-            	engine.setPreviousSliceDbHost(previousSliceDbHost);
-            	engine.setPreviousSliceDbUser(previousSliceDbUser);
-            	engine.setPreviousSliceDbPwd(previousSliceDbPwd);
-            	engine.setPreviousSliceDbPort(new Integer(previousSliceDbPort));
-            	engine.initPreviousSliceDBA();
-            }
-			
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
@@ -1608,6 +1536,12 @@ public class SlicingEngine {
             String defaultPersonId = properties.getProperty("defaultPersonId");
             if (defaultPersonId == null || defaultPersonId.trim().length() == 0) {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
+            }
+            // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
+            if (properties.getProperty("needUpdateTrackers").toLowerCase().equals("true")) {
+                logger.info("Revision detection requested.");
+                RevisionDetector revisionDetector = new RevisionDetector(properties);
+                engine.setRevisionDetector(revisionDetector);
             }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
                                                       dbName,
