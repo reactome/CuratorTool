@@ -1,5 +1,7 @@
 package org.gk.slicing;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,78 +22,45 @@ import org.gk.schema.SchemaClass;
 
 /**
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
- *
- * TODO change method's package visibility to private following testing.
  */
 public class RevisionDetector {
-    // PreviousSlice (used for comparing against the current slice).
-    private String previousSliceDbHost;
-    private String previousSliceDbName;
-    private String previousSliceDbUser;
-    private String previousSliceDbPwd;
-    private int previousSliceDbPort = 3306;
     private MySQLAdaptor previousSliceDBA;
 	private final String delimiter = ",";
+	private Long dbid;
 
-	public RevisionDetector() {
+	public RevisionDetector() throws SQLException {
+	    this(null);
 	}
 
 	public RevisionDetector(Properties properties) throws SQLException {
-	    setPreviousSliceProperties(properties);
+	    if (properties == null)
+            return;
+        previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
+                                            properties.getProperty("previousSliceDbName"),
+                                            properties.getProperty("previousSliceDbUser"),
+                                            properties.getProperty("previousSliceDbPwd"),
+                                            Integer.parseInt(properties.getProperty("previousSliceDbPort")));
 	}
 
-	/**
-	 * The name of the previousSlice database. This database will be created at the same host
-	 * as the data source.
-	 * @param DbName
-	 */
-    private void setPreviousSliceDbName(String DbName) {
-        this.previousSliceDbName = DbName;
+	private MySQLAdaptor getPreviousSliceDBA() {
+        return previousSliceDBA;
     }
 
-    private void setPreviousSliceDbHost(String host) {
-        this.previousSliceDbHost = host;
+	private void setDBID(Long dbid) {
+	    this.dbid = dbid;
+	}
+
+	private Long getDBID() {
+	    return dbid;
+	}
+
+    public List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA)
+            throws InvalidAttributeException, Exception {
+	    return getAllUpdateTrackers(sliceMap, sourceDBA, getPreviousSliceDBA());
     }
 
-    private void setPreviousSliceDbUser(String dbUser) {
-        this.previousSliceDbUser = dbUser;
-    }
-
-    private void setPreviousSliceDbPwd(String pwd) {
-        this.previousSliceDbPwd = pwd;
-    }
-
-    private void setPreviousSliceDbPort(int dbPort) {
-        this.previousSliceDbPort = dbPort;
-    }
-
-    private void initPreviousSliceDBA() throws SQLException {
-        this.previousSliceDBA = new MySQLAdaptor(this.previousSliceDbHost,
-                                                 this.previousSliceDbName,
-                                                 this.previousSliceDbUser,
-                                                 this.previousSliceDbPwd,
-                                                 this.previousSliceDbPort);
-    }
-
-    void setPreviousSliceDBA(MySQLAdaptor previousSliceDBA) {
-        this.previousSliceDBA = previousSliceDBA;
-    }
-
-    private MySQLAdaptor getPreviousSliceDBA() {
-        return this.previousSliceDBA;
-    }
-    
-    private void setPreviousSliceProperties(Properties properties) throws SQLException {
-        setPreviousSliceDbName(properties.getProperty("previousSliceDbHost"));
-        setPreviousSliceDbHost(properties.getProperty("previousSliceDbName"));
-        setPreviousSliceDbUser(properties.getProperty("previousSliceDbUser"));
-        setPreviousSliceDbPwd(properties.getProperty("previousSliceDbPwd"));
-        setPreviousSliceDbPort(Integer.parseInt(properties.getProperty("previousSliceDbPort")));
-        initPreviousSliceDBA();
-    }
-
-	/**
-	 * <p>The frontend for detecting revisions in pathways and RLE's between a slice and a previous slice.</p>
+    /**
+	 * Return a List of _UpdateTracker instances for every Event revision in the sliceMap (compared to a previous slice).
 	 *
 	 * <p><b>An RLE gets a revised flag if:</b></p>
 	 * <ol>
@@ -125,57 +94,86 @@ public class RevisionDetector {
 	 * @throws Exception
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
-	public List<GKInstance> getRevisions(MySQLAdaptor sourceDBA, Map<Long,GKInstance> sliceMap)
+	public List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA)
 	        throws InvalidAttributeException, Exception {
-	    
-	    MySQLAdaptor previousSliceDBA = getPreviousSliceDBA();
-	    GKInstance previousSliceEvent = null;
-	    GKInstance updateTracker = null;
-	    GKInstance updatedEvent = null;
-	    SchemaClass cls = null;
+
+	    if (previousSliceDBA == null)
+            return null;
+
 	    List<GKInstance> updateTrackers = new ArrayList<GKInstance>();
-	    Set<String> actions = null;
+	    GKInstance updateTracker = null;
 
 	    // Uncomment to write "n" number of pathways from the sliceMap to a cache file (used for testing).
 	    // writeSliceMap(sliceMap, sliceMapFile, 20);
 
 	    // Iterate over all instances in the slice.
         for (GKInstance sourceEvent : sliceMap.values()) {
-	        if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Event))
-	            continue;
-
-	        previousSliceEvent = previousSliceDBA.fetchInstance(sourceEvent.getDBID());
-	        if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-	            actions = isPathwayRevised(sourceEvent, previousSliceEvent);
-	        else if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-	            actions = isRLERevised(sourceEvent, previousSliceEvent);
-
-	        if (actions == null || actions.size() == 0) continue;
-
-	        // If a revision condition is met, create new _UpdateTracker instance.
-	        cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
-	        updateTracker = new GKInstance(cls);
-
-	        // action attribute.
-	        updateTracker.setAttributeValue(ReactomeJavaConstants.action, collectionToString(actions));
-
-	        // updatedEvent attribute.
-	        updatedEvent = sourceDBA.fetchInstance(sourceEvent.getDBID());
-	        updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
-
-	        // _displayName attribute.
-	        updateTracker.setDisplayName(updatedEvent.toString());
-
-	        // dbAdaptor attribute.
-	        updateTracker.setDbAdaptor(sourceDBA);
-
-	        // DBID attribute.
-	        updateTracker.setDBID(sourceDBA.storeInstance(updateTracker));
-
-	        updateTrackers.add(updateTracker);
+            updateTracker = getUpdateTracker(sourceEvent, sourceDBA, previousSliceDBA);
+            if (updateTracker != null)
+                updateTrackers.add(updateTracker);
         }
 
         return updateTrackers;
+	}
+
+	/**
+	 * Return a single _UpdateTracker instance for a given "Event" instance.
+	 *
+	 * Return null if the passed instance is not an Event or no revisions were detected.
+	 *
+	 * @param sourceEvent
+	 * @param sourceDBA
+	 * @return GKInstance
+	 * @throws Exception
+	 */
+	public GKInstance getUpdateTracker(GKInstance sourceEvent, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA) throws Exception {
+	    if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Event))
+	        return null;
+
+	    if (getDBID() == null)
+	        setDBID(getMaxDBID(sourceDBA));
+
+	    GKInstance previousSliceEvent = null;
+	    GKInstance updateTracker = null;
+	    GKInstance updatedEvent = null;
+	    SchemaClass cls = null;
+	    Set<String> actions = null;
+	    previousSliceEvent = previousSliceDBA.fetchInstance(sourceEvent.getDBID());
+
+	    // Pathway
+	    if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+	        actions = isPathwayRevised(sourceEvent, previousSliceEvent);
+
+	    // RLE
+	    else if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+	        actions = isRLERevised(sourceEvent, previousSliceEvent);
+
+	    // No revision detected.
+	    if (actions == null || actions.size() == 0)
+	        return null;
+
+	    // If a revision condition is met, create new _UpdateTracker instance.
+	    cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
+	    updateTracker = new GKInstance(cls);
+
+	    // action attribute.
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, collectionToString(actions));
+
+	    // updatedEvent attribute.
+	    updatedEvent = sourceDBA.fetchInstance(sourceEvent.getDBID());
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
+
+	    // _displayName attribute.
+	    updateTracker.setDisplayName(updatedEvent.toString());
+
+	    // dbAdaptor attribute.
+	    updateTracker.setDbAdaptor(sourceDBA);
+
+	    // DBID attribute (the next available DBID value from sourceDBA).
+	    setDBID(getDBID() + 1);
+	    updateTracker.setDBID(getDBID());
+
+	    return updateTracker;
 	}
 
 	/**
@@ -190,7 +188,7 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	Set<String> isPathwayRevised(GKInstance sourcePathway, GKInstance previousSlicePathway)
+	private Set<String> isPathwayRevised(GKInstance sourcePathway, GKInstance previousSlicePathway)
 			throws InvalidAttributeException, Exception {
 
 	    if (!sourcePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
@@ -231,7 +229,7 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	Set<String> isRLERevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
+	private Set<String> isRLERevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
 			throws InvalidAttributeException, Exception {
 
 	    if (!sourceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
@@ -267,7 +265,7 @@ public class RevisionDetector {
 	 *
 	 * @see {@link org.gk.model.Summation}
 	 */
-	Set<String> isRLESummationRevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
+	private Set<String> isRLESummationRevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
 			throws InvalidAttributeException, Exception {
 
 	    Set<String> actions = getAttributeRevisions(sourceRLE, previousSliceRLE, ReactomeJavaConstants.summation);
@@ -293,7 +291,7 @@ public class RevisionDetector {
 	 * @return List
 	 * @throws Exception
 	 */
-	Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attribute) throws Exception {
+	private Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attribute) throws Exception {
 
 		List<Object> sourceAttributes = ((GKInstance) sourceInstance).getAttributeValuesList(attribute);
 		List<Object> previousSliceAttributes = ((GKInstance) previousSliceInstance).getAttributeValuesList(attribute);
@@ -384,8 +382,53 @@ public class RevisionDetector {
         return null;
 	}
 
+    /**
+     * Save _UpdateTracker instances to the provided database (typically "sourceDBA").
+	 *
+	 * @param dba
+	 * @param instances
+	 * @throws Exception
+	 */
+    void dumpInstances(List<GKInstance> instances, MySQLAdaptor dba) throws Exception {
+        SlicingEngine slicingEngine = new SlicingEngine();
+        // Try to use transaction
+        boolean isTnSupported = dba.supportsTransactions();
+        if (isTnSupported)
+            dba.startTransaction();
+        try {
+            for (GKInstance instance : instances)
+                slicingEngine.storeInstance(instance, dba);
+
+            if (isTnSupported)
+                dba.commit();
+        }
+        catch (Exception e) {
+            if (isTnSupported)
+                dba.rollback();
+            e.printStackTrace();
+        }
+    }
+
 	/**
-	 * Simple utility method to capitalize an input String (e.g. "hazelnut" -> "Hazelnut").
+	 * Return the maximum DBID of the given database.
+	 *
+	 * @param sourceDBA
+	 * @return Long
+	 * @throws SQLException
+	 */
+	Long getMaxDBID(MySQLAdaptor sourceDBA) throws SQLException {
+	    Long dbID = null;
+
+	    PreparedStatement ps = sourceDBA.getConnection().prepareStatement("SELECT MAX(DB_ID) FROM DatabaseObject");
+	    ResultSet rs = ps.executeQuery();
+	    if (rs.next()) {
+	        dbID = rs.getLong(1);
+	    }
+	    return dbID;
+	}
+
+	/**
+	 * Simple utility method to capitalize an input string (e.g. "hazelnut" -> "Hazelnut").
 	 *
 	 * @param input
 	 * @return String
@@ -400,15 +443,16 @@ public class RevisionDetector {
 	 * @param list
 	 * @return String
 	 */
-	String collectionToString(Collection<String> list) {
+	private String collectionToString(Collection<String> list) {
 	    if (list == null || list.size() == 0)
 	        return null;
 
 	    if (list.size() == 1)
 	        return (String) list.iterator().next();
 
+	    String output = new String();
 	    Iterator<String> iterator = list.iterator();
-	    String output = (String) iterator.next();
+	    output = (String) iterator.next();
         while (iterator.hasNext())
 	        output += delimiter + iterator.next();
 	    return output;

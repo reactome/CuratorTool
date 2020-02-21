@@ -261,23 +261,28 @@ public class SlicingEngine {
         fillIncludedLocationForComplex(output);
         logger.info("\nFilling Attribute Values...");
         fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
-        // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
-        RevisionDetector revisionDetector;
-        if ((revisionDetector = getRevisionDetector()) != null) {
-            logger.info("\nRevision checking...");
-            List<GKInstance> updateTrackers = revisionDetector.getRevisions(sourceDBA, sliceMap);
-	        // Add updateTracker instances to sliceMap (so they are committed to the target database).
-            updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
-        }
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         // Turn off for the further discussion.
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
+        RevisionDetectorTest revisionDetectorTest = new RevisionDetectorTest();
+        sliceMap = revisionDetectorTest.readSliceMap("sliceMap.ser");
+        // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
+        RevisionDetector revisionDetector = null;
+        List<GKInstance> updateTrackers = null;
+        if ((revisionDetector = getRevisionDetector()) != null) {
+            logger.info("\nRevision checking...");
+            updateTrackers = revisionDetector.getAllUpdateTrackers(sliceMap, sourceDBA);
+	        // Add updateTracker instances to sliceMap (so they are committed to the target database).
+            updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
+        }
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+        if (updateTrackers != null && updateTrackers.size() > 0)
+            revisionDetector.dumpInstances(updateTrackers, sourceDBA);
     } 
 
     /**

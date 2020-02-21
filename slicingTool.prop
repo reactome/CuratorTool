@@ -45,7 +45,7 @@ slicingDbName=test_slice_1
 
 # The following parameters are used for the comparing MySQLAdaptor information.
 # The "previousSlice" database will be used to detect revisions in schema classes.
-needCompareToPreviousSlice=true
+needUpdateTrackers=true
 previousSliceDbHost=localhost
 previousSliceDbUser=liam
 previousSliceDbPwd=)8J7m]!%[<
