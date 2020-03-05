@@ -114,20 +114,24 @@ public class RevisionDetectorTest {
     }
 
     @Test
-    public void getNextAvailableDBIDTest() throws SQLException {
-        revisionDetector.getMaxDBID(sourceDBA);
-    }
-
-    //@Test
     public void getAllUpdateTrackersTest() throws InvalidAttributeException, Exception {
         List<GKInstance> updateTrackers = null;
         Map<Long, GKInstance> sliceMap = readSliceMap(sliceMapFile);
         // Start with five revisions between the two "slices".
         updateTrackers = revisionDetector.getAllUpdateTrackers(sliceMap, sourceDBA, previousSliceDBA);
         assertEquals(updateTrackers.size(), 5);
+
+        // Check that the first DBID is set to maxDBID - 1.
+        Long expectedDBID = updateTrackers.get(0).getDBID();
+        long expectedMaxDBID = expectedDBID - 1;
+        assertEquals(sourceDBA.fetchMaxDbId(), expectedMaxDBID);
+
+        // Check that DBID's are sequential.
+        for (GKInstance updateTracker : updateTrackers.subList(1, updateTrackers.size()))
+            assertEquals(updateTracker.getDBID(), ++expectedDBID);
     }
 
-    //@Test
+    @Test
     public void isPathwayRevisedTest() throws Exception {
         GKInstance sourcePathway = null;
         GKInstance sourceChildPathway = null;
@@ -185,7 +189,7 @@ public class RevisionDetectorTest {
     }
 
 
-    //@Test
+    @Test
     public void isRLERevisedTest() throws Exception {
         GKInstance revisedAttribute = null;
 
@@ -255,7 +259,7 @@ public class RevisionDetectorTest {
         assertNull(updateTracker);
     }
 
-    //@Test
+    @Test
     public void isRLESummationRevisedTest() throws Exception {
         attributeName = ReactomeJavaConstants.text;
 
@@ -281,7 +285,7 @@ public class RevisionDetectorTest {
         assertNull(updateTracker);
     }
 
-    //@Test
+    @Test
     public void IsAttributeRevisedTest() throws Exception {
         GKInstance sourceInstance = null;
 

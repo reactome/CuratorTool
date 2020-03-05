@@ -1,7 +1,5 @@
 package org.gk.slicing;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +24,6 @@ import org.gk.schema.SchemaClass;
 public class RevisionDetector {
     private MySQLAdaptor previousSliceDBA;
 	private final String delimiter = ",";
-	private Long dbid;
 
 	public RevisionDetector() throws SQLException {
 	    this(null);
@@ -45,14 +42,6 @@ public class RevisionDetector {
 	private MySQLAdaptor getPreviousSliceDBA() {
         return previousSliceDBA;
     }
-
-	private void setDBID(Long dbid) {
-	    this.dbid = dbid;
-	}
-
-	private Long getDBID() {
-	    return dbid;
-	}
 
     public List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA)
             throws InvalidAttributeException, Exception {
@@ -94,7 +83,7 @@ public class RevisionDetector {
 	 * @throws Exception
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
-	public List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA)
+	public synchronized List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA)
 	        throws InvalidAttributeException, Exception {
 
 	    if (previousSliceDBA == null)
@@ -103,14 +92,18 @@ public class RevisionDetector {
 	    List<GKInstance> updateTrackers = new ArrayList<GKInstance>();
 	    GKInstance updateTracker = null;
 
-	    // Uncomment to write "n" number of pathways from the sliceMap to a cache file (used for testing).
-	    // writeSliceMap(sliceMap, sliceMapFile, 20);
-
 	    // Iterate over all instances in the slice.
         for (GKInstance sourceEvent : sliceMap.values()) {
             updateTracker = getUpdateTracker(sourceEvent, sourceDBA, previousSliceDBA);
             if (updateTracker != null)
                 updateTrackers.add(updateTracker);
+        }
+
+	    // DBID attribute (the next available DBID value from sourceDBA).
+        Long newDBID = sourceDBA.fetchMaxDbId();
+        for (GKInstance tracker : updateTrackers) {
+            newDBID += 1;
+            tracker.setDBID(newDBID);
         }
 
         return updateTrackers;
@@ -129,9 +122,6 @@ public class RevisionDetector {
 	public GKInstance getUpdateTracker(GKInstance sourceEvent, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA) throws Exception {
 	    if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Event))
 	        return null;
-
-	    if (getDBID() == null)
-	        setDBID(getMaxDBID(sourceDBA));
 
 	    GKInstance previousSliceEvent = null;
 	    GKInstance updateTracker = null;
@@ -164,14 +154,10 @@ public class RevisionDetector {
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
 
 	    // _displayName attribute.
-	    updateTracker.setDisplayName(updatedEvent.toString());
+	    updateTracker.setDisplayName(updatedEvent.getDisplayName());
 
 	    // dbAdaptor attribute.
 	    updateTracker.setDbAdaptor(sourceDBA);
-
-	    // DBID attribute (the next available DBID value from sourceDBA).
-	    setDBID(getDBID() + 1);
-	    updateTracker.setDBID(getDBID());
 
 	    return updateTracker;
 	}
@@ -384,6 +370,8 @@ public class RevisionDetector {
 
     /**
      * Save _UpdateTracker instances to the provided database (typically "sourceDBA").
+     * 
+	 * Adapted from {@link SlicingEngine#dumpInstances} to take "instances" and "dba" as parameters.
 	 *
 	 * @param dba
 	 * @param instances
@@ -408,24 +396,6 @@ public class RevisionDetector {
             e.printStackTrace();
         }
     }
-
-	/**
-	 * Return the maximum DBID of the given database.
-	 *
-	 * @param sourceDBA
-	 * @return Long
-	 * @throws SQLException
-	 */
-	Long getMaxDBID(MySQLAdaptor sourceDBA) throws SQLException {
-	    Long dbID = null;
-
-	    PreparedStatement ps = sourceDBA.getConnection().prepareStatement("SELECT MAX(DB_ID) FROM DatabaseObject");
-	    ResultSet rs = ps.executeQuery();
-	    if (rs.next()) {
-	        dbID = rs.getLong(1);
-	    }
-	    return dbID;
-	}
 
 	/**
 	 * Simple utility method to capitalize an input string (e.g. "hazelnut" -> "Hazelnut").

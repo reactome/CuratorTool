@@ -274,7 +274,7 @@ public class SlicingEngine {
         if ((revisionDetector = getRevisionDetector()) != null) {
             logger.info("\nRevision checking...");
             updateTrackers = revisionDetector.getAllUpdateTrackers(sliceMap, sourceDBA);
-	        // Add updateTracker instances to sliceMap (so they are committed to the target database).
+	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
             updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
         dumpInstances();
