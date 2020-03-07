@@ -11,12 +11,17 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.management.InvalidAttributeValueException;
+
+import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
+import org.gk.util.GKApplicationUtilities;
 
 /**
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
@@ -24,28 +29,39 @@ import org.gk.schema.SchemaClass;
 public class RevisionDetector {
     private MySQLAdaptor previousSliceDBA;
 	private final String delimiter = ",";
-
-	public RevisionDetector() throws SQLException {
-	    this(null);
-	}
+    private Long defaultPersonId;
 
 	public RevisionDetector(Properties properties) throws SQLException {
 	    if (properties == null)
             return;
+
         previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
                                             properties.getProperty("previousSliceDbName"),
                                             properties.getProperty("previousSliceDbUser"),
                                             properties.getProperty("previousSliceDbPwd"),
                                             Integer.parseInt(properties.getProperty("previousSliceDbPort")));
+
+	    defaultPersonId = Long.valueOf(properties.getProperty("defaultPersonId"));
 	}
+
+	public RevisionDetector(MySQLAdaptor previousSliceDBA, Long defaultPersonId) {
+        setPreviousSliceDBA(previousSliceDBA);
+	    setDefaultPersonId(defaultPersonId);
+	}
+
+	private void setDefaultPersonId(Long defaultPersonId) {
+	    this.defaultPersonId = defaultPersonId;
+	}
+	private Long getDefaultPersonId() {
+	    return defaultPersonId;
+	}
+
+	private void setPreviousSliceDBA(MySQLAdaptor previousSliceDBA) {
+	    this.previousSliceDBA = previousSliceDBA;
+    }
 
 	private MySQLAdaptor getPreviousSliceDBA() {
         return previousSliceDBA;
-    }
-
-    public List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA)
-            throws InvalidAttributeException, Exception {
-	    return getAllUpdateTrackers(sliceMap, sourceDBA, getPreviousSliceDBA());
     }
 
     /**
@@ -83,7 +99,7 @@ public class RevisionDetector {
 	 * @throws Exception
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
-	public synchronized List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA)
+	public synchronized List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA)
 	        throws InvalidAttributeException, Exception {
 
 	    if (previousSliceDBA == null)
@@ -92,9 +108,16 @@ public class RevisionDetector {
 	    List<GKInstance> updateTrackers = new ArrayList<GKInstance>();
 	    GKInstance updateTracker = null;
 
+        DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
+        GKInstance person = sourceDBA.fetchInstance(getDefaultPersonId());
+        GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
+        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
+                                    GKApplicationUtilities.getDateTime());
+        InstanceDisplayNameGenerator.setDisplayName(defaultIE);
+
 	    // Iterate over all instances in the slice.
         for (GKInstance sourceEvent : sliceMap.values()) {
-            updateTracker = getUpdateTracker(sourceEvent, sourceDBA, previousSliceDBA);
+            updateTracker = getUpdateTracker(sourceEvent, sourceDBA, defaultIE);
             if (updateTracker != null)
                 updateTrackers.add(updateTracker);
         }
@@ -119,7 +142,8 @@ public class RevisionDetector {
 	 * @return GKInstance
 	 * @throws Exception
 	 */
-	public GKInstance getUpdateTracker(GKInstance sourceEvent, MySQLAdaptor sourceDBA, MySQLAdaptor previousSliceDBA) throws Exception {
+	public GKInstance getUpdateTracker(GKInstance sourceEvent, MySQLAdaptor sourceDBA, GKInstance defaultIE)
+	        throws Exception {
 	    if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Event))
 	        return null;
 
@@ -128,7 +152,7 @@ public class RevisionDetector {
 	    GKInstance updatedEvent = null;
 	    SchemaClass cls = null;
 	    Set<String> actions = null;
-	    previousSliceEvent = previousSliceDBA.fetchInstance(sourceEvent.getDBID());
+	    previousSliceEvent = getPreviousSliceDBA().fetchInstance(sourceEvent.getDBID());
 
 	    // Pathway
 	    if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
@@ -146,18 +170,22 @@ public class RevisionDetector {
 	    cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	    updateTracker = new GKInstance(cls);
 
-	    // action attribute.
+	    // action
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, collectionToString(actions));
 
-	    // updatedEvent attribute.
+	    // updatedEvent
 	    updatedEvent = sourceDBA.fetchInstance(sourceEvent.getDBID());
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
 
-	    // _displayName attribute.
-	    updateTracker.setDisplayName(updatedEvent.getDisplayName());
+	    // _displayName
+	    updateTracker.setDisplayName(InstanceDisplayNameGenerator.generateDisplayName(updateTracker));
 
-	    // dbAdaptor attribute.
+	    // dbAdaptor
 	    updateTracker.setDbAdaptor(sourceDBA);
+
+	    // created
+
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
 
 	    return updateTracker;
 	}
