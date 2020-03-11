@@ -21,7 +21,6 @@ public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     protected void renderShapes(Graphics g) {
         if (background == null)
             background = DEFAULT_BACKGROUND;
-        // Checks for drug flag if background is "DEFAULT_COMPLEX_BACKGROUND" (or "null").
         if (background.equals(DEFAULT_BACKGROUND)) {
             // If node is a drug (if it has "isForDrug" flag set to true).
             if (node.getIsForDrug())

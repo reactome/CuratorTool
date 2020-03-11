@@ -32,11 +32,10 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
     public ElvPhysicalEntityEditHandler() {
     }
     
-    protected void physicalEntityEdit(AttributeEditEvent editEvent) {
+    protected void physicalEntityEdit(AttributeEditEvent editEvent) throws InvalidAttributeException, Exception {
         GKInstance instance = editEvent.getEditingInstance();
         List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
         if (editEvent.getAttributeName().equals(ReactomeJavaConstants.disease)) {
-            try {
                 boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
                 if (isForDisease != renderables.get(0).getIsForDisease()) {
                     for (Renderable renderable : renderables) {
@@ -45,9 +44,6 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
                     PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
                     pathwayEditor.repaint(pathwayEditor.getVisibleRect());
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
         }
     }
 
