@@ -496,6 +496,9 @@ public class GKBWriter implements RenderablePropertyNames {
             if (type != null) {
                 elm.setAttribute("reactionType", type.toString());
             }
+            if (reaction.getIsForDisease()) {
+                elm.setAttribute("isForDisease", reaction.getIsForDisease() + "");
+            }
         }
     }
 
