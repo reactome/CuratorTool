@@ -94,7 +94,6 @@
             <include name="commons/commons-lang-2.5.jar" />
             <include name="commons/commons-httpclient-3.1.jar" />
             <include name="itext/itext-2.0.6.jar" />
-            <include name="javax.xml.rpc-api-1.1.2.jar" />
             <include name="jdom/jdom-1.1.3.jar" />
             <include name="jgraph/jgraph-5.13.0.0.jar" />
             <include name="jnlp-1.2.jar" />
@@ -104,7 +103,6 @@
             <include name="log4j/log4j-1.2.17.jar" />
             <include name="maven-ant-tasks-2.1.3.jar" />
             <include name="ols-client/axis-1.4.jar" />
-            <include name="ols-client/ols-client-1.18.jar" />
         </fileset>
     </path>
 

@@ -14,8 +14,6 @@ import javax.swing.JOptionPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 
-import uk.ac.ebi.ols.soap.Query;
-import uk.ac.ebi.ols.soap.QueryServiceLocator;
 
 /**
  * This class is used to fetch attributes for PsiMOD instance directly from the EBI web service server
@@ -70,9 +68,7 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
                                        identifier);
         }
         String termId = ONTOLOGY_NAME + ":" + identifier;
-        // Start fetch information
-        QueryServiceLocator locator = new QueryServiceLocator();
-        Query service = locator.getOntologyQuery();
+
         // Get the term name
         String term = OLSUtil.getTermById(termId,ONTOLOGY_NAME);
         if (term == null) {
@@ -84,12 +80,12 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
             return;
         }
         if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.name))
-            instance.setAttributeValue(ReactomeJavaConstants.name, 
+            instance.setAttributeValue(ReactomeJavaConstants.name,
                                        term);
-        mapMetaToAttributes(instance, termId, service);
-        mapCrossReference(instance, termId, service);
+        mapMetaToAttributes(instance, termId);
+        mapCrossReference(instance, termId);
     }
-    
+
     /**
      * Get the name used for the identifier attribute. This may be different for different class.
      * @return
@@ -101,19 +97,16 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
     /**
      * Default implementation used as a template.
      * @param instance
-     * @param term
-     * @param services
+     * @param termId
      * @throws Exception
      */
     protected void mapCrossReference(GKInstance instance,
-                                     String termId,
-                                     Query services) throws Exception {
+                                     String termId) throws Exception {
     }
-    
-    
+
+
     protected void mapMetaToAttributes(GKInstance instance,
-                                       String termId,
-                                       Query service) throws Exception {
+                                       String termId) throws Exception {
     	Map<String, String> meta = OLSUtil.getTermMetadata(termId, ONTOLOGY_NAME);
         if (meta == null || meta.size() == 0)
             return;

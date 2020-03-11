@@ -16,8 +16,6 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
 
-import uk.ac.ebi.ols.soap.Query;
-
 /**
  * This method is used to auto fill values for ReferenceMolecule based on ChEBI.
  * @author wgm
@@ -29,11 +27,10 @@ public class ChEBIAttributeAutoFiller extends PsiModAttributeAutoFiller {
         ONTOLOGY_NAME = "CHEBI";
         displayOntologyName = "ReferenceMolecule";
     }
-    
+
     @Override
     protected void mapMetaToAttributes(GKInstance instance,
-                                       String termId,
-                                       Query query)  throws Exception {
+                                       String termId)  throws Exception {
         GKInstance dbInst = getReferenceDatabasae("ChEBI");
         instance.setAttributeValue(ReactomeJavaConstants.referenceDatabase, dbInst);
         Map<String, String> meta = OLSUtil.getTermMetadata(termId, ONTOLOGY_NAME);
@@ -57,9 +54,8 @@ public class ChEBIAttributeAutoFiller extends PsiModAttributeAutoFiller {
     }
 
     @Override
-    protected void mapCrossReference(GKInstance instance, 
-                                     String termId,
-                                     Query query) throws Exception {
+    protected void mapCrossReference(GKInstance instance,
+                                     String termId) throws Exception {
     	Map<String, String> xrefs = OLSUtil.getTermXrefs(termId, ONTOLOGY_NAME);
         if (xrefs == null || xrefs.size() == 0)
             return;
