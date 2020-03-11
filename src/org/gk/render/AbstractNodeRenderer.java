@@ -52,7 +52,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
 
     protected abstract void renderShapes(Graphics g);
     
-    protected void renderDrug(Graphics g) {
+    protected void renderDrugLabel(Graphics g) {
         // Want to use a smaller font
         Font font = g.getFont();
         Font oldFond = font;
@@ -60,27 +60,29 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         Graphics2D g2 = (Graphics2D) g;
         Rectangle2D textBounds = font.getStringBounds(DRUG_SYMBOL, g2.getFontRenderContext());
         // Make sure it is drawn at the bottom right corner
-        Rectangle bounds = node.getBounds();
+        Rectangle nodeBounds = node.getBounds();
+
+        // Width and Height of the label.
         int w = (int)(textBounds.getWidth() + boundsBuffer);
         int h = (int)(textBounds.getHeight() + boundsBuffer);
-        int x = (int) (bounds.getMaxX() - w);
-        int y = (int) (bounds.getMaxY() - h);
-        
+        // Bottom right coordinates.
+        int x = (int)(nodeBounds.getMaxX() - w);
+        int y = (int)(nodeBounds.getMaxY() - h);
+
         // Some shapes for the labeling
-        if (background == null) { 
-            g2.setPaint(DEFAULT_BACKGROUND);
+        if (background == null) {
+            g2.setPaint(DEFAULT_DRUG_BACKGROUND);
         }
         else {
             g2.setPaint(background);
         }
-        g2.fillRect(x, y, w, h);
-        setDrawPaintAndStroke(g2);
-        g2.drawRect(x, y, w, h);
-        
         // Draw the drug label
         g2.setFont(font);
         Color oldColor = g2.getColor();
-        g2.setColor(node.getForegroundColor());
+        if (foreground == null) 
+            g2.setColor(DEFAULT_DRUG_FOREGROUND);
+        else 
+            g2.setColor(foreground);
         DrawUtilities.drawString(DRUG_SYMBOL,
                 x,
                 y,
@@ -99,6 +101,8 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
             g2.setPaint(HIGHLIGHTED_COLOR);
         else if (node.lineColor != null)
             g2.setPaint(node.lineColor);
+        else if (node.getIsForDisease())
+            g2.setPaint(DEFAULT_DISEASE_FOREGROUND);
         else
             g2.setPaint(DEFAULT_OUTLINE_COLOR);
         // Set stroke

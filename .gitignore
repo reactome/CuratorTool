@@ -7,7 +7,6 @@ tmp/*
 *.class
 
 
-/.classpath
 /temp/
 /tmp/
 

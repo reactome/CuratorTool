@@ -42,11 +42,11 @@ import org.gk.schema.InvalidAttributeException;
 @SuppressWarnings("unchecked")
 public class ElvReactionEditHelper extends ElvInstanceEditHandler {
     private ReactionInstanceHandler reactionHandler;
-    
+
     public ElvReactionEditHelper() {
         reactionHandler = new ReactionInstanceHandler();
     }
-    
+
     public void validateReactionInDiagram(RenderableReaction reaction) {
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
         GKInstance instance = fileAdaptor.fetchInstance(reaction.getReactomeId());
@@ -68,7 +68,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.PositiveRegulation);
         validateDisplayedRegulation(reaction, instance, ReactomeJavaConstants.NegativeRegulation);
     }
-    
+
     private void validateDisplayedInputs(RenderableReaction reaction,
                                          GKInstance instance) throws Exception {
         Map<Renderable, Integer> stoiMap = reaction.getInputStoichiometries();
@@ -82,9 +82,9 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             handleInputs(instance, reaction);
         }
     }
-    
+
     private void validateDisplayedOutputs(RenderableReaction reaction,
-                                GKInstance instance) throws Exception {
+                                          GKInstance instance) throws Exception {
         Map<Renderable, Integer> stoiMap = reaction.getOutputStoichiometries();
         List inputs = instance.getAttributeValuesList(ReactomeJavaConstants.output);
         Map<GKInstance, Integer> instanceStoiMap = reactionHandler.generateStoiMap(inputs);
@@ -94,7 +94,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             handleOutputs(instance, reaction);
         }
     }
-    
+
     private boolean isSameStoiMap(Map<Renderable, Integer> rMap,
                                   Map<GKInstance, Integer> iMap) {
         if (rMap.size() != iMap.size())
@@ -122,7 +122,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         // should suffice. No need to check iMap.
         return true;
     }
-    
+
     public void insertReactionInFull(PathwayEditor pathwayEditor,
                                      GKInstance reaction) throws Exception {
         // Check if this reaction has been inserted already
@@ -211,7 +211,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                     r.addInput((Node)rI);
                     Integer stoi = stoiMap.get(i);
                     if (stoi > 1)
-                       r.setInputStoichiometry(rI, stoi); 
+                        r.setInputStoichiometry(rI, stoi); 
                 }
             }
         }
@@ -241,7 +241,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             rPe = zoomableEditor.insertInstance(pe);
         return rPe;
     }
-    
+
     /**
      * A helper method to make sure reaction's inputs, outputs, catalysts and modifiers
      * are still correct after a detach or attach event.
@@ -267,7 +267,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         validateReactionCatalysts(reaction, reactionInstance);
         validateRegulations(reaction, reactionInstance); 
     }
-    
+
     private List<GKInstance> convertToInstances(List<Node> renderables) {
         if (renderables == null || renderables.size() == 0)
             return new ArrayList<GKInstance>();
@@ -279,7 +279,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         }
         return list;
     }
-    
+
     private List<GKInstance> getRegulation(GKInstance reaction,
                                            String clsName) throws Exception {
         Collection<GKInstance> regulations = InstanceUtilities.getRegulations(reaction);
@@ -287,7 +287,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             return new ArrayList<>();
         return regulations.stream().filter(r -> r.getSchemClass().isa(clsName)).collect(Collectors.toList());
     }
-    
+
     private void validateRegulations(RenderableReaction reaction,
                                      GKInstance reactionInstance) throws Exception {
         List<GKInstance> positiveRegulation = getRegulation(reactionInstance, ReactomeJavaConstants.PositiveRegulation);
@@ -303,13 +303,13 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                             reactionInstance, 
                             ReactomeJavaConstants.NegativeRegulation);
     }
-    
+
     private void validateRegulations(List<Node> newNodes,
                                      List<GKInstance> oldRegulations,
                                      GKInstance reaction,
                                      String clsName) throws Exception {
         if (newNodes.size() == 0 &&
-            oldRegulations.size() == 0)
+                oldRegulations.size() == 0)
             return;
         List<GKInstance> newRegulators = convertToInstances(newNodes);
         // validate the old regulation
@@ -334,7 +334,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             InstanceDisplayNameGenerator.setDisplayName(newRegulation);
         }
     }
-    
+
     /**
      * Make sure the reaction's ca attributes are the same as in diagram.
      * @param reaction
@@ -378,7 +378,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         AttributeEditManager.getManager().attributeEdit(reactionInstance, 
                                                         ReactomeJavaConstants.catalystActivity);
     }
-    
+
     public void reactionEdit(AttributeEditEvent editEvent,
                              RenderableReaction reaction) {
         GKInstance instance = editEvent.getEditingInstance();
@@ -389,13 +389,30 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         if (attName.equals(ReactomeJavaConstants._doRelease)) {
             updateDoNotReleaseEventVisible(instance);
         }
+        else if (editEvent.getAttributeName().equals(ReactomeJavaConstants.disease)) {
+            List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
+            try {
+                boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+                if (isForDisease != renderables.get(0).getIsForDisease()) {
+                    for (Renderable renderable : renderables) {
+                        renderable.setIsForDisease(isForDisease);
+                    }
+                    PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                    pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+                }
+            }
+            catch(Exception e) {
+                System.err.println("ElvReactionEditHelper.reactionEdit(): " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         else {
             validateDisplayedLinkedNodes(reaction,
                                          instance,
                                          attName);
         }
     }
-    
+
     public void regulationEdit(AttributeEditEvent editEvent) {
         GKInstance regulation = editEvent.getEditingInstance();
         int type = editEvent.getEditingType();
@@ -439,7 +456,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             e.printStackTrace();
         }
     }
-    
+
     private void validateDisplayedRegulation(RenderableReaction reaction,
                                              GKInstance reactionInstance,
                                              String clsName) throws Exception {
@@ -485,7 +502,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             }
         }
     }
-    
+
     protected void validateDisplayedRegulation(GKInstance reaction,
                                                GKInstance regulation,
                                                GKInstance regulator,
@@ -538,7 +555,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             editor.repaint(editor.getVisibleRect());
         }
     }
-    
+
     private RenderableReaction getDisplayedReaction(GKInstance reaction) {
         if (reaction == null)
             return null;
@@ -553,7 +570,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
         }
         return null;
     }
-    
+
     public void catalystActivityEdit(GKInstance ca) {
         try {
             // Need to find reaction this ca is worked before
@@ -589,7 +606,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             e.printStackTrace();
         }
     }
-    
+
     private void validateDisplayedCatalysts(RenderableReaction reaction,
                                             GKInstance instance) throws Exception {
         List list = instance.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
@@ -659,7 +676,7 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             return;
         }
         if (!attName.equals(ReactomeJavaConstants.input) &&
-            !attName.equals(ReactomeJavaConstants.output))
+                !attName.equals(ReactomeJavaConstants.output))
             return; // Nothing will be done in this method
         try {
             List<Node> nodes = null;
@@ -683,5 +700,5 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
             e.printStackTrace();
         }
     }
-    
+
 }

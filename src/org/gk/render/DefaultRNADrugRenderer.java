@@ -11,7 +11,7 @@ public class DefaultRNADrugRenderer extends DefaultRNARenderer {
     @Override
     protected void renderShapes(Graphics g) {
         super.renderShapes(g);
-        super.renderDrug(g);
+        super.renderDrugLabel(g);
     }
     
 }

@@ -74,6 +74,7 @@ import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 
@@ -91,6 +92,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
     private ElvComplexEditHandler complexHelper;
     private ElvPathwayEditHelper pathwayHelper;
     private ElvPhysicalEntityEditHandler peHelper;
+    private ElvEntitySetEditHandler entitySetHelper;
     // A flag
     private boolean changeFromEditor = false;
     // Flag indicating the process of hiding complex components
@@ -119,6 +121,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
             return pathwayHelper;
         if (instance.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
             return ewasHelper;
+        if (instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+            return entitySetHelper;
         // For some common PE related work
         if (instance.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
             return peHelper;
@@ -206,6 +210,8 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         complexHelper.setZoomableEditor(this);
         pathwayHelper = new ElvPathwayEditHelper();
         pathwayHelper.setZoomableEditor(this);
+        entitySetHelper = new ElvEntitySetEditHandler();
+        entitySetHelper.setZoomableEditor(this);
         peHelper = new ElvPhysicalEntityEditHandler();
         peHelper.setZoomableEditor(this);
         // Don't want to do complex component editing, which is very error-prone
@@ -538,7 +544,13 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         else if (schemaClass.isa(ReactomeJavaConstants.ModifiedResidue))
             ewasHelper.modifiedResidueEdit(editEvent);
         else if (schemaClass.isa(ReactomeJavaConstants.EntitySet))
-            peHelper.entitySetEdit(editEvent);
+            entitySetHelper.entitySetEdit(editEvent);
+        try {
+            if (schemaClass.isa(ReactomeJavaConstants.PhysicalEntity))
+                peHelper.physicalEntityEdit(editEvent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     protected Renderable addComplexComponent(RenderableComplex complex,

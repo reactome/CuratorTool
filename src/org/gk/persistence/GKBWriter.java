@@ -94,10 +94,13 @@ public class GKBWriter implements RenderablePropertyNames {
             if (node.isNeedDashedBorder()) {
                 parentElm.setAttribute("needDashedBorder", node.isNeedDashedBorder() + "");
             }
-        }
-        // Check if it is a multimer
-        if (renderable instanceof Node) {
-            Node node = (Node) renderable;
+            if (node.getIsForDrug()) {
+                parentElm.setAttribute("isForDrug", node.getIsForDrug() + "");
+            }
+            if (node.getIsForDisease()) {
+                parentElm.setAttribute("isForDisease", node.getIsForDisease() + "");
+            }
+            // Check if it is a multimer
             int number = node.getMultimerMonomerNumber();
             if (number >= 2) {
                 parentElm.setAttribute("multimerMonomerNumber", number + "");
