@@ -36,14 +36,14 @@ public class ElvPhysicalEntityEditHandler extends ElvInstanceEditHandler {
         GKInstance instance = editEvent.getEditingInstance();
         List<Renderable> renderables = zoomableEditor.searchConvertedRenderables(instance);
         if (editEvent.getAttributeName().equals(ReactomeJavaConstants.disease)) {
-            boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
-            if (isForDisease != renderables.get(0).getIsForDisease()) {
-                for (Renderable renderable : renderables) {
-                    renderable.setIsForDisease(isForDisease);
+                boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
+                if (isForDisease != renderables.get(0).getIsForDisease()) {
+                    for (Renderable renderable : renderables) {
+                        renderable.setIsForDisease(isForDisease);
+                    }
+                    PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
+                    pathwayEditor.repaint(pathwayEditor.getVisibleRect());
                 }
-                PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
-                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
-            }
         }
     }
 

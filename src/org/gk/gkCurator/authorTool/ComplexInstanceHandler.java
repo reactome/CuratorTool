@@ -15,13 +15,13 @@ import org.gk.render.InstanceToRenderableConverter;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
+import org.gk.schema.InvalidAttributeException;
 
 public class ComplexInstanceHandler extends InstanceHandler {
     
-    protected Renderable convertToRenderable(GKInstance instance) throws Exception {
+    protected Renderable convertToRenderable(GKInstance instance) throws InvalidAttributeException, Exception {
         Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class, 
                                                             container);
-
         boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
         r.setIsForDisease(isForDisease);
         boolean isForDrug = InstanceUtilities.hasDrug(instance);
