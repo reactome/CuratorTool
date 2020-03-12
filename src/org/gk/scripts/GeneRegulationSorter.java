@@ -6,15 +6,20 @@ package org.gk.scripts;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
+import org.junit.Test;
 
 /**
  * This script is to used to sort Regulation into GeneRegulation based on the following criteria:
@@ -32,6 +37,50 @@ public class GeneRegulationSorter {
      * Default constructor.
      */
     public GeneRegulationSorter() {
+    }
+    
+    /**
+     * Use this method to generate some numbers for grant writing.
+     * @throws Exception
+     */
+    @Test
+    public void countGeneRegulations() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_102319",
+                                            "root",
+                                            "macmysql01");
+        Set<String> tfs = new HashSet<>();
+        Set<GKInstance> rles = new HashSet<>();
+        Collection<GKInstance> geneRegulations = dba.fetchInstancesByClass(ReactomeJavaConstants.PositiveGeneExpressionRegulation);
+        countGeneRegulations(tfs, rles, geneRegulations);
+        geneRegulations = dba.fetchInstancesByClass(ReactomeJavaConstants.NegativeGeneExpressionRegulation);
+        countGeneRegulations(tfs, rles, geneRegulations);
+        tfs.stream().sorted().forEach(System.out::println);
+        System.out.println("Total genes: " + tfs.size());
+        System.out.println("Total reactions: " + rles.size());
+    }
+
+    private void countGeneRegulations(Set<String> tfs, Set<GKInstance> rles, Collection<GKInstance> geneRegulations)
+            throws Exception, InvalidAttributeException {
+        for (GKInstance geneRegulation : geneRegulations) {
+            Collection<GKInstance> referrers = geneRegulation.getReferers(ReactomeJavaConstants.regulatedBy);
+            if (referrers != null)
+                rles.addAll(referrers);
+            GKInstance regulator = (GKInstance) geneRegulation.getAttributeValue(ReactomeJavaConstants.regulator);
+            if (regulator == null)
+                continue;
+            Set<GKInstance> refGenes = InstanceUtilities.grepReferenceEntitiesForPE(regulator);
+            for (GKInstance refGene : refGenes) {
+                if (refGene.getSchemClass().isValidAttribute(ReactomeJavaConstants.geneName)) {
+                    GKInstance species = (GKInstance) refGene.getAttributeValue(ReactomeJavaConstants.species);
+                    if (species == null || !species.getDisplayName().equals("Homo sapiens"))
+                        continue;
+                    String geneName = (String) refGene.getAttributeValue(ReactomeJavaConstants.geneName);
+                    if (geneName != null)
+                        tfs.add(geneName);
+                }
+            }
+        }
     }
     
     public static void main(String[] args) throws Exception {
