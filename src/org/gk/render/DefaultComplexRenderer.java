@@ -16,10 +16,23 @@ import java.awt.geom.GeneralPath;
  * This class is for drawing a RenderableComplex.
  * @author  wgm
  */
+@SuppressWarnings("serial")
 public class DefaultComplexRenderer extends AbstractNodeRenderer {
     
     /** Creates a new instance of DefaultComplexRenderer */
     public DefaultComplexRenderer() {
+    }
+    
+    protected void setProperties(Renderable renderable) {
+        super.setProperties(renderable);
+        // This should be safe
+        if (renderable instanceof Node) {
+            Node node = (Node) renderable;
+            if (node.getIsForDrug()) { // We will ignore whatever color set there
+                background = DEFAULT_DRUG_BACKGROUND;
+                foreground = DEFAULT_DRUG_FOREGROUND;
+            }
+        }
     }
     
     protected void renderShapes(Graphics g) {
@@ -50,30 +63,13 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
         Color bg = background;
         if (bg == null)
             bg = DEFAULT_COMPLEX_BACKGROUND;
-        if (bg.equals(DEFAULT_COMPLEX_BACKGROUND)) {
-            // If node is a drug (if it has "isForDrug" flag set to true).
-            if (node.getIsForDrug())
-                bg = DEFAULT_DRUG_BACKGROUND;
-        }
         if (brighter)
             bg = bg.brighter();
         g2.setPaint(bg);
         GeneralPath shape = createShape(rect);
         g2.fill(shape);
-//        g2.fillRoundRect(rect.x,
-//                         rect.y,
-//                         rect.width,
-//                         rect.height,
-//                         ROUND_RECT_ARC_WIDTH,
-//                         ROUND_RECT_ARC_WIDTH);
 		setDrawPaintAndStroke(g2);
 		g2.draw(shape);
-//        g2.drawRoundRect(rect.x,
-//                         rect.y,
-//                         rect.width,
-//                         rect.height,
-//                         ROUND_RECT_ARC_WIDTH,
-//                         ROUND_RECT_ARC_WIDTH);
     }
     
     private GeneralPath createShape(Rectangle rect) {

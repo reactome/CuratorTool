@@ -9,6 +9,8 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Stroke;
 
+
+@SuppressWarnings("serial")
 public class DefaultChemicalRenderer extends AbstractNodeRenderer {
     
     public DefaultChemicalRenderer() {
@@ -16,12 +18,7 @@ public class DefaultChemicalRenderer extends AbstractNodeRenderer {
     
     protected void renderShapes(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
-        if (background == null) { 
-            g2.setPaint(DEFAULT_BACKGROUND);
-        }
-        else {
-            g2.setPaint(background);
-        }
+        setBackground(g2);
         Rectangle bounds = node.getBounds();
         g2.fillOval(bounds.x,
                     bounds.y,

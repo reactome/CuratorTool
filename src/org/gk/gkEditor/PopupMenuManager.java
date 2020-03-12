@@ -16,8 +16,20 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 import org.apache.batik.ext.swing.GridBagConstants;
 import org.gk.graphEditor.GraphEditorActionEvent;
@@ -29,7 +41,25 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.render.*;
+import org.gk.render.FlowLine;
+import org.gk.render.HyperEdge;
+import org.gk.render.HyperEdgeSelectionInfo;
+import org.gk.render.Node;
+import org.gk.render.Note;
+import org.gk.render.ProcessNode;
+import org.gk.render.ReactionType;
+import org.gk.render.RenderUtility;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFactory;
+import org.gk.render.RenderableFeature;
+import org.gk.render.RenderableInteraction;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
+import org.gk.render.RenderableState;
+import org.gk.render.SelectionPosition;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.DialogControlPane;
 import org.gk.util.GKApplicationUtilities;
@@ -613,7 +643,7 @@ public class PopupMenuManager {
     private void formatDisplay(final GraphEditorPane graphPane) {
         if (graphPane == null)
             return;
-        List selection = graphPane.getSelection();
+        List<Renderable> selection = graphPane.getSelection();
         if (selection == null || selection.size() == 0)
             return;
         // Used as an example

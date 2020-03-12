@@ -32,6 +32,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
     /**
      * Render method.
      */
+    @Override
     public void render(Graphics g) {
         if (!node.isVisible() && !node.isSelected())
             return;
@@ -47,7 +48,7 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         drawResizeWidgets(g);
         drawNodeAttachments(g);
         drawMultimerMonomerNumber(g);
-        RenderUtility.drawName(node, (Graphics2D)g);
+        RenderUtility.drawName(node, (Graphics2D)g, foreground);
     }
 
     protected abstract void renderShapes(Graphics g);
@@ -93,16 +94,25 @@ public abstract class AbstractNodeRenderer implements Renderer, DefaultRenderCon
         g2.setColor(oldColor);
     }
     
+    protected void setBackground(Graphics2D g2) {
+        if (background == null) { 
+            g2.setPaint(DEFAULT_BACKGROUND);
+        }
+        else {
+            g2.setPaint(background);
+        }
+    }
+    
     protected void setDrawPaintAndStroke(Graphics2D g2) {
         // Set line color first
         if (isSelected)
             g2.setPaint(SELECTION_WIDGET_COLOR);
         else if (isHighlited)
             g2.setPaint(HIGHLIGHTED_COLOR);
+        else if (node.getIsForDisease())
+            g2.setPaint(DEFAULT_DISEASE_LINE_COLOR);
         else if (node.lineColor != null)
             g2.setPaint(node.lineColor);
-        else if (node.getIsForDisease())
-            g2.setPaint(DEFAULT_DISEASE_OUTLINE);
         else
             g2.setPaint(DEFAULT_OUTLINE_COLOR);
         // Set stroke

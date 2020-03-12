@@ -77,7 +77,7 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
         HyperEdge reactionCopy = normalReaction.shallowCopy();
         reactionCopy.setReactomeId(diseaseReaction.getDBID());
         reactionCopy.setDisplayName(diseaseReaction.getDisplayName());
-        reactionCopy.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_BACKGROUND);
+        reactionCopy.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_LINE_COLOR);
         displayedObject.addComponent(reactionCopy);
         overlaidObjects.add(reactionCopy);
 

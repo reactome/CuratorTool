@@ -18,8 +18,24 @@ import org.gk.model.DatabaseIdentifier;
 import org.gk.model.Modification;
 import org.gk.model.Reference;
 import org.gk.model.Summation;
-import org.gk.render.*;
+import org.gk.render.ContainerNode;
+import org.gk.render.DefaultRenderConstants;
+import org.gk.render.HyperEdge;
+import org.gk.render.Node;
+import org.gk.render.NodeAttachment;
+import org.gk.render.Note;
+import org.gk.render.ReactionType;
+import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
+import org.gk.render.RenderableComplex;
+import org.gk.render.RenderableFeature;
 import org.gk.render.RenderableFeature.FeatureType;
+import org.gk.render.RenderableInteraction;
+import org.gk.render.RenderablePathway;
+import org.gk.render.RenderablePropertyNames;
+import org.gk.render.RenderableReaction;
+import org.gk.render.RenderableRegistry;
+import org.gk.render.Shortcut;
 import org.jdom.Element;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
@@ -96,9 +112,14 @@ public class GKBWriter implements RenderablePropertyNames {
             }
             if (node.getIsForDrug()) {
                 parentElm.setAttribute("isForDrug", node.getIsForDrug() + "");
+                // reset bg and fg for software doesn't know this flag
+                parentElm.setAttribute("bgColor", convertToString(DefaultRenderConstants.DEFAULT_DRUG_BACKGROUND));
+                parentElm.setAttribute("fgColor", convertToString(DefaultRenderConstants.DEFAULT_DRUG_FOREGROUND));
             }
             if (node.getIsForDisease()) {
                 parentElm.setAttribute("isForDisease", node.getIsForDisease() + "");
+                // reset the line color
+                parentElm.setAttribute("lineColor", convertToString(DefaultRenderConstants.DEFAULT_DISEASE_LINE_COLOR));
             }
             // Check if it is a multimer
             int number = node.getMultimerMonomerNumber();
@@ -487,7 +508,13 @@ public class GKBWriter implements RenderablePropertyNames {
         Point pos = reaction.getPosition();
         elm.setAttribute("position", pos.x + " " + pos.y);  
         elm.setAttribute("lineWidth", reaction.getLineWidth() + "");
-        if (reaction.getLineColor() != null)
+        // Handle line color
+        if (reaction.getIsForDisease()) {// Provide a default line color for software that doesn't know this flag
+                                        // to get color
+            elm.setAttribute("isForDisease", reaction.getIsForDisease() + "");
+            elm.setAttribute("lineColor", convertToString(DefaultRenderConstants.DEFAULT_DISEASE_LINE_COLOR));
+        }
+        else if (reaction.getLineColor() != null)
             elm.setAttribute("lineColor", convertToString(reaction.getLineColor()));
         // Type for reaction
         if (reaction instanceof RenderableReaction) {
@@ -495,9 +522,6 @@ public class GKBWriter implements RenderablePropertyNames {
             ReactionType type = rxt.getReactionType();
             if (type != null) {
                 elm.setAttribute("reactionType", type.toString());
-            }
-            if (reaction.getIsForDisease()) {
-                elm.setAttribute("isForDisease", reaction.getIsForDisease() + "");
             }
         }
     }

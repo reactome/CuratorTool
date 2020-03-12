@@ -321,7 +321,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
         HyperEdge reactionCopy = normalReaction.shallowCopy();
         reactionCopy.setReactomeId(diseaseReaction.getDBID());
         reactionCopy.setDisplayName(diseaseReaction.getDisplayName());
-        reactionCopy.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_BACKGROUND);
+        reactionCopy.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_LINE_COLOR);
         displayedObject.addComponent(reactionCopy);
         overlaidObjects.add(reactionCopy);
         // Want to handle inputs, outputs and catalysts since regulators can
@@ -452,7 +452,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
             // we will try to get the original possible renderer
             diseaseNode.setRenderer(RendererFactory.getFactory().getRenderer(diseaseNode));
 //            diseaseNode.setRenderer(normalNode.getRenderer());
-            diseaseNode.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_BACKGROUND);
+            diseaseNode.setLineColor(DefaultRenderConstants.DEFAULT_DISEASE_LINE_COLOR);
             diseaseNode.setNeedDashedBorder(needDashedBorder);
             RenderUtility.hideCompartmentInNodeName(diseaseNode);
             overlaidObjects.add(diseaseNode);

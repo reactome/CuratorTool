@@ -6,6 +6,7 @@ package org.gk.render;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -186,7 +187,9 @@ public class RenderUtility {
         }
     }
 
-    public static void drawName(Node node, Graphics2D g2) {
+    public static void drawName(Node node, 
+                                Graphics2D g2,
+                                Paint foreground) {
         // Nothing to draw
         if (node.getTextBounds() == null ||
             node.getTextLayouts() == null)
@@ -195,14 +198,11 @@ public class RenderUtility {
         if (node.getSelectionPosition() == SelectionPosition.TEXT) {
             g2.setPaint(DefaultRenderConstants.SELECTION_WIDGET_COLOR);
         }
-        else if (node.getForegroundColor() == null) {
-            if (node.getIsForDrug())
-                g2.setPaint(DefaultRenderConstants.DEFAULT_DRUG_FOREGROUND);
-            else
-                g2.setPaint(DefaultRenderConstants.DEFAULT_FOREGROUND);
+        else if (foreground == null) {
+            g2.setPaint(DefaultRenderConstants.DEFAULT_FOREGROUND);
         }
         else
-            g2.setPaint(node.getForegroundColor());
+            g2.setPaint(foreground);
         Rectangle bounds = node.getTextBounds();
         DrawUtilities.drawString(node.getTextLayouts(), 
                                  bounds, 

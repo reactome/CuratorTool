@@ -23,12 +23,7 @@ public class DefaultProteinRenderer extends AbstractNodeRenderer {
     
     protected void renderShapes(Rectangle bounds,
                                 Graphics2D g2) {
-        if (background == null) { 
-            g2.setPaint(DEFAULT_BACKGROUND);
-        }
-        else {
-            g2.setPaint(background);
-        }
+        setBackground(g2);
         g2.fillRoundRect(bounds.x,
                          bounds.y,
                          bounds.width,

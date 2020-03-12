@@ -10,6 +10,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.property.SearchDBTypeHelper;
+import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableFactory;
 
@@ -30,7 +31,8 @@ public class EntityInstanceHandler extends InstanceHandler {
         }
         if (instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
             boolean isForDrug = InstanceUtilities.hasDrug(instance);
-            r.setIsForDrug(isForDrug);
+            if (r instanceof Node)
+                ((Node)r).setIsForDrug(isForDrug);
         }
         return r;
     }

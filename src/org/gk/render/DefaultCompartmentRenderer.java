@@ -24,8 +24,6 @@ public class DefaultCompartmentRenderer extends AbstractNodeRenderer {
         return node.getDisplayName() != null && !node.getDisplayName().endsWith("membrane");
     }
     
-    
-    
     @Override
     protected void drawResizeWidgets(Graphics g) {
         if (!node.isSelected())

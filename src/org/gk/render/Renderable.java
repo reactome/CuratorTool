@@ -70,7 +70,6 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
     // so that two shortcuts in different compartments can have different values
     private String localization;
     protected Float lineWidth;
-    protected boolean isForDrug;
     protected boolean isForDisease;
     
     public Renderable() {
@@ -485,13 +484,5 @@ public abstract class Renderable implements Serializable, RenderablePropertyName
 
     public boolean getIsForDisease() {
         return isForDisease;
-    }
-    
-    public void setIsForDrug(boolean isForDrug) {
-        this.isForDrug = isForDrug;
-    }
-    
-    public boolean getIsForDrug() {
-        return this.isForDrug;
     }
 }

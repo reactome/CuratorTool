@@ -12,20 +12,29 @@ import java.awt.Rectangle;
  * @author gwu
  *
  */
+@SuppressWarnings(value = "serial")
 public class DefaultEntitySetRenderer extends DefaultProteinRenderer {
     
     public DefaultEntitySetRenderer() {
     }
     
     @Override
+    protected void setProperties(Renderable renderable) {
+        super.setProperties(renderable);
+        // This should be safe
+        if (renderable instanceof Node) {
+            Node node = (Node) renderable;
+            if (node.getIsForDrug()) { // We will ignore whatever color set there
+                background = DEFAULT_DRUG_BACKGROUND;
+                foreground = DEFAULT_DRUG_FOREGROUND;
+            }
+        }
+    }
+    
+    @Override
     protected void renderShapes(Graphics g) {
         if (background == null)
             background = DEFAULT_BACKGROUND;
-        if (background.equals(DEFAULT_BACKGROUND)) {
-            // If node is a drug (if it has "isForDrug" flag set to true).
-            if (node.getIsForDrug())
-                background = DEFAULT_DRUG_BACKGROUND;
-        }
         Graphics2D g2 = (Graphics2D) g;
         Rectangle bounds = node.getBounds();
         // The following code is used to draw two same size shapes with a litte shift

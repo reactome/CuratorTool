@@ -75,6 +75,7 @@ public class Node extends Renderable {
     protected transient List<Renderable> shortcuts;
     protected Integer minWidth = 10;
     protected boolean needDashedBorder;
+    protected boolean isForDrug;
     
     /** Creates a new instance of GraphNode */
     public Node() {
@@ -1146,6 +1147,14 @@ public class Node extends Renderable {
     
     public List<NodeAttachment> getNodeAttachments() {
         return attachments;
+    }
+
+    public void setIsForDrug(boolean isForDrug) {
+        this.isForDrug = isForDrug;
+    }
+
+    public boolean getIsForDrug() {
+        return this.isForDrug;
     }
     
 }

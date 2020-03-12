@@ -60,6 +60,7 @@ public class RenderableDisplayFormatDialog extends JDialog {
     // For Node border
     private JCheckBox needDashedLine;
     private GraphEditorPane editorPane;
+    private JLabel noteForDrugDiseaseObj;
     // A flag
     private boolean isOKClicked = false;
     // for cancel
@@ -117,6 +118,10 @@ public class RenderableDisplayFormatDialog extends JDialog {
         needDashedLine = new JCheckBox("Need Dashed Border");
         constraints.gridy = 5;
         panel.add(needDashedLine, constraints);
+        noteForDrugDiseaseObj = new JLabel("<html><i>*: Colors for drug or disease object cannot be set</i></html>");
+        constraints.gridy = 6;
+        panel.add(noteForDrugDiseaseObj, constraints);
+        noteForDrugDiseaseObj.setVisible(false); // Default for false
         
         getContentPane().add(panel, BorderLayout.CENTER);
         
@@ -435,7 +440,7 @@ public class RenderableDisplayFormatDialog extends JDialog {
         return this.isOKClicked;
     }
     
-    public void setRenderables(List list) {
+    public void setRenderables(List<Renderable> list) {
         if (list == null || list.size() == 0)
             return;
         renderables = new ArrayList<Renderable>(list);
@@ -519,6 +524,13 @@ public class RenderableDisplayFormatDialog extends JDialog {
             needDashedLine.setVisible(true);
             needDashedLine.setSelected(needDashedLineMap.values().iterator().next());
         }
+        // Another check to make sure no color can be set for drug or disease object
+        if (hasDrugDiseaseRenderable()) {
+            fgPanel.setVisible(false);
+            bgPanel.setVisible(false);
+            lineColorPanel.setVisible(false);
+            noteForDrugDiseaseObj.setVisible(true);
+        }
         if (supportPrivateNote) {
             if (isPrivateMap.size() == 0)
                 isPrivateBox.setVisible(false);
@@ -528,6 +540,16 @@ public class RenderableDisplayFormatDialog extends JDialog {
                 isPrivateBox.setVisible(true);
             }
         }
+    }
+    
+    private boolean hasDrugDiseaseRenderable() {
+        for (Renderable r : renderables) {
+            if (r.getIsForDisease())
+                return true;
+            if ((r instanceof Node) && ((Node)r).getIsForDrug())
+                return true;
+        }
+        return false;
     }
     
     private void setDisplayedLineColor(Color c) {

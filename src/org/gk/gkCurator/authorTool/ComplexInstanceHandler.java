@@ -12,6 +12,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.InstanceToRenderableConverter;
+import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
@@ -25,7 +26,8 @@ public class ComplexInstanceHandler extends InstanceHandler {
         boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
         r.setIsForDisease(isForDisease);
         boolean isForDrug = InstanceUtilities.hasDrug(instance);
-        r.setIsForDrug(isForDrug);
+        if (r instanceof Node)
+            ((Node)r).setIsForDrug(isForDrug);
         return r;
     }
 
