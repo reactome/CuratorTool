@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ====================================================================== 
-     Dec 19, 2012 1:58:44 PM                                                        
+<!-- ======================================================================
+     Dec 19, 2012 1:58:44 PM
 
      project    Package the URL monitor application
-     description 
-                   
-     gwu                                                                
+     description
+
+     gwu
      ====================================================================== -->
 <project name="URLMontior" default="package" basedir="..">
-   	<target name="package">
-    	<!-- Jar all files together so that they can be copied to a server -->
-   		<jar destfile="URLMonitor.jar">
-   			<fileset dir="lib/javamail">
-   				<include name="*.jar" />
-   			</fileset>
-   			<fileset dir="lib">
-   				<include name="log4j-1.2.12.jar" />
-   			</fileset>
-   			<fileset dir="classes">
-   				<include name="org/gk/scripts/URLMonitor.class" />
-   				<include name="org/gk/scripts/ProcessMonitor.class" />
-   			</fileset>
-   			<fileset dir="${basedir}">
-   				<include name="resources/URLsForMonitor.txt" />
-   				<include name="resources/EmailsForURLMonitor.txt" />
-   				<include name="resources/log4j.properties" />
-   			</fileset>
-   			<fileset dir="shell">
-   				<include name="runMonitorURLs.sh" />
-   			</fileset>
-   		</jar>
-   	</target>
+    <target name="package">
+        <!-- Jar all files together so that they can be copied to a server -->
+        <jar destfile="URLMonitor.jar">
+            <fileset dir="lib/javamail">
+                <include name="*.jar" />
+            </fileset>
+            <fileset dir="lib">
+                <include name="log4j-1.2.12.jar" />
+            </fileset>
+            <fileset dir="classes">
+                <include name="org/gk/scripts/URLMonitor.class" />
+                <include name="org/gk/scripts/ProcessMonitor.class" />
+            </fileset>
+            <fileset dir="${basedir}">
+                <include name="resources/URLsForMonitor.txt" />
+                <include name="resources/EmailsForURLMonitor.txt" />
+                <include name="resources/log4j.properties" />
+            </fileset>
+            <fileset dir="shell">
+                <include name="runMonitorURLs.sh" />
+            </fileset>
+        </jar>
+    </target>
 
 </project>

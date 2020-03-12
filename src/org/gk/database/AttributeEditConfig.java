@@ -150,7 +150,7 @@ public class AttributeEditConfig {
 
     /**
      * get contact for class instances of uncreatableClasses.
-	 * @param name of contact.
+	 * @param contact Name of contact.
 	 */
 	public void setUncreatableClassContact(String contact) {
 		if (contact != null)
