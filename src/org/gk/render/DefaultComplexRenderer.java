@@ -23,6 +23,10 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
     }
     
     protected void renderShapes(Graphics g) {
+        if (node.getIsForDrug())
+            background = DEFAULT_DRUG_BACKGROUND;
+        else
+            background = DEFAULT_COMPLEX_BACKGROUND;
         Graphics2D g2 = (Graphics2D) g;
         // Draw three overlapping rectangles
         Stroke oldStroke = g2.getStroke();
@@ -49,12 +53,7 @@ public class DefaultComplexRenderer extends AbstractNodeRenderer {
                                  boolean brighter) {
         Color bg = background;
         if (bg == null)
-            bg = DEFAULT_COMPLEX_BACKGROUND;
-        if (bg.equals(DEFAULT_COMPLEX_BACKGROUND)) {
-            // If node is a drug (if it has "isForDrug" flag set to true).
-            if (node.getIsForDrug())
-                bg = DEFAULT_DRUG_BACKGROUND;
-        }
+            bg = DEFAULT_BACKGROUND;
         if (brighter)
             bg = bg.brighter();
         g2.setPaint(bg);

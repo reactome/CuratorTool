@@ -53,7 +53,7 @@ public class DefaultReactionRenderer implements Renderer, DefaultRenderConstants
         else if (reaction.lineColor != null)
             g2.setPaint(reaction.lineColor);
         else if (reaction.getIsForDisease())
-            g2.setPaint(DEFAULT_DISEASE_OUTLINE);
+            g2.setPaint(DEFAULT_DISEASE_FOREGROUND);
         else
             g2.setPaint(DEFAULT_FOREGROUND);
         Stroke oldStroke = g2.getStroke();

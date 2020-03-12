@@ -38,7 +38,7 @@ public interface DefaultRenderConstants {
     
     public static final Color DEFAULT_DISEASE_BACKGROUND = Color.RED;
 
-    public static final Color DEFAULT_DISEASE_OUTLINE = Color.RED;
+    public static final Color DEFAULT_DISEASE_FOREGROUND = Color.RED;
 
     public static final Color DEFAULT_DRUG_BACKGROUND = new Color(184, 154, 230);
 
