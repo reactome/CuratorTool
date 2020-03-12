@@ -353,6 +353,9 @@ public class ReactomeJavaConstants {
     public static final String ControlReference = "ControlReference";
     public static final String surroundedBy = "surroundedBy";
 
+    // Attribute for existence of EHLD in Pathway
+    public static final String hasEHLD = "hasEHLD";
+
 	// SlicingEngine/RevisionDetecteor constants
 	public static final String add = "add";
 	public static final String addRemove = "add/remove";

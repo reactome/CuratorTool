@@ -1414,6 +1414,7 @@ public class InstanceUtilities {
              !instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
              return false;
 
+         //TODO first level only.
          return getContainedInstances(instance,
                  ReactomeJavaConstants.hasMember,
                  ReactomeJavaConstants.hasCandidate,
