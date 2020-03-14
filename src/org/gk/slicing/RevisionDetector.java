@@ -1,22 +1,15 @@
 package org.gk.slicing;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-
-import javax.management.InvalidAttributeValueException;
 
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -27,42 +20,10 @@ import org.gk.util.GKApplicationUtilities;
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
  */
 public class RevisionDetector {
-    private MySQLAdaptor previousSliceDBA;
 	private final String delimiter = ",";
-    private Long defaultPersonId;
 
-	public RevisionDetector(Properties properties) throws SQLException {
-	    if (properties == null)
-            return;
-
-        previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
-                                            properties.getProperty("previousSliceDbName"),
-                                            properties.getProperty("previousSliceDbUser"),
-                                            properties.getProperty("previousSliceDbPwd"),
-                                            Integer.parseInt(properties.getProperty("previousSliceDbPort")));
-
-	    defaultPersonId = Long.valueOf(properties.getProperty("defaultPersonId"));
+	public RevisionDetector() {
 	}
-
-	public RevisionDetector(MySQLAdaptor previousSliceDBA, Long defaultPersonId) {
-        setPreviousSliceDBA(previousSliceDBA);
-	    setDefaultPersonId(defaultPersonId);
-	}
-
-	private void setDefaultPersonId(Long defaultPersonId) {
-	    this.defaultPersonId = defaultPersonId;
-	}
-	private Long getDefaultPersonId() {
-	    return defaultPersonId;
-	}
-
-	private void setPreviousSliceDBA(MySQLAdaptor previousSliceDBA) {
-	    this.previousSliceDBA = previousSliceDBA;
-    }
-
-	private MySQLAdaptor getPreviousSliceDBA() {
-        return previousSliceDBA;
-    }
 
     /**
 	 * Return a List of _UpdateTracker instances for every Event revision in the sliceMap (compared to a previous slice).
@@ -99,37 +60,78 @@ public class RevisionDetector {
 	 * @throws Exception
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
-	public synchronized List<GKInstance> getAllUpdateTrackers(Map<Long,GKInstance> sliceMap, MySQLAdaptor sourceDBA)
-	        throws InvalidAttributeException, Exception {
-
+	public synchronized List<GKInstance> createAllUpdateTrackers(MySQLAdaptor sourceDBA,
+                                                                 MySQLAdaptor previousSliceDBA,
+                                                                 Map<Long,GKInstance> sliceMap,
+                                                                 Long defaultPersonId,
+                                                                 Integer releaseNumber,
+                                                                 String releaseDate) throws InvalidAttributeException, Exception {
 	    if (previousSliceDBA == null)
             return null;
 
-	    List<GKInstance> updateTrackers = new ArrayList<GKInstance>();
-	    GKInstance updateTracker = null;
+	    List<GKInstance> newInstances = new ArrayList<GKInstance>();
 
-        DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
-        GKInstance person = sourceDBA.fetchInstance(getDefaultPersonId());
-        GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
-        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
-                                    GKApplicationUtilities.getDateTime());
-        InstanceDisplayNameGenerator.setDisplayName(defaultIE);
+	    // created
+	    GKInstance defaultIE = createDefaultIE(sourceDBA, defaultPersonId);
+	    newInstances.add(defaultIE);
+
+	    // _release
+	    GKInstance release = createRelease(sourceDBA, releaseNumber, releaseDate);
+	    newInstances.add(release);
 
 	    // Iterate over all instances in the slice.
+	    GKInstance updateTracker = null;
         for (GKInstance sourceEvent : sliceMap.values()) {
-            updateTracker = getUpdateTracker(sourceEvent, sourceDBA, defaultIE);
-            if (updateTracker != null)
-                updateTrackers.add(updateTracker);
+            updateTracker = createUpdateTracker(sourceDBA, previousSliceDBA, sourceEvent, defaultIE, release);
+            if (updateTracker != null) {
+                newInstances.add(updateTracker);
+            }
         }
 
 	    // DBID attribute (the next available DBID value from sourceDBA).
         Long newDBID = sourceDBA.fetchMaxDbId();
-        for (GKInstance tracker : updateTrackers) {
+        for (GKInstance newInstance : newInstances) {
             newDBID += 1;
-            tracker.setDBID(newDBID);
+            newInstance.setDBID(newDBID);
         }
 
-        return updateTrackers;
+        return newInstances;
+	}
+
+	/**
+	 * Create a new "defaultInstanceEdit" instance for use in a given "created" attribute.
+	 *
+	 * @param sourceDBA
+	 * @return GKInstance
+	 * @throws Exception
+	 */
+	GKInstance createDefaultIE(MySQLAdaptor sourceDBA, Long defaultPersonId) throws Exception {
+	    DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
+	    GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
+	    GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
+	    defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
+	            GKApplicationUtilities.getDateTime());
+	    InstanceDisplayNameGenerator.setDisplayName(defaultIE);
+
+	    return defaultIE;
+	}
+
+	/**
+	 * Create a new "_release" instance.
+	 *
+	 * @param sourceDBA
+	 * @return GKInstance
+	 * @throws Exception
+	 */
+	GKInstance createRelease(MySQLAdaptor sourceDBA, Integer releaseNumber, String releaseDate) throws Exception {
+	    SchemaClass releaseCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
+	    GKInstance release = new GKInstance(releaseCls);
+	    release.setDbAdaptor(sourceDBA);
+	    release.setAttributeValue(ReactomeJavaConstants.releaseNumber, releaseNumber);
+	    release.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
+	    release.setDisplayName(InstanceDisplayNameGenerator.generateDisplayName(release));
+
+	    return release;
 	}
 
 	/**
@@ -142,8 +144,11 @@ public class RevisionDetector {
 	 * @return GKInstance
 	 * @throws Exception
 	 */
-	public GKInstance getUpdateTracker(GKInstance sourceEvent, MySQLAdaptor sourceDBA, GKInstance defaultIE)
-	        throws Exception {
+	GKInstance createUpdateTracker(MySQLAdaptor sourceDBA,
+                                   MySQLAdaptor previousSliceDBA,
+                                   GKInstance sourceEvent,
+                                   GKInstance defaultIE,
+                                   GKInstance release) throws Exception {
 	    if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Event))
 	        return null;
 
@@ -152,15 +157,15 @@ public class RevisionDetector {
 	    GKInstance updatedEvent = null;
 	    SchemaClass cls = null;
 	    Set<String> actions = null;
-	    previousSliceEvent = getPreviousSliceDBA().fetchInstance(sourceEvent.getDBID());
+	    previousSliceEvent = previousSliceDBA.fetchInstance(sourceEvent.getDBID());
 
 	    // Pathway
 	    if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-	        actions = isPathwayRevised(sourceEvent, previousSliceEvent);
+	        actions = getPathwayRevisions(sourceEvent, previousSliceEvent);
 
 	    // RLE
 	    else if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-	        actions = isRLERevised(sourceEvent, previousSliceEvent);
+	        actions = getRLERevisions(sourceEvent, previousSliceEvent);
 
 	    // No revision detected.
 	    if (actions == null || actions.size() == 0)
@@ -169,9 +174,16 @@ public class RevisionDetector {
 	    // If a revision condition is met, create new _UpdateTracker instance.
 	    cls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	    updateTracker = new GKInstance(cls);
+	    updateTracker.setDbAdaptor(sourceDBA);
 
 	    // action
-	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, collectionToString(actions));
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, String.join(delimiter, actions));
+
+	    // created
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+
+	    // _release
+	    updateTracker.setAttributeValue(ReactomeJavaConstants._release, release);
 
 	    // updatedEvent
 	    updatedEvent = sourceDBA.fetchInstance(sourceEvent.getDBID());
@@ -180,21 +192,11 @@ public class RevisionDetector {
 	    // _displayName
 	    updateTracker.setDisplayName(InstanceDisplayNameGenerator.generateDisplayName(updateTracker));
 
-	    // dbAdaptor
-	    updateTracker.setDbAdaptor(sourceDBA);
-
-	    // created
-
-	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
-
 	    return updateTracker;
 	}
 
 	/**
 	 * Return a list of pathway revisions.
-	 *
-	 * TODO Is the recursive approach here recommended over this?
-	 * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)}
 	 *
 	 * @param sourcePathway
 	 * @param previousSlicePathway
@@ -202,10 +204,12 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private Set<String> isPathwayRevised(GKInstance sourcePathway, GKInstance previousSlicePathway)
-			throws InvalidAttributeException, Exception {
+	private Set<String> getPathwayRevisions(GKInstance sourcePathway, GKInstance previousSlicePathway) throws InvalidAttributeException, Exception {
+	    if (sourcePathway == null || previousSlicePathway == null)
+	        return null;
 
-	    if (!sourcePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+	    if (!sourcePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway) ||
+	        !previousSlicePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
 	        return null;
 
 	    // Check if a child event (pathway or RLE) is added or removed.
@@ -223,11 +227,11 @@ public class RevisionDetector {
 		        continue;
 
 		    // Child pathways.
-		    tmp = isPathwayRevised((GKInstance) sourceEvent, previousSliceEvent);
+		    tmp = getPathwayRevisions((GKInstance) sourceEvent, previousSliceEvent);
 		    if (tmp != null) actions.addAll(tmp);
 
 		    // Child RLE's.
-		    tmp = isRLERevised((GKInstance) sourceEvent, previousSliceEvent);
+		    tmp = getRLERevisions((GKInstance) sourceEvent, previousSliceEvent);
 		    if (tmp != null) actions.addAll(tmp);
 	    }
 
@@ -243,17 +247,20 @@ public class RevisionDetector {
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
-	private Set<String> isRLERevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
-			throws InvalidAttributeException, Exception {
+	private Set<String> getRLERevisions(GKInstance sourceRLE, GKInstance previousSliceRLE) throws InvalidAttributeException, Exception {
+	    if (sourceRLE == null || previousSliceRLE == null)
+	        return null;
 
-	    if (!sourceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+	    if (!sourceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent) ||
+	        !previousSliceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
 	        return null;
 
 		// Check for changes in inputs, outputs, regulators, and catalysts.
 		List<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
                                                   ReactomeJavaConstants.output,
                                                   ReactomeJavaConstants.regulatedBy,
-                                                  ReactomeJavaConstants.catalystActivity);
+                                                  ReactomeJavaConstants.catalystActivity,
+                                                  ReactomeJavaConstants.summation);
 	    Set<String> actions = new HashSet<String>();
 	    Set<String> tmp = null;
 		for (String attrName : revisionList) {
@@ -263,7 +270,7 @@ public class RevisionDetector {
 		}
 
 		// Check if summation is revised.
-		actions.addAll(isRLESummationRevised(sourceRLE, previousSliceRLE));
+		actions.addAll(getRLESummationTextRevisions(sourceRLE, previousSliceRLE));
 
 		return actions;
 	}
@@ -279,8 +286,13 @@ public class RevisionDetector {
 	 *
 	 * @see {@link org.gk.model.Summation}
 	 */
-	private Set<String> isRLESummationRevised(GKInstance sourceRLE, GKInstance previousSliceRLE)
-			throws InvalidAttributeException, Exception {
+	private Set<String> getRLESummationTextRevisions(GKInstance sourceRLE, GKInstance previousSliceRLE) throws InvalidAttributeException, Exception {
+	    if (sourceRLE == null || previousSliceRLE == null)
+	        return null;
+
+	    if (!sourceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent) ||
+	        !previousSliceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+	        return null;
 
 	    Set<String> actions = getAttributeRevisions(sourceRLE, previousSliceRLE, ReactomeJavaConstants.summation);
 		List<Object> sourceSummations = sourceRLE.getAttributeValuesList(ReactomeJavaConstants.summation);
@@ -290,6 +302,8 @@ public class RevisionDetector {
 	    Object matchingSummation = null;
 		for (Object sourceSummation : sourceSummations) {
 		    matchingSummation =  getMatchingAttribute(previousSliceSummations, sourceSummation);
+		    if (matchingSummation == null)
+		        continue;
 		    actions.addAll(getAttributeRevisions(sourceSummation, matchingSummation, ReactomeJavaConstants.text));
 		}
 
@@ -301,14 +315,16 @@ public class RevisionDetector {
 	 *
 	 * @param sourceInstance
 	 * @param previousSliceInstance
-	 * @param attribute
+	 * @param attributeName
 	 * @return List
 	 * @throws Exception
 	 */
-	private Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attribute) throws Exception {
+	Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attributeName) throws Exception {
+	    if (sourceInstance == null || previousSliceInstance == null)
+	        return null;
 
-		List<Object> sourceAttributes = ((GKInstance) sourceInstance).getAttributeValuesList(attribute);
-		List<Object> previousSliceAttributes = ((GKInstance) previousSliceInstance).getAttributeValuesList(attribute);
+		List<Object> sourceAttributes = ((GKInstance) sourceInstance).getAttributeValuesList(attributeName);
+		List<Object> previousSliceAttributes = ((GKInstance) previousSliceInstance).getAttributeValuesList(attributeName);
         Set<String> actions = new HashSet<String>();
 
 		// Both attribute lists are empty.
@@ -324,18 +340,18 @@ public class RevisionDetector {
 		if (addedInstances && removedInstances) {
 		    // GKInstance attributes.
 		    if (sourceAttributes.get(0) instanceof GKInstance)
-		        actions.add(ReactomeJavaConstants.addRemove + format(attribute));
+		        actions.add(ReactomeJavaConstants.addRemove + format(attributeName));
 
 		    // Non-GKInstance attributes (e.g. summary text).
 		    else
-		        actions.add(ReactomeJavaConstants.modify + format(attribute));
+		        actions.add(ReactomeJavaConstants.modify + format(attributeName));
 		}
 
 		else if (addedInstances)
-		    actions.add(ReactomeJavaConstants.add + format(attribute));
+		    actions.add(ReactomeJavaConstants.add + format(attributeName));
 
 		else if (removedInstances)
-		    actions.add(ReactomeJavaConstants.remove + format(attribute));
+		    actions.add(ReactomeJavaConstants.remove + format(attributeName));
 
 		return actions;
 	}
@@ -373,14 +389,13 @@ public class RevisionDetector {
 	    if (attributes == null || attributes.isEmpty())
 	        return null;
 
-	    // If the attribute list holds GKInstance's, compare DBID's.
+	    // If the attribute list contains GKInstance's, compare DBID's.
 	    if (attributes.get(0) instanceof GKInstance) {
 	        Long searchAttributeDBID = ((GKInstance) searchAttribute).getDBID();
 	        Long attributeDBID = null;
 	        for (Object attribute : attributes) {
 	            attributeDBID = ((GKInstance) attribute).getDBID();
 
-	            // TODO Is it required to iterate over all attributes of "instance" to determine equality?
 	            if (attributeDBID.equals(searchAttributeDBID))
 	                return attribute;
 	        }
@@ -398,15 +413,14 @@ public class RevisionDetector {
 
     /**
      * Save _UpdateTracker instances to the provided database (typically "sourceDBA").
-     * 
+     *
 	 * Adapted from {@link SlicingEngine#dumpInstances} to take "instances" and "dba" as parameters.
 	 *
 	 * @param dba
 	 * @param instances
 	 * @throws Exception
 	 */
-    void dumpInstances(List<GKInstance> instances, MySQLAdaptor dba) throws Exception {
-        SlicingEngine slicingEngine = new SlicingEngine();
+    void dumpInstances(List<GKInstance> instances, MySQLAdaptor dba, SlicingEngine slicingEngine) throws Exception {
         // Try to use transaction
         boolean isTnSupported = dba.supportsTransactions();
         if (isTnSupported)
@@ -433,26 +447,5 @@ public class RevisionDetector {
 	 */
 	private String format(String input) {
         return input.substring(0, 1).toUpperCase() + input.substring(1, input.length());
-	}
-
-	/**
-	 * Convert a String collection to a delimited String (e.g. [x, y, z] -> "x,y,z").
-	 *
-	 * @param list
-	 * @return String
-	 */
-	private String collectionToString(Collection<String> list) {
-	    if (list == null || list.size() == 0)
-	        return null;
-
-	    if (list.size() == 1)
-	        return (String) list.iterator().next();
-
-	    String output = new String();
-	    Iterator<String> iterator = list.iterator();
-	    output = (String) iterator.next();
-        while (iterator.hasNext())
-	        output += delimiter + iterator.next();
-	    return output;
 	}
 }

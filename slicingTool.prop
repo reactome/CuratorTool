@@ -40,7 +40,7 @@ slicingDbPwd=)8J7m]!%[<
 slicingDbPort=3306
 
 # Slicing database name
-slicingDbName=test_slice_1
+slicingDbName=slice
 #slicingDbName=test_gk_central_efs_new_updated_slice_67
 
 # The following parameters are used for the comparing MySQLAdaptor information.
@@ -91,5 +91,5 @@ setReleasedInStableIdentifier=false
 # Guanming Wu@CSHL
 #defaultPersonId=140537
 # liam
-defaultPersonId=9676479
+defaultPersonId=9675984
 

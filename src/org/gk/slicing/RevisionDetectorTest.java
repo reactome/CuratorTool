@@ -2,6 +2,7 @@ package org.gk.slicing;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -12,17 +13,17 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.util.GKApplicationUtilities;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,14 +31,24 @@ public class RevisionDetectorTest {
     // Database adaptors used for test.
     private MySQLAdaptor sourceDBA;
     private MySQLAdaptor previousSliceDBA;
+    private MySQLAdaptor sliceDBA;
+
     // SliceMap cache file.
     private String sliceMapFile;
+
     private RevisionDetector revisionDetector;
     private GKInstance updateTracker;
-    private GKInstance defaultIE;
     private String action;
     private String attributeName;
+
+    // created
+    private GKInstance defaultIE;
     private Long defaultPersonId;
+
+    // _release
+    private GKInstance release;
+    private Integer releaseNumber;
+    private String releaseDate;
 
     /**
      * Test utility method.
@@ -112,36 +123,85 @@ public class RevisionDetectorTest {
         String host = "localhost";
         String user = "liam";
         String pass = ")8J7m]!%[<";
+        revisionDetector = new RevisionDetector();
         sourceDBA = new MySQLAdaptor(host, "central", user, pass);
         previousSliceDBA = new MySQLAdaptor(host, "previous_slice", user, pass);
-        sliceMapFile = "sliceMap.ser";
-        defaultPersonId = 9676479L;
-        revisionDetector = new RevisionDetector(previousSliceDBA, defaultPersonId);
+        sliceDBA = new MySQLAdaptor(host, "slice", user, pass);
 
-        DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
-        GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
-        defaultIE = ieHelper.createDefaultInstanceEdit(person);
-        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
-                                    GKApplicationUtilities.getDateTime());
-        InstanceDisplayNameGenerator.setDisplayName(defaultIE);
+        defaultPersonId = 9675984L;
+        defaultIE = revisionDetector.createDefaultIE(sourceDBA, defaultPersonId);
+
+        releaseNumber = 20;
+        releaseDate = "2020-02-02";
+        release = revisionDetector.createRelease(sourceDBA, releaseNumber, releaseDate);
+
+        sliceMapFile = "sliceMap.ser";
     }
 
     @Test
-    public void getAllUpdateTrackersTest() throws InvalidAttributeException, Exception {
-        List<GKInstance> updateTrackers = null;
+    public void identicalUpdateTrackersTest() throws Exception {
+        Collection<GKInstance> sourceUpdateTrackers = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
+        Collection<GKInstance> sliceUpdateTrackers = sliceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
+
+        if (sourceUpdateTrackers.size() != sliceUpdateTrackers.size())
+            fail("updateTracker lists have different sizes.");
+
+		List<String> revisionList = Arrays.asList(ReactomeJavaConstants.action,
+                                                  ReactomeJavaConstants.created,
+                                                  ReactomeJavaConstants.DB_ID,
+                                                  ReactomeJavaConstants._displayName,
+                                                  ReactomeJavaConstants._release,
+                                                  ReactomeJavaConstants.stableIdentifier,
+                                                  ReactomeJavaConstants.updatedEvent);
+		GKInstance sliceUpdateTracker = null;
+	    Set<String> tmp;
+        for (GKInstance sourceUpdateTracker : sourceUpdateTrackers) {
+            sliceUpdateTracker = sliceUpdateTrackers.stream()
+                    .filter(tracker -> sourceUpdateTracker.getDBID().equals(tracker.getDBID()))
+                    .findAny()
+                    .get();
+
+            for (String attrName : revisionList) {
+                tmp = revisionDetector.getAttributeRevisions(sourceUpdateTracker, sliceUpdateTracker, attrName);
+                if (tmp != null && tmp.size() > 0)
+                    fail("Mismatched attribute. updateTracker: " + sourceUpdateTracker.getDBID() + ", " +
+                         "attribute: " + attrName + "," +
+                         "revisions: " + tmp.toString());
+            }
+        }
+    }
+
+    @Test
+    public void createAllUpdateTrackersTest() throws InvalidAttributeException, Exception {
         Map<Long, GKInstance> sliceMap = readSliceMap(sliceMapFile);
-        // Start with five revisions between the two "slices".
-        updateTrackers = revisionDetector.getAllUpdateTrackers(sliceMap, sourceDBA);
-        assertEquals(updateTrackers.size(), 5);
+        // 5 revisions
+        // 1 created
+        // 1 _release
+        List<GKInstance> newInstances = revisionDetector.createAllUpdateTrackers(sourceDBA,
+                                                                                 previousSliceDBA,
+                                                                                 sliceMap,
+                                                                                 defaultPersonId,
+                                                                                 releaseNumber,
+                                                                                 releaseDate);
+        assertEquals(newInstances.size(), 7);
 
         // Check that the first DBID is set to maxDBID - 1.
-        Long expectedDBID = updateTrackers.get(0).getDBID();
+        Long expectedDBID = newInstances.get(0).getDBID();
         long expectedMaxDBID = expectedDBID - 1;
         assertEquals(sourceDBA.fetchMaxDbId(), expectedMaxDBID);
 
         // Check that DBID's are sequential.
-        for (GKInstance updateTracker : updateTrackers.subList(1, updateTrackers.size()))
-            assertEquals(updateTracker.getDBID(), ++expectedDBID);
+        for (GKInstance newInstance : newInstances.subList(1, newInstances.size()))
+            assertEquals(newInstance.getDBID(), ++expectedDBID);
+
+        // Check that "created" and "_release" attributes are correctly set.
+        GKInstance created = newInstances.get(0);
+        GKInstance release = newInstances.get(1);
+        List<GKInstance> updateTrackers = newInstances.subList(2, newInstances.size());
+        for (GKInstance updateTracker : updateTrackers) {
+            assertEquals(created, updateTracker.getAttributeValue(ReactomeJavaConstants.created));
+            assertEquals(release, updateTracker.getAttributeValue(ReactomeJavaConstants._release));
+        }
     }
 
     @Test
@@ -152,37 +212,37 @@ public class RevisionDetectorTest {
 
         // Example pathway #1 (Acetylation).
         sourcePathway = (GKInstance) sourceDBA.fetchInstance(156582L);
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertNull(updateTracker);
 
         // Add a new child pathway (tRNA processing).
         sourceChildPathway = sourceDBA.fetchInstance(72306L);
         sourcePathway.addAttributeValue(ReactomeJavaConstants.hasEvent, sourcePathway);
         action = "addHasEvent";
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset the addition.
         sourcePathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, sourcePathway);
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertNull(updateTracker);
 
 
         // Example pathway #2 (DNA repair).
         sourcePathway = (GKInstance) sourceDBA.fetchInstance(353377L);
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertNull(updateTracker);
 
         // Remove an existing child pathway (Base Excision Repair).
         sourceChildPathway = (GKInstance) sourcePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent).get(0);
         sourcePathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, sourceChildPathway);
         action = "removeHasEvent";
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset the removal.
         sourcePathway.addAttributeValue(ReactomeJavaConstants.hasEvent, sourceChildPathway);
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertNull(updateTracker);
 
 
@@ -192,12 +252,12 @@ public class RevisionDetectorTest {
         String originalSummationText = (String) sourceRLESummation.getAttributeValue(ReactomeJavaConstants.text);
         sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, "revised");
         action = "modifyText";
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset the revision.
         sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
-        updateTracker = revisionDetector.getUpdateTracker(sourcePathway, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourcePathway, defaultIE, release);
         assertNull(updateTracker);
     }
 
@@ -208,7 +268,7 @@ public class RevisionDetectorTest {
 
         // Example RLE (AXL binds SRC-1).
         GKInstance sourceRLE = (GKInstance) sourceDBA.fetchInstance(5357432L);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
 
         // Revise input (ALS2 dimer [cytosol]).
@@ -239,7 +299,7 @@ public class RevisionDetectorTest {
         attributeName = ReactomeJavaConstants.species;
         revisedAttribute = (GKInstance) sourceDBA.fetchInstance(164922L);
         sourceRLE.addAttributeValue(attributeName, revisedAttribute);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
     }
 
@@ -258,17 +318,17 @@ public class RevisionDetectorTest {
         if (originalAttributes.size() == 0)
             originalAttributes = null;
 
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
 
         // Add attribute value.
         sourceRLE.addAttributeValue(attributeName, revisedAttribute);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset revision.
         sourceRLE.setAttributeValue(attributeName, originalAttributes);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
     }
 
@@ -278,7 +338,7 @@ public class RevisionDetectorTest {
 
         // Example RLE (A1 and A3 receptors bind adenosine).
         GKInstance sourceRLE = (GKInstance) sourceDBA.fetchInstance(418904L);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
 
         // Save original summation text.
@@ -289,12 +349,12 @@ public class RevisionDetectorTest {
         GKInstance sourceSummation = (GKInstance) sourceRLE.getAttributeValuesList(ReactomeJavaConstants.summation).get(0);
         sourceSummation.setAttributeValue(attributeName, "revised");
         action = "modifyText";
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset the revision,
         sourceSummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
-        updateTracker = revisionDetector.getUpdateTracker(sourceRLE, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceRLE, defaultIE, release);
         assertNull(updateTracker);
     }
 
@@ -310,7 +370,7 @@ public class RevisionDetectorTest {
 
         // Example RLE (DIT and MIT combine to form triiodothyronine).
         sourceInstance = (GKInstance) sourceDBA.fetchInstance(209925L);
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertNull(updateTracker);
 
         // Original attributes.
@@ -320,24 +380,24 @@ public class RevisionDetectorTest {
         GKInstance newAttributeInstance = sourceDBA.fetchInstance(5210962L);
         sourceInstance.addAttributeValue(attributeName, newAttributeInstance);
         action = "addRegulatedBy";
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Remove original attribute instance.
         sourceInstance.setAttributeValue(attributeName, newAttributeInstance);
         action = "add/removeRegulatedBy";
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Remove all attribute instances.
         sourceInstance.setAttributeValue(attributeName, null);
         action = "removeRegulatedBy";
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset revisions.
         sourceInstance.setAttributeValue(attributeName, originalAttributes);
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertNull(updateTracker);
 
         //------------------------------------//
@@ -348,7 +408,7 @@ public class RevisionDetectorTest {
 
         // Example pathway (2-LTR circle formation).
         sourceInstance = sourceDBA.fetchInstance(164843L);
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertNull(updateTracker);
 
         // Get a reference to the source instance's event list.
@@ -359,12 +419,12 @@ public class RevisionDetectorTest {
         GKInstance newRLE = sourceDBA.fetchInstance(8963915L);
         events.add(newRLE);
         action = "addHasEvent";
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset revision.
         events.remove(newRLE);
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertNull(updateTracker);
 
         // Add pathway (ABC transporters disorders).
@@ -374,12 +434,12 @@ public class RevisionDetectorTest {
         newPathway = sourceDBA.fetchInstance(419989L);
         events.add(newPathway);
         action = "addHasEvent";
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertEquals(action, updateTracker.getAttributeValue(ReactomeJavaConstants.action));
 
         // Reset revision.
         sourceInstance.setAttributeValue(attributeName, originalAttributes);
-        updateTracker = revisionDetector.getUpdateTracker(sourceInstance, sourceDBA, defaultIE);
+        updateTracker = revisionDetector.createUpdateTracker(sourceDBA, previousSliceDBA, sourceInstance, defaultIE, release);
         assertNull(updateTracker);
     }
 }
