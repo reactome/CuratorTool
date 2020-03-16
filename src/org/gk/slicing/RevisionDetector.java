@@ -20,8 +20,6 @@ import org.gk.util.GKApplicationUtilities;
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
  */
 public class RevisionDetector {
-	private final String delimiter = ",";
-
 	public RevisionDetector() {
 	}
 
@@ -177,7 +175,7 @@ public class RevisionDetector {
 	    updateTracker.setDbAdaptor(sourceDBA);
 
 	    // action
-	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, String.join(delimiter, actions));
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, String.join(",", actions));
 
 	    // created
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);

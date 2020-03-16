@@ -130,6 +130,7 @@ public class SlicingEngine {
     private String path = "/usr/local/mysql/bin/";
     private boolean setReleasedInStableIdentifier = false;
     private Long defaultPersonId = null;
+    private static boolean needUpdateTrackers = false;
     
     /**
      * Default constructor
@@ -264,34 +265,49 @@ public class SlicingEngine {
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
 */
-        detectRevisions();
+        if (needUpdateTrackers)
+            detectRevisions();
         dumpInstances();
         addFrontPage();
-        addReleaseNumber();
+        if (!needUpdateTrackers)
+            addReleaseNumber();
         setStableIdReleased();
     }
 
+    /**
+     * Detect revisions between between slices and create _UpdateTracker instances.
+     * Adds the following instances to both the sliceMap and sourceDBA:
+     * <ul>
+     *   <li> n _UpdateTracker instances for n revisions. </li>
+     *   <li> 1 InstanceEdit instane for n revisions. </li>
+     *   <li> 1 _Release instance for n revisions. </li>
+     * </ul>
+     *
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
     private void detectRevisions() throws InvalidAttributeException, Exception {
         RevisionDetector revisionDetector = new RevisionDetector();
         RevisionDetectorTest revisionDetectorTest = new RevisionDetectorTest();
         sliceMap = revisionDetectorTest.readSliceMap("sliceMap-full.ser");
 
         // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
-        List<GKInstance> updateTrackers = null;
+        List<GKInstance> newInstances = null;
         if (revisionDetector != null) {
             logger.info("\nRevision checking...");
-            updateTrackers = revisionDetector.createAllUpdateTrackers(sourceDBA,
-                                                                      previousSliceDBA,
-                                                                      sliceMap,
-                                                                      defaultPersonId,
-                                                                      Integer.valueOf(releaseNumber),
-                                                                      releaseDate);
+            newInstances = revisionDetector.createAllUpdateTrackers(sourceDBA,
+                                                                    previousSliceDBA,
+                                                                    sliceMap,
+                                                                    defaultPersonId,
+                                                                    Integer.valueOf(releaseNumber),
+                                                                    releaseDate);
 	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
-            updateTrackers.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
+            newInstances.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
 
-        if (updateTrackers != null && updateTrackers.size() > 0)
-            revisionDetector.dumpInstances(updateTrackers, sourceDBA, this);
+        // Commit new instances to source database.
+        if (newInstances != null && newInstances.size() > 0)
+            revisionDetector.dumpInstances(newInstances, sourceDBA, this);
     }
 
     /**
@@ -1554,6 +1570,7 @@ public class SlicingEngine {
             // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
             MySQLAdaptor previousSliceDBA = null;
             if (properties.getProperty("needUpdateTrackers").toLowerCase().equals("true")) {
+                needUpdateTrackers = true;
                 logger.info("Revision detection requested.");
                 previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
                                                     properties.getProperty("previousSliceDbName"),
