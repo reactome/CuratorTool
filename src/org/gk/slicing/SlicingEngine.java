@@ -448,7 +448,6 @@ public class SlicingEngine {
         member.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
         populateEntitySet(entity, ReactomeJavaConstants.compartment);
         attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
-		// System.out.println(attrValue);
         assertEquals(1, attrValue.size());
 
 		/*

@@ -72,11 +72,11 @@ isInDev=true
 
 # Release number that is used to create a _Release instance
 #releaseNumber=2
-releaseNumber=69
+releaseNumber=20
 
 # Release Date, in the format of YYYY-MM-DD, which is used to create a _Release instance
 #releaseDate=2017-08-24
-releaseDate=2019-06-22
+releaseDate=2020-02-02
 
 # Last release Date, in the format of YYYY-MM-DD, which is used to assign releasetStatus for NEW or UPDATED event in homo sapiens.
 #lastReleaseDate=2000-01-01
