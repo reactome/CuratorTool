@@ -300,7 +300,8 @@ public class SlicingEngine {
                                                                     sliceMap,
                                                                     defaultPersonId,
                                                                     Integer.valueOf(releaseNumber),
-                                                                    releaseDate);
+                                                                    releaseDate,
+                                                                    this);
 	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
             newInstances.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
         }
@@ -513,7 +514,7 @@ public class SlicingEngine {
             if (needTransaction)
                 sourceDBA.startTransaction();
             
-            GKInstance defaultIE = createDefaultIE();
+            GKInstance defaultIE = createDefaultIE(sourceDBA, defaultPersonId);
             sourceDBA.storeInstance(defaultIE);
             
             for (Long dbId : sliceMap.keySet()) {
@@ -542,9 +543,19 @@ public class SlicingEngine {
         }
     }
 
-    private GKInstance createDefaultIE() throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+    /**
+     * Create a default instance edit for a given database adaptor.
+     *
+     * @param dba
+     * @param personId
+     * @return GKInstance
+     * @throws Exception
+     * @throws InvalidAttributeException
+     * @throws InvalidAttributeValueException
+     */
+    GKInstance createDefaultIE(MySQLAdaptor dba, Long personId) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
-        GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
+        GKInstance person = dba.fetchInstance(personId);
         GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
         defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,  
                                     GKApplicationUtilities.getDateTime());
@@ -692,11 +703,7 @@ public class SlicingEngine {
             SchemaClass releaseCls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
             if (releaseCls == null)
                 return; // This is an old schema
-            GKInstance release = createInstance(releaseCls);
-            release.setAttributeValue(ReactomeJavaConstants.releaseNumber,
-                                      new Integer(releaseNumber));
-            release.setAttributeValue(ReactomeJavaConstants.releaseDate,
-                                      releaseDate);
+            GKInstance release = createReleaseInstance(targetDBA, Integer.valueOf(releaseNumber), releaseDate);
             targetDBA.storeInstance(release);
         }
         catch(Exception e) {
@@ -704,6 +711,28 @@ public class SlicingEngine {
         }
     }
     
+    /**
+     * Create a release instance for a given database adaptor, release number, and release date.
+     *
+     * @param dba
+     * @param releaseNumber
+     * @param releaseDate
+     * @return GKInstance
+     * @throws InvalidAttributeException
+     * @throws InvalidAttributeValueException
+     */
+    GKInstance createReleaseInstance(MySQLAdaptor dba, Integer releaseNumber, String releaseDate)
+            throws InvalidAttributeException, InvalidAttributeValueException {
+        SchemaClass releaseCls = dba.getSchema().getClassByName(ReactomeJavaConstants._Release);
+        if (releaseCls == null)
+            return null; // This is an old schema
+        GKInstance release = createInstance(releaseCls);
+        release.setAttributeValue(ReactomeJavaConstants.releaseNumber, releaseNumber);
+        release.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
+        release.setAttributeValue(ReactomeJavaConstants._displayName, InstanceDisplayNameGenerator.generateDisplayName(release));
+        return release;
+    }
+
     /**
      * Add values for releaseStatus. Old values in the release status should be removed first. The method works as follows,
      * which is based on original Gavin's implementation in the server side, EventHierarchy.java.

@@ -53,6 +53,7 @@ public class RevisionDetector {
 	 *
 	 * @param sourceDBA
 	 * @param sliceMap
+     * @param slicingEngine
 	 * @return List
 	 * @throws InvalidAttributeException
 	 * @throws Exception
@@ -63,18 +64,19 @@ public class RevisionDetector {
                                                                  Map<Long,GKInstance> sliceMap,
                                                                  Long defaultPersonId,
                                                                  Integer releaseNumber,
-                                                                 String releaseDate) throws InvalidAttributeException, Exception {
+                                                                 String releaseDate,
+                                                                 SlicingEngine slicingEngine) throws InvalidAttributeException, Exception {
 	    if (previousSliceDBA == null)
             return null;
 
 	    List<GKInstance> newInstances = new ArrayList<GKInstance>();
 
 	    // created
-	    GKInstance defaultIE = createDefaultIE(sourceDBA, defaultPersonId);
+	    GKInstance defaultIE = slicingEngine.createDefaultIE(sourceDBA, defaultPersonId);
 	    newInstances.add(defaultIE);
 
 	    // _release
-	    GKInstance release = createRelease(sourceDBA, releaseNumber, releaseDate);
+	    GKInstance release = slicingEngine.createReleaseInstance(sourceDBA, releaseNumber, releaseDate);
 	    newInstances.add(release);
 
 	    // Iterate over all instances in the slice.
@@ -94,42 +96,6 @@ public class RevisionDetector {
         }
 
         return newInstances;
-	}
-
-	/**
-	 * Create a new "defaultInstanceEdit" instance for use in a given "created" attribute.
-	 *
-	 * @param sourceDBA
-	 * @return GKInstance
-	 * @throws Exception
-	 */
-	GKInstance createDefaultIE(MySQLAdaptor sourceDBA, Long defaultPersonId) throws Exception {
-	    DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
-	    GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
-	    GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
-	    defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
-	            GKApplicationUtilities.getDateTime());
-	    InstanceDisplayNameGenerator.setDisplayName(defaultIE);
-
-	    return defaultIE;
-	}
-
-	/**
-	 * Create a new "_release" instance.
-	 *
-	 * @param sourceDBA
-	 * @return GKInstance
-	 * @throws Exception
-	 */
-	GKInstance createRelease(MySQLAdaptor sourceDBA, Integer releaseNumber, String releaseDate) throws Exception {
-	    SchemaClass releaseCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
-	    GKInstance release = new GKInstance(releaseCls);
-	    release.setDbAdaptor(sourceDBA);
-	    release.setAttributeValue(ReactomeJavaConstants.releaseNumber, releaseNumber);
-	    release.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
-	    release.setDisplayName(InstanceDisplayNameGenerator.generateDisplayName(release));
-
-	    return release;
 	}
 
 	/**

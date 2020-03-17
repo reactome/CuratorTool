@@ -28,6 +28,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class RevisionDetectorTest {
+    // SlicingEngine
+    SlicingEngine slicingEngine;
+
     // Database adaptors used for test.
     private MySQLAdaptor sourceDBA;
     private MySQLAdaptor previousSliceDBA;
@@ -123,17 +126,18 @@ public class RevisionDetectorTest {
         String host = "localhost";
         String user = "liam";
         String pass = ")8J7m]!%[<";
-        revisionDetector = new RevisionDetector();
         sourceDBA = new MySQLAdaptor(host, "central", user, pass);
         previousSliceDBA = new MySQLAdaptor(host, "previous_slice", user, pass);
         sliceDBA = new MySQLAdaptor(host, "slice", user, pass);
+        revisionDetector = new RevisionDetector();
+        slicingEngine = new SlicingEngine();
 
         defaultPersonId = 9675984L;
-        defaultIE = revisionDetector.createDefaultIE(sourceDBA, defaultPersonId);
+        defaultIE = slicingEngine.createDefaultIE(sourceDBA, defaultPersonId);
 
         releaseNumber = 20;
         releaseDate = "2020-02-02";
-        release = revisionDetector.createRelease(sourceDBA, releaseNumber, releaseDate);
+        release = slicingEngine.createReleaseInstance(sourceDBA, releaseNumber, releaseDate);
 
         sliceMapFile = "sliceMap.ser";
     }
@@ -182,7 +186,8 @@ public class RevisionDetectorTest {
                                                                                  sliceMap,
                                                                                  defaultPersonId,
                                                                                  releaseNumber,
-                                                                                 releaseDate);
+                                                                                 releaseDate,
+                                                                                 slicingEngine);
         assertEquals(newInstances.size(), 7);
 
         // Check that the first DBID is set to maxDBID - 1.
