@@ -96,7 +96,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "3.3";
-	public static final int BUILD_NUMBER = 98;
+	public static final int BUILD_NUMBER = 99;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -674,8 +674,10 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		    popup.addSeparator();
 		    popup.add(actionCollection.getCloneInstanceAction());
 		    if (list.getSelectedValues().length == 1 && !instance.isShell()) { // Block these two actions for a shell instance
-		        if (instance.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
+		        if (instance.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
 		            popup.add(actionCollection.getAddHasModifiedResidueAction());
+		            popup.add(actionCollection.getCreateMultimerAction());
+		        }
 		        else if (instance.getSchemClass().isa(ReactomeJavaConstants.DefinedSet))
 		            popup.add(actionCollection.getDeepCloneDefinedSet());
 		    }

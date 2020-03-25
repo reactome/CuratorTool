@@ -66,6 +66,7 @@ import org.gk.gkCurator.authorTool.CuratorToolToAuthorToolConverter;
 import org.gk.gkEditor.GKEditorFrame;
 import org.gk.gkEditor.GKEditorManager;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathView.GKVisualizationPane;
@@ -197,6 +198,82 @@ public class CuratorActionCollection {
 	    return addHasModfiedResidueAction;
 	}
 	
+	public Action getCreateMultimerAction() {
+	    Action action = new AbstractAction("Create Multimer") {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createMultimer();
+            }
+        };
+        return action;
+	}
+	
+	private void createMultimer() {
+	    java.util.List selection = getSelection();
+	    if (selection != null && selection.size() != 1)
+	        return;
+	    GKInstance inst = (GKInstance) selection.get(0);
+	    if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
+	        return;
+	    // Get the number of multimer
+	    String text = JOptionPane.showInputDialog(curatorFrame,
+	                                              "Enter a number to create a multimer:", 
+	                                              "Create Multimer", 
+	                                              JOptionPane.OK_CANCEL_OPTION);
+	    if (text == null)
+	        return ; // Cancelled
+	    if (!text.matches("\\d+")) {
+	        JOptionPane.showMessageDialog(curatorFrame,
+	                                      "The entered value should be integer only!",
+	                                      "Error",
+	                                      JOptionPane.ERROR_MESSAGE);
+	        return;
+	    }
+	    int number = new Integer(text);
+	    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+	    GKInstance multimer = fileAdaptor.createNewInstance(ReactomeJavaConstants.Complex);
+	    try {
+	        for (int i = 0; i < number; i++) {
+	            multimer.addAttributeValue(ReactomeJavaConstants.hasComponent, inst);
+	        }
+	        String ewasName = (String) inst.getAttributeValue(ReactomeJavaConstants.name);
+	        if (ewasName == null)
+	            ewasName = "";
+	        multimer.setAttributeValue(ReactomeJavaConstants.name, ewasName + " " + getMultimerName(number));
+	        // Copy some attributes to this new instance
+	        multimer.setAttributeValue(ReactomeJavaConstants.compartment,
+	                                   inst.getAttributeValue(ReactomeJavaConstants.compartment));
+	        InstanceDisplayNameGenerator.setDisplayName(multimer);
+	        curatorFrame.getSchemaView().setSelection(multimer);
+	    }
+	    catch(Exception e) {
+	        System.err.println(e.getMessage());
+	        e.printStackTrace();
+	        JOptionPane.showMessageDialog(curatorFrame,
+	                                      e.getMessage(),
+	                                      "Error in Creating Multimer",
+	                                      JOptionPane.ERROR_MESSAGE);
+	    }
+	}
+	
+	private String getMultimerName(int number) {
+	    switch (number) {
+	        case 2 : return "dimer";
+	        case 3 : return "trimer";
+	        case 4 : return "tetramer";
+	        case 5 : return "pentamer";
+	        case 6 : return "hexamer";
+	        case 7 : return "heptamer";
+	        case 8 : return "octamer";
+	        case 9 : return "nonamer";
+	        case 10 : return "decamer";
+	        case 11 : return "undecamer";
+	        case 12 : return "dodecamer";
+	    }
+	    return "multimer";
+	}
+
 	private void addHasModifiedResidue() {
 	    // Some simple check
 	    java.util.List selection = getSelection();
