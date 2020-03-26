@@ -1,3 +1,19 @@
+Build 100 (Version 3.3) notes (March 26, 2020)
+
+A bug fix: disease reaction DnDed into the pathway diagram cannot be colored in red automatically.
+
+A new feature: Automatically create a multimer from a selected EWAS instance. This feature is accessed via a pop menu from the instance list in the schema view. 
+
+Build 99 (Version 3.3) notes (March 13, 2020)
+
+This new build supports enforce the colors of drug and disease objects based on DEV-1827, https://reactome.atlassian.net/browse/DEV-1827. These rules are copied below:
+
+1. ANY disease reaction has a disease attribute: edges are red. 
+2. Entities with a disease attribute are outlined in red  
+3. Drugs (or drug complexes that don't contain disease entities) are solid purple
+4. Drug complexes involving disease entities are purple with red border
+Note: *3 has not been implemented in this build. More information is needed for implementation.
+
 Build 98 (Version 3.3) notes (August 9, 2019)
 
 Bug fix: https should be used for IUPHAR.

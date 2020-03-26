@@ -9,10 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.render.InstanceToRenderableConverter;
-import org.gk.render.Node;
+import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
@@ -22,19 +21,13 @@ public class ComplexInstanceHandler extends InstanceHandler {
     protected Renderable convertToRenderable(GKInstance instance) throws Exception {
         Renderable r = RenderableFactory.generateRenderable(RenderableComplex.class, 
                                                             container);
-
-        boolean isForDisease = (instance.getAttributeValue(ReactomeJavaConstants.disease) != null);
-        r.setIsForDisease(isForDisease);
-        boolean isForDrug = InstanceUtilities.hasDrug(instance);
-        if (r instanceof Node)
-            ((Node)r).setIsForDrug(isForDrug);
+        _convertToRenderable(r, instance);
         return r;
     }
 
     public void convertProperties(GKInstance instance,
                                   Renderable r,
                                   Map iToRMap) throws Exception {
-        RenderableComplex complex = (RenderableComplex) r;
         // Extract complex components
         extractComponents(instance, r, iToRMap);
     }

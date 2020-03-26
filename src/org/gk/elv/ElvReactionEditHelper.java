@@ -396,6 +396,9 @@ public class ElvReactionEditHelper extends ElvInstanceEditHandler {
                 if (isForDisease != renderables.get(0).getIsForDisease()) {
                     for (Renderable renderable : renderables) {
                         renderable.setIsForDisease(isForDisease);
+                        // This is rough. However, otherwise, the persisted color (red) in the file
+                        // will be kept. The line will be red always.
+                        renderable.setLineColor(null); // Take the default. The original color will be gone.
                     }
                     PathwayEditor pathwayEditor = zoomableEditor.getPathwayEditor();
                     pathwayEditor.repaint(pathwayEditor.getVisibleRect());

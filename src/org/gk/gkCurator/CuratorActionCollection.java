@@ -209,6 +209,7 @@ public class CuratorActionCollection {
         return action;
 	}
 	
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void createMultimer() {
 	    java.util.List selection = getSelection();
 	    if (selection != null && selection.size() != 1)
@@ -242,8 +243,15 @@ public class CuratorActionCollection {
 	            ewasName = "";
 	        multimer.setAttributeValue(ReactomeJavaConstants.name, ewasName + " " + getMultimerName(number));
 	        // Copy some attributes to this new instance
-	        multimer.setAttributeValue(ReactomeJavaConstants.compartment,
-	                                   inst.getAttributeValue(ReactomeJavaConstants.compartment));
+	        String[] attributes = {ReactomeJavaConstants.compartment,
+	                               ReactomeJavaConstants.disease,
+	                               ReactomeJavaConstants.species};
+	        for (String attribute : attributes) {
+	            List<?> values = inst.getAttributeValuesList(attribute);
+	            if (values != null && values.size() > 0) {
+	                multimer.setAttributeValue(attribute, new ArrayList(values));
+	            }
+	        }
 	        InstanceDisplayNameGenerator.setDisplayName(multimer);
 	        curatorFrame.getSchemaView().setSelection(multimer);
 	    }

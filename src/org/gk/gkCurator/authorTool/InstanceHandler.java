@@ -14,6 +14,7 @@ import org.gk.render.FlowLine;
 import org.gk.render.InstanceToRenderableConverter;
 import org.gk.render.Node;
 import org.gk.render.ProcessNode;
+import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableFactory;
 
@@ -121,5 +122,10 @@ public abstract class InstanceHandler {
         fl.addOutput(r2);
         fl.setPosition(50, 50);
         container.addComponent(fl);
+    }
+
+    protected void _convertToRenderable(Renderable r, GKInstance inst) throws Exception {
+        RenderUtility.setIsForDisease(r, inst);
+        RenderUtility.setIsForDrug(r, inst);
     }
 }

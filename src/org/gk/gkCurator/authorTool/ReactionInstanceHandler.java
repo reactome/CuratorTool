@@ -49,9 +49,10 @@ public class ReactionInstanceHandler extends InstanceHandler {
            else if (cls.isa(ReactomeJavaConstants.Depolymerisation))
                reaction.setReactionType(ReactionType.DISSOCIATION);
         }
+        _convertToRenderable(r, instance);
         return r;
     }
-    
+
     public Map<GKInstance, Integer> generateStoiMap(List instances) {
         Map<GKInstance, Integer> instanceToStoi = new HashMap<GKInstance, Integer>();
         if (instances == null || instances.size() == 0)

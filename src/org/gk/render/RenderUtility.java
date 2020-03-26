@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
+import org.gk.model.ReactomeJavaConstants;
 import org.gk.util.DrawUtilities;
 
 /**
@@ -27,6 +29,33 @@ import org.gk.util.DrawUtilities;
  * @author wgm
  */
 public class RenderUtility {
+    
+    /**
+     * Check if a Node should be set as a drug for coloring purpose.
+     * @param r
+     * @throws Exception
+     */
+    public static void setIsForDrug(Renderable r, GKInstance inst) throws Exception {
+        if (!(r instanceof Node))
+            return;
+        if (inst == null)
+            return;
+        ((Node)r).setIsForDrug(InstanceUtilities.hasDrug(inst));
+    }
+    
+    /**
+     * Check if an Renderable object should be set for disease for coloring purpose.
+     * @param r
+     * @throws Exception
+     */
+    public static void setIsForDisease(Renderable r, GKInstance inst) throws Exception {
+        if (inst == null)
+            return;
+        if (!inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.disease))
+            return;
+        GKInstance disease = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.disease);
+        r.setIsForDisease(disease != null);
+    }
     
     private static List<List<Point>> copyListsOfPoints(List<List<Point>> listOfPoints) {
         if (listOfPoints == null)
