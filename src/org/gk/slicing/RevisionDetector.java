@@ -375,34 +375,6 @@ public class RevisionDetector {
         return null;
 	}
 
-    /**
-     * Save _UpdateTracker instances to the provided database (typically "sourceDBA").
-     *
-	 * Adapted from {@link SlicingEngine#dumpInstances} to take "instances" and "dba" as parameters.
-	 *
-	 * @param dba
-	 * @param instances
-	 * @throws Exception
-	 */
-    void dumpInstances(List<GKInstance> instances, MySQLAdaptor dba, SlicingEngine slicingEngine) throws Exception {
-        // Try to use transaction
-        boolean isTnSupported = dba.supportsTransactions();
-        if (isTnSupported)
-            dba.startTransaction();
-        try {
-            for (GKInstance instance : instances)
-                slicingEngine.storeInstance(instance, dba);
-
-            if (isTnSupported)
-                dba.commit();
-        }
-        catch (Exception e) {
-            if (isTnSupported)
-                dba.rollback();
-            e.printStackTrace();
-        }
-    }
-
 	/**
 	 * Simple utility method to capitalize an input string (e.g. "hazelnut" -> "Hazelnut").
 	 *

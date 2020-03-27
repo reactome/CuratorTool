@@ -235,7 +235,6 @@ public class SlicingEngine {
             throw new IllegalStateException("SlicingEngine.slice(): " +
                     "target database cannot be set up.");
         eventMap = extractEvents();
-/*
         extractReferences();
         extractRegulations();
         extractConcurrentEventSets();
@@ -264,7 +263,6 @@ public class SlicingEngine {
         // Turn off for the further discussion.
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
-*/
         if (needUpdateTrackers)
             detectRevisions();
         dumpInstances();
@@ -279,7 +277,7 @@ public class SlicingEngine {
      * Adds the following instances to both the sliceMap and sourceDBA:
      * <ul>
      *   <li> n _UpdateTracker instances for n revisions. </li>
-     *   <li> 1 InstanceEdit instane for n revisions. </li>
+     *   <li> 1 InstanceEdit instance for n revisions. </li>
      *   <li> 1 _Release instance for n revisions. </li>
      * </ul>
      *
@@ -287,28 +285,43 @@ public class SlicingEngine {
      * @throws Exception
      */
     private void detectRevisions() throws InvalidAttributeException, Exception {
+        logger.info("\nRevision checking...");
         RevisionDetector revisionDetector = new RevisionDetector();
-        RevisionDetectorTest revisionDetectorTest = new RevisionDetectorTest();
-        sliceMap = revisionDetectorTest.readSliceMap("sliceMap-full.ser");
-
         // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
         List<GKInstance> newInstances = null;
-        if (revisionDetector != null) {
-            logger.info("\nRevision checking...");
-            newInstances = revisionDetector.createAllUpdateTrackers(sourceDBA,
-                                                                    previousSliceDBA,
-                                                                    sliceMap,
-                                                                    defaultPersonId,
-                                                                    Integer.valueOf(releaseNumber),
-                                                                    releaseDate,
-                                                                    this);
-	        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
-            newInstances.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
+
+        newInstances = revisionDetector.createAllUpdateTrackers(sourceDBA,
+                                                                previousSliceDBA,
+                                                                sliceMap,
+                                                                defaultPersonId,
+                                                                Integer.valueOf(releaseNumber),
+                                                                releaseDate,
+                                                                this);
+        // Add updateTracker instances to sliceMap (so they can be committed to the target database).
+        newInstances.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
+
+        // If the source database already has the current release, don't push any instances.
+        logger.info("\nVerifying sourceDBA release number...");
+        Object sourceReleaseNumber = null;
+        int maxSourceReleaseNumber = 0;
+        GKInstance sourceReleaseInstance = null;
+        for (Object obj: sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._Release)) {
+            sourceReleaseInstance = (GKInstance) obj;
+            sourceReleaseNumber = sourceReleaseInstance.getAttributeValue(ReactomeJavaConstants.releaseNumber);
+            if (maxSourceReleaseNumber < ((int) sourceReleaseNumber)) {
+                 maxSourceReleaseNumber = (int) sourceReleaseNumber;
+            }
+
+            if (releaseNumber.equals(sourceReleaseNumber)) {
+                logger.info("\nAlready released to sourceDBA. Not committing new update trackers.");
+                return;
+            }
         }
 
         // Commit new instances to source database.
+        logger.info("\nCommitting _UpdateTracker, InstanceEdit, and _Release instances to sourceDBA...");
         if (newInstances != null && newInstances.size() > 0)
-            revisionDetector.dumpInstances(newInstances, sourceDBA, this);
+            dumpInstances(newInstances, sourceDBA);
     }
 
     /**
@@ -916,25 +929,42 @@ public class SlicingEngine {
                                      targetDbUser, 
                                      targetDbPwd, 
                                      targetDbPort);
+
+        List<GKInstance> instances = new ArrayList<GKInstance>();
+        for (Long dbId : sliceMap.keySet())
+           instances.add(sliceMap.get(dbId));
+
+        dumpInstances(instances, targetDBA);
+        long time2 = System.currentTimeMillis();
+        logger.info("Time for dumpInstances(): " + (time2 - time1));
+    }
+
+    /**
+     * Save _UpdateTracker instances to the provided database (typically "sourceDBA").
+     *
+	 * Adapted from {@link SlicingEngine#dumpInstances} to take "instances" and "dba" as parameters.
+	 *
+	 * @param instances
+	 * @param dba
+	 * @throws Exception
+	 */
+    private void dumpInstances(List<GKInstance> instances, MySQLAdaptor dba) throws Exception {
         // Try to use transaction
-        boolean isTnSupported = targetDBA.supportsTransactions();
+        boolean isTnSupported = dba.supportsTransactions();
         if (isTnSupported)
-            targetDBA.startTransaction();
+            dba.startTransaction();
         try {
-            for (Long dbId : sliceMap.keySet()) {
-                GKInstance instance = sliceMap.get(dbId);
-                storeInstance(instance, targetDBA);
-            }
+            for (GKInstance instance : instances)
+                storeInstance(instance, dba);
+
             if (isTnSupported)
-                targetDBA.commit();
+                dba.commit();
         }
         catch (Exception e) {
             if (isTnSupported)
-                targetDBA.rollback();
+                dba.rollback();
             logger.error("SlicingEngine.dumpInstances(): " + e, e);
         }
-        long time2 = System.currentTimeMillis();
-        logger.info("Time for dumpInstances(): " + (time2 - time1));
     }
     
     /**

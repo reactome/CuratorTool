@@ -72,7 +72,7 @@ isInDev=true
 
 # Release number that is used to create a _Release instance
 #releaseNumber=2
-releaseNumber=20
+releaseNumber=73
 
 # Release Date, in the format of YYYY-MM-DD, which is used to create a _Release instance
 #releaseDate=2017-08-24
@@ -89,7 +89,4 @@ setReleasedInStableIdentifier=false
 # The default is reserved for Lisa
 #defaultPersonId=142011
 # Guanming Wu@CSHL
-#defaultPersonId=140537
-# liam
-defaultPersonId=9675984
-
+defaultPersonId=140537
