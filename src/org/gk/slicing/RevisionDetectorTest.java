@@ -132,11 +132,11 @@ public class RevisionDetectorTest {
         revisionDetector = new RevisionDetector();
         slicingEngine = new SlicingEngine();
 
-        defaultPersonId = 9675984L;
+        defaultPersonId = 140537L;
         defaultIE = slicingEngine.createDefaultIE(sourceDBA, defaultPersonId);
 
-        releaseNumber = 20;
-        releaseDate = "2020-02-02";
+        releaseNumber = 73;
+        releaseDate = "2020-03-31";
         release = slicingEngine.createReleaseInstance(sourceDBA, releaseNumber, releaseDate);
 
         sliceMapFile = "sliceMap.ser";
@@ -187,7 +187,8 @@ public class RevisionDetectorTest {
                                                                                  defaultPersonId,
                                                                                  releaseNumber,
                                                                                  releaseDate,
-                                                                                 slicingEngine);
+                                                                                 defaultIE,
+                                                                                 release);
         assertEquals(newInstances.size(), 7);
 
         // Check that the first DBID is set to maxDBID - 1.

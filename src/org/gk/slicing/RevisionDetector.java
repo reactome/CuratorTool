@@ -65,18 +65,17 @@ public class RevisionDetector {
                                                                  Long defaultPersonId,
                                                                  Integer releaseNumber,
                                                                  String releaseDate,
-                                                                 SlicingEngine slicingEngine) throws InvalidAttributeException, Exception {
+                                                                 GKInstance defaultIE,
+                                                                 GKInstance release) throws InvalidAttributeException, Exception {
 	    if (previousSliceDBA == null)
             return null;
 
 	    List<GKInstance> newInstances = new ArrayList<GKInstance>();
 
 	    // created
-	    GKInstance defaultIE = slicingEngine.createDefaultIE(sourceDBA, defaultPersonId);
 	    newInstances.add(defaultIE);
 
 	    // _release
-	    GKInstance release = slicingEngine.createReleaseInstance(sourceDBA, releaseNumber, releaseDate);
 	    newInstances.add(release);
 
 	    // Iterate over all instances in the slice.

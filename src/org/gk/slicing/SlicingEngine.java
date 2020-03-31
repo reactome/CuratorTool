@@ -263,18 +263,21 @@ public class SlicingEngine {
         // Turn off for the further discussion.
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
+        List<GKInstance> updateTrackers = null;
         if (needUpdateTrackers)
-            detectRevisions();
+            updateTrackers = detectRevisions();
         dumpInstances();
         addFrontPage();
         if (!needUpdateTrackers)
             addReleaseNumber();
         setStableIdReleased();
+        if (needUpdateTrackers)
+            dumpUpdateTrackers(updateTrackers);
     }
 
     /**
      * Detect revisions between between slices and create _UpdateTracker instances.
-     * Adds the following instances to both the sliceMap and sourceDBA:
+     * Adds the following instances to the sliceMap:
      * <ul>
      *   <li> n _UpdateTracker instances for n revisions. </li>
      *   <li> 1 InstanceEdit instance for n revisions. </li>
@@ -284,44 +287,51 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    private void detectRevisions() throws InvalidAttributeException, Exception {
+    private List<GKInstance> detectRevisions() throws InvalidAttributeException, Exception {
         logger.info("\nRevision checking...");
-        RevisionDetector revisionDetector = new RevisionDetector();
-        // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
-        List<GKInstance> newInstances = null;
 
+	    // created
+	    GKInstance defaultIE = createDefaultIE(sourceDBA, defaultPersonId);
+	    // _release
+	    GKInstance release = createReleaseInstance(sourceDBA, Integer.parseInt(releaseNumber), releaseDate);
+
+        // Create _UpdateTracker instances for all updated instances in the slice (and add them to the sliceMap).
+        RevisionDetector revisionDetector = new RevisionDetector();
+        List<GKInstance> newInstances = null;
         newInstances = revisionDetector.createAllUpdateTrackers(sourceDBA,
                                                                 previousSliceDBA,
                                                                 sliceMap,
                                                                 defaultPersonId,
-                                                                Integer.valueOf(releaseNumber),
+                                                                Integer.parseInt(releaseNumber),
                                                                 releaseDate,
-                                                                this);
+                                                                defaultIE,
+                                                                release);
         // Add updateTracker instances to sliceMap (so they can be committed to the target database).
         newInstances.forEach(updateTracker -> pushToMap(updateTracker, sliceMap));
+        return newInstances;
+    }
+
+    /**
+     * Commit the new update tracking instances to the sourceDBA.
+     *
+     * @param updateTrackers
+     * @throws Exception 
+     * @throws InvalidAttributeException 
+     */
+    private void dumpUpdateTrackers(List<GKInstance> updateTrackers) throws InvalidAttributeException, Exception {
+        if (updateTrackers == null || updateTrackers.size() == 0)
+            return;
 
         // If the source database already has the current release, don't push any instances.
         logger.info("\nVerifying sourceDBA release number...");
-        Object sourceReleaseNumber = null;
-        int maxSourceReleaseNumber = 0;
-        GKInstance sourceReleaseInstance = null;
-        for (Object obj: sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._Release)) {
-            sourceReleaseInstance = (GKInstance) obj;
-            sourceReleaseNumber = sourceReleaseInstance.getAttributeValue(ReactomeJavaConstants.releaseNumber);
-            if (maxSourceReleaseNumber < ((int) sourceReleaseNumber)) {
-                 maxSourceReleaseNumber = (int) sourceReleaseNumber;
-            }
-
-            if (releaseNumber.equals(sourceReleaseNumber)) {
-                logger.info("\nAlready released to sourceDBA. Not committing new update trackers.");
-                return;
-            }
+        if (Integer.parseInt(releaseNumber) <= sourceDBA.getReleaseNumber()) {
+            logger.info("\nAlready released to sourceDBA. Not committing new update trackers.");
+            return;
         }
 
         // Commit new instances to source database.
         logger.info("\nCommitting _UpdateTracker, InstanceEdit, and _Release instances to sourceDBA...");
-        if (newInstances != null && newInstances.size() > 0)
-            dumpInstances(newInstances, sourceDBA);
+            dumpInstances(updateTrackers, sourceDBA);
     }
 
     /**
