@@ -5,28 +5,20 @@
 package org.gk.slicing;
 
 import static org.junit.Assert.assertEquals;
-
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,7 +34,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -134,7 +125,6 @@ public class SlicingEngine {
     
     /**
      * Default constructor
-     * @throws SQLException 
      *
      */
     public SlicingEngine() {
@@ -149,22 +139,14 @@ public class SlicingEngine {
     public void setSource(MySQLAdaptor dba) {
         this.sourceDBA = dba;
     }
-
-    /**
-     * Get the data source for slicing.
-     * @return dba
-     */
-    public MySQLAdaptor getSource() {
-        return this.sourceDBA;
-    }
     
     /**
      * The name of the target database. This database will be created at the same host
      * as the data source.
-     * @param DbName
+     * @param dbName
      */
-    public void setTargetDbName(String DbName) {
-        this.targetDbName = DbName;
+    public void setTargetDbName(String dbName) {
+        this.targetDbName = dbName;
     }
     
     public void setTargetDbHost(String host) {
@@ -233,7 +215,7 @@ public class SlicingEngine {
         speciesIDs = getSpeciesIDs();
         if(!prepareTargetDatabase())
             throw new IllegalStateException("SlicingEngine.slice(): " +
-                    "target database cannot be set up.");
+            		"target database cannot be set up.");
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
@@ -252,14 +234,13 @@ public class SlicingEngine {
         qa.validateExistence(output);
         qa.validateEventsInHierarchy(topLevelIDs,
                                      output);
+        qa.validateAttributes(output);
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
+        if (logFileName != null)
+            output.close(); // Close it if output is opened by the application
         addReleaseStatus();
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex(output);
-        logger.info("\nFilling Attribute Values...");
-        fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment, sourceDBA, output);
-        if (logFileName != null)
-            output.close(); // Close it if output is opened by the application
         // Turn off for the further discussion.
 //        populateEntitySetCompartments();
         cleanUpPathwayFigures();
@@ -323,14 +304,14 @@ public class SlicingEngine {
             return;
 
         // If the source database already has the current release, don't push any instances.
-        logger.info("\nVerifying sourceDBA release number...");
+        logger.info("Verifying sourceDBA release number...");
         if (Integer.parseInt(releaseNumber) <= sourceDBA.getReleaseNumber()) {
-            logger.info("\nAlready released to sourceDBA. Not committing new update trackers.");
+            logger.info("Already released to sourceDBA. Not committing new update trackers.");
             return;
         }
 
         // Commit new instances to source database.
-        logger.info("\nCommitting _UpdateTracker, InstanceEdit, and _Release instances to sourceDBA...");
+        logger.info("Committing _UpdateTracker, InstanceEdit, and _Release instances to sourceDBA...");
             dumpInstances(updateTrackers, sourceDBA);
     }
 
@@ -387,10 +368,10 @@ public class SlicingEngine {
             logger.info(instance + ": Only the first Figure value is kept.");
         }
     }
-
+    
     /**
      * EntitySet's compartment slot will be auto-populated by from its members and candidates
-     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The
+     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The 
      * disease part will not be handled.).
      * @throws Exception
      */
@@ -402,14 +383,11 @@ public class SlicingEngine {
             populateEntitySet(instance, ReactomeJavaConstants.compartment);
         }
     }
-
+    
     /**
-     * Iterate through EntitySet instances and populate each instance's compartment attributes.
-     *
-     * The recursive iteration takes place in the
-     * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
-     *
-
+     * Iterate through EntitySet instances and populate each instance's
+     * disease and compartment attributes.
+     * 
      * @param instance
      * @throws Exception
      */
@@ -418,7 +396,7 @@ public class SlicingEngine {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
             return;
         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
+        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance, 
                                                                           ReactomeJavaConstants.hasMember,
                                                                           ReactomeJavaConstants.hasCandidate);
         Set<GKInstance> memberAttributeValues = new HashSet<>();
@@ -429,23 +407,18 @@ public class SlicingEngine {
 			if (list != null && list.size() != 0)
 				memberAttributeValues.addAll(list);
         }
-
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
         memberList.forEach(member -> logger.info(String.format("-> %s", member)));
         instance.setAttributeValue(attributeName, memberList);
     }
-
-    public MySQLAdaptor getTestDBA() throws SQLException {
-    	return new MySQLAdaptor("localhost",
-								"reactome",
-								"liam",
-								")8J7m]!%[<");
-    }
-
+    
     @Test
     public void testPopulateEntitySet() throws Exception {
-        MySQLAdaptor testDBA = getTestDBA();
+        MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
+                                                "gk_central_091119",
+                                                "root",
+                                                "macmysql01");
 		List<GKInstance> attrValue;
 		GKInstance originalCompartment;
 
@@ -507,7 +480,7 @@ public class SlicingEngine {
     		assertEquals(1, attrValue.size());
     	}
     }
-
+    
     private void setStableIdReleased() throws Exception {
         if (!setReleasedInStableIdentifier)
             return; // There is no need to do this.
@@ -1191,7 +1164,7 @@ public class SlicingEngine {
         }
         logger.info("extractRegulations: " + sliceMap.size() + " instances.");
     }
-
+    
     private void checkFollowingEventsInFloating() throws Exception {
         if (floatingEventMap == null || floatingEventMap.size() == 0)
             return;
@@ -1263,7 +1236,6 @@ public class SlicingEngine {
                 pushToMap(tmp, sliceMap);
                 // Load all instances
 //                sourceDBA.loadInstanceAttributeValues(tmp);
-
                 // Use this version to increase the performance hopefully
                 sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
@@ -1331,21 +1303,21 @@ public class SlicingEngine {
     private boolean prepareTargetDatabase() throws Exception {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.prepareTargetDatabase(): source database is not specified.");
-        if (!runDumpCommand(null, DUMP_FILE_NAME))
+        if(!runDumpCommand(null, DUMP_FILE_NAME))
             return false;
-        if (!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
+        if(!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
             return false;
         if (!runDumpCommand("Ontology", ONTOLOGY_FILE_NAME))
             return false;
-        if (!createTargetDatabase())
+        if(!createTargetDatabase())
             return false;
-        if (!runImport(DUMP_FILE_NAME))
+        if(!runImport(DUMP_FILE_NAME))
             return false;
-        if (!runImport(SCHEMA_FILE_NAME))
+        if(!runImport(SCHEMA_FILE_NAME))
             return false;
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
-        if (!runAlterTables())
+        if(!runAlterTables())
             return false;
         return true;
     }
@@ -1584,14 +1556,12 @@ public class SlicingEngine {
             String pwd = properties.getProperty("dbPwd");
             if (pwd == null || pwd.trim().length() == 0)
                 pwd = getInput("Please input the password");
-            
-            // Target database.
             String targetDbHost = properties.getProperty("slicingDbHost");
             if (targetDbHost == null || targetDbHost.trim().length() == 0)
                 targetDbHost = getInput("Please input the slice databse host");
-            String targetDbName = properties.getProperty("slicingDbName");
-            if (targetDbName == null || targetDbName.trim().length() == 0)
-                targetDbName = getInput("Please input the slice database name");
+            String targetdbName = properties.getProperty("slicingDbName");
+            if (targetdbName == null || targetdbName.trim().length() == 0)
+                targetdbName = getInput("Please input the slice database name");
             String targetDbUser = properties.getProperty("slicingDbUser");
             if (targetDbUser == null || targetDbUser.trim().length() == 0)
                 targetDbUser = getInput("Please input the slice database user");
@@ -1601,7 +1571,6 @@ public class SlicingEngine {
             String targetDbPort = properties.getProperty("slicingDbPort");
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
-            
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
@@ -1655,7 +1624,7 @@ public class SlicingEngine {
             // To keep this connection consistent to avoid time out
             sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
             engine.setSource(sourceDBA);
-            engine.setTargetDbName(targetDbName);
+            engine.setTargetDbName(targetdbName);
             engine.setTargetDbHost(targetDbHost);
             engine.setTargetDbUser(targetDbUser);
             engine.setTargetDbPwd(targetDbPwd);
