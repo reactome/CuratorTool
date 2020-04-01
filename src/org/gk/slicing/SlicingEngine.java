@@ -69,7 +69,7 @@ import org.junit.Test;
  * 6). ReactionCoordinates whose locatedEvents are in the slice will be in the slice.
  * 7). All instances should be registered in table DatabaseObject. If not, it will be removed from the slice.
  * This is a database error and should not occur.
- * 8). All attributes referred by instances in the slice should be in the slice. If not, these references will
+ * 8). All attributes referrred by instances in the slice should be in the slice. If not, these references will
  * be removed from attributes.
  * 9). If a species list file is provided, all species and their references will be in the slice (recursively).
  * @author wgm
@@ -419,21 +419,21 @@ public class SlicingEngine {
                                                 "gk_central_091119",
                                                 "root",
                                                 "macmysql01");
-		List<GKInstance> attrValue;
-		GKInstance originalCompartment;
+        List<GKInstance> attrValue;
+        GKInstance originalCompartment;
 
-		// Changing the compartments of the member entity sets.
+        // Changing the compartments of the member entity sets.
         // ACEI pro-drugs [extracellular region], has one compartment (extracellular region),
         // and eleven members. By changing the compartment of one of these members (e.g. zofenopril),
         // ACEI pro-drugs should then have two compartments.
         GKInstance entity = testDBA.fetchInstance(9619112L);
         GKInstance member = testDBA.fetchInstance(9619097L);
         GKInstance cytoplasm = testDBA.fetchInstance(459L);
-		originalCompartment = (GKInstance) member.getAttributeValue(ReactomeJavaConstants.compartment);
+        originalCompartment = (GKInstance) member.getAttributeValue(ReactomeJavaConstants.compartment);
         member.setAttributeValue(ReactomeJavaConstants.compartment, cytoplasm);
 
         // Control.
-		attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+        attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(1, attrValue.size());
 
         // Populate the compartments.
@@ -447,38 +447,38 @@ public class SlicingEngine {
         attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
         assertEquals(1, attrValue.size());
 
-		/*
-		 * Changing the compartments of the containing entity sets.
-		 */
-    	// Each of these EntitySet's (and all of their respective members) have just one compartment.
-    	List<Long> dbIds = Arrays.asList(9619112L,  // ACEI pro-drugs [extracellular region]
-										 182588L,   // INK4 [cytolsol]
-										 3215203L); // ING [nucleoplasm]
+        /*
+         * Changing the compartments of the containing entity sets.
+         */
+        // Each of these EntitySet's (and all of their respective members) have just one compartment.
+        List<Long> dbIds = Arrays.asList(9619112L,  // ACEI pro-drugs [extracellular region]
+                                         182588L,   // INK4 [cytolsol]
+                                         3215203L); // ING [nucleoplasm]
 
-    	// Compartment not included in the EntitySet's above.
-    	GKInstance plasmaMembrane = testDBA.fetchInstance(876L);
+        // Compartment not included in the EntitySet's above.
+        GKInstance plasmaMembrane = testDBA.fetchInstance(876L);
 
-		for (Long dbId : dbIds) {
-			entity = testDBA.fetchInstance(dbId);
-			originalCompartment = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.compartment);
+        for (Long dbId : dbIds) {
+            entity = testDBA.fetchInstance(dbId);
+            originalCompartment = (GKInstance) entity.getAttributeValue(ReactomeJavaConstants.compartment);
 
-    		// Control.
-			attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
-    		assertEquals(1, attrValue.size());
+            // Control.
+            attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+            assertEquals(1, attrValue.size());
 
-    		// Fill attribute values.
-			populateEntitySet(entity, ReactomeJavaConstants.compartment);
-			entity.addAttributeValue(ReactomeJavaConstants.compartment, plasmaMembrane);
-			attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
-			System.out.println(attrValue);
-    		assertEquals(2, attrValue.size());
+            // Fill attribute values.
+            populateEntitySet(entity, ReactomeJavaConstants.compartment);
+            entity.addAttributeValue(ReactomeJavaConstants.compartment, plasmaMembrane);
+            attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+            System.out.println(attrValue);
+            assertEquals(2, attrValue.size());
 
-    		// Remove added attribute values.
-			entity.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
-			populateEntitySet(entity, ReactomeJavaConstants.compartment);
-			attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
-    		assertEquals(1, attrValue.size());
-    	}
+            // Remove added attribute values.
+            entity.setAttributeValue(ReactomeJavaConstants.compartment, originalCompartment);
+            populateEntitySet(entity, ReactomeJavaConstants.compartment);
+            attrValue = entity.getAttributeValuesList(ReactomeJavaConstants.compartment);
+            assertEquals(1, attrValue.size());
+        }
     }
     
     private void setStableIdReleased() throws Exception {
