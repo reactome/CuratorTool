@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 
@@ -103,6 +104,12 @@ public class InstanceDisplayNameGenerator {
             if (schemaClass.isa(ReactomeJavaConstants.ControlReference)) {
                 return generateControlReferenceName(instance);
             }
+            if (schemaClass.isa(ReactomeJavaConstants._UpdateTracker)) {
+                return generateUpdateTrackerName(instance);
+            }
+            if (schemaClass.isa(ReactomeJavaConstants._Release)) {
+                return generateReleaseName(instance);
+            }
             if (schemaClass.isValidAttribute("name")) {
                 java.util.List list = instance.getAttributeValuesList("name");
                 if (list != null && list.size() > 0) 
@@ -143,6 +150,18 @@ public class InstanceDisplayNameGenerator {
         return "";
     }
     
+    private static String generateUpdateTrackerName(GKInstance instance) throws InvalidAttributeException, Exception {
+        GKInstance updatedEvent = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.updatedEvent);
+        Long updatedEventDBID = updatedEvent.getDBID();
+        return "Revision of instance: " + updatedEventDBID;
+    }
+
+    private static String generateReleaseName(GKInstance instance) throws InvalidAttributeException, Exception {
+        Object releaseNumber = instance.getAttributeValue(ReactomeJavaConstants.releaseNumber);
+        Object releaseDate = instance.getAttributeValue(ReactomeJavaConstants.releaseDate);
+        return releaseNumber + " on " + releaseDate;
+    }
+
     private static String generateControlReferenceName(GKInstance instance) throws Exception {
         StringBuilder builder = new StringBuilder();
         if (instance.getSchemClass().isa(ReactomeJavaConstants.RegulationReference)) {

@@ -1,0 +1,94 @@
+# This configuration file is used to set necessary parameters for slicingTool. If all parameters are set, the user will not be asked to input.
+
+# Database host. Usually it should be localhost to improve the performance.
+dbHost=localhost
+
+# Database name. Usually it should be gk_central.
+#dbName=gk_central_110818
+#dbName=gk_central_082417
+dbName=gk_central_02_05_20_update_tracker
+
+# Port number. Default 3306.
+dbPort=3306
+
+# MySQL account name
+dbUser={}
+
+# MySQL acount password
+dbPwd={}
+
+# Name of the file containing a list of topics to be released
+#releaseTopicsFileName=SinglePathway_Topic.txt
+#releaseTopicsFileName=small_topics.txt
+#releaseTopicsFileName=nursa_topics.txt
+releaseTopicsFileName=ver71_topics.txt
+
+# Name of the file containing a list of species that should be in the slice even though some of
+
+# them might not be used by insances in the slice.
+speciesFileName=Species.txt
+
+# Name of the file the checking results will be saved to.
+logFileName=SlicingLog.txt
+
+# The following parameters are used for target MySQLAdaptor information.
+
+# If no values are provided, the source database information will be used
+slicingDbHost=localhost
+slicingDbUser={}
+slicingDbPwd={}
+slicingDbPort=3306
+
+# Slicing database name
+slicingDbName=test_slice_ver72
+#slicingDbName=test_gk_central_efs_new_updated_slice_67
+
+# The following parameters are used for the comparing MySQLAdaptor information.
+# The "previousSlice" database will be used to detect revisions for the Event instances.
+needUpdateTrackers=true
+# Control if UpdateTracker instances created should be written back to the source database, gk_central
+# To set this flag true, the above needUpdateTrackers has to be true. Otherwise, nothing will happen.
+uploadUpdateTrackersToSource=false
+previousSliceDbHost=localhost
+previousSliceDbUser={}
+previousSliceDbPwd={}
+previousSliceDbPort=3306
+# Compare database name
+previousSliceDbName=test_slice_ver71
+
+# Check if the slicing is used for a non-human Reactome (e.g. Fly-Reactome). If it is set to true, a single layer of referred Events and their Event-type references will be in the slice.
+useForSpecies=false
+
+# Check if the slicing is used for a branch of a pathway tree. If this value is true, only events contained by a list of
+
+# specified pathways plus linked events will be sliced out. Their containers will not be checked. This flag should be set
+
+# as true if a small limited slice database is expected.
+
+# Note: if useForHierarchy is set to true, the setting for useForSpecies will be ignore. This value should be set as false for the actual release.
+useForHierarchy=false
+
+# Control if the slice tool is running under the development stage
+# This flag should be set to true in a local Eclipse env
+isInDev=true
+
+# Release number that is used to create a _Release instance
+#releaseNumber=2
+releaseNumber=72
+
+# Release Date, in the format of YYYY-MM-DD, which is used to create a _Release instance
+#releaseDate=2017-08-24
+releaseDate=2020-03-31
+
+# Last release Date, in the format of YYYY-MM-DD, which is used to assign releasetStatus for NEW or UPDATED event in homo sapiens.
+#lastReleaseDate=2000-01-01
+lastReleaseDate=2019-12-01
+
+# This flag is used to control if the released attribute in StableIdentifier instances should be set to true. If this flag is true, StableIdentifiers in the slice database and their original ones in gk_central will be set to TRUE.
+setReleasedInStableIdentifier=false
+
+# The defaultPersonId is used to create InstanceEdit for modifying instances in gk_central (e.g. set released = true for StableIdentifiers)
+# The default is reserved for Lisa
+#defaultPersonId=142011
+# Guanming Wu@CSHL
+defaultPersonId=140537

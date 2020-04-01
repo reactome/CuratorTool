@@ -38,7 +38,8 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class IupharDataAnalyzer {
-    private final static String DIR = "/Users/wug/datasets/iuphar/052219/";
+//    private final static String DIR = "/Users/wug/datasets/iuphar/052219/";
+    private final static String DIR = "/Users/wug/datasets/iuphar/032620/";
     private final static Long CYTOSOL_DB_ID = 70101L;
     private final static Long EXTRACELLULAR_REGION_ID = 984L;
     private final static long PLASMA_MEMBRANE_ID = 876L;
@@ -54,7 +55,7 @@ public class IupharDataAnalyzer {
 
     private MySQLAdaptor getDBA() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_052219",
+                                            "gk_central_032620",
                                             "root",
                                             "macmysql01");
         return dba;
@@ -108,7 +109,10 @@ public class IupharDataAnalyzer {
         Files.lines(Paths.get(srcFileName))
         .skip(1) // The header line
         .map(line -> line.split("\t"))
-        .filter(tokens -> approvedDrugIds.contains(tokens[13])) // Make sure drugs are approved
+        .filter(tokens -> {
+//            System.out.println(Arrays.asList(tokens));
+            return approvedDrugIds.contains(tokens[13]);
+        }) // Make sure drugs are approved
         .filter(tokens -> tokens[3].length() > 0) // Make sure we have protein UniProt ids
         .filter(tokens -> tokens.length == 37) // We require pubmed ids
         .filter(tokens -> tokens[36].trim().length() > 0) // pubmed id should not be empty.
@@ -157,7 +161,8 @@ public class IupharDataAnalyzer {
 
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 //        fileAdaptor.save(DIR + "IUPHAR_Reactions_052219.rtpj");
-        fileAdaptor.save(DIR + "IUPHAR_Reactions_061719.rtpj");
+//        fileAdaptor.save(DIR + "IUPHAR_Reactions_061719.rtpj");
+        fileAdaptor.save(DIR + "IUPHAR_Reactions_032620.rtpj");
     }
     
     private void assignCompartments() throws Exception {

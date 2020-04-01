@@ -263,6 +263,11 @@ public class ReactomeJavaConstants {
     public static final String _Release = "_Release";
     public static final String releaseNumber = "releaseNumber";
     public static final String releaseStatus = "releaseStatus";
+    // For _UpdateTracker class
+    public static final String _UpdateTracker = "_UpdateTracker";
+    public static final String _release = "_release";
+    public static final String action = "action";
+    public static final String updatedEvent = "updatedEvent";
     // For CrosslinkedResidue
     public static final String CrosslinkedResidue = "CrosslinkedResidue";
     public static final String InterChainCrosslinkedResidue = "InterChainCrosslinkedResidue";
@@ -350,4 +355,13 @@ public class ReactomeJavaConstants {
     
     // Attribute for existence of EHLD in Pathway
     public static final String hasEHLD = "hasEHLD";
+
+    // SlicingEngine/RevisionDetecteor constants
+    public static final String add = "add";
+    public static final String addRemove = "add/remove";
+    public static final String modify = "modify";
+    public static final String remove = "remove";
+    public static final String catalyst = "catalyst";
+    public static final String pathway = "pathway";
+    public static final String reaction = "reaction";
 }

@@ -51,7 +51,6 @@ import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
-import org.junit.Test;
 
 
 
@@ -67,12 +66,12 @@ import org.junit.Test;
  * 6). ReactionCoordinates whose locatedEvents are in the slice will be in the slice.
  * 7). All instances should be registered in table DatabaseObject. If not, it will be removed from the slice.
  * This is a database error and should not occur.
- * 8). All attributes referrred by instances in the slice should be in the slice. If not, these references will
+ * 8). All attributes referred by instances in the slice should be in the slice. If not, these references will
  * be removed from attributes.
  * 9). If a species list file is provided, all species and their references will be in the slice (recursively).
  * @author wgm
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class SlicingEngine {
     // For logging
     private static final Logger logger = Logger.getLogger(SlicingEngine.class);
@@ -90,14 +89,12 @@ public class SlicingEngine {
     private String targetDbPwd;
     private int targetDbPort = 3306;
     private MySQLAdaptor targetDBA;
+    private MySQLAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     private Map eventMap;
     private Map<Long, GKInstance> sliceMap;
-    private Map floatingEventMap;
     // To control references checking
     private Set checkedIDs;
-    // For referrer checking
-    private Map referrersMap;
     // IDs from the top-level pathways
     protected List<Long> topLevelIDs;
     // File name for the top-level events
@@ -118,10 +115,12 @@ public class SlicingEngine {
     private String path = "/usr/local/mysql/bin/";
     private boolean setReleasedInStableIdentifier = false;
     private Long defaultPersonId = null;
+    // Control UpdateTracker instance creation and writing back to gk_central
+    private boolean needUpdateTrackers = false;
+    private boolean uploadUpdateTrackersToSource = false;
     
     /**
      * Default constructor
-     *
      */
     public SlicingEngine() {
         sliceMap = new HashMap();
@@ -139,10 +138,10 @@ public class SlicingEngine {
     /**
      * The name of the target database. This database will be created at the same host
      * as the data source.
-     * @param dbName
+     * @param DbName
      */
-    public void setTargetDbName(String dbName) {
-        this.targetDbName = dbName;
+    public void setTargetDbName(String DbName) {
+        this.targetDbName = DbName;
     }
     
     public void setTargetDbHost(String host) {
@@ -196,7 +195,11 @@ public class SlicingEngine {
     public String getLastReleaseDate() {
         return this.lastReleaseDate;
     }
-    
+
+    public void setPreviousSlice(MySQLAdaptor previousSliceDBA) {
+        this.previousSliceDBA = previousSliceDBA;
+    }
+
     /**
      * The entry point for slicing. A client to this class should call this method.
      * @throws Exception
@@ -207,12 +210,14 @@ public class SlicingEngine {
         speciesIDs = getSpeciesIDs();
         if(!prepareTargetDatabase())
             throw new IllegalStateException("SlicingEngine.slice(): " +
-            		"target database cannot be set up.");
+                    "target database cannot be set up.");
         eventMap = extractEvents();
         extractReferences();
         extractRegulations();
-        extractConcurrentEventSets();
-        extractReactionCoordinates();
+        // As of November, 2018, this class has been deleted
+//        extractConcurrentEventSets();
+        // This is not needed any more
+//        extractReactionCoordinates();
         extractSpecies();
         extractPathwayDiagrams();
         PrintStream output = null;
@@ -231,17 +236,79 @@ public class SlicingEngine {
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
+        logger.info("Filling Attribute Values...");
         // Need to fill values for Complex.includedLocation
-        fillIncludedLocationForComplex(output);
-        // Turn off for the further discussion.
-//        populateEntitySetCompartments();
+        fillIncludedLocationForComplex();
+        fillAttributeValuesForEntitySets();
         cleanUpPathwayFigures();
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+        handleRevisions();
+    }
+
+    /**
+     * Detect revisions between between slices and create _UpdateTracker instances.
+     * Adds the following instances to the sliceMap:
+     * <ul>
+     *   <li> n _UpdateTracker instances for n revisions. </li>
+     *   <li> 1 InstanceEdit instance for n revisions. </li>
+     *   <li> 1 _Release instance for n revisions. </li>
+     * </ul>
+     *
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    private void handleRevisions() throws Exception {
+        if (!needUpdateTrackers)
+            return; // Do nothing
+        logger.info("Revision checking...");
+        // created
+        RevisionDetector revisonHandler = new RevisionDetector(this);
+        revisonHandler.handleRevisions(sourceDBA,
+                                       getTargetDBA(),
+                                       previousSliceDBA,
+                                       uploadUpdateTrackersToSource);
+    }
+
+    /**
+     * <p>Frontend for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
+     * 
+     * <p>Integration Testing Notes:</p>
+     * <ul>
+     *   <li>zofenopril (9619010) is a member of ACEI pro-drugs [endoplasmic reticulum] (9619052).</li>
+     *   <li>Both entities have endoplasmic reticulum as their compartments.</li>
+     *   <li>By changing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs
+     *       [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
+     * </ul>
+     * 
+     * @param attributeName
+     * @throws Exception
+     */
+    private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
+    	for (Long dbId : sliceMap.keySet()) {
+    		GKInstance inst = sliceMap.get(dbId);
+    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+    			continue;
+
+			logger.info(String.format("Populating %s in %s", attributeName, inst));
+    		populateEntitySet(inst, attributeName);
+    	}
     }
     
+    /**
+     * EntitySet's compartment slot will be auto-populated by from its members and candidates
+     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The
+     * disease part will not be handled.).
+     * @throws Exception
+     */
+    private void fillAttributeValuesForEntitySets() throws Exception {
+        GKSchemaClass entitySet = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.EntitySet);
+        if (entitySet.isValidAttribute(ReactomeJavaConstants.compartment))
+            fillAttributeValuesForEntitySets(ReactomeJavaConstants.compartment);
+    }
+
     /**
      * This method is used to take only the first figure attribute listed for
      * a pathway instance (https://reactome.atlassian.net/browse/DEV-1810).
@@ -265,26 +332,14 @@ public class SlicingEngine {
             logger.info(instance + ": Only the first Figure value is kept.");
         }
     }
-    
+
     /**
-     * EntitySet's compartment slot will be auto-populated by from its members and candidates
-     * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The 
-     * disease part will not be handled.).
-     * @throws Exception
-     */
-    private void populateEntitySetCompartments() throws Exception {
-        for (Long dbId : sliceMap.keySet()) {
-            GKInstance instance = sliceMap.get(dbId);
-            if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-                continue;
-            populateEntitySet(instance, ReactomeJavaConstants.compartment);
-        }
-    }
-    
-    /**
-     * Iterate through EntitySet instances and populate each instance's
-     * disease and compartment attributes.
-     * 
+     * Iterate through EntitySet instances and populate each instance's compartment attributes.
+     *
+     * The recursive iteration takes place in the
+     * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
+     *
+
      * @param instance
      * @throws Exception
      */
@@ -293,39 +348,23 @@ public class SlicingEngine {
         if (!instance.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
             return;
         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
-        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance, 
+        Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
                                                                           ReactomeJavaConstants.hasMember,
                                                                           ReactomeJavaConstants.hasCandidate);
         Set<GKInstance> memberAttributeValues = new HashSet<>();
         for (GKInstance member : members) {
-            if (!member.getSchemClass().isValidAttribute(attributeName))
-                continue;
-            List<GKInstance> list = member.getAttributeValuesList(attributeName);
-            if (list == null || list.size() == 0)
-                continue;
-            memberAttributeValues.addAll(list);
+			if (!member.getSchemClass().isValidAttribute(attributeName))
+				continue;
+			List<GKInstance> list = member.getAttributeValuesList(attributeName);
+			if (list != null && list.size() != 0)
+				memberAttributeValues.addAll(list);
         }
+
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
         InstanceUtilities.sortInstances(memberList);
         instance.setAttributeValue(attributeName, memberList);
-        logger.info(instance + ": populated compartment for EntitySet.");
     }
-    
-    @Test
-    public void testPopulateEntitySet() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_091119",
-                                            "root",
-                                            "macmysql01");
-        Long dbId = 9619112L;
-        GKInstance entitySet = dba.fetchInstance(dbId);
-        List<GKInstance> disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
-        System.out.println("Disease before handling: " + disease);
-        populateEntitySet(entitySet, ReactomeJavaConstants.disease);
-        disease = entitySet.getAttributeValuesList(ReactomeJavaConstants.disease);
-        System.out.println("Disease after handling: " + disease);
-    }
-    
+
     private void setStableIdReleased() throws Exception {
         if (!setReleasedInStableIdentifier)
             return; // There is no need to do this.
@@ -333,6 +372,7 @@ public class SlicingEngine {
         // the target database
         logger.info("set released = true for target database...");
         try {
+            MySQLAdaptor targetDBA = getTargetDBA();
             Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
             for (GKInstance inst : c) {
                 Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
@@ -355,7 +395,7 @@ public class SlicingEngine {
             if (needTransaction)
                 sourceDBA.startTransaction();
             
-            GKInstance defaultIE = createDefaultIE();
+            GKInstance defaultIE = createDefaultIE(sourceDBA);
             sourceDBA.storeInstance(defaultIE);
             
             for (Long dbId : sliceMap.keySet()) {
@@ -381,12 +421,23 @@ public class SlicingEngine {
             if (needTransaction)
                 sourceDBA.rollback();
             logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
+            throw e;
         }
     }
 
-    private GKInstance createDefaultIE() throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+    /**
+     * Create a default instance edit for a given database adaptor.
+     *
+     * @param dba
+     * @param personId
+     * @return GKInstance
+     * @throws Exception
+     * @throws InvalidAttributeException
+     * @throws InvalidAttributeValueException
+     */
+    GKInstance createDefaultIE(MySQLAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
-        GKInstance person = sourceDBA.fetchInstance(defaultPersonId);
+        GKInstance person = dba.fetchInstance(defaultPersonId);
         GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
         defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,  
                                     GKApplicationUtilities.getDateTime());
@@ -394,7 +445,7 @@ public class SlicingEngine {
         return defaultIE;
     }
     
-    private void fillIncludedLocationForComplex(PrintStream ps) throws Exception {
+    private void fillIncludedLocationForComplex() throws Exception {
         // This is just a sanity check so that this method will not work
         // for some old schema
         GKSchemaClass complexCls = (GKSchemaClass) sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.Complex);
@@ -408,7 +459,7 @@ public class SlicingEngine {
             // throw exception
             GKInstance includedLocation = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.includedLocation);
             if (includedLocation != null)
-                ps.println(inst + " has value in its includedLocation. It should be empty!");
+                logger.warn(inst + " has value in its includedLocation. It should be empty!");
             Set<GKInstance> components = InstanceUtilities.getContainedComponents(inst);
             Set<GKInstance> compartments = new HashSet<GKInstance>();
             for (GKInstance component : components) {
@@ -499,9 +550,11 @@ public class SlicingEngine {
      */
     private void addFrontPage() {
         try {
+            MySQLAdaptor targetDBA = getTargetDBA();
             Schema schema = targetDBA.getSchema();
             SchemaClass cls = schema.getClassByName("FrontPage");
-            GKInstance frontPage = createInstance(cls);
+            GKInstance frontPage = new GKInstance(cls);
+            frontPage.setDbAdaptor(targetDBA);
             // Need to set the attributes for the frontPageItem
             GKInstance process = null;
             for (Long dbID : topLevelIDs) {
@@ -519,26 +572,17 @@ public class SlicingEngine {
         }
     }
 
-    private GKInstance createInstance(SchemaClass cls) {
-        GKInstance frontPage = new GKInstance(cls);
-        frontPage.setDbAdaptor(targetDBA);
-        return frontPage;
-    }
-    
     /**
      * Add release number into the database: a new table will be created to store the release number
      * information.
      */
     private void addReleaseNumber() {
         try {
+            MySQLAdaptor targetDBA = getTargetDBA();
             SchemaClass releaseCls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
             if (releaseCls == null)
                 return; // This is an old schema
-            GKInstance release = createInstance(releaseCls);
-            release.setAttributeValue(ReactomeJavaConstants.releaseNumber,
-                                      new Integer(releaseNumber));
-            release.setAttributeValue(ReactomeJavaConstants.releaseDate,
-                                      releaseDate);
+            GKInstance release = createReleaseInstance(targetDBA, Integer.valueOf(releaseNumber), releaseDate);
             targetDBA.storeInstance(release);
         }
         catch(Exception e) {
@@ -547,8 +591,32 @@ public class SlicingEngine {
     }
     
     /**
+     * Create a release instance for a given database adaptor, release number, and release date.
+     *
+     * @param dba
+     * @param releaseNumber
+     * @param releaseDate
+     * @return GKInstance
+     * @throws InvalidAttributeException
+     * @throws InvalidAttributeValueException
+     */
+    private GKInstance createReleaseInstance(MySQLAdaptor dba, 
+                                     Integer releaseNumber, 
+                                     String releaseDate) throws InvalidAttributeException, InvalidAttributeValueException {
+        SchemaClass releaseCls = dba.getSchema().getClassByName(ReactomeJavaConstants._Release);
+        if (releaseCls == null)
+            return null;
+        GKInstance release = new GKInstance(releaseCls);
+        release.setDbAdaptor(dba); 
+        release.setAttributeValue(ReactomeJavaConstants.releaseNumber, releaseNumber);
+        release.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
+        InstanceDisplayNameGenerator.setDisplayName(release);
+        return release;
+    }
+
+    /**
      * Add values for releaseStatus. Old values in the release status should be removed first. The method works as follows,
-     * which is based on original Gavin's implementation in the server side, EventHierarchy.java.
+     * which is based on original Gavin's implementation at the server side, EventHierarchy.java.
      * 1). Remove any _releaseStatus values in each Event instance.
      * 2). Check each Event instance and compare its releaseDate to the lastPreviousDate provided in the property
      * file.
@@ -619,78 +687,6 @@ public class SlicingEngine {
         return false;
     }
     
-    @Test
-    public void testAddReleaseNumber() throws Exception {
-        targetDBA = new MySQLAdaptor("localhost",
-                                     "gk_current_ver37",
-                                     "root", 
-                                     "macmysql01");
-        releaseNumber = "37";
-        addReleaseNumber();
-    }
-    
-    private void extractConcurrentEventSets() throws Exception {
-        SchemaClass cls = sourceDBA.getSchema().getClassByName("ConcurrentEventSet");
-        // As of November, 2018, this class has been deleted
-        // For backward compatibility
-        if (cls == null)
-            return;
-        Collection ccEventSets = sourceDBA.fetchInstancesByClass(cls);
-        sourceDBA.loadInstanceAttributeValues(ccEventSets, cls.getAttribute("concurrentEvents"));
-        List ccEvents = null;
-        GKInstance ccEventSet = null;
-        for (Iterator it = ccEventSets.iterator(); it.hasNext();) {
-            ccEventSet = (GKInstance) it.next();
-            ccEvents = ccEventSet.getAttributeValuesList("concurrentEvents");
-            if (ccEvents == null || ccEvents.size() == 0)
-                continue;
-            for (Iterator it1 = ccEvents.iterator(); it1.hasNext();) {
-                GKInstance event = (GKInstance) it1.next();
-                if (sliceMap.containsKey(event.getDBID())) {
-                    extractReferencesToInstance(ccEventSet);
-                    break;
-                }
-            }
-        }
-        logger.info("extractConcurrentEventSets: " + sliceMap.size() + " instances.");
-    }
-    
-//    /**
-//     * Put the FrontPage instance into the slice
-//     * @throws Exception
-//     */
-//    private void extractFrontPage() throws Exception {
-//        GKInstance frontPage = sourceDBA.fetchInstance("FrontPage", frontPageID);
-//        if (frontPage != null)
-//            extractReferencesToInstance(frontPage);
-//    }
-    
-    /**
-     * Get the containers in the floating events list if any of contained events
-     * are in the slice.
-     */
-    private void extractReferrers() throws Exception {
-        GKInstance instance = null;
-        List referrers = null;
-        GKInstance referrer = null;
-        Long dbID = null;
-        for (Iterator it = referrersMap.keySet().iterator(); it.hasNext();) {
-            dbID = (Long) it.next();
-            if (sliceMap.containsKey(dbID)) {
-                instance = (GKInstance) referrersMap.get(dbID);
-                // Take the referrers
-                referrers = instance.getAttributeValuesListNoCheck(REFERRER_ATTRIBUTE_KEY);
-                if (referrers != null) {
-                    for (Iterator it1 = referrers.iterator(); it1.hasNext();) {
-                        referrer = (GKInstance) it1.next();
-                        extractReferencesToInstance(referrer);
-                    }
-                }
-            }
-        }
-        logger.info("extractReferrers: " + sliceMap.size() + " instances.");
-    }
-    
     /**
      * Make sure all conditions are correct.
      *
@@ -724,11 +720,7 @@ public class SlicingEngine {
     private void dumpInstances() throws Exception {
         logger.info("dumpInstances()...");
         long time1 = System.currentTimeMillis();
-        targetDBA = new MySQLAdaptor(targetDbHost,
-                                     targetDbName, 
-                                     targetDbUser, 
-                                     targetDbPwd, 
-                                     targetDbPort);
+        MySQLAdaptor targetDBA = getTargetDBA();
         // Try to use transaction
         boolean isTnSupported = targetDBA.supportsTransactions();
         if (isTnSupported)
@@ -749,14 +741,14 @@ public class SlicingEngine {
         long time2 = System.currentTimeMillis();
         logger.info("Time for dumpInstances(): " + (time2 - time1));
     }
-    
+
     /**
      * This method is copied from MySQLAdaptor.storeInstance(GKInstance, boolean). However, storing is done
      * without recursiveness here.
      * @param instance
      * @throws Exception
      */
-	public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
+	private void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
         Long dbID = instance.getDBID();
         SchemaClass cls = instance.getSchemClass();
         GKSchema schema = (GKSchema) targetDBA.getSchema();
@@ -885,33 +877,6 @@ public class SlicingEngine {
         }
     }
 
-    
-    /**
-     * Take only those coordinates whose locatedEvent are in the slice.
-     *
-     */
-    private void extractReactionCoordinates() throws Exception {
-        SchemaClass cls = sourceDBA.getSchema().getClassByName("ReactionCoordinates");
-        if (cls == null)
-            return;
-        Collection reactionCoordinates = sourceDBA.fetchInstancesByClass("ReactionCoordinates");
-        sourceDBA.loadInstanceAttributeValues(reactionCoordinates, cls.getAttribute("locatedEvent"));
-        GKInstance reactionCoordinate = null;
-        GKInstance locatedEvent = null;
-        for (Iterator it = reactionCoordinates.iterator(); it.hasNext();) {
-            reactionCoordinate = (GKInstance) it.next();
-            locatedEvent = (GKInstance) reactionCoordinate.getAttributeValue("locatedEvent");
-            if (locatedEvent == null) {
-                logger.error("SlicingEngine.checkReactionCooridnates(): " + 
-                        reactionCoordinate.getDBID() + " has no locatedEvent!");
-                continue; // Escape
-            }
-            if (sliceMap.containsKey(locatedEvent.getDBID()))
-                extractReferencesToInstance(reactionCoordinate);
-        }
-        logger.info("extractReactionCoordinates: " + sliceMap.size() + " instances.");
-    }
-    
     public List getSpeciesIDs() throws IOException {
         if (speciesFileName == null)
             return null;
@@ -964,40 +929,7 @@ public class SlicingEngine {
         }
         logger.info("extractRegulations: " + sliceMap.size() + " instances.");
     }
-    
-    private void checkFollowingEventsInFloating() throws Exception {
-        if (floatingEventMap == null || floatingEventMap.size() == 0)
-            return;
-        GKInstance reaction = null;
-        Long dbID = null;
-        List values = null;
-        GKInstance ref = null;
-        List dbIDs = new ArrayList(floatingEventMap.keySet());
-        int preCount = dbIDs.size();
-        while (true) {
-            for (Iterator it = dbIDs.iterator(); it.hasNext();) {
-                dbID = (Long) it.next();
-                reaction = (GKInstance) floatingEventMap.get(dbID);
-                values = reaction.getAttributeValuesList("precedingEvent");
-                if (values == null || values.size() == 0)
-                    continue;
-                for (Iterator it1 = values.iterator(); it1.hasNext();) {
-                    ref = (GKInstance) it1.next();
-                    if (sliceMap.containsKey(ref.getDBID())) {
-                        extractReferencesToInstance(reaction);
-                        it.remove();
-                        break;
-                    }
-                }
-            }
-            if (dbIDs.size() == preCount)
-                break;
-            preCount = dbIDs.size();
-        }
-        logger.info("checkFollowingEvents: " + sliceMap.size() + " instances.");
-    }
-    
-    
+
     private void extractReferences() throws Exception {
         // Check all references in the events
         GKInstance instance = null;
@@ -1036,6 +968,7 @@ public class SlicingEngine {
                 pushToMap(tmp, sliceMap);
                 // Load all instances
 //                sourceDBA.loadInstanceAttributeValues(tmp);
+
                 // Use this version to increase the performance hopefully
                 sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
@@ -1097,27 +1030,28 @@ public class SlicingEngine {
             tokens = line.split("\\s");
             ids.add(new Long(tokens[0]));
         }
+        bufferedReader.close();
         return ids;
     }
     
     private boolean prepareTargetDatabase() throws Exception {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.prepareTargetDatabase(): source database is not specified.");
-        if(!runDumpCommand(null, DUMP_FILE_NAME))
+        if (!runDumpCommand(null, DUMP_FILE_NAME))
             return false;
-        if(!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
+        if (!runDumpCommand("DataModel", SCHEMA_FILE_NAME))
             return false;
         if (!runDumpCommand("Ontology", ONTOLOGY_FILE_NAME))
             return false;
-        if(!createTargetDatabase())
+        if (!createTargetDatabase())
             return false;
-        if(!runImport(DUMP_FILE_NAME))
+        if (!runImport(DUMP_FILE_NAME))
             return false;
-        if(!runImport(SCHEMA_FILE_NAME))
+        if (!runImport(SCHEMA_FILE_NAME))
             return false;
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
-        if(!runAlterTables())
+        if (!runAlterTables())
             return false;
         return true;
     }
@@ -1141,6 +1075,17 @@ public class SlicingEngine {
         String errorMessage = getErrorMessage(process);
         process.destroy();
         return checkErrorMessage(errorMessage);
+    }
+    
+    private MySQLAdaptor getTargetDBA() throws Exception {
+        if (targetDBA != null)
+            return targetDBA;
+        targetDBA = new MySQLAdaptor(targetDbHost,
+                                     targetDbName, 
+                                     targetDbUser, 
+                                     targetDbPwd, 
+                                     targetDbPort);
+        return targetDBA;
     }
     
     private boolean checkErrorMessage(String error) {
@@ -1215,6 +1160,7 @@ public class SlicingEngine {
         ReadableByteChannel source = Channels.newChannel(input);
         ByteBuffer buffer = ByteBuffer.allocate(10 * 1024); // 10k
         WritableByteChannel sink = Channels.newChannel(output);
+        @SuppressWarnings("unused")
         int tmp = 0;
         while ((tmp = source.read(buffer)) > 0) {
             buffer.flip();
@@ -1229,20 +1175,14 @@ public class SlicingEngine {
     
     
     private boolean runAlterTables() throws Exception {
-        targetDBA = new MySQLAdaptor(targetDbHost,
-                targetDbName, 
-                targetDbUser, 
-                targetDbPwd, 
-                targetDbPort);
+        MySQLAdaptor targetDBA = getTargetDBA();
         Connection targetDBAConnection = targetDBA.getConnection();
 
-        @SuppressWarnings("rawtypes")
         java.util.List tables = getTables(targetDBAConnection);
         changeToMyISAM(tables,targetDBAConnection);
         return true;
     }
     
-	@SuppressWarnings("rawtypes")
 	private static java.util.List getTables(Connection conn) {
 		java.util.List tables = new ArrayList();
 		try {
@@ -1261,7 +1201,6 @@ public class SlicingEngine {
 		return tables;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	private void changeToMyISAM(java.util.List tables,
 	                            Connection conn) throws SQLException {
 	    Statement statement = conn.createStatement();
@@ -1356,12 +1295,14 @@ public class SlicingEngine {
             String pwd = properties.getProperty("dbPwd");
             if (pwd == null || pwd.trim().length() == 0)
                 pwd = getInput("Please input the password");
+            
+            // Target database.
             String targetDbHost = properties.getProperty("slicingDbHost");
             if (targetDbHost == null || targetDbHost.trim().length() == 0)
                 targetDbHost = getInput("Please input the slice databse host");
-            String targetdbName = properties.getProperty("slicingDbName");
-            if (targetdbName == null || targetdbName.trim().length() == 0)
-                targetdbName = getInput("Please input the slice database name");
+            String targetDbName = properties.getProperty("slicingDbName");
+            if (targetDbName == null || targetDbName.trim().length() == 0)
+                targetDbName = getInput("Please input the slice database name");
             String targetDbUser = properties.getProperty("slicingDbUser");
             if (targetDbUser == null || targetDbUser.trim().length() == 0)
                 targetDbUser = getInput("Please input the slice database user");
@@ -1371,6 +1312,7 @@ public class SlicingEngine {
             String targetDbPort = properties.getProperty("slicingDbPort");
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
+            
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
@@ -1404,6 +1346,21 @@ public class SlicingEngine {
             if (defaultPersonId == null || defaultPersonId.trim().length() == 0) {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
+            // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
+            MySQLAdaptor previousSliceDBA = null;
+            boolean needUpdateTrackers = false;
+            if (properties.getProperty("needUpdateTrackers").toLowerCase().equals("true")) {
+                needUpdateTrackers = true;
+                logger.info("Revision detection requested.");
+                previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
+                                                    properties.getProperty("previousSliceDbName"),
+                                                    properties.getProperty("previousSliceDbUser"),
+                                                    properties.getProperty("previousSliceDbPwd"),
+                                                    Integer.parseInt(properties.getProperty("previousSliceDbPort")));
+                String text = properties.getProperty("uploadUpdateTrackersToSource");
+                if (text != null && text.equals("true"))
+                    engine.uploadUpdateTrackersToSource = true;
+            }
             MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
                                                       dbName,
                                                       user,
@@ -1412,7 +1369,7 @@ public class SlicingEngine {
             // To keep this connection consistent to avoid time out
             sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
             engine.setSource(sourceDBA);
-            engine.setTargetDbName(targetdbName);
+            engine.setTargetDbName(targetDbName);
             engine.setTargetDbHost(targetDbHost);
             engine.setTargetDbUser(targetDbUser);
             engine.setTargetDbPwd(targetDbPwd);
@@ -1423,6 +1380,8 @@ public class SlicingEngine {
             engine.setLastReleaseDate(lastReleaseDate);
             engine.setSpeciesFileName(speciesFileName);
             engine.setLogFileName(logFileName);
+            engine.needUpdateTrackers = needUpdateTrackers;
+            engine.setPreviousSlice(previousSliceDBA);
             engine.setReleasedInStableIdentifier = new Boolean(setReleasedInStableIdentifier);
             engine.defaultPersonId = new Long(defaultPersonId);
             engine.slice();
@@ -1464,13 +1423,6 @@ public class SlicingEngine {
         return cmdLineProps;
     }
     
-    @Test
-    public void testParsePropertiesInArgs() {
-        String args = "--db db --inDev --pwd pwd --useLog";
-        Map<String, String> cmdLineProps = parsePropertiesInArgs(args.split("( )+"));
-        cmdLineProps.forEach((key, value) -> System.out.println(key + " -> " + value));
-    }
-    
     private static Properties loadProperties() throws IOException {
         FileInputStream fis = new FileInputStream("slicingTool.prop");
         Properties properties = new Properties();
@@ -1491,36 +1443,5 @@ public class SlicingEngine {
             System.exit(0); // Quit
         System.out.println(message + ": " + input);
         return input;
-    }
-    
-    @Test
-    public void testTopics() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "test_gk_central",
-                                            "authortool",
-                                            "T001test",
-                                            3306);
-        processFileName = "ver28_topics.txt";
-        List list = getReleasedProcesses();
-        for (Iterator it = list.iterator(); it.hasNext();) {
-            Long id = (Long) it.next();
-            GKInstance instance = dba.fetchInstance(id);
-            System.out.println(instance);
-        }
-    }
-    
-    @Test
-    public void testInsert() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
-                                            "test_gk_central_slice",
-                                            "root", 
-                                            "macmysql01");
-        Connection connection = dba.getConnection();
-        String insert = "INSERT INTO Event SET DB_ID=?, _doRelease=?";
-        PreparedStatement stat = connection.prepareStatement(insert);
-        stat.setObject(1, "508370");
-        stat.setObject(2, Boolean.FALSE);
-        stat.executeUpdate();
-        connection.close();
     }
 }
