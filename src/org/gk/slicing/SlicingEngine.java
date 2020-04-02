@@ -127,6 +127,10 @@ public class SlicingEngine {
         checkedIDs = new HashSet();
     }
     
+    public void setDefaultPersonId(Long id) {
+        this.defaultPersonId = id;
+    }
+    
     /**
      * Set the data source for slicing. Usually this should be gk_central.
      * @param dba
@@ -265,7 +269,8 @@ public class SlicingEngine {
             return; // Do nothing
         logger.info("Revision checking...");
         // created
-        RevisionDetector revisonHandler = new RevisionDetector(this);
+        RevisionDetector revisonHandler = new RevisionDetector();
+        revisonHandler.setSlicingEngine(this);
         revisonHandler.handleRevisions(sourceDBA,
                                        getTargetDBA(),
                                        previousSliceDBA,

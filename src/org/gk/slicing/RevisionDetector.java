@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
+import org.junit.Test;
 
 /**
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
@@ -24,9 +26,16 @@ public class RevisionDetector {
     // Use a utility class for some methods. Not a good design!
     private SlicingEngine sliceEngine;
     
-	public RevisionDetector(SlicingEngine engine) {
-	    this.sliceEngine = engine;
-	}
+    public RevisionDetector() {
+    }
+    
+//	public RevisionDetector(SlicingEngine engine) {
+//	    this.sliceEngine = engine;
+//	}
+    
+    public void setSlicingEngine(SlicingEngine engine) {
+        this.sliceEngine = engine;
+    }
 
 	public void handleRevisions(MySQLAdaptor sourceDBA, // This is usually gk_central
 	                            MySQLAdaptor currentSliceDBA,
@@ -57,6 +66,7 @@ public class RevisionDetector {
 	private void uploadUpdateTrackers(MySQLAdaptor sourceDBA, 
 	                                  MySQLAdaptor currentSliceDBA,
 	                                  List<GKInstance> updateTrackers) throws Exception {
+	    logger.info("Uploading UpdateTracker to the source database...");
 	    SchemaClass updateTrackerCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	    if (updateTrackerCls == null) {
 	        logger.info("No _UpdateTracker class in the sourceDBA. Nothing to do for uploadUpdateTrackers.");
@@ -80,10 +90,15 @@ public class RevisionDetector {
 	            sourceDBA.startTransaction();
 	        // Commit these two instances first
 	        sourceDBA.storeInstance(defaultIE);
+	        release.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
 	        sourceDBA.storeInstance(release);
+	        // Note: DB_IDs used by those instances are different from the current slice database.
+	        // This probably is fine.
+	        long time1 = System.currentTimeMillis();
 	        for (GKInstance updateTracker : updateTrackers) {
 	            // Move to the sourceDBA version
 	            updateTracker.setDBID(null);
+	            updateTracker.setSchemaClass(updateTrackerCls);
 	            updateTracker.setAttributeValue(ReactomeJavaConstants._release, release);
 	            GKInstance updateEvent = (GKInstance) updateTracker.getAttributeValue(ReactomeJavaConstants.updatedEvent);
 	            updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent,
@@ -94,6 +109,8 @@ public class RevisionDetector {
 	        }
 	        if (needTrasanction)
 	            sourceDBA.commit();
+	        long time2 = System.currentTimeMillis();
+	        logger.info("Done uploading _UpdateTracker instances: " + (time2 - time1) / 1000.0d + " seconds.");
 	    }
 	    catch(Exception e) {
 	        if (needTrasanction)
@@ -101,6 +118,35 @@ public class RevisionDetector {
 	        logger.error("Error in uploadUpdateTrackers: " + e.getMessage(), e);
 	        throw e;
 	    }
+	}
+	
+	/**
+	 * This test method can be run after the slice database is created but the source database (e.g. gk_central) has not been updated.
+	 * @throws Exception
+	 */
+	@Test
+	public void testUploadUpdateTracers() throws Exception {
+	    PropertyConfigurator.configure("SliceLog4j.properties");
+	    MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+	                                              "gk_central_02_05_20_update_tracker",
+	                                              "root",
+	                                              "macmysql01");
+	    MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
+	                                                    "test_slice_ver72",
+	                                                    "root",
+	                                                    "macmysql01");
+	    GKInstance release = getReleaseInstance(currentSliceDBA);
+	    currentSliceDBA.fastLoadInstanceAttributeValues(release); // Make sure everything is there
+	    Collection<GKInstance> updateTrackers = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
+	    currentSliceDBA.loadInstanceAttributeValues(updateTrackers,
+	                                                new String[] {
+	                                                        ReactomeJavaConstants.updatedEvent,
+	                                                        ReactomeJavaConstants.action
+	                                                });
+	    logger.info("Total UpdateTrackers: " + updateTrackers.size());
+	    this.sliceEngine = new SlicingEngine();
+	    sliceEngine.setDefaultPersonId(140537L);
+	    uploadUpdateTrackers(sourceDBA, currentSliceDBA, new ArrayList<>(updateTrackers));
 	}
 	
 	/**
