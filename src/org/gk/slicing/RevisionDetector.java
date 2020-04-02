@@ -79,6 +79,10 @@ public class RevisionDetector {
 	        logger.info("No _Release class in the sourceDBA. Nothing to do for uploadUpdateTrackers.");
 	        return;
 	    }
+	    // To copy that, we need to fully load the release instances
+	    // so that all values should be in the instance. Otherwise, some value may
+	    // not be there since the instance is loaded directly by DBA.
+	    currentSliceDBA.fastLoadInstanceAttributeValues(release);
 	    release.setSchemaClass(releaseCls);
 	    release.setDbAdaptor(sourceDBA);
 	    release.setDBID(null);
@@ -135,8 +139,6 @@ public class RevisionDetector {
 	                                                    "test_slice_ver72",
 	                                                    "root",
 	                                                    "macmysql01");
-	    GKInstance release = getReleaseInstance(currentSliceDBA);
-	    currentSliceDBA.fastLoadInstanceAttributeValues(release); // Make sure everything is there
 	    Collection<GKInstance> updateTrackers = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
 	    currentSliceDBA.loadInstanceAttributeValues(updateTrackers,
 	                                                new String[] {
@@ -177,7 +179,6 @@ public class RevisionDetector {
 	        throw new IllegalStateException("Cannot find any _Release instance in the slice database!");
 	    return c.stream().findAny().get();
 	}
-	
 	
     /**
 	 * Return a List of _UpdateTracker instances for every Event revision in the sliceMap (compared to a previous slice).
