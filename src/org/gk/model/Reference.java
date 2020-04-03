@@ -14,6 +14,7 @@ import java.util.List;
 public class Reference implements Serializable {
 
 	private long pmid;
+	private String pmcid;
 	@Deprecated
 	private String author;
 	private String journal;
@@ -38,7 +39,19 @@ public class Reference implements Serializable {
 		this.title = title;
 	}
 	
-	public String getAuthor() {
+	public String getPmcid() {
+        return pmcid;
+    }
+
+    public void setPmcid(String pmcid) {
+        this.pmcid = pmcid;
+    }
+
+    public void setAuthors(List<Person> authors) {
+        this.authors = authors;
+    }
+
+    public String getAuthor() {
 		return author;
 	}
 

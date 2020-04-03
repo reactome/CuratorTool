@@ -76,6 +76,7 @@ import org.gk.osxAdapter.OSXApplication;
 import org.gk.persistence.Bookmarks;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.reach.ReachResultTableFrame;
 import org.gk.render.RenderUtility;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.GKSchemaClass;
@@ -95,8 +96,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	// System info
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
-	public static final String VERSION = "3.3";
-	public static final int BUILD_NUMBER = 100;
+	public static final String VERSION = "3.4";
+	public static final int BUILD_NUMBER = 101;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -1269,6 +1270,12 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         // To launch PSI-MOD go browser
         toolMenu.add(actionCollection.getLaunchPsiModBrowserAction());
         toolMenu.add(actionCollection.getLaunchDiseaseBrowserAction());
+        JMenuItem reachItem = new JMenuItem("Open Reach NLP");
+        reachItem.addActionListener(e -> {
+            ReachResultTableFrame frame = new ReachResultTableFrame();
+            frame.setVisible(true);
+        });
+        toolMenu.add(reachItem);
 		menuBar.add(toolMenu);
 		JMenu windowMenu = FrameManager.getManager().generateWindowMenu();
 		menuBar.add(windowMenu);

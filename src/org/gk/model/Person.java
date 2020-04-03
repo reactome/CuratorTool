@@ -4,12 +4,14 @@
  */
 package org.gk.model;
 
+import java.io.Serializable;
+
 /**
  * A simple class to encode Person related information.
  * @author gwu
  *
  */
-public class Person {
+public class Person implements Serializable {
     
     private String firstName;
     private String lastName;

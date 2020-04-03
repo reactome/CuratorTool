@@ -36,7 +36,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * This Persistence implementaion is used to persist Renderables to the local 
+ * This Persistence implementation is used to persist Renderables to the local 
  * file system.
  * @author wgm
  */

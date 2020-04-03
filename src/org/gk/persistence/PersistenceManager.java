@@ -30,7 +30,7 @@ import org.jdom.input.SAXBuilder;
 import org.jdom.xpath.XPath;
 
 /**
- * This is a factory class that create and mange PersistenceAdaptor for both
+ * This is a factory class that create and manage PersistenceAdaptor for both
  * the database and local file system.
  * @author wugm
  */
