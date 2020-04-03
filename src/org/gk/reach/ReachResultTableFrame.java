@@ -411,16 +411,28 @@ public class ReachResultTableFrame extends JFrame {
     
     private String getReference(Reference reference) {
         StringBuilder stringBuilder = new StringBuilder();
-
+        
+        String pmcid = reference.getPmcid();
+        if (pmcid != null) {
+            if (pmcid.endsWith(";"))
+                pmcid = pmcid.substring(0, pmcid.length() - 1);
+            int index = pmcid.indexOf(":");
+            if (index >= 0)
+                pmcid = pmcid.substring(index + 1).trim();
+        }
+        
         // title
         if (reference.getTitle() != null) {
-            stringBuilder.append("<a href=\"https://www.ncbi.nlm.nih.gov/pmc/articles/");
-            stringBuilder.append(reference.getPmcid());
-            stringBuilder.append("/\">");
+            if (pmcid != null) {
+                stringBuilder.append("<a href=\"https://www.ncbi.nlm.nih.gov/pmc/articles/");
+                stringBuilder.append(pmcid);
+                stringBuilder.append("/\">");
+            }
             stringBuilder.append("<b>");
             stringBuilder.append(reference.getTitle());
             stringBuilder.append("</b>");
-            stringBuilder.append("</a>");
+            if (pmcid != null)
+                stringBuilder.append("</a>");
             stringBuilder.append("<br>");
         }
 
@@ -451,13 +463,15 @@ public class ReachResultTableFrame extends JFrame {
         stringBuilder.append("<br>");
 
         // PMCID
-        stringBuilder.append("<sub>");
-        stringBuilder.append("PMCID: ");
-        stringBuilder.append("<a href=\"https://www.ncbi.nlm.nih.gov/pmc/articles/");
-        stringBuilder.append(reference.getPmcid());
-        stringBuilder.append("/\">");
-        stringBuilder.append(reference.getPmcid());
-        stringBuilder.append("</a>");
+        if (pmcid != null) {
+            stringBuilder.append("<sub>");
+            stringBuilder.append("PMCID: ");
+            stringBuilder.append("<a href=\"https://www.ncbi.nlm.nih.gov/pmc/articles/");
+            stringBuilder.append(pmcid);
+            stringBuilder.append("/\">");
+            stringBuilder.append(pmcid);
+            stringBuilder.append("</a>");
+        }
 
         // PMID
         stringBuilder.append(" ");
@@ -468,7 +482,6 @@ public class ReachResultTableFrame extends JFrame {
         stringBuilder.append(reference.getPmid());
         stringBuilder.append("</a>");
         stringBuilder.append("</sub>");
-
         return stringBuilder.toString();
     }
 
