@@ -1238,7 +1238,7 @@ public class CuratorActionCollection {
         // Check if there is a service available
         String url = AttributeEditConfig.getConfig().getPDUrl();
         // Get the defined host
-        if (!url.startsWith("http://" + dbHost)) {
+        if (!url.startsWith("https://" + dbHost) && !url.startsWith("http://" + dbHost)) {
             JOptionPane.showMessageDialog(parentFrame,
                                           "The hosts used for the database and the project build service are not the same.\n" +
                                           "Please use \"Check Out\" instead.",
@@ -1284,7 +1284,7 @@ public class CuratorActionCollection {
                 try {
                     URL url = new URL(tUrl);
                     InputStream is = url.openStream();
-                    // The following is for testing only
+//                    // The following is for testing only
 //                    InputStreamReader reader = new InputStreamReader(is);
 //                    BufferedReader bReader = new BufferedReader(reader);
 //                    String line = null;
