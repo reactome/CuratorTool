@@ -25,9 +25,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReachUtils {
-    private final static String delimiter = " ";
-    private final static int nameIndex = 1;
-
+    
     public static String extractId(GKInstance instance) throws InvalidAttributeException, Exception {
         if (instance == null)
             return null;

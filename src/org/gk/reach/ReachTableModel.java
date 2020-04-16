@@ -142,9 +142,13 @@ public class ReachTableModel extends AbstractTableModel {
 		case 5:
 			return thisRow.getInteractionSubtype();
 		case 6:
-			return thisRow.getIsAccepted();
+			return thisRow.getOccurrenceCoount();
+		case 7:
+		    return thisRow.getCitationCount();
+		case 8:
+		    return thisRow.getIsAccepted();
 		default: 
-			return false;
+			return null;
 		}
 	}
 	

@@ -48,7 +48,9 @@ public class ReachConstants {
                                                                           PARTICIPANT_B,
                                                                           PARTICIPANT_B_ID,
                                                                           INTERACTION_TYPE,
-                                                                          INTERACTION_SUBTYPE);
+                                                                          INTERACTION_SUBTYPE,
+                                                                          "Occurences",
+                                                                          "Citations");
 //                                                                          ACCEPT); // Turn this off for the time being
 
     public static final List<String> ARTICLE_INFO = Arrays.asList(PMC_ID,
@@ -56,22 +58,44 @@ public class ReachConstants {
                                                                   BRIEF_TEXT,
                                                                   JOURNAL,
                                                                   YEAR);
-
+    /**
+     * The list of URLs implemented in this method is based on the original Reach code:
+     * https://github.com/clulab/reach/blob/afff6776cf2449c6de1c16c79776a499e1f06dc6/export/src/main/scala/org/clulab/reach/export/cmu/CMURow.scala#L63-L75:
+     * case "uniprot" => "Protein" 
+      case "pfam" => "Protein Family"
+      case "interpro" => "Protein Family"
+      case "be" => "Protein Family|Protein Complex"
+      case "pubchem" => "Chemical"
+      case "hmdb" => "Chemical"
+      case "chebi" => "Chemical"
+      case "go" => "Biological Process"
+      case "mesh" => "Biological Process"
+      case _ => "Other"
+     * @param xrefId
+     * @return
+     */
     public static String getURL(String xrefId) {
         String[] tokens = xrefId.split(":");
         String db = tokens[0].toLowerCase();
         String id = tokens[1];
-        if (db.equals("uniprot")) {
+        if (db.equals("uniprot")) 
             return "https://www.uniprot.org/uniprot/" + id;
-        }
         else if (db.equals("pfam"))
             return "http://pfam.xfam.org/family/" + id;
+        else if (db.equals("interpro"))
+            return "https://www.ebi.ac.uk/interpro/entry/InterPro/" + id;
+//        else if (db.equals("be"))
+//            return "";
+        else if (db.equals("hmdb"))
+            return "https://hmdb.ca/metabolites/" + id;
         else if (db.equals("go"))
             return "https://www.ebi.ac.uk/QuickGO/term/GO:" + id;
         else if (db.equals("pubchem"))
             return "https://pubchem.ncbi.nlm.nih.gov/compound/" + id;
         else if (db.equals("chebi"))
             return "https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:" + id;
+        else if (db.equals("mesh"))
+            return "https://id.nlm.nih.gov/mesh/2017/" + id;
         else
             return null;
     }

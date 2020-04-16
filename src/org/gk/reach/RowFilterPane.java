@@ -188,11 +188,11 @@ public class RowFilterPane extends JPanel {
             public boolean include(Entry<? extends ReachTableModel, ? extends Object> entry) {
                 Integer rowIndex = (Integer) entry.getIdentifier();
                 ReachResultTableRowData rowData = entry.getModel().getReachResultTableRowData(rowIndex);
-                long count = Integer.MAX_VALUE;
+                int count = Integer.MIN_VALUE;
                 if (type.equals("citations"))
-                    count = rowData.getReferences().stream().distinct().count();
+                    count = rowData.getCitationCount();
                 else if (type.equals("occurrences"))
-                    count = rowData.getEvents().stream().distinct().count();
+                    count = rowData.getOccurrenceCoount();
                 return count >= number;
             }
         };

@@ -114,6 +114,14 @@ public class ReachResultTableRowData implements Serializable {
     public List<Reference> getReferences(){
     	return references;
     }
+    
+    public int getCitationCount() {
+        return (int) getReferences().stream().distinct().count();
+    }
+    
+    public int getOccurrenceCoount() {
+        return (int) getEvents().stream().distinct().count();
+    }
 
     void addEvent(Event event) {
         if (events == null)
