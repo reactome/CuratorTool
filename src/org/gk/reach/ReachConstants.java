@@ -32,7 +32,7 @@ public class ReachConstants {
 
     public static final String PAPER_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?";
     public static final String CONVERT_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/";
-    public static final String TOOL_EMAIL = "&tool=Reactome-REACH&email=beckmanl@ohsu.edu";
+    public static final String TOOL_EMAIL = "&tool=Reactome-REACH&email=help@reactome.org";
     public static final String PMC_QUERY = "&db=pmc";
     public static final String PUBMED_QUERY = "&db=pubmed";
     public static final String ID_QUERY = "&id=";

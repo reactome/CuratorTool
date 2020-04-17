@@ -23,6 +23,7 @@ public class Reference implements Serializable {
 	private String page = null;
 	private String title;
 	private Long DB_ID;
+	private String doi;
 	private List<Person> authors;
 	
 	public Reference() {
@@ -39,7 +40,15 @@ public class Reference implements Serializable {
 		this.title = title;
 	}
 	
-	public String getPmcid() {
+	public String getDoi() {
+        return doi;
+    }
+
+    public void setDoi(String doi) {
+        this.doi = doi;
+    }
+
+    public String getPmcid() {
         return pmcid;
     }
 
