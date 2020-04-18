@@ -9,13 +9,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.DocumentBuilder;
+
+import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.w3c.dom.Node;
 
 public class PaperFetch {
 
@@ -64,11 +66,18 @@ public class PaperFetch {
             return null;
         Path path = Paths.get(paperId.concat(ReachConstants.NXML_EXT));
         try(BufferedWriter writer = Files.newBufferedWriter(path,
-                                                            Charset.defaultCharset(),
+                                                            Charset.forName("UTF-8"), // Make it compatible in other OS.
                                                             StandardOpenOption.CREATE,
                                                             StandardOpenOption.WRITE)) {
             writer.write(nxml, 0, nxml.length());
         }
         return path;
+    }
+    
+    @Test
+    public void testFetchPaper() throws Exception {
+        String pmcid = "PMC6683984";
+        Path path = fetchPaper(pmcid);
+        System.out.println("Downloaded file: " + path.getFileName());
     }
 }

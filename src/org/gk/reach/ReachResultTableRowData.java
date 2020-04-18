@@ -60,6 +60,24 @@ public class ReachResultTableRowData implements Serializable {
         Entity entity = getParticipantB();
         return getParticipantId(entity);
     }
+    
+    public String getParticipantAType() {
+        if (events == null || events.size() == 0)
+            return null;
+        List<Argument> arguments = events.get(0).getArguments();
+        if (arguments == null || arguments.size() == 0)
+            return null;
+        return arguments.get(0).getType();
+    }
+    
+    public String getParticipantBType() {
+        if (events == null || events.size() == 0)
+            return null;
+        List<Argument> arguments = events.get(0).getArguments();
+        if (arguments == null || arguments.size() < 2)
+            return null;
+        return arguments.get(1).getType();
+    }
 
     private String getParticipantId(Entity entity) {
         if (entity ==  null)

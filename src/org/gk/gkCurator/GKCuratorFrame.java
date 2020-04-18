@@ -1273,6 +1273,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         JMenuItem reachItem = new JMenuItem("Open Reach NLP");
         reachItem.addActionListener(e -> {
             ReachResultTableFrame frame = new ReachResultTableFrame();
+            frame.setLocationRelativeTo(GKCuratorFrame.this);
             frame.setVisible(true);
         });
         toolMenu.add(reachItem);

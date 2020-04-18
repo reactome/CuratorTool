@@ -9,13 +9,13 @@ public class ReachConstants {
     public static final String JOURNAL = "Journal";
     public static final String PMC_ID = "PMC ID";
     public static final String PMID = "PMID";
-    public static final String PARTICIPANT_A = "Participant A";
-    public static final String PARTICIPANT_B = "Participant B";
+    public static final String PARTICIPANT_A = "Entity A";
+    public static final String PARTICIPANT_B = "Entity B";
     public static final String INTERACTION_TYPE = "Interaction Type";
     public static final String INTERACTION_SUBTYPE = "Interaction Subtype";
     public static final String EXTRACTED_INFORMATION = "Extracted Information";
-    public static final String PARTICIPANT_A_ID = "Participant A ID";
-    public static final String PARTICIPANT_B_ID = "Participant B ID";
+    public static final String PARTICIPANT_A_ID = "Entity A ID";
+    public static final String PARTICIPANT_B_ID = "Entity B ID";
     public static final String IDENTIFIER = "Identifier";
     public static final String NAME = "Name";
     public static final String YEAR = "Year";
@@ -45,8 +45,10 @@ public class ReachConstants {
 
     public static final List<String> COLUMN_NAMES_PROCESS = Arrays.asList(PARTICIPANT_A,
                                                                           PARTICIPANT_A_ID,
+                                                                          "Entity A Type",
                                                                           PARTICIPANT_B,
                                                                           PARTICIPANT_B_ID,
+                                                                          "Entity B Type",
                                                                           INTERACTION_TYPE,
                                                                           INTERACTION_SUBTYPE,
                                                                           "Occurences",

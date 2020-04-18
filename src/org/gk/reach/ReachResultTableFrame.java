@@ -39,7 +39,6 @@ import org.gk.reach.model.fries.Event;
 import org.gk.reach.model.fries.FrameObject;
 import org.gk.reach.model.fries.FriesObject;
 import org.gk.reach.model.graphql.GraphQLObject;
-import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
 
 @SuppressWarnings("serial")
@@ -97,7 +96,7 @@ public class ReachResultTableFrame extends JFrame {
                                                     new JScrollPane(eventTable),
                                                     evidenceContainer);
         tableAndResults.setOneTouchExpandable(true);
-        tableAndResults.setDividerLocation(475);
+        tableAndResults.setDividerLocation(400);
         getContentPane().add(tableAndResults, BorderLayout.CENTER);
 
         // Accept and Cancel buttons
@@ -105,8 +104,8 @@ public class ReachResultTableFrame extends JFrame {
 
         installTableListeners(eventTable, evidencePane);
 
-        setSize(1000, 800);
-        GKApplicationUtilities.center(this);
+        setSize(1000, 700);
+//        GKApplicationUtilities.center(this);
     }
 
     private void createSouthPane() {
@@ -116,6 +115,12 @@ public class ReachResultTableFrame extends JFrame {
         JButton openBut = new JButton("Open");
         openBut.setToolTipText("Open pre-generated Reach output files");
         JButton cancelBut = new JButton("Cancel");
+        
+        JButton processBtn = new JButton("Process");
+        processBtn.setToolTipText("Submit PMCIDs for Reach NLP");
+        processBtn.addActionListener(e -> {
+            new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
+        });
         
         JButton importBtn = new JButton("Import");
         importBtn.setToolTipText("Import saved table data");
@@ -134,6 +139,7 @@ public class ReachResultTableFrame extends JFrame {
         installButtonListeners(acceptBut, openBut, cancelBut, eventTable);
         botPanel.add(acceptBut);
         botPanel.add(openBut);
+        botPanel.add(processBtn);
         botPanel.add(importBtn);
         botPanel.add(exportBtn);
         botPanel.add(showConnectionBtn);
@@ -278,9 +284,10 @@ public class ReachResultTableFrame extends JFrame {
      * @param friesObjects
      * @throws Exception
      */
-    void setTableData(List<FriesObject> friesObjects) {
+    public void setTableData(List<FriesObject> friesObjects) {
         ReachTableModel tableModel = (ReachTableModel) eventTable.getModel();
         tableModel.setReachData(friesObjects);
+        evidencePane.setText("<html></html>"); // Remove all displayed evidence text
     }
 
     /**
@@ -341,7 +348,7 @@ public class ReachResultTableFrame extends JFrame {
         }
         StringBuilder stringBuilder = new StringBuilder();
         List<Reference> references = reachResultTableRowData.getReferences();
-
+        stringBuilder.append("<html>");
         for (int i = 0; i < events.size(); i++) {
             Event event = events.get(i);
             String eventString = null;
@@ -363,6 +370,7 @@ public class ReachResultTableFrame extends JFrame {
             stringBuilder.append("</li></ul>");
         }
         stringBuilder.append("</ul>");
+        stringBuilder.append("</html>");
         evidencePane.setText(stringBuilder.toString());
         // Stay at the first location
         evidencePane.scrollRectToVisible(new Rectangle(10, 10));

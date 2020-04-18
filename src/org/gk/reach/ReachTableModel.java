@@ -130,25 +130,29 @@ public class ReachTableModel extends AbstractTableModel {
 		ReachResultTableRowData thisRow = tableData.get(row);
 		switch(col) {
 		case 0:
-			return thisRow.getParticipantAText();
+		    return thisRow.getParticipantAText();
 		case 1:
-            return thisRow.getParticipantAId();
+		    return thisRow.getParticipantAId();
 		case 2:
-			return thisRow.getParticipantBText();
+		    return thisRow.getParticipantAType();
 		case 3:
-			return thisRow.getParticipantBId();
+		    return thisRow.getParticipantBText();
 		case 4:
-            return thisRow.getInteractionType();
+		    return thisRow.getParticipantBId();
 		case 5:
-			return thisRow.getInteractionSubtype();
+		    return thisRow.getParticipantBType();
 		case 6:
-			return thisRow.getOccurrenceCoount();
+		    return thisRow.getInteractionType();
 		case 7:
-		    return thisRow.getCitationCount();
+		    return thisRow.getInteractionSubtype();
 		case 8:
+		    return thisRow.getOccurrenceCoount();
+		case 9:
+		    return thisRow.getCitationCount();
+		case 10:
 		    return thisRow.getIsAccepted();
 		default: 
-			return null;
+		    return null;
 		}
 	}
 	
