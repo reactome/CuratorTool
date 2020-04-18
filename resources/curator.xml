@@ -201,6 +201,8 @@
 <!--    <pdURL value="http://localhost:8080/ELVWebApp/ElvService" /> -->
     <!-- Used to perform some server-side activities (e.g. build project, server-side QA)-->
     <pdURL value="https://curator.reactome.org/ELVWebApp/ElvService" />
+    <!-- Used to handle reach NLP work -->
+    <reachURL>http://localhost:8080/ELVWebApp/ElvService</reachURL>
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
     <!-- After the database is connected, there is a background thread running, which pings the database 
     to keep the connection stable. The following value controls how long the thread should wait to make
