@@ -2,7 +2,7 @@
  * Created on Mar 11, 2011
  *
  */
-package org.gk.database;
+package org.gk.util;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -21,9 +21,6 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-
-import org.gk.util.DialogControlPane;
-import org.gk.util.GKApplicationUtilities;
 
 /**
  * This helper class is used to handle WS information management.

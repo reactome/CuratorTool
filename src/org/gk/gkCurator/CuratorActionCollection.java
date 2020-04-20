@@ -57,7 +57,6 @@ import org.gk.database.ReverseAttributePane;
 import org.gk.database.SchemaDisplayPane;
 import org.gk.database.SchemaViewPane;
 import org.gk.database.SynchronizationManager;
-import org.gk.database.WSInfoHelper;
 import org.gk.database.util.MODReactomeAnalyzer;
 import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
 import org.gk.elv.EntityLevelView;
@@ -88,6 +87,7 @@ import org.gk.util.BrowserLauncher;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.GKFileFilter;
 import org.gk.util.ProgressPane;
+import org.gk.util.WSInfoHelper;
 import org.gk.util.XMLFileFilter;
 
 /**

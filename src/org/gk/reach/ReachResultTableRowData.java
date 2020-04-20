@@ -156,8 +156,10 @@ public class ReachResultTableRowData implements Serializable {
     public String getRowKey() {
         return (getParticipantAText() +
                 getParticipantAId() + 
+                getParticipantAType() + 
                 getParticipantBText() +
                 getParticipantBId() + 
+                getParticipantBType() + 
                 getInteractionType() +
                 getInteractionSubtype()).toUpperCase();
     }

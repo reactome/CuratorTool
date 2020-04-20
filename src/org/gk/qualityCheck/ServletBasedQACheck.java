@@ -27,13 +27,13 @@ import javax.swing.table.TableRowSorter;
 
 import org.gk.database.AttributeEditConfig;
 import org.gk.database.InstanceListPane;
-import org.gk.database.WSInfoHelper;
 import org.gk.model.GKInstance;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.TextFileFilter;
+import org.gk.util.WSInfoHelper;
 
 /**
  * This QA check is based on a server-side program for performance reason. The returned

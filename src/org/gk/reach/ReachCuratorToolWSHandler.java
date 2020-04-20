@@ -4,13 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,7 +25,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -37,6 +37,7 @@ import org.gk.reach.model.fries.FriesObject;
 import org.gk.util.DialogControlPane;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
+import org.gk.util.WSInfoHelper;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
@@ -66,6 +67,9 @@ public class ReachCuratorToolWSHandler {
      * @param parent
      */
     public void submitPMCIDs(ReachResultTableFrame parent) {
+        String[] wsInfo = getWSUserInfo(parent);
+        if (wsInfo == null)
+            return; // Do nothing
         PMCIDInputDialog dialog = new PMCIDInputDialog(parent);
         dialog.setVisible(true);
         if (!dialog.isOKClicked)
@@ -88,13 +92,31 @@ public class ReachCuratorToolWSHandler {
         // Need to have a new thread and a progress pane for handling this long process
         Thread t = new Thread() {
             public void run() {
-                _submitPMCIDs(parent, pmcids);
+                _submitPMCIDs(parent, pmcids, wsInfo);
             }
         };
         t.start();
     }
     
-    private void _submitPMCIDs(ReachResultTableFrame parent, String[] pmcids) {
+    private String[] getWSUserInfo(JFrame parentFrame) {
+        try {
+            String[] wsInfo = new WSInfoHelper().getWSInfo(parentFrame);
+            if (wsInfo == null) {
+                JOptionPane.showMessageDialog(parentFrame,
+                                              "No connecting information to the server-side program is provided!",
+                                              "Error in Connection",
+                                              JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
+            return wsInfo;
+        }
+        catch(UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    private void _submitPMCIDs(ReachResultTableFrame parent, String[] pmcids, String[] wsInfo) {
         progressPanel = new ProgressPane();
         // Just want to enable the cancel action. Do nothing here.
         progressPanel.enableCancelAction(e -> {});
@@ -103,7 +125,7 @@ public class ReachCuratorToolWSHandler {
         parent.setGlassPane(progressPanel);
         parent.getGlassPane().setVisible(true);
         try {
-            List<FriesObject> objects = processReachViaWS(pmcids);
+            List<FriesObject> objects = processReachViaWS(pmcids, wsInfo);
             if (objects == null) {
                 parent.getGlassPane().setVisible(false);
                 return; // Most likely it is canceled
@@ -134,15 +156,35 @@ public class ReachCuratorToolWSHandler {
      * @return
      * @throws IOException
      */
-    public List<FriesObject> processReachViaWS(String[] pmcids) throws IOException, JDOMException {
+    private List<FriesObject> processReachViaWS(String[] pmcids, String[] wsInfo) throws IOException, JDOMException {
         String reachURL = getServletURL();
         if (reachURL == null)
             throw new IllegalStateException("Cannot find the URL for REACH in the configuration.");
-        String urlText = reachURL + "?action=reach&pmcid=" + String.join(",", pmcids);
+        String urlText = reachURL + "?user=" + wsInfo[0] + 
+                                    "&key=" + wsInfo[1] + 
+                                    "&action=reach" +
+                                    "&pmcid=" + String.join(",", pmcids);
         URL url = new URL(urlText);
+        // Make sure we have a good return code
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_PARTIAL) {
+            JOptionPane.showMessageDialog(progressPanel,
+                                          "Somebody is using the REACH NLP at the server. Please wait\n"
+                                          + "for several minutes and then try again.",
+                                          "Busy Server",
+                                          JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
+        else if (connection.getResponseCode() == HttpURLConnection.HTTP_BAD_REQUEST) {
+            JOptionPane.showMessageDialog(progressPanel,
+                                          connection.getHeaderField("error"),
+                                          "Error in Request",
+                                          JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
         if (progressPanel != null)
             progressPanel.setText("Waiting for results...");
-        InputStream is = url.openStream();
+        InputStream is = connection.getURL().openStream();
         File dir = unzipDownloadFile(is);
         is.close();
         if (progressPanel != null) {
@@ -334,7 +376,8 @@ public class ReachCuratorToolWSHandler {
     @Test
     public void testProcessReachViaWS() throws Exception {
         String[] pmcids = {"PMC6683984", "PMC4750075"};
-        List<FriesObject> objects = processReachViaWS(pmcids);
+        // Need the actual user name and key for a successful test.
+        List<FriesObject> objects = processReachViaWS(pmcids, new String[]{});
         outputFriesObjects(objects);
     }
     
@@ -371,6 +414,10 @@ public class ReachCuratorToolWSHandler {
             JLabel label = GKApplicationUtilities.createTitleLabel("Enter or paste PMCID (CMD+V or CTL+V) below:");
             contentPane.add(label, constraints);
             pmcidTf = new JTextField();
+            pmcidTf.addActionListener(e -> {
+                isOKClicked = true;
+                dispose();
+            });
             pmcidTf.setColumns(30);
             constraints.gridy = 1;
             contentPane.add(pmcidTf, constraints);
