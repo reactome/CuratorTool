@@ -184,7 +184,7 @@ public class ReachCuratorToolWSHandler {
         }
         if (progressPanel != null)
             progressPanel.setText("Waiting for results...");
-        InputStream is = connection.getURL().openStream();
+        InputStream is = connection.getInputStream(); // Have to use this input stream. Otherwise, nothing to output
         File dir = unzipDownloadFile(is);
         is.close();
         if (progressPanel != null) {
@@ -322,12 +322,12 @@ public class ReachCuratorToolWSHandler {
         BufferedInputStream bis = new BufferedInputStream(is);
         ZipInputStream zis = new ZipInputStream(bis);
         ZipEntry entry = null;
-        byte[] buffer = new byte[1024 * 10]; // 10K buffer
+        byte[] buffer = new byte[1024]; // 1K buffer
         while ((entry = zis.getNextEntry()) != null) {
             File outFile = new File(reachTempFile, entry.getName());
             FileOutputStream fos = new FileOutputStream(outFile);
             int length = 0;
-            while ((length = zis.read(buffer)) > 0)
+            while ((length = zis.read(buffer, 0, buffer.length)) > 0)
                 fos.write(buffer, 0, length);
             fos.close();
         }
@@ -422,7 +422,8 @@ public class ReachCuratorToolWSHandler {
             constraints.gridy = 1;
             contentPane.add(pmcidTf, constraints);
             JTextArea ta = new JTextArea("*: Up to three PMCIDs are supported. Add \", \" as "
-                    + "delimit. The process may take several minutes.");
+                    + "delimit. The process may take several minutes. You may work in other "
+                    + "place during waiting. The results will be displayed once it is done.");
             Font font = ta.getFont();
             ta.setFont(font.deriveFont(Font.ITALIC));
             ta.setBackground(contentPane.getBackground());
