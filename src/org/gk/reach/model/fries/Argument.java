@@ -5,6 +5,7 @@ import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * This class is used designed as a subclass to FrameObject since it doesn't have Frame-Id.
@@ -18,6 +19,7 @@ public class Argument implements Serializable {
     private String argumentType; // event or entity
     private String type; // e.g. controlled or controller
     @JsonIdentityReference
+    @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="@class")
     private FrameObject arg;
     
     public Argument() {

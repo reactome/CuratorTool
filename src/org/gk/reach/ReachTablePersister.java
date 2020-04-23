@@ -2,13 +2,10 @@ package org.gk.reach;
 
 import java.awt.Component;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -22,6 +19,10 @@ import org.gk.model.Reference;
 import org.gk.reach.model.fries.FriesObject;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * This class is used to persist table data using an external file. The data in the table may be filtered.
@@ -139,8 +140,8 @@ public class ReachTablePersister {
         if (data == null || data.size() == 0)
             return;
         // Get output file
-        // rrtj: Reactome Reach Table file
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Reactome Reach Table", "rrtf");
+        // rrtj: Reactome Reach Table JSON
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Reactome Reach Table", "rrtj.json");
         File[] files = getFiles(false,
                                 "Choose a file to save the table data",
                                 false,
@@ -152,13 +153,11 @@ public class ReachTablePersister {
         // Add an extension
         String fileName = file.getName();
         if (!fileName.contains("."))
-            file = new File(file.getAbsolutePath() + ".rrtf");
+            file = new File(file.getAbsolutePath() + ".rrtj.json");
         try {
-            FileOutputStream fos = new FileOutputStream(file);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(data);
-            oos.close();
-            fos.close();
+            ObjectMapper mapper = new ObjectMapper();
+            // Add Include non-null values flag
+            mapper.writerWithDefaultPrettyPrinter().writeValue(file, data);
         }
         catch(IOException e) {
             e.printStackTrace();
@@ -184,14 +183,11 @@ public class ReachTablePersister {
             return;
         File file = files[0];
         try {
-            FileInputStream fis = new FileInputStream(file);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            Object obj = ois.readObject();
-            ois.close();
-            fis.close();
-            @SuppressWarnings("unchecked")
-            List<ReachResultTableRowData> data = (List<ReachResultTableRowData>) obj;
-            ((ReachTableModel)model).setTableData(data);
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            ReachResultTableRowData[] arr = mapper.readValue(file, ReachResultTableRowData[].class);
+            List<ReachResultTableRowData> data = Arrays.asList(arr);
+            ((ReachTableModel)model).setTableRows(data);
         }
         catch(Exception e) {
             e.printStackTrace();

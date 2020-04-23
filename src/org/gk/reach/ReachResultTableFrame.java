@@ -51,6 +51,7 @@ public class ReachResultTableFrame extends JFrame {
     private final String progressMessage = "Fetching element data...";
     private final String progressTemplate = "<html>%s<br/>(%d / %d) %s</html>";
     private final String title = "Reach: ";
+    private final String evidencePaneMsg = "Select a row to populate results.";
     // Some user interfaces
     private JTextPane evidencePane;
     private JTable eventTable;
@@ -73,7 +74,7 @@ public class ReachResultTableFrame extends JFrame {
         evidencePane = new JTextPane();
         evidencePane.setEditable(false);
         evidencePane.setContentType("text/html");
-        evidencePane.setText("Select a row to populate results.");
+        evidencePane.setText(evidencePaneMsg);
 
         JPanel rowControlPane = new RowFilterPane(eventTable);
         JPanel container = new JPanel();
@@ -126,6 +127,7 @@ public class ReachResultTableFrame extends JFrame {
         importBtn.setToolTipText("Import saved table data");
         importBtn.addActionListener(e -> {
             new ReachTablePersister().importTableData(eventTable);
+            evidencePane.setText(evidencePaneMsg);
         });
         JButton exportBtn = new JButton("Export");
         exportBtn.addActionListener(e -> {
@@ -287,7 +289,7 @@ public class ReachResultTableFrame extends JFrame {
     public void setTableData(List<FriesObject> friesObjects) {
         ReachTableModel tableModel = (ReachTableModel) eventTable.getModel();
         tableModel.setReachData(friesObjects);
-        evidencePane.setText("<html></html>"); // Remove all displayed evidence text
+        evidencePane.setText(evidencePaneMsg); // Remove all displayed evidence text
     }
 
     /**

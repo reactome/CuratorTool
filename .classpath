@@ -56,7 +56,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/osxAdapter.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/ols-client-1.18.jar"/>
-	<classpathentry kind="lib" path="lib/jsonpath/jackson-databind-2.6.3.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-awt-util-1.11.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-constants-1.11.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-dom-1.11.jar"/>
@@ -73,5 +72,8 @@
 	<classpathentry kind="lib" path="lib/commons/commons-logging-1.0.4.jar"/>
 	<classpathentry kind="lib" path="lib/itext/itext-2.0.6.jar"/>
 	<classpathentry kind="lib" path="lib/jgraph/jgraph-5.13.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-annotations-2.9.9.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-core-2.9.9.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-databind-2.9.9.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
