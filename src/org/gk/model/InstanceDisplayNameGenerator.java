@@ -45,8 +45,12 @@ public class InstanceDisplayNameGenerator {
             String clsName = schemaClass.getName();
             if (clsName.equals("ModifiedResidue"))	
                 return generateModifiedResidueName(instance);
+            if (clsName.equals(ReactomeJavaConstants.NonsenseMutation))
+                return generateNonsenseMutationName(instance);
             if (clsName.equals("ReplacedResidue"))
                 return generateReplacedResidueName(instance);
+            if (clsName.equals(ReactomeJavaConstants.ModifiedNucleotide))
+                return generateModifiedNucleotideName(instance);
             if (clsName.equals(ReactomeJavaConstants.GroupModifiedResidue))
                 return generateGroupModifiedResidueName(instance);
             if (clsName.equals(ReactomeJavaConstants.FragmentDeletionModification))
@@ -549,6 +553,25 @@ public class InstanceDisplayNameGenerator {
 	    return buffer.toString();
 	}
 	
+	private static String generateNonsenseMutationName(GKInstance instance) throws Exception {
+	    List psiMods = instance.getAttributeValuesList(ReactomeJavaConstants.psiMod);
+	    Integer coordinate = (Integer) instance.getAttributeValue(ReactomeJavaConstants.coordinate);
+	    String pos = (coordinate == null ? "unknown position" : coordinate.toString());
+	    String aa = null;
+	    if (psiMods == null || psiMods.size() == 0) {
+	        aa = "unknown";
+	    }
+	    else if (psiMods.size() == 1) {
+	        GKInstance psi = (GKInstance) psiMods.get(0);
+	        String name = getPsiModName(psi);
+	        int index = name.indexOf("removal");
+	        if (index > 0)
+	            name = name.substring(0, index).trim();
+	        aa = name;
+	    }
+	    return "Nonsense mutation at " + aa + " " + pos;
+	}
+	
 	private static String generateReplacedResidueName(GKInstance instance) throws Exception {
 	    List psiMods = instance.getAttributeValuesList(ReactomeJavaConstants.psiMod);
 	    Integer coordinate = (Integer) instance.getAttributeValue(ReactomeJavaConstants.coordinate);
@@ -653,8 +676,27 @@ public class InstanceDisplayNameGenerator {
 	    String modificationName = modification == null ? "unknown" : modification.getDisplayName();
 	    return psiModName + " (" + modificationName + ") at " + pos;
 	}
-    
-    private static String generateReactionName(GKInstance reaction) throws Exception {
+
+	private static String generateModifiedNucleotideName(GKInstance instance) throws Exception {
+	    Integer coordinate = (Integer) instance.getAttributeValue(ReactomeJavaConstants.coordinate);
+	    String pos = (coordinate == null ? "unknown position" : coordinate.toString());
+	    GKInstance modification = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.modification);
+	    String modificationName = null;
+	    if (modification == null) {
+	        modificationName = "unknown";
+	    }
+	    else {
+	        // Since we may get a shell instance, we cannot directly query the name slot. Here it a way to parse
+	        // the name from _displayName
+	        modificationName = modification.getDisplayName();
+	        int index = modificationName.indexOf("[ChEBI:");
+	        if (index > 0)
+	            modificationName = modificationName.substring(0, index).trim();
+	    }
+	    return modificationName + " at " + pos;
+	}
+
+	private static String generateReactionName(GKInstance reaction) throws Exception {
         String name = (String) reaction.getAttributeValue("name");
         if (name != null)
             return name; // Use the first name as default

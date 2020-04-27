@@ -137,7 +137,7 @@ public class ReachCuratorToolWSHandler {
                                               JOptionPane.ERROR_MESSAGE);
                 parent.getGlassPane().setVisible(false);
             }
-            parent.setTableData(objects);
+            parent.setReachData(objects);
             parent.getGlassPane().setVisible(false);
         }
         catch(Exception e) {

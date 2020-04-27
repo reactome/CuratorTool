@@ -61,7 +61,7 @@ public class ReachTableModel extends AbstractTableModel {
         return new ArrayList<>(tableData);
     }
     
-    public void setTableRows(List<ReachResultTableRowData> data) {
+    public void setTableData(List<ReachResultTableRowData> data) {
         if (data == null)
             return;
         tableData.clear();

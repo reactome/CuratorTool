@@ -364,4 +364,9 @@ public class ReactomeJavaConstants {
     public static final String catalyst = "catalyst";
     public static final String pathway = "pathway";
     public static final String reaction = "reaction";
+    
+    // New classes added in April, 2020
+    public static final String NonsenseMutation = "NonsenseMutation";
+    public static final String ModifiedNucleotide = "ModifiedNucleotide";
+    public static final String TranscritonalModification = "TranscriptionalModification";
 }

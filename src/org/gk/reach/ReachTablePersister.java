@@ -20,7 +20,7 @@ import org.gk.reach.model.fries.FriesObject;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -115,7 +115,7 @@ public class ReachTablePersister {
             }
             if (!isOpenCanceled)
                 // Add data to the table.
-                frame.setTableData(friesObjects);
+                frame.setReachData(friesObjects);
             frame.getGlassPane().setVisible(false);
         }
         catch(IOException e) {
@@ -140,8 +140,8 @@ public class ReachTablePersister {
         if (data == null || data.size() == 0)
             return;
         // Get output file
-        // rrtj: Reactome Reach Table JSON
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Reactome Reach Table", "rrtj.json");
+        // rrtj: Reactome Reach Table file in json
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Reactome Reach Table", "rrtf");
         File[] files = getFiles(false,
                                 "Choose a file to save the table data",
                                 false,
@@ -153,10 +153,11 @@ public class ReachTablePersister {
         // Add an extension
         String fileName = file.getName();
         if (!fileName.contains("."))
-            file = new File(file.getAbsolutePath() + ".rrtj.json");
+            file = new File(file.getAbsolutePath() + ".rrtf");
         try {
             ObjectMapper mapper = new ObjectMapper();
-            // Add Include non-null values flag
+            // Avoid export non-null values
+            mapper.setSerializationInclusion(Include.NON_NULL);
             mapper.writerWithDefaultPrettyPrinter().writeValue(file, data);
         }
         catch(IOException e) {
@@ -168,7 +169,8 @@ public class ReachTablePersister {
         }
     }
     
-    public void importTableData(JTable table) {
+    public void importTableData(ReachResultTableFrame frame) {
+        JTable table = frame.getEventTable();
         TableModel model = table.getModel();
         if (!(model instanceof ReachTableModel))
             return; // Only for ReachTable.
@@ -186,8 +188,8 @@ public class ReachTablePersister {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             ReachResultTableRowData[] arr = mapper.readValue(file, ReachResultTableRowData[].class);
-            List<ReachResultTableRowData> data = Arrays.asList(arr);
-            ((ReachTableModel)model).setTableRows(data);
+            List<ReachResultTableRowData> data = Arrays.asList(arr);   
+            frame.setTableData(data);
         }
         catch(Exception e) {
             e.printStackTrace();

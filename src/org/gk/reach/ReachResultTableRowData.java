@@ -29,13 +29,12 @@ public class ReachResultTableRowData implements Serializable {
     }
     
     public Entity getParticipantA() {
-        return (Entity) getArguments().get(0).getArg();
-    }
-    
-    private List<Argument> getArguments() {
         if (events == null || events.size() == 0)
             return null;
-        return events.get(0).getArguments();
+        List<Argument> arguments = events.get(0).getArguments();
+        if (arguments == null || arguments.size() == 0)
+            return null;
+        return (Entity) arguments.get(0).getArg();
     }
     
     public String getParticipantAText() {
@@ -99,7 +98,12 @@ public class ReachResultTableRowData implements Serializable {
     }
 
     public Entity getParticipantB() {
-        return (Entity) getArguments().get(1).getArg();
+        if (events == null || events.size() == 0)
+            return null;
+        List<Argument> arguments = events.get(0).getArguments();
+        if (arguments == null || arguments.size() < 2)
+            return null;
+        return (Entity) arguments.get(1).getArg();
     }
 
     public String getInteractionType() {

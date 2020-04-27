@@ -3,7 +3,7 @@ Build 102 (Version 4.0) note (April 20, 2020)
 Changes in this new build include the following:
 
 1). Support user-submit a Reach NLP process job to the server. The user may submit up to 3 PMCIDs for the server to process.
-2). Add four new columns in the Reach NLP result table: Entity (Participant previously) A Type, Entity B Type, Occurennces, Citations.
+2). Add four new columns in the Reach NLP result table: Entity (Participant previously) A Type, Entity B Type, Occurrences, Citations.
 3). Bug fix: Build Project in the Database Event view has been fixed.
 
 

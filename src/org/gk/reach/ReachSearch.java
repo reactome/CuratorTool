@@ -93,7 +93,7 @@ public class ReachSearch {
 				try {
 				    ReachResultTableFrame reachResultTableFrame = new ReachResultTableFrame();
 					List<FriesObject> dataObjects = reachResultTableFrame.searchReach(filteredInstances);
-					reachResultTableFrame.setTableData(dataObjects);
+					reachResultTableFrame.setReachData(dataObjects);
 				} catch (Exception e) {
 					System.err.println("Error Building Table: " + e);
 					e.printStackTrace();
@@ -110,7 +110,7 @@ public class ReachSearch {
 			public void run() {
 				try {
 				    ReachResultTableFrame reachResultTableFrame = new ReachResultTableFrame();
-					reachResultTableFrame.setTableData(dataObjects);
+					reachResultTableFrame.setReachData(dataObjects);
 				} catch (Exception e) {
 					System.err.println("Error Building Table: " + e);
 					e.printStackTrace();
