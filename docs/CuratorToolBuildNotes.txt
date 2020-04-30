@@ -1,3 +1,11 @@
+Build 103 (Version 4.0) note (April 30, 2020)
+
+Changes in this new build:
+
+1). Added support to generation of _displayName for two new classes: ModifiedNucleotide and NonsenseMutation.
+
+2). Changed the format of export of displayed rows in the Reach table. 
+
 Build 102 (Version 4.0) note (April 20, 2020)
 
 Changes in this new build include the following:
