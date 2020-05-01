@@ -464,7 +464,7 @@ public class SlicingEngine {
             // throw exception
             GKInstance includedLocation = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.includedLocation);
             if (includedLocation != null)
-                logger.warn(inst + " has value in its includedLocation. It should be empty!");
+                logger.info(inst + " has value in its includedLocation. It should be empty!");
             Set<GKInstance> components = InstanceUtilities.getContainedComponents(inst);
             Set<GKInstance> compartments = new HashSet<GKInstance>();
             for (GKInstance component : components) {
