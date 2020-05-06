@@ -1081,6 +1081,17 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         return schema;
     }
     
+    /**
+     * The used schema can also be set by external schema. However, this method can be called
+     * when nothing is cached. Otherwise, an exception will be thrown.
+     * @param schema
+     */
+    public void setSchema(GKSchema schema) {
+        if (cache.size() > 0 || clsMap.size() > 0)
+            throw new IllegalStateException("The schema is used and cannot be reset.");
+        this.schema = schema;
+    }
+    
     public void saveSchema(Schema schema) throws IOException {
         AuthorToolAppletUtilities.saveLocalSchema(schema);
     }

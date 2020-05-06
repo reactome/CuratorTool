@@ -262,6 +262,14 @@ public class AuthorToolActionCollection {
         return action;
     }
     
+    public Action getUpdateDrugObjectColorAction() {
+        return null;
+    }
+    
+    public Action getUpdateDiseaseObjectColorAction() {
+        return null;
+    }
+    
     private void recordCompartmentInfo(List objects) {
         Renderable r = null;
         String localization = null;

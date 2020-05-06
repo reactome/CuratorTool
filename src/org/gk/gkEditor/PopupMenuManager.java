@@ -211,6 +211,8 @@ public class PopupMenuManager {
                 menu.add(actionCollection.getTightBoundsAction());
                 menu.add(actionCollection.getWrapTextIntoNodesAction());
                 menu.add(actionCollection.getResetNodeFeaturesAction());
+                menu.add(actionCollection.getUpdateDiseaseObjectColorAction());
+                menu.add(actionCollection.getUpdateDrugObjectColorAction());
                 menu.add(actionCollection.getDoNotReleaseAction());
             }
             menu.add(actionCollection.getToggleShowPathwayAction());

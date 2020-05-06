@@ -63,18 +63,14 @@ import org.gk.render.ConnectWidget;
 import org.gk.render.FlowLine;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
-import org.gk.render.NodeAttachment;
 import org.gk.render.Note;
 import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableComplex;
-import org.gk.render.RenderableFeature;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
-import org.gk.schema.GKSchemaClass;
-import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 
@@ -84,6 +80,7 @@ import org.gk.util.DialogControlPane;
  * @author wgm
  *
  */
+@SuppressWarnings("unchecked")
 public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor implements Selectable {
     private XMLFileAdaptor fileAdaptor;
     private SelectionMediator selectionMediator;
@@ -1001,7 +998,98 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         }
     }
     
-    @SuppressWarnings("unchecked")
+    public void updateDrugObjectColor() {
+        List<Renderable> components = pathwayEditor.getDisplayedObjects();
+        if (components == null || components.size() == 0)
+            return;
+        int updated = 0;
+        try {
+            for (Renderable r : components) {
+                // This works for Node only
+                if (!(r instanceof Node) || r.getReactomeId() == null)
+                    continue;
+                GKInstance inst = fileAdaptor.fetchInstance(r.getReactomeId());
+                if (inst == null)
+                    continue;
+                // Not for drug itself, which should be taken care of somewhere
+                if (inst.getSchemClass().isa(ReactomeJavaConstants.Drug))
+                    continue;
+                boolean hasDrug = InstanceUtilities.hasDrug(inst);
+                Node node = (Node) r;
+                if (node.getIsForDrug() == hasDrug)
+                    continue;
+                node.setIsForDrug(hasDrug);
+                updated ++;
+            }
+            if (updated > 0) {
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+                pathwayEditor.fireGraphEditorActionEvent(GraphEditorActionEvent.LAYOUT);
+                JOptionPane.showMessageDialog(this,
+                                              "Color updated for " + updated + " drug or drug related object(s).",
+                                              "Color Update", 
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+            else {
+                JOptionPane.showMessageDialog(this,
+                                              "Nothing to update.",
+                                              "No Update", 
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(this,
+                                          "Error in validating drug objects color: " + e.getMessage(),
+                                          "Error in Validating Drug Objects Color", 
+                                          JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    public void updateDiseaseObjectColor() {
+        List<Renderable> components = pathwayEditor.getDisplayedObjects();
+        if (components == null || components.size() == 0)
+            return;
+        int updated = 0;
+        try {
+            for (Renderable r : components) {
+                if (r.getReactomeId() == null)
+                    continue;
+                GKInstance inst = fileAdaptor.fetchInstance(r.getReactomeId());
+                if (inst == null)
+                    continue;
+                if (!inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.disease))
+                    continue;
+                GKInstance disease = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.disease);
+                if ((r.getIsForDisease() && disease != null) ||
+                    (!r.getIsForDisease() && disease == null))
+                    continue;
+                r.setIsForDisease(disease != null);
+                updated ++;
+            }
+            if (updated > 0) {
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+                pathwayEditor.fireGraphEditorActionEvent(GraphEditorActionEvent.LAYOUT);
+                JOptionPane.showMessageDialog(this,
+                                              "Color updated for " + updated + " disease object(s).",
+                                              "Color Update", 
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+            else {
+                JOptionPane.showMessageDialog(this,
+                                              "Nothing to update.",
+                                              "No Update", 
+                                              JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(this,
+                                          "Error in validating disease objects color: " + e.getMessage(),
+                                          "Error in Validating Disease Objects Color", 
+                                          JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
     public void resetNodeFeatures() {
         if (!downloadPsiMod())
             return;

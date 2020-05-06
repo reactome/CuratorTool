@@ -940,19 +940,37 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     }
     
     @Override
-    public Action getResetNodeFeaturesAction() {
-        Action action = new AbstractAction("Update Node Features") {
-
+    public Action getUpdateDiseaseObjectColorAction() {
+        Action action = new AbstractAction("Update Disease Objects Color") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                resetNodeFeatures();
+                elv.getZoomablePathwayEditor().updateDiseaseObjectColor();
             }
         };
         return action;
     }
     
-    private void resetNodeFeatures() {
-        elv.getZoomablePathwayEditor().resetNodeFeatures();
+    @Override
+    public Action getUpdateDrugObjectColorAction() {
+        Action action = new AbstractAction("Update Drug Objects Color") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elv.getZoomablePathwayEditor().updateDrugObjectColor();
+            }
+        };
+        return action;
+    }
+    
+    @Override
+    public Action getResetNodeFeaturesAction() {
+        Action action = new AbstractAction("Update Node Features") {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elv.getZoomablePathwayEditor().resetNodeFeatures();
+            }
+        };
+        return action;
     }
     
     private void toggleCompartmentInName() {
