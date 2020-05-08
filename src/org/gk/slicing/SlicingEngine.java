@@ -434,7 +434,6 @@ public class SlicingEngine {
      * Create a default instance edit for a given database adaptor.
      *
      * @param dba
-     * @param personId
      * @return GKInstance
      * @throws Exception
      * @throws InvalidAttributeException

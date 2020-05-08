@@ -23,16 +23,15 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class RevisionDetector {
     private static final Logger logger = Logger.getLogger(RevisionDetector.class);
-    // Use a utility class for some methods. Not a good design!
     private SlicingEngine sliceEngine;
-    
+    // Used for when a revision should be detected, but the 'action' text should not.
+    // For example, a parent pathway should encompass the revisions of it's children
+    // pathways, but their respective 'action' texts should not 'bubble up' to the parent.
+    private final String actionFilter = "actionFilter";
+
     public RevisionDetector() {
     }
-    
-//	public RevisionDetector(SlicingEngine engine) {
-//	    this.sliceEngine = engine;
-//	}
-    
+
     public void setSlicingEngine(SlicingEngine engine) {
         this.sliceEngine = engine;
     }
@@ -56,14 +55,14 @@ public class RevisionDetector {
 	    if (uploadUpdateTrackersToSource)
 	        uploadUpdateTrackers(sourceDBA, currentSliceDBA, updateTrackers);
 	}
-	
+
 	/**
 	 * Upload newly created _UpdateTracker instances into the source database, which is gk_central usually.
 	 * @param sourceDBA
 	 * @param updateTrackers
 	 * @throws Exception
 	 */
-	private void uploadUpdateTrackers(MySQLAdaptor sourceDBA, 
+	private void uploadUpdateTrackers(MySQLAdaptor sourceDBA,
 	                                  MySQLAdaptor currentSliceDBA,
 	                                  List<GKInstance> updateTrackers) throws Exception {
 	    logger.info("Uploading UpdateTracker to the source database...");
@@ -123,7 +122,7 @@ public class RevisionDetector {
 	        throw e;
 	    }
 	}
-	
+
 	/**
 	 * This test method can be run after the slice database is created but the source database (e.g. gk_central) has not been updated.
 	 * @throws Exception
@@ -150,7 +149,7 @@ public class RevisionDetector {
 	    sliceEngine.setDefaultPersonId(140537L);
 	    uploadUpdateTrackers(sourceDBA, currentSliceDBA, new ArrayList<>(updateTrackers));
 	}
-	
+
 	/**
 	 * A helper method to dump all UpdateTracker instances into the current slice database.
 	 * @param currentSliceDBA
@@ -172,14 +171,14 @@ public class RevisionDetector {
 	    long time2 = System.currentTimeMillis();
 	    logger.info("Dumping UpdateTrackers done: " + (time2 - time1) / 1000.0d + " seconds.");
 	}
-	
+
 	private GKInstance getReleaseInstance(MySQLAdaptor targetDBA) throws Exception {
 	    Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants._Release);
 	    if (c == null | c.size() == 0)
 	        throw new IllegalStateException("Cannot find any _Release instance in the slice database!");
 	    return c.stream().findAny().get();
 	}
-	
+
     /**
 	 * Return a List of _UpdateTracker instances for every Event revision in the sliceMap (compared to a previous slice).
 	 *
@@ -208,16 +207,14 @@ public class RevisionDetector {
 	 *	 <li>An immediate child Pathway is revised (recursively defined).</li>
 	 * </ol>
 	 *
-	 * @param sourceDBA
-	 * @param sliceMap
-     * @param slicingEngine
+	 * @param currentSliceDBA
+	 * @param previousSliceDBA
 	 * @return List
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
 	 */
-    private List<GKInstance> createAllUpdateTrackers(MySQLAdaptor currentSliceDBA,
-                                                     MySQLAdaptor previousSliceDBA) throws Exception {
+    List<GKInstance> createAllUpdateTrackers(MySQLAdaptor currentSliceDBA, MySQLAdaptor previousSliceDBA) throws Exception {
 	    if (previousSliceDBA == null)
             return null;
 	    GKInstance release = getReleaseInstance(currentSliceDBA);
@@ -227,10 +224,18 @@ public class RevisionDetector {
 	    List<GKInstance> updateTrackers = new ArrayList<>();
 	    // Iterate over all instances in the slice.
 	    GKInstance updateTracker = null;
+
+	    // Avoid re-checking events (one check for instance). Width first search. Use while loop.
+	    // Bottom up search, cache action values = one check per instance.
+	    // (1) Check RLE's. Cache to Set.
+	    // (2) Check Pathways, layer by layer (start at bottom, bubble up).
+	    //     Get 'getReferrersWithAttribute(ReactomeJavaConstants.hasEvent)'.
+	    // (3) Make sure nothing is left (entire list is processed).
+	    // (4) Check if pathway has reaction in 'hasEvent'. Aggregate 'hasEvent' actions in pathway's 'action' set.
         for (GKInstance sourceEvent : events) {
             updateTracker = createUpdateTracker(currentSliceDBA,
-                                                previousSliceDBA, 
-                                                sourceEvent, 
+                                                previousSliceDBA,
+                                                sourceEvent,
                                                 release,
                                                 defaultIE);
             if (updateTracker != null) {
@@ -250,11 +255,11 @@ public class RevisionDetector {
 	 * @return GKInstance
 	 * @throws Exception
 	 */
-    private GKInstance createUpdateTracker(MySQLAdaptor currentSliceDBA,
-                                           MySQLAdaptor previousSliceDBA,
-                                           GKInstance currentEvent,
-                                           GKInstance release,
-                                           GKInstance defaultIE) throws Exception {
+    GKInstance createUpdateTracker(MySQLAdaptor currentSliceDBA,
+                                   MySQLAdaptor previousSliceDBA,
+                                   GKInstance currentEvent,
+                                   GKInstance release,
+                                   GKInstance defaultIE) throws Exception {
 	    Set<String> actions = null;
 	    GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(currentEvent.getDBID());
 	    if (currentEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
@@ -266,12 +271,17 @@ public class RevisionDetector {
 	    if (actions == null || actions.size() == 0)
 	        return null;
 
+	    // Prevent 'action' texts from recursive calls from 'bubbling up' to parent pathways.
+	    actions.remove(actionFilter);
+
 	    // If a revision condition is met, create new _UpdateTracker instance.
 	    SchemaClass cls = currentSliceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	    GKInstance updateTracker = new GKInstance(cls);
 	    updateTracker.setDbAdaptor(currentSliceDBA);
 
+	    // created
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+
 	    // action
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, String.join(",", actions));
 
@@ -288,7 +298,8 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Return a list of pathway revisions.
+	 * Return revisions for a given pathway.
+	 * e.g. ["addInput", "removeCatalyst", "modifySummation"].
 	 *
 	 * @param sourcePathway
 	 * @param previousSlicePathway
@@ -320,11 +331,17 @@ public class RevisionDetector {
 
 		    // Child pathways.
 		    tmp = getPathwayRevisions((GKInstance) sourceEvent, previousSliceEvent);
-		    if (tmp != null) actions.addAll(tmp);
+		    // Try to check if there is any child pathway effect. If there is a change,
+		    // mark change for parent, but don't record action.
+		    if (tmp != null && tmp.size() > 0) {
+		        actions.add(actionFilter);
+		    }
 
 		    // Child RLE's.
 		    tmp = getRLERevisions((GKInstance) sourceEvent, previousSliceEvent);
-		    if (tmp != null) actions.addAll(tmp);
+		    if (tmp != null && tmp.size() > 0) {
+		        actions.addAll(tmp);
+		    }
 	    }
 
 		return actions;
@@ -333,9 +350,10 @@ public class RevisionDetector {
 
 	/**
 	 * Return a list of RLE revisions.
+	 * e.g. ["addInput", "removeCatalyst", "modifySummation"].
 	 *
 	 * @param sourceRLE
-	 * @return List
+	 * @return Set
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 */
@@ -347,7 +365,7 @@ public class RevisionDetector {
 	        !previousSliceRLE.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
 	        return null;
 
-		// Check for changes in inputs, outputs, regulators, and catalysts.
+		// Check for changes in inputs, outputs, regulators, catalysts, and summation.
 		List<String> revisionList = Arrays.asList(ReactomeJavaConstants.input,
                                                   ReactomeJavaConstants.output,
                                                   ReactomeJavaConstants.regulatedBy,
@@ -370,11 +388,12 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Check if an instance's summation attribute is revised.
+	 * Check if an instance's summation attribute is revised and return revision strings.
+	 * e.g. ["addInput", "removeCatalyst", "modifySummation"].
 	 *
 	 * @param sourceRLE
 	 * @param previousSliceRLE
-	 * @return List
+	 * @return Set
 	 * @throws InvalidAttributeException
 	 * @throws Exception
 	 *
@@ -405,15 +424,16 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Compare the value of a given attribute between two instances.
+	 * Compare the value of a given attribute between two instances, and return revision strings.
+	 * e.g. ["addInput", "removeCatalyst", "modifySummation"].
 	 *
 	 * @param sourceInstance
 	 * @param previousSliceInstance
 	 * @param attributeName
-	 * @return List
+	 * @return Set
 	 * @throws Exception
 	 */
-	private Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attributeName) throws Exception {
+	Set<String> getAttributeRevisions(Object sourceInstance, Object previousSliceInstance, String attributeName) throws Exception {
 	    if (sourceInstance == null || previousSliceInstance == null)
 	        return null;
 
@@ -431,6 +451,7 @@ public class RevisionDetector {
 		// Check for deletions.
 		boolean removedInstances = containsNewAttribute(previousSliceAttributes, sourceAttributes);
 
+		// Additions and deletions are both present.
 		if (addedInstances && removedInstances) {
 		    // GKInstance attributes.
 		    if (sourceAttributes.get(0) instanceof GKInstance)
@@ -441,9 +462,11 @@ public class RevisionDetector {
 		        actions.add(ReactomeJavaConstants.modify + format(attributeName));
 		}
 
+		// Only additions are present.
 		else if (addedInstances)
 		    actions.add(ReactomeJavaConstants.add + format(attributeName));
 
+		// Only deletions are present.
 		else if (removedInstances)
 		    actions.add(ReactomeJavaConstants.remove + format(attributeName));
 
@@ -452,7 +475,7 @@ public class RevisionDetector {
 
 	/**
 	 * Return true if a new attribute is added to previousSliceAttributes.
-	 * (i.e. not all instances in "sourceAttributes" are also contained in "previousSliceAttributes").
+	 * i.e. not all instances in "sourceAttributes" are also contained in "previousSliceAttributes".
 	 *
 	 * @param sourceAttributes
 	 * @param previousSliceAttributes
@@ -506,7 +529,8 @@ public class RevisionDetector {
 	}
 
 	/**
-	 * Simple utility method to capitalize an input string (e.g. "hazelnut" -> "Hazelnut").
+	 * Simple utility method to capitalize an input string.
+	 * e.g. "summation" -> "Summation".
 	 *
 	 * @param input
 	 * @return String
