@@ -1,3 +1,11 @@
+Build 104 (Version 4.0) note (May 8, 2020)
+
+New features added in this build:
+
+1). Added two popup menus in the ELV pathway diagram view: Update Disease Objects Color (to color any objects with disease annotated as red), and Update Drug Objects Color (to color any drug related complex and entity set nodes as purple).
+
+2). Enabled stoichiometry view for input/output of RLE: now these two attributes should work like the Complex's hasComponent attribute in the attribute table. You can also directly update the stoichiometry for input or output using a popup menu, "Set Stoichiometry". This request was asked by Karen.
+
 Build 103 (Version 4.0) note (April 30, 2020)
 
 Changes in this new build:
