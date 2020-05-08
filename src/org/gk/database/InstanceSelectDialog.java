@@ -111,6 +111,12 @@ public class InstanceSelectDialog extends JDialog {
 		instanceTable.setCellSelectionEnabled(false);
 		instanceTable.setRowSelectionAllowed(true);
 		instanceTable.setColumnSelectionAllowed(false);
+		// Use this TF to give the user a little more clue that it is in the editing
+		// mode and need to press return.
+		JTextField tf = new JTextField();
+		DefaultCellEditor cellEditor = new DefaultCellEditor(tf);
+		instanceTable.setDefaultEditor(Integer.class,
+		                               cellEditor);
 		InstanceTableModel model = new InstanceTableModel();
 		instanceTable.setModel(model);
 		listPane.add(new JScrollPane(instanceTable), BorderLayout.CENTER);

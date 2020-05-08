@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -43,6 +44,7 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.FileUtilities;
@@ -55,7 +57,7 @@ import org.gk.util.TextFileFilter;
  * @author wugm
  */
 public class AttributePaneController {
-	private AttributePane attributePane;
+    private AttributePane attributePane;
 	// Three actions for editing
 	private Action viewAction;
 	private Action addAction;
@@ -497,9 +499,6 @@ public class AttributePaneController {
 	}
 	
     boolean shouldSetStoiActionDisplayed() {
-        GKInstance instance = (GKInstance) attributePane.getInstance();
-        if (!instance.getSchemClass().isa("Complex"))
-            return false;
         JTable propTable = attributePane.getPropertyTable();
         // Only work for single selection
         int colCount = propTable.getSelectedColumnCount();
@@ -516,16 +515,25 @@ public class AttributePaneController {
         return false;
     }
     
-    boolean shouldStoichiometryInstanceBeUsed(int row, int col) {
-        GKInstance instance = (GKInstance) attributePane.getInstance();
-        if (!instance.getSchemClass().isa("Complex"))
+    boolean shouldStoichiometryInstanceBeUsed(String attName) {
+        Set<String> clsAtts = AttributeEditConfig.getConfig().getStoichiometryAttributes();
+        if (clsAtts == null || clsAtts.size() == 0)
             return false;
+        GKInstance instance = (GKInstance) attributePane.getInstance();
+        for (String clsAtt : clsAtts) {
+            String[] tokens = clsAtt.split("\\."); // . is used in the regex
+            if (instance.getSchemClass().isa(tokens[0]) &&
+                attName.equals(tokens[1]))
+                return true;
+        }
+        return false;
+    }
+    
+    boolean shouldStoichiometryInstanceBeUsed(int row, int col) {
         JTable propTable = attributePane.getPropertyTable();
         PropertyTableModel model = (PropertyTableModel) propTable.getModel();
         String attName = model.getKeyAt(row);
-        if (attName.equals(ReactomeJavaConstants.hasComponent))
-            return true;
-        return false;
+        return shouldStoichiometryInstanceBeUsed(attName);
     }
     
     /**

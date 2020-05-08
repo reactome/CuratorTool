@@ -1347,9 +1347,7 @@ public class AttributePane extends JPanel {
 //						continue;
 
 					Collection vals = instance.getAttributeValuesList(attribute);
-                    // A special case: use stoichiometry for complex hasComponent.
-                    // It might be extended to input and output for Reaction.
-                    if (instance.getSchemClass().isa("Complex") && attributeName.equals(ReactomeJavaConstants.hasComponent)) {
+                    if (controller.shouldStoichiometryInstanceBeUsed(attributeName)) {
                         vals = generateStoichiometries((List)vals);
                     }
 					valueMap.put(attributeName, vals);

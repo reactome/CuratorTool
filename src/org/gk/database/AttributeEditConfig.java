@@ -64,6 +64,8 @@ public class AttributeEditConfig {
     private Map<String, String> psiModifications;
     // For multiple copy creation in ELV
     private Map<String, String> multipleCopyEntities;
+    // A set of attributes can be rendered with stoichiometry
+    private Set<String> stoiAttributes;
     // A list of allowable AAs in single letters
     private String allowableAminoAcids;
     // For pathway diagram deployment
@@ -86,6 +88,7 @@ public class AttributeEditConfig {
 		hiddenAttributes = new ArrayList();
 		disabledAutoClsAttNamesMap = new HashMap();
         attributeAutoFillerMap = new HashMap();
+        stoiAttributes = new HashSet<>();
 		propertyChangeSupport.addPropertyChangeListener(FrameManager.getManager());
 	}
 	
@@ -97,6 +100,10 @@ public class AttributeEditConfig {
 		if (config == null)
 			config = new AttributeEditConfig();
 		return config;
+	}
+	
+	public Set<String> getStoichiometryAttributes() {
+	    return stoiAttributes;
 	}
 	
     public void setGroupAttributesByCategories(boolean isGrouped) {
@@ -337,6 +344,15 @@ public class AttributeEditConfig {
             else if (node.getNodeName().equals("allowableAminoAcids")) {
                 // Text wrapped by this element
                 allowableAminoAcids = node.getFirstChild().getNodeValue();
+            }
+            else if (node.getNodeName().equals("stoichiometryAttributes")) {
+                NodeList children = ((Element)node).getElementsByTagName("stoichiometryAttribute");
+                stoiAttributes = new HashSet<>();
+                for (int j = 0; j < children.getLength(); j++) {
+                    Element elm = (Element) children.item(j);
+                    // First child is text node
+                    stoiAttributes.add(elm.getFirstChild().getNodeValue());
+                }
             }
         }
     }

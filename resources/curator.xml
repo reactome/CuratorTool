@@ -28,6 +28,11 @@
         this text should not be edited by the curator. -->
         <attribute name="storedATXML" />
 	</hiddenAttributes>
+	<stoichiometryAttributes>
+		<stoichiometryAttribute>Complex.hasComponent</stoichiometryAttribute>
+		<stoichiometryAttribute>ReactionlikeEvent.input</stoichiometryAttribute>
+		<stoichiometryAttribute>ReactionlikeEvent.output</stoichiometryAttribute>
+	</stoichiometryAttributes>
 	<QACheckers>
 		<QAChecker name="Imbalance Check" class="org.gk.qualityCheck.ImbalanceCheck" />
         <QAChecker name="Mandatory Attribute Check" class="org.gk.qualityCheck.MandatoryAttributesCheck" />
