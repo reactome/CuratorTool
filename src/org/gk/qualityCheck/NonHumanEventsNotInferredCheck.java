@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class SpeciesEventsNotInferredCheck extends AbstractQualityCheck{
+public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
 
     private static List<String> skiplistDbIDs = new ArrayList<>();
 
@@ -60,7 +60,7 @@ public class SpeciesEventsNotInferredCheck extends AbstractQualityCheck{
         if (inSkipList(nonHumanEvent)) {
             return true;
         }
-        
+
         Collection<GKInstance> hasEventReferrals = nonHumanEvent.getReferers(ReactomeJavaConstants.hasEvent);
         if (hasEventReferrals != null) {
             for (GKInstance hasEventReferral : hasEventReferrals) {
@@ -77,7 +77,7 @@ public class SpeciesEventsNotInferredCheck extends AbstractQualityCheck{
 
     @Override
     public String getDisplayName() {
-        return "Species_Events_Not_Inferred_To_Human";
+        return "NonHuman_Events_Not_Inferred_To_Human";
     }
 
     protected String[] getColumnHeaders() {

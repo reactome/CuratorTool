@@ -28,4 +28,4 @@ org.gk.qualityCheck.ReactionSyncELVCheck
 # Disease related checks
 org.gk.qualityCheck.EntityFunctionalStatusDiseaseEntityCheck
 org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck
-org.gk.qualityCheck.SpeciesEventsNotInferredCheck
+org.gk.qualityCheck.NonHumanEventsNotInferredCheck
