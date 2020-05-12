@@ -6,6 +6,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -16,12 +17,11 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
 
     @Override
     public QAReport checkInCommand() throws Exception {
-        QAReport report = super.checkInCommand();
+        QAReport report = new QAReport();
         if (report == null) {
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
         List<GKInstance> nonHumanEventsNotUsedForInference = findNonHumanEventsNotUsedForInference(dba);
         for (GKInstance instance : nonHumanEventsNotUsedForInference) {
             String reportLine = getReportLine(instance);
@@ -39,7 +39,8 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
         return reportLine;
     }
 
-    private List<GKInstance> findNonHumanEventsNotUsedForInference(MySQLAdaptor dba) throws Exception {
+    protected List<GKInstance> findNonHumanEventsNotUsedForInference(MySQLAdaptor dba) throws Exception {
+        setSkipList();
         GKInstance humanInst = dba.fetchInstance(48887L);
         Collection<GKInstance> nonHumanEvents = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Event, ReactomeJavaConstants.species, "!=", humanInst);
         List<GKInstance> nonHumanEventsNotUsedForInference = new ArrayList<>();
@@ -69,6 +70,10 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
         }
 
         return false;
+    }
+
+    private void setSkipList() throws IOException {
+        skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
     }
 
     private boolean inSkipList(GKInstance nonHumanEvent) {
