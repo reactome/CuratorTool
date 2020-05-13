@@ -6,9 +6,6 @@
  */
 package org.gk.model;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,14 +19,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
-import org.junit.Test;
-
 
 /**
  * @author vastrik
@@ -1420,46 +1414,4 @@ public class InstanceUtilities {
                  ReactomeJavaConstants.hasComponent).stream()
                  .anyMatch(inst -> inst.getSchemClass().isa(ReactomeJavaConstants.Drug));
      }
-
-    @Test
-    public void testHasDrug() throws Exception {
-        MySQLAdaptor testDBA = new MySQLAdaptor("localhost",
-                                                "reactome",
-                                                "liam",
-                                                ")8J7m]!%[<");
-        // Protein (non-EntitySet/Complex).
-        GKInstance protein = testDBA.fetchInstance(976898L);
-        assertFalse(InstanceUtilities.hasDrug(protein));
-
-        // Control EntitySet (GSK [cytosol]). Has two members, none of which are drugs.
-        GKInstance entitySet = testDBA.fetchInstance(5632097L);
-        assertFalse(InstanceUtilities.hasDrug(entitySet));
-
-        // Drug (17-AAG [cytosol]).
-        GKInstance drug = testDBA.fetchInstance(1217506L);
-
-        // Add drug instance (17-AAG [cytosol]) to member set.
-        entitySet.addAttributeValue(ReactomeJavaConstants.hasMember, drug);
-
-        // Test to confirm it now contains a drug instance (should return true).
-        assertTrue(InstanceUtilities.hasDrug(entitySet));
-
-        // Remove added drug and retest (should return false).
-        entitySet.removeAttributeValueNoCheck(ReactomeJavaConstants.hasMember, drug);
-        assertFalse(InstanceUtilities.hasDrug(entitySet));
-
-        // Control Complex (activated NPR1/NH1 [cytosol]).
-        GKInstance complex = testDBA.fetchInstance(6788198L);
-        assertFalse(InstanceUtilities.hasDrug(complex));
-
-        // Add drug instance to component set.
-        complex.addAttributeValue(ReactomeJavaConstants.hasComponent, drug);
-
-        // Test to confirm it now contains a drug instance (should return true).
-        assertTrue(InstanceUtilities.hasDrug(complex));
-
-        // Remove added drug and retest (should return false).
-        complex.removeAttributeValueNoCheck(ReactomeJavaConstants.hasComponent, drug);
-        assertFalse(InstanceUtilities.hasDrug(complex));
-    }
 }
