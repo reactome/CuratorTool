@@ -31,3 +31,4 @@ org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck
 org.gk.qualityCheck.NonHumanEventsNotInferredCheck
 org.gk.qualityCheck.NonHumanPhysicalEntitiesWithoutDiseaseCheck
 org.gk.qualityCheck.HumanReactionEntitiesWithoutHumanSpeciesCheck
+org.gk.qualityCheck.ReactionsWithNonHumanEntityWithoutDiseaseCheck

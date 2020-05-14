@@ -53,10 +53,13 @@ public class HumanReactionEntitiesWithoutHumanSpeciesCheck extends AbstractQuali
         Set<GKInstance> humanReactionPEs = findPhysicalEntitiesInReaction(humanReaction);
         Set<GKInstance> humanReactionPEsWithoutHumanSpecies = new HashSet<>();
         for (GKInstance humanPE : humanReactionPEs) {
-            if (hasSpeciesAttribute(humanPE) && !humanPE.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
-                Collection<GKInstance> speciesInstances = humanPE.getAttributeValuesList(ReactomeJavaConstants.species);
-                if (!speciesInstances.contains(humanInst)) {
-                    humanReactionPEsWithoutHumanSpecies.add(humanPE);
+            GKInstance stableIdentifierInst = (GKInstance) humanPE.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            if (stableIdentifierInst.getDisplayName().contains("R-HSA-")) {
+                if (hasSpeciesAttribute(humanPE) && !humanPE.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
+                    Collection<GKInstance> speciesInstances = humanPE.getAttributeValuesList(ReactomeJavaConstants.species);
+                    if (!speciesInstances.contains(humanInst)) {
+                        humanReactionPEsWithoutHumanSpecies.add(humanPE);
+                    }
                 }
             }
         }
