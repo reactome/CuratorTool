@@ -209,6 +209,7 @@ public class SlicingEngine {
      * @throws Exception
      */
     public void slice() throws Exception {
+        /*
         validateConditions();
         topLevelIDs = getReleasedProcesses();
         speciesIDs = getSpeciesIDs();
@@ -249,6 +250,7 @@ public class SlicingEngine {
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
+        */
         handleRevisions();
     }
 
@@ -441,6 +443,8 @@ public class SlicingEngine {
      */
     GKInstance createDefaultIE(MySQLAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
+        if (defaultPersonId == null)
+            defaultPersonId = 140537L;
         GKInstance person = dba.fetchInstance(defaultPersonId);
         GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
         defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,  
@@ -604,7 +608,7 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws InvalidAttributeValueException
      */
-    private GKInstance createReleaseInstance(MySQLAdaptor dba, 
+    GKInstance createReleaseInstance(MySQLAdaptor dba, 
                                      Integer releaseNumber, 
                                      String releaseDate) throws InvalidAttributeException, InvalidAttributeValueException {
         SchemaClass releaseCls = dba.getSchema().getClassByName(ReactomeJavaConstants._Release);
