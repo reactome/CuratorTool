@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class ReactionsWithNonHumanEntityWithoutDiseaseCheck extends NonHumanEventsNotInferredCheck {
+public class HumanReactionsWithoutDiseaseAndHaveNonHumanEntities extends NonHumanEventsNotManuallyInferredCheck {
 
     List<String> skipListDbIds = new ArrayList<>();
     GKInstance humanSpeciesInst = new GKInstance();
@@ -25,10 +25,11 @@ public class ReactionsWithNonHumanEntityWithoutDiseaseCheck extends NonHumanEven
         humanSpeciesInst = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
-            if (!isMemberSkippedEvent(reaction)) {
-                Set<GKInstance> nonHumanPhysicalEntitiesWithoutDiseaseAttribute = findNonHumanEntitiesWithoutDiseaseAttribute(reaction);
-                for (GKInstance nonHumanPhysicalEntityWithoutDiseaseAttribute : nonHumanPhysicalEntitiesWithoutDiseaseAttribute) {
-                    report.addLine(getReportLine(nonHumanPhysicalEntityWithoutDiseaseAttribute, reaction));
+            GKInstance stableIdentifierInst = (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            if (!isMemberSkippedEvent(reaction) && stableIdentifierInst.getDisplayName().contains("R-HSA-") && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                Set<GKInstance> nonHumanPEsInReaction = findAllNonHumanEntitiesInReaction(reaction);
+                for (GKInstance nonHumanPE : nonHumanPEsInReaction) {
+                    report.addLine(getReportLine(nonHumanPE, reaction));
                 }
             }
         }
@@ -36,24 +37,15 @@ public class ReactionsWithNonHumanEntityWithoutDiseaseCheck extends NonHumanEven
         return report;
     }
 
-    private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {
-        GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
-        String speciesName = speciesInst != null ? speciesInst.getDisplayName() : "null";
-        GKInstance createdInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.created);
-        String createdName = createdInst != null ? createdInst.getDisplayName() : "null";
-        String reportLine = String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), physicalEntity.getDBID().toString(), physicalEntity.getDisplayName(), physicalEntity.getSchemClass().getName(), speciesName, createdName);
-        return reportLine;
-    }
-
-    private Set<GKInstance> findNonHumanEntitiesWithoutDiseaseAttribute(GKInstance reaction) throws Exception {
-        Set<GKInstance> nonHumanPhysicalEntitiesWithoutDiseaseAttribute = new HashSet<>();
+    private Set<GKInstance> findAllNonHumanEntitiesInReaction(GKInstance reaction) throws Exception {
+        Set<GKInstance> nonHumanPEsInReaction = new HashSet<>();
         for (GKInstance physicalEntity : findAllPhysicalEntitiesInReaction(reaction)) {
             GKInstance stableIdentifierInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-            if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) != humanSpeciesInst && !stableIdentifierInst.getDisplayName().contains("R-ALL") && physicalEntity.getAttributeValue(ReactomeJavaConstants.disease) == null) {
-                nonHumanPhysicalEntitiesWithoutDiseaseAttribute.add(physicalEntity);
+            if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) != humanSpeciesInst && !stableIdentifierInst.getDisplayName().contains("R-ALL")) {
+                nonHumanPEsInReaction.add(physicalEntity);
             }
         }
-        return nonHumanPhysicalEntitiesWithoutDiseaseAttribute;
+        return nonHumanPEsInReaction;
     }
 
     private Set<GKInstance> findAllPhysicalEntitiesInReaction(GKInstance reaction) throws Exception {
@@ -183,6 +175,15 @@ public class ReactionsWithNonHumanEntityWithoutDiseaseCheck extends NonHumanEven
         return false;
     }
 
+    private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {
+        GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
+        String speciesName = speciesInst != null ? speciesInst.getDisplayName() : "null";
+        GKInstance createdInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.created);
+        String createdName = createdInst != null ? createdInst.getDisplayName() : "null";
+        String reportLine = String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), physicalEntity.getDBID().toString(), physicalEntity.getDisplayName(), physicalEntity.getSchemClass().getName(), speciesName, createdName);
+        return reportLine;
+    }
+
     @Override
     protected String[] getColumnHeaders() {
         return new String[] {"DB_ID_RlE", "DisplayName_RlE", "DB_ID_PE", "DisplayName_PE", "Class_PE", "Species_PE", "Created_PE"};
@@ -190,6 +191,6 @@ public class ReactionsWithNonHumanEntityWithoutDiseaseCheck extends NonHumanEven
 
     @Override
     public String getDisplayName() {
-        return "Reactions_With_NonHuman_PhysicalEntities_Without_Disease";
+        return "Human_Reactions_Without_Disease_And_Have_NonHuman_Entities";
     }
 }

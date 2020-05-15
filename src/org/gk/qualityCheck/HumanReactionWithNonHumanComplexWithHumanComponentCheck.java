@@ -6,7 +6,9 @@ import org.gk.persistence.MySQLAdaptor;
 
 import java.util.*;
 
-public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsNotManuallyInferredCheck {
+public class HumanReactionWithNonHumanComplexWithHumanComponentCheck extends NonHumanEventsNotManuallyInferredCheck {
+
+    private static GKInstance humanSpeciesInst = new GKInstance();
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -15,39 +17,51 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        List<GKInstance> nonHumanEventsNotUsedForInference = findNonHumanEventsNotUsedForInference(dba);
-        for (GKInstance nonHumanEvent : nonHumanEventsNotUsedForInference) {
-            if (nonHumanEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-                Set<GKInstance> reactionPEs = findAllPhysicalEntitiesInReaction(nonHumanEvent);
-                for (GKInstance reactionPE : reactionPEs) {
-                    if (hasSpecies(reactionPE) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
-                        String reportLine = getReportLine(reactionPE, nonHumanEvent);
-                        report.addLine(reportLine);
+        humanSpeciesInst = dba.fetchInstance(48887L);
+        Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
+        Set<String> reportLines = new HashSet<>();
+        for (GKInstance reaction : reactions) {
+            GKInstance stableIdentifierInst = (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            if (reaction.getReferers(ReactomeJavaConstants.inferredFrom) == null && stableIdentifierInst.getDisplayName().contains("R-HSA-")) {
+                Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction);
+                for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
+                    for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
+                        reportLines.add(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
                     }
                 }
             }
+        }
+        for (String reportLine : reportLines) {
+            report.addLine(reportLine);
         }
         report.setColumnHeaders(getColumnHeaders());
         return report;
     }
 
-    private boolean hasSpecies(GKInstance reactionPE) throws Exception {
-        if (reactionPE.getSchemClass().isa(ReactomeJavaConstants.Drug)) {
-            return false;
+    private Map<GKInstance, Set<GKInstance>> findNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction) throws Exception {
+        Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
+        for (GKInstance physicalEntity : findAllPhysicalEntitiesInReaction(reaction)) {
+            GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
+            if (!humanSpeciesInst.equals(speciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
+                Set<GKInstance> humanComponents = findHumanComponentsInComplex(physicalEntity);
+                if (humanComponents.size() > 0) {
+                    nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, humanComponents);
+                }
+            }
         }
-        if (reactionPE.getAttributeValue(ReactomeJavaConstants.species) == null) {
-            return false;
-        }
-        return true;
+        return nonHumanComplexesWithHumanComponentsMap;
     }
 
-    private boolean hasSpeciesAttribute(GKInstance physicalEntity) {
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.OtherEntity) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Drug) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
-            return false;
+    private Set<GKInstance> findHumanComponentsInComplex(GKInstance complex) throws Exception {
+        Set<GKInstance> physicalEntitiesInComplex = findAllConstituentPEs(complex);
+        Set<GKInstance> humanPEs = new HashSet<>();
+        for (GKInstance physicalEntity : physicalEntitiesInComplex) {
+            GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
+            if (humanSpeciesInst.equals(speciesInst)) {
+                humanPEs.add(physicalEntity);
+            }
         }
-        return true;
+        return humanPEs;
     }
 
     private Set<GKInstance> findAllPhysicalEntitiesInReaction(GKInstance reaction) throws Exception {
@@ -116,15 +130,6 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
         return physicalEntities;
     }
 
-    private boolean containsMultiplePEs(GKInstance physicalEntity) {
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Polymer) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-            return true;
-        }
-        return false;
-    }
-
     private Set<GKInstance> findAllConstituentPEs(GKInstance physicalEntity) throws Exception {
         Set<GKInstance> physicalEntities = new HashSet<>();
         if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
@@ -155,22 +160,40 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
         return physicalEntities;
     }
 
-    private String getReportLine(GKInstance reactionPE, GKInstance reaction) throws Exception {
-        GKInstance speciesInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.species);
-        GKInstance createdInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.created);
-        String createdName = createdInst == null ? "null" : createdInst.getDisplayName();
-        String reportLine = String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), reactionPE.getDBID().toString(), reactionPE.getDisplayName(), reactionPE.getSchemClass().getName(), speciesInst.getDisplayName(), createdName);
+    private boolean hasSpeciesAttribute(GKInstance physicalEntity) {
+        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.OtherEntity) ||
+                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Drug) ||
+                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean containsMultiplePEs(GKInstance physicalEntity) {
+        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex) ||
+                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Polymer) ||
+                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
+            return true;
+        }
+        return false;
+    }
+
+    private String getReportLine(GKInstance event, GKInstance complexWithHumanComponent, GKInstance componentWithHumanSpecies) throws Exception {
+        GKInstance complexCreatedInst = (GKInstance) complexWithHumanComponent.getAttributeValue(ReactomeJavaConstants.created);
+        String complexCreatedName = complexCreatedInst != null ? complexCreatedInst.getDisplayName() : "null";
+        GKInstance componentCreatedInst = (GKInstance) componentWithHumanSpecies.getAttributeValue(ReactomeJavaConstants.created);
+        String componentCreatedName = componentCreatedInst != null ? componentCreatedInst.getDisplayName() : "null";
+        String reportLine = String.join("\t", event.getDBID().toString(), event.getDisplayName(), complexWithHumanComponent.getDBID().toString(), complexWithHumanComponent.getDisplayName(), componentWithHumanSpecies.getDBID().toString(), componentWithHumanSpecies.getDisplayName(), componentWithHumanSpecies.getSchemClass().getName(), complexCreatedName, componentCreatedName);
         return reportLine;
     }
 
     @Override
     protected String[] getColumnHeaders() {
-        return new String[] {"DB_ID_RlE", "DisplayName_RlE", "DB_ID_PE", "DisplayName_PE", "Class_PE", "Species", "Created"};
+        return new String[]{"DB_ID_RlE", "DisplayName_RlE", "DB_ID_Complex", "DisplayName_Complex", "DB_ID_Component", "DisplayName_Component", "Class_Component", "Created_Complex", "Created_Component"};
     }
 
     @Override
     public String getDisplayName() {
-        return "NonHuman_PhysicalEntities_Without_Disease";
+        return "Human_Reactions_With_NonHuman_Complexes_With_Human_Components";
     }
-
 }

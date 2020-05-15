@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
+public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck{
 
     private static List<String> skiplistDbIDs = new ArrayList<>();
 
@@ -29,14 +29,6 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
         }
         report.setColumnHeaders(getColumnHeaders());
         return report;
-    }
-
-    private String getReportLine(GKInstance instance) throws Exception {
-
-        GKInstance speciesInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.species);
-        GKInstance createdInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        String reportLine = String.join("\t", instance.getDBID().toString(), instance.getDisplayName(), speciesInst.getDisplayName(), createdInst.getDisplayName());
-        return reportLine;
     }
 
     protected List<GKInstance> findNonHumanEventsNotUsedForInference(MySQLAdaptor dba) throws Exception {
@@ -72,6 +64,14 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
         return false;
     }
 
+    private String getReportLine(GKInstance instance) throws Exception {
+
+        GKInstance speciesInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.species);
+        GKInstance createdInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
+        String reportLine = String.join("\t", instance.getDBID().toString(), instance.getDisplayName(), speciesInst.getDisplayName(), createdInst.getDisplayName());
+        return reportLine;
+    }
+
     private void setSkipList() throws IOException {
         skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
     }
@@ -82,7 +82,7 @@ public class NonHumanEventsNotInferredCheck extends AbstractQualityCheck{
 
     @Override
     public String getDisplayName() {
-        return "NonHuman_Events_Not_Inferred_To_Human";
+        return "NonHuman_Events_Not_Manually_Inferred";
     }
 
     protected String[] getColumnHeaders() {
