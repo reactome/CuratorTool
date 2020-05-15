@@ -288,6 +288,14 @@ public class RevisionDetector {
     /**
      * Return a mapping between event instances and their respective 'action' strings.
      *
+     * Current behavior for recording revisions for child events is:
+     * <pre>
+     *   - A revision in a given RLE is recorded in the action set.
+     *   - If the RLE has a parent pathway, it's revision is added to the parent's action set.
+     *   - The 'actionFilter' value will be added to all parents above the parent pathway to prevent
+     *     action texts from bubbling up past immediate parents.
+     * </pre>
+     *
      * @param previousSliceDBA
      * @param events
      * @return Map
@@ -299,18 +307,20 @@ public class RevisionDetector {
         Set<GKInstance> pathways = new HashSet<GKInstance>();
         Set<String> RLEActions = null;
 
-        // Check RLE's. Cache 'action' values to set.
+        // For all events in 'events'.
         for (GKInstance event : events) {
+            // If event is an RLE, cache action values to set.
             if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
                 GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(event.getDBID());
                 RLEActions = getRLERevisions(event, previousSliceEvent);
                 actionMap.put(event, RLEActions);
-                continue;
             }
-            pathways.add(event);
+            // If event is a Pathway, add to pathway list.
+            else
+                pathways.add(event);
         }
 
-        // Check Pathways, bottom-up search layer by layer.
+        // For all pathways in 'pathways'.
         for (GKInstance pathway : pathways) {
             GKInstance previousSlicePathway = previousSliceDBA.fetchInstance(pathway.getDBID());
             if (previousSlicePathway == null)
@@ -334,32 +344,32 @@ public class RevisionDetector {
                         pathwayActions.addAll(childActions);
                 }
             }
+
+            // If no revisions were detected in the pathway, move on to the next event.
             if (pathwayActions.size() == 0)
                 continue;
 
-            // Add pathway's 'action' strings to all referrer's 'action' set.
             Collection<Object> referrers = pathway.getReferers(ReactomeJavaConstants.hasEvent);
             if (referrers == null)
                 referrers = new ArrayList<Object>();
 
+            // For all of the pathway's referrers, add 'actionFilter' to both mark that a revision has occurred,
+            // and to prevent the action text from bubbling up.
             for (Object referrer : referrers) {
-                if (actionMap.containsKey(referrer) ) {
+                if (actionMap.containsKey(referrer))
                     actionMap.get(referrer).add(actionFilter);
-                }
                 else {
-                    Set<String> tmp = new HashSet<String>();
-                    tmp.add(actionFilter);
-                    actionMap.put((GKInstance) referrer, tmp);
+                    Set<String> filter = new HashSet<String>();
+                    filter.add(actionFilter);
+                    actionMap.put((GKInstance) referrer, filter);
                 }
             }
 
             // Add pathway instance and 'action' set to map.
-            if (actionMap.containsKey(pathway) ) {
+            if (actionMap.containsKey(pathway))
                 actionMap.get(pathway).addAll(pathwayActions);
-            }
-            else {
+            else
                 actionMap.put((GKInstance) pathway, pathwayActions);
-            }
         }
 
         return actionMap;

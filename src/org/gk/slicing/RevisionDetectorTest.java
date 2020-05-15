@@ -2,19 +2,8 @@ package org.gk.slicing;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +13,6 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
-import org.gk.schema.InvalidAttributeException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -116,7 +104,8 @@ public class RevisionDetectorTest {
 
 
         // Revise a child pathway (by changing the summation text of one of it's RLEs).
-        // 'Bubbling up' of revision actions is disabled, so 'action' attribute should be blank.
+        // 'Bubbling up' of revision actions is disabled, so 'action' attribute should be
+        // 'actionFilter' for events above the immediate parent (e.g. 'grandparent' pathway).
         GKInstance grandparent = pathway;
         GKInstance parent = (GKInstance) sliceDBA.fetchInstance(5632681L);
         GKInstance child = (GKInstance) sliceDBA.fetchInstance(5632653L);
