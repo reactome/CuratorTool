@@ -3,8 +3,10 @@ package org.gk.slicing;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -24,9 +26,9 @@ import org.junit.Test;
 public class RevisionDetector {
     private static final Logger logger = Logger.getLogger(RevisionDetector.class);
     private SlicingEngine sliceEngine;
-    // Used for when a revision should be detected, but the 'action' text should not.
-    // For example, a parent pathway should encompass the revisions of it's children
-    // pathways, but their respective 'action' texts should not 'bubble up' to the parent.
+    // A parent pathway should encompass the revisions of it's children
+    // pathways, but their respective 'action' texts should not bubble up to the parent.
+    // This string is used to flag a revision while preventing the 'action' text from bubbling up.
     private final String actionFilter = "actionFilter";
 
     public RevisionDetector() {
@@ -219,25 +221,15 @@ public class RevisionDetector {
             return null;
 	    GKInstance release = getReleaseInstance(currentSliceDBA);
 	    GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
-	    // Check revisions
 	    Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
+
+
+        Map<GKInstance, Set<String>> actionMap = createActionMap(previousSliceDBA, events);
 	    List<GKInstance> updateTrackers = new ArrayList<>();
 	    // Iterate over all instances in the slice.
 	    GKInstance updateTracker = null;
-
-	    // Avoid re-checking events (one check for instance). Width first search. Use while loop.
-	    // Bottom up search, cache action values = one check per instance.
-	    // (1) Check RLE's. Cache to Set.
-	    // (2) Check Pathways, layer by layer (start at bottom, bubble up).
-	    //     Get 'getReferrersWithAttribute(ReactomeJavaConstants.hasEvent)'.
-	    // (3) Make sure nothing is left (entire list is processed).
-	    // (4) Check if pathway has reaction in 'hasEvent'. Aggregate 'hasEvent' actions in pathway's 'action' set.
         for (GKInstance sourceEvent : events) {
-            updateTracker = createUpdateTracker(currentSliceDBA,
-                                                previousSliceDBA,
-                                                sourceEvent,
-                                                release,
-                                                defaultIE);
+            updateTracker = createUpdateTracker(currentSliceDBA, sourceEvent, actionMap.get(sourceEvent), release, defaultIE);
             if (updateTracker != null) {
                 updateTrackers.add(updateTracker);
             }
@@ -250,23 +242,19 @@ public class RevisionDetector {
 	 *
 	 * Return null if the passed instance is not an Event or no revisions were detected.
 	 *
-	 * @param currentEvent
-	 * @param currentSliceDBA
+     * @param dba
+     * @param updatedEvent
+     * @param actions
+     * @param release
+     * @param created
 	 * @return GKInstance
-	 * @throws Exception
-	 */
-    GKInstance createUpdateTracker(MySQLAdaptor currentSliceDBA,
-                                   MySQLAdaptor previousSliceDBA,
-                                   GKInstance currentEvent,
+     * @throws Exception
+     */
+    GKInstance createUpdateTracker(MySQLAdaptor dba,
+                                   GKInstance updatedEvent,
+                                   Set<String> actions,
                                    GKInstance release,
-                                   GKInstance defaultIE) throws Exception {
-	    Set<String> actions = null;
-	    GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(currentEvent.getDBID());
-	    if (currentEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-	        actions = getPathwayRevisions(currentEvent, previousSliceEvent);
-	    else if (currentEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-	        actions = getRLERevisions(currentEvent, previousSliceEvent);
-
+                                   GKInstance created) throws Exception {
 	    // No revision detected.
 	    if (actions == null || actions.size() == 0)
 	        return null;
@@ -275,12 +263,12 @@ public class RevisionDetector {
 	    actions.remove(actionFilter);
 
 	    // If a revision condition is met, create new _UpdateTracker instance.
-	    SchemaClass cls = currentSliceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
+	    SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
 	    GKInstance updateTracker = new GKInstance(cls);
-	    updateTracker.setDbAdaptor(currentSliceDBA);
+	    updateTracker.setDbAdaptor(dba);
 
 	    // created
-	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.created, created);
 
 	    // action
 	    updateTracker.setAttributeValue(ReactomeJavaConstants.action, String.join(",", actions));
@@ -289,7 +277,7 @@ public class RevisionDetector {
 	    updateTracker.setAttributeValue(ReactomeJavaConstants._release, release);
 
 	    // updatedEvent
-	    updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, currentEvent);
+	    updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent, updatedEvent);
 
 	    // _displayName
 	    InstanceDisplayNameGenerator.setDisplayName(updateTracker);
@@ -297,56 +285,85 @@ public class RevisionDetector {
 	    return updateTracker;
 	}
 
-	/**
-	 * Return revisions for a given pathway.
-	 * e.g. ["addInput", "removeCatalyst", "modifySummation"].
-	 *
-	 * @param sourcePathway
-	 * @param previousSlicePathway
-	 * @return List
-	 * @throws InvalidAttributeException
-	 * @throws Exception
-	 */
-	private Set<String> getPathwayRevisions(GKInstance sourcePathway, GKInstance previousSlicePathway) throws InvalidAttributeException, Exception {
-	    if (sourcePathway == null || previousSlicePathway == null)
-	        return null;
+    /**
+     * Return a mapping between event instances and their respective 'action' strings.
+     *
+     * @param previousSliceDBA
+     * @param events
+     * @return Map
+     * @throws InvalidAttributeException
+     * @throws Exception
+     */
+    Map<GKInstance, Set<String>> createActionMap(MySQLAdaptor previousSliceDBA, Collection<GKInstance> events) throws InvalidAttributeException, Exception {
+        Map<GKInstance, Set<String>> actionMap = new HashMap<GKInstance, Set<String>>();
+        Set<GKInstance> pathways = new HashSet<GKInstance>();
+        Set<String> RLEActions = null;
 
-	    if (!sourcePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway) ||
-	        !previousSlicePathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-	        return null;
+        // Check RLE's. Cache 'action' values to set.
+        for (GKInstance event : events) {
+            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(event.getDBID());
+                RLEActions = getRLERevisions(event, previousSliceEvent);
+                actionMap.put(event, RLEActions);
+                continue;
+            }
+            pathways.add(event);
+        }
 
-	    // Check if a child event (pathway or RLE) is added or removed.
-	    Set<String> actions = getAttributeRevisions(sourcePathway, previousSlicePathway, ReactomeJavaConstants.hasEvent);
+        // Check Pathways, bottom-up search layer by layer.
+        for (GKInstance pathway : pathways) {
+            GKInstance previousSlicePathway = previousSliceDBA.fetchInstance(pathway.getDBID());
+            if (previousSlicePathway == null)
+                continue;
 
-		List<Object> sourceEvents = sourcePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-		List<Object> previousSliceEvents = previousSlicePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-	    GKInstance previousSliceEvent = null;
-	    Set<String> tmp = null;
+            // Check if a child event (pathway or RLE) is added or removed.
+            Set<String> pathwayActions = getAttributeRevisions(pathway, previousSlicePathway, ReactomeJavaConstants.hasEvent);
 
-	    // Recursively iterate over and apply revision detection to all events in the pathway.
-	    for (Object sourceEvent : sourceEvents) {
-		    previousSliceEvent = (GKInstance) getMatchingAttribute(previousSliceEvents, sourceEvent);
-		    if (previousSliceEvent == null)
-		        continue;
+            // Check if pathway has reaction in 'hasEvent'. Aggregate 'hasEvent' actions in pathway's 'action' set.
+            List<Object> childEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+            for (Object event : childEvents) {
+                if (event == null)
+                    continue;
 
-		    // Child pathways.
-		    tmp = getPathwayRevisions((GKInstance) sourceEvent, previousSliceEvent);
-		    // Try to check if there is any child pathway effect. If there is a change,
-		    // mark change for parent, but don't record action.
-		    if (tmp != null && tmp.size() > 0) {
-		        actions.add(actionFilter);
-		    }
+                if (((GKInstance) event).getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                    continue;
 
-		    // Child RLE's.
-		    tmp = getRLERevisions((GKInstance) sourceEvent, previousSliceEvent);
-		    if (tmp != null && tmp.size() > 0) {
-		        actions.addAll(tmp);
-		    }
-	    }
+                if (actionMap.containsKey(event)) {
+                    Set<String> childActions = actionMap.get(event);
+                    if (childActions != null)
+                        pathwayActions.addAll(childActions);
+                }
+            }
+            if (pathwayActions.size() == 0)
+                continue;
 
-		return actions;
-	}
+            // Add pathway's 'action' strings to all referrer's 'action' set.
+            Collection<Object> referrers = pathway.getReferers(ReactomeJavaConstants.hasEvent);
+            if (referrers == null)
+                referrers = new ArrayList<Object>();
 
+            for (Object referrer : referrers) {
+                if (actionMap.containsKey(referrer) ) {
+                    actionMap.get(referrer).add(actionFilter);
+                }
+                else {
+                    Set<String> tmp = new HashSet<String>();
+                    tmp.add(actionFilter);
+                    actionMap.put((GKInstance) referrer, tmp);
+                }
+            }
+
+            // Add pathway instance and 'action' set to map.
+            if (actionMap.containsKey(pathway) ) {
+                actionMap.get(pathway).addAll(pathwayActions);
+            }
+            else {
+                actionMap.put((GKInstance) pathway, pathwayActions);
+            }
+        }
+
+        return actionMap;
+    }
 
 	/**
 	 * Return a list of RLE revisions.
