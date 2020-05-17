@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class HumanReactionsWithoutDiseaseAndHaveNonHumanEntities extends NonHumanEventsNotManuallyInferredCheck {
+public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends NonHumanEventsNotManuallyInferredCheck {
 
     List<String> skipListDbIds = new ArrayList<>();
     GKInstance humanSpeciesInst = new GKInstance();
@@ -191,6 +191,6 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanEntities extends NonHuma
 
     @Override
     public String getDisplayName() {
-        return "Human_Reactions_Without_Disease_And_Have_NonHuman_Entities";
+        return "Human_Reactions_Without_Disease_And_Have_NonHuman_PhysicalEntities";
     }
 }

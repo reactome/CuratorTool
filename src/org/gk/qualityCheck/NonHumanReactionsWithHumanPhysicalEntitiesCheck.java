@@ -8,7 +8,7 @@ import org.gk.schema.GKSchemaClass;
 
 import java.util.*;
 
-public class NonHumanReactionsWithHumanEntitiesCheck extends AbstractQualityCheck {
+public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQualityCheck {
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -183,7 +183,7 @@ public class NonHumanReactionsWithHumanEntitiesCheck extends AbstractQualityChec
 
     @Override
     public String getDisplayName() {
-        return "NonHuman_Reactions_Containing_Human_Entities";
+        return "NonHuman_Reactions_Containing_Human_PhysicalEntities";
     }
 
     @Override
