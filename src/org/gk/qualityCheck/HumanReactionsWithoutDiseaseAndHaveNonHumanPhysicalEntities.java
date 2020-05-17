@@ -48,102 +48,6 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
         return nonHumanPEsInReaction;
     }
 
-    private Set<GKInstance> findAllPhysicalEntitiesInReaction(GKInstance reaction) throws Exception {
-        Set<GKInstance> reactionPEs = new HashSet<>();
-        reactionPEs.addAll(findAllInputAndOutputPEs(reaction));
-        reactionPEs.addAll(findAllCatalystPEs(reaction));
-        reactionPEs.addAll(findAllRegulationPEs(reaction));
-        return reactionPEs;
-    }
-
-    private Set<GKInstance> findAllInputAndOutputPEs(GKInstance reaction) throws Exception {
-        Set<GKInstance> inputOutputPEs = new HashSet<>();
-        for (String attribute : Arrays.asList(ReactomeJavaConstants.input, ReactomeJavaConstants.output)) {
-            for (GKInstance attributePE : (Collection<GKInstance>) reaction.getAttributeValuesList(attribute)) {
-                if (hasSpeciesAttribute(attributePE)) {
-                    inputOutputPEs.add(attributePE);
-                    inputOutputPEs.addAll(findAllPhysicalEntities(attributePE));
-                }
-            }
-        }
-        return inputOutputPEs;
-    }
-
-    private Set<GKInstance> findAllCatalystPEs(GKInstance reaction) throws Exception {
-        Set<GKInstance> catalystPEs = new HashSet<>();
-        List<GKInstance> catalysts = reaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
-        for (GKInstance catalyst : catalysts) {
-            for (String attribute : Arrays.asList(ReactomeJavaConstants.activeUnit, ReactomeJavaConstants.physicalEntity)) {
-                for (GKInstance attributePE : (Collection<GKInstance>) catalyst.getAttributeValuesList(attribute)) {
-                    if (hasSpeciesAttribute(attributePE)) {
-                        catalystPEs.add(attributePE);
-                        catalystPEs.addAll(findAllPhysicalEntities(attributePE));
-                    }
-                }
-            }
-        }
-        return catalystPEs;
-    }
-
-    private Set<GKInstance> findAllRegulationPEs(GKInstance reaction) throws Exception {
-        Set<GKInstance> regulationPEs = new HashSet<>();
-        List<GKInstance> regulations = reaction.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
-        for (GKInstance regulation : regulations) {
-            for (String attribute : Arrays.asList(ReactomeJavaConstants.activeUnit, ReactomeJavaConstants.regulator)) {
-                for (GKInstance attributePE : (Collection<GKInstance>) regulation.getAttributeValuesList(attribute)) {
-                    if (hasSpeciesAttribute(attributePE)) {
-                        regulationPEs.add(attributePE);
-                        regulationPEs.addAll(findAllPhysicalEntities(attributePE));
-                    }
-                }
-            }
-        }
-        return regulationPEs;
-    }
-
-    private Set<GKInstance> findAllPhysicalEntities(GKInstance physicalEntity) throws Exception {
-        Set<GKInstance> physicalEntities = new HashSet<>();
-        if (hasSpeciesAttribute(physicalEntity)) {
-            if (containsMultiplePEs(physicalEntity)) {
-                physicalEntities.add(physicalEntity);
-                physicalEntities.addAll(findAllConstituentPEs(physicalEntity));
-            } else if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence)) {
-                physicalEntities.add(physicalEntity);
-            }
-        }
-        return physicalEntities;
-    }
-
-    private Set<GKInstance> findAllConstituentPEs(GKInstance physicalEntity) throws Exception {
-        Set<GKInstance> physicalEntities = new HashSet<>();
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-            for (GKInstance complexComponent : (Collection<GKInstance>) physicalEntity.getAttributeValuesList(ReactomeJavaConstants.hasComponent)) {
-                    physicalEntities.addAll(findAllPhysicalEntities(complexComponent));
-            }
-        } else if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Polymer)) {
-            for (GKInstance polymerUnit : (Collection<GKInstance>) physicalEntity.getAttributeValuesList(ReactomeJavaConstants.repeatedUnit)) {
-                physicalEntities.addAll(findAllPhysicalEntities(polymerUnit));
-            }
-        } else if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-            physicalEntities.addAll(findEntitySetPhysicalEntities(physicalEntity));
-        }
-        return physicalEntities;
-    }
-
-    private Set<GKInstance> findEntitySetPhysicalEntities(GKInstance physicalEntity) throws Exception {
-        Set<GKInstance> physicalEntities = new HashSet<>();
-        Set<String> entitySetAttributes = new HashSet<>(Arrays.asList(ReactomeJavaConstants.hasMember, ReactomeJavaConstants.hasCandidate));
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.DefinedSet)) {
-            entitySetAttributes.remove(ReactomeJavaConstants.hasCandidate);
-        }
-        for (String entitySetAttribute : entitySetAttributes) {
-            for (GKInstance setInstance : (Collection<GKInstance>) physicalEntity.getAttributeValuesList(entitySetAttribute)) {
-                physicalEntities.addAll(findAllPhysicalEntities((setInstance)));
-            }
-        }
-        return physicalEntities;
-    }
-
     private boolean isMemberSkippedEvent(GKInstance event) throws Exception {
         if (skipListDbIds.contains(event.getDBID().toString())) {
             return true;
@@ -153,24 +57,6 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
             for (GKInstance hasEventReferral : hasEventReferrals) {
                 return isMemberSkippedEvent(hasEventReferral);
             }
-        }
-        return false;
-    }
-
-    private boolean hasSpeciesAttribute(GKInstance physicalEntity) {
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.OtherEntity) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Drug) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean containsMultiplePEs(GKInstance physicalEntity) {
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Polymer) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.EntitySet)) {
-            return true;
         }
         return false;
     }
