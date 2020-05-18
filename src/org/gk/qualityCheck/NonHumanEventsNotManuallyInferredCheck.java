@@ -11,10 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck{
+public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck {
 
     private static List<String> skiplistDbIDs = new ArrayList<>();
-    private static GKInstance humanSpeciesInst;
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -23,33 +22,40 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        List<GKInstance> nonHumanEventsNotUsedForInference = findNonHumanEventsNotUsedForInference(dba);
-        for (GKInstance instance : nonHumanEventsNotUsedForInference) {
-            String reportLine = getReportLine(instance);
-            report.addLine(reportLine);
+        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
+        List<GKInstance> eventsNotUsedForInference = findEventsNotUsedForManualInference(dba);
+        for (GKInstance event : eventsNotUsedForInference) {
+            List<GKInstance> eventSpecies = event.getAttributeValuesList(ReactomeJavaConstants.species);
+            if (!eventSpecies.contains(humanSpeciesInst)) {
+                report.addLine(getReportLine(event));
+            }
         }
         report.setColumnHeaders(getColumnHeaders());
         return report;
     }
 
-    protected List<GKInstance> findNonHumanEventsNotUsedForInference(MySQLAdaptor dba) throws Exception {
+    protected List<GKInstance> findEventsNotUsedForManualInference(MySQLAdaptor dba) throws Exception {
         setSkipList();
-        humanSpeciesInst = dba.fetchInstance(48887L);
-        Collection<GKInstance> nonHumanEvents = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Event, ReactomeJavaConstants.species, "!=", humanSpeciesInst);
-        List<GKInstance> nonHumanEventsNotUsedForInference = new ArrayList<>();
-        for (GKInstance nonHumanEvent : nonHumanEvents) {
-            if (!inferredToHuman(nonHumanEvent) && !isMemberSkipListPathway(nonHumanEvent)) {
-                nonHumanEventsNotUsedForInference.add(nonHumanEvent);
+        List<GKInstance> eventsNotUsedForInference = new ArrayList<>();
+        Collection<GKInstance> events = dba.fetchInstancesByClass(ReactomeJavaConstants.Event);
+        for (GKInstance event : events) {
+            if (!manuallyInferred(event) && !isMemberSkipListPathway(event)) {
+                eventsNotUsedForInference.add(event);
             }
         }
-        return nonHumanEventsNotUsedForInference;
+        return eventsNotUsedForInference;
     }
 
-    private boolean inferredToHuman(GKInstance nonHumanEvent) throws Exception {
-       return nonHumanEvent.getReferers(ReactomeJavaConstants.inferredFrom) != null ? true : false;
+    boolean manuallyInferred(GKInstance event) throws Exception {
+        return event.getReferers(ReactomeJavaConstants.inferredFrom) != null ? true : false;
     }
 
-    private boolean isMemberSkipListPathway(GKInstance nonHumanEvent) throws Exception {
+    boolean isHumanDatabaseObject(GKInstance databaseObject, GKInstance humanSpeciesInst) throws Exception {
+        Collection<GKInstance> objectSpecies = databaseObject.getAttributeValuesList(ReactomeJavaConstants.species);
+        return objectSpecies.size() == 1 && objectSpecies.contains(humanSpeciesInst);
+    }
+
+    protected boolean isMemberSkipListPathway(GKInstance nonHumanEvent) throws Exception {
 
         if (inSkipList(nonHumanEvent)) {
             return true;
@@ -65,17 +71,16 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         return false;
     }
 
-    boolean hasNonHumanSpecies(GKInstance reactionPE) throws Exception {
-        if (reactionPE.getSchemClass().isa(ReactomeJavaConstants.Drug)) {
+    boolean hasNonHumanSpecies(GKInstance physicalEntity, GKInstance humanSpeciesInst) throws Exception {
+        if (!hasSpeciesAttribute(physicalEntity)) {
             return false;
         }
-        if (reactionPE.getAttributeValue(ReactomeJavaConstants.species) == null) {
+        if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) == null) {
             return false;
         }
-        if (reactionPE.getAttributeValue(ReactomeJavaConstants.species) == humanSpeciesInst) {
+        if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) == humanSpeciesInst) {
             return false;
         }
-
         return true;
     }
 
@@ -86,6 +91,18 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
             return false;
         }
         return true;
+    }
+
+    private void setSkipList() throws IOException {
+        skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
+    }
+
+    protected void addToSkipList(String dbId) {
+        skiplistDbIDs.add(dbId);
+    }
+
+    private boolean inSkipList(GKInstance nonHumanEvent) {
+        return skiplistDbIDs.contains(nonHumanEvent.getDBID().toString());
     }
 
     Set<GKInstance> findAllPhysicalEntitiesInReaction(GKInstance reaction) throws Exception {
@@ -201,13 +218,6 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         return reportLine;
     }
 
-    private void setSkipList() throws IOException {
-        skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
-    }
-
-    private boolean inSkipList(GKInstance nonHumanEvent) {
-        return skiplistDbIDs.contains(nonHumanEvent.getDBID().toString());
-    }
 
     @Override
     public String getDisplayName() {

@@ -7,9 +7,7 @@ import org.gk.persistence.MySQLAdaptor;
 import java.util.*;
 
 public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends NonHumanEventsNotManuallyInferredCheck {
-
-    private static GKInstance humanSpeciesInst = new GKInstance();
-
+    
     @Override
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
@@ -17,33 +15,27 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        humanSpeciesInst = dba.fetchInstance(48887L);
+        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
-        Set<String> reportLines = new HashSet<>();
         for (GKInstance reaction : reactions) {
-            GKInstance stableIdentifierInst = (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-            if (reaction.getReferers(ReactomeJavaConstants.inferredFrom) == null && stableIdentifierInst.getDisplayName().contains("R-HSA-")) {
-                Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction);
+            if (!manuallyInferred(reaction) && isHumanDatabaseObject(reaction, humanSpeciesInst)) {
+                Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction, humanSpeciesInst);
                 for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
                     for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
-                        reportLines.add(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
+                        report.addLine(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
                     }
                 }
             }
-        }
-        for (String reportLine : reportLines) {
-            report.addLine(reportLine);
         }
         report.setColumnHeaders(getColumnHeaders());
         return report;
     }
 
-    private Map<GKInstance, Set<GKInstance>> findNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction) throws Exception {
+    private Map<GKInstance, Set<GKInstance>> findNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
         for (GKInstance physicalEntity : findAllPhysicalEntitiesInReaction(reaction)) {
-            GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
-            if (!humanSpeciesInst.equals(speciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-                Set<GKInstance> humanComponents = findHumanComponentsInComplex(physicalEntity);
+            if (!isHumanDatabaseObject(physicalEntity, humanSpeciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
+                Set<GKInstance> humanComponents = findHumanComponentsInComplex(physicalEntity, humanSpeciesInst);
                 if (humanComponents.size() > 0) {
                     nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, humanComponents);
                 }
@@ -52,7 +44,7 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
         return nonHumanComplexesWithHumanComponentsMap;
     }
 
-    private Set<GKInstance> findHumanComponentsInComplex(GKInstance complex) throws Exception {
+    private Set<GKInstance> findHumanComponentsInComplex(GKInstance complex, GKInstance humanSpeciesInst) throws Exception {
         Set<GKInstance> physicalEntitiesInComplex = findAllConstituentPEs(complex);
         Set<GKInstance> humanPEs = new HashSet<>();
         for (GKInstance physicalEntity : physicalEntitiesInComplex) {

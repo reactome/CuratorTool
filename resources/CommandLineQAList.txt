@@ -5,8 +5,13 @@ org.gk.qualityCheck.ComplexSpeciesCheck
 org.gk.qualityCheck.EntitySetCompartmentCheck
 org.gk.qualityCheck.EntitySetSpeciesCheck
 #org.gk.qualityCheck.EntitySetTypeCheck
+org.gk.qualityCheck.HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities
+org.gk.qualityCheck.HumanReactionsWithNonHumanComplexWithHumanComponentCheck
 org.gk.qualityCheck.ImbalanceCheck
 org.gk.qualityCheck.MandatoryAttributesCheck
+org.gk.qualityCheck.NonHumanEventsNotManuallyInferredCheck
+org.gk.qualityCheck.NonHumanPhysicalEntitiesWithoutDiseaseCheck
+org.gk.qualityCheck.NonHumanReactionsWithHumanPhysicalEntitiesCheck
 #org.gk.qualityCheck.PathwayELVCheck
 #org.gk.qualityCheck.PathwaySpeciesCheck
 #org.gk.qualityCheck.ReactionCompartmentCheck
@@ -28,8 +33,3 @@ org.gk.qualityCheck.ReactionSyncELVCheck
 # Disease related checks
 org.gk.qualityCheck.EntityFunctionalStatusDiseaseEntityCheck
 org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck
-org.gk.qualityCheck.NonHumanEventsNotManuallyInferredCheck
-org.gk.qualityCheck.NonHumanPhysicalEntitiesWithoutDiseaseCheck
-org.gk.qualityCheck.NonHumanReactionsWithHumanPhysicalEntitiesCheck
-org.gk.qualityCheck.HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities
-org.gk.qualityCheck.HumanReactionsWithNonHumanComplexWithHumanComponentCheck

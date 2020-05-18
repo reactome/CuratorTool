@@ -4,14 +4,10 @@ import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends NonHumanEventsNotManuallyInferredCheck {
 
-    List<String> skipListDbIds = new ArrayList<>();
-    GKInstance humanSpeciesInst = new GKInstance();
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -20,15 +16,12 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        skipListDbIds = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
-        skipListDbIds.add("168249"); // Innate Immune System
-        humanSpeciesInst = dba.fetchInstance(48887L);
+        addToSkipList("168249"); // Innate Immunity Pathway
+        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
-            GKInstance stableIdentifierInst = (GKInstance) reaction.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-            if (!isMemberSkippedEvent(reaction) && stableIdentifierInst.getDisplayName().contains("R-HSA-") && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
-                Set<GKInstance> nonHumanPEsInReaction = findAllNonHumanEntitiesInReaction(reaction);
-                for (GKInstance nonHumanPE : nonHumanPEsInReaction) {
+            if (!isMemberSkipListPathway(reaction) && isHumanDatabaseObject(reaction, humanSpeciesInst) && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                for (GKInstance nonHumanPE : findAllNonHumanEntitiesInReaction(reaction, humanSpeciesInst)) {
                     report.addLine(getReportLine(nonHumanPE, reaction));
                 }
             }
@@ -37,28 +30,14 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
         return report;
     }
 
-    private Set<GKInstance> findAllNonHumanEntitiesInReaction(GKInstance reaction) throws Exception {
+    private Set<GKInstance> findAllNonHumanEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Set<GKInstance> nonHumanPEsInReaction = new HashSet<>();
         for (GKInstance physicalEntity : findAllPhysicalEntitiesInReaction(reaction)) {
-            GKInstance stableIdentifierInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
-            if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) != humanSpeciesInst && !stableIdentifierInst.getDisplayName().contains("R-ALL")) {
+            if (hasNonHumanSpecies(physicalEntity, humanSpeciesInst)) {
                 nonHumanPEsInReaction.add(physicalEntity);
             }
         }
         return nonHumanPEsInReaction;
-    }
-
-    private boolean isMemberSkippedEvent(GKInstance event) throws Exception {
-        if (skipListDbIds.contains(event.getDBID().toString())) {
-            return true;
-        }
-        Collection<GKInstance> hasEventReferrals = event.getReferers(ReactomeJavaConstants.hasEvent);
-        if (hasEventReferrals != null) {
-            for (GKInstance hasEventReferral : hasEventReferrals) {
-                return isMemberSkippedEvent(hasEventReferral);
-            }
-        }
-        return false;
     }
 
     private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {

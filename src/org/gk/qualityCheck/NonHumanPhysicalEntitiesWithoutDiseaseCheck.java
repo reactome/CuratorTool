@@ -4,14 +4,9 @@ import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsNotManuallyInferredCheck {
-
-    private static List<String> skiplistDbIDs = new ArrayList<>();
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -20,15 +15,11 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        List<GKInstance> reactionsNotUsedForManualInference = findReactionsNotUsedForManualInference(dba);
-        for (GKInstance reaction : reactionsNotUsedForManualInference) {
-            if (reaction.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-                Set<GKInstance> reactionPEs = findAllPhysicalEntitiesInReaction(reaction);
-                for (GKInstance reactionPE : reactionPEs) {
-                    if (hasNonHumanSpecies(reactionPE) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
-                        String reportLine = getReportLine(reactionPE, reaction);
-                        report.addLine(reportLine);
-                    }
+        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
+        for (GKInstance reaction : findReactionsNotUsedForManualInference(dba)) {
+            for (GKInstance reactionPE : findAllPhysicalEntitiesInReaction(reaction)) {
+                if (hasNonHumanSpecies(reactionPE, humanSpeciesInst) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                    report.addLine(getReportLine(reactionPE, reaction));
                 }
             }
         }
@@ -37,43 +28,13 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
     }
 
     private List<GKInstance> findReactionsNotUsedForManualInference(MySQLAdaptor dba) throws Exception {
-        setSkipList();
-        Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         List<GKInstance> reactionsNotUsedForManualInference = new ArrayList<>();
-        for (GKInstance reaction : reactions) {
-            if (!usedForManualInference(reaction) && !isMemberSkipListPathway(reaction)) {
-                reactionsNotUsedForManualInference.add(reaction);
+        for (GKInstance event : findEventsNotUsedForManualInference(dba)) {
+            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                reactionsNotUsedForManualInference.add(event);
             }
         }
         return reactionsNotUsedForManualInference;
-    }
-
-    private boolean usedForManualInference(GKInstance reaction) throws Exception {
-        return reaction.getReferers(ReactomeJavaConstants.inferredFrom) != null ? true : false;
-    }
-
-    private boolean isMemberSkipListPathway(GKInstance nonHumanEvent) throws Exception {
-
-        if (inSkipList(nonHumanEvent)) {
-            return true;
-        }
-
-        Collection<GKInstance> hasEventReferrals = nonHumanEvent.getReferers(ReactomeJavaConstants.hasEvent);
-        if (hasEventReferrals != null) {
-            for (GKInstance hasEventReferral : hasEventReferrals) {
-                return isMemberSkipListPathway(hasEventReferral);
-            }
-        }
-
-        return false;
-    }
-
-    private boolean inSkipList(GKInstance nonHumanEvent) {
-        return skiplistDbIDs.contains(nonHumanEvent.getDBID().toString());
-    }
-
-    private void setSkipList() throws IOException {
-        skiplistDbIDs = Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
     }
 
     private String getReportLine(GKInstance reactionPE, GKInstance reaction) throws Exception {
@@ -93,5 +54,4 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
     public String getDisplayName() {
         return "NonHuman_PhysicalEntities_Without_Disease";
     }
-
 }

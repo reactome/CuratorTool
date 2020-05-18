@@ -15,16 +15,13 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends NonHumanEve
             return null;
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-
         GKInstance humanInst = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
             Collection<GKInstance> reactionSpecies = reaction.getAttributeValuesList(ReactomeJavaConstants.species);
             if (!reactionSpecies.contains(humanInst)) {
-                Set<GKInstance> humanPEs = findHumanPhysicalEntitiesInReaction(reaction, humanInst);
-                for (GKInstance humanPE : humanPEs) {
-                    String reportLine = getReportLine(humanPE, reaction);
-                    report.addLine(reportLine);
+                for (GKInstance humanPE : findHumanPhysicalEntitiesInReaction(reaction, humanInst)) {
+                    report.addLine(getReportLine(humanPE, reaction));
                 }
             }
         }
@@ -33,9 +30,8 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends NonHumanEve
     }
 
     private Set<GKInstance> findHumanPhysicalEntitiesInReaction(GKInstance humanReaction, GKInstance humanInst) throws Exception {
-        Set<GKInstance> reactionPEs = findAllPhysicalEntitiesInReaction(humanReaction);
         Set<GKInstance> humanPEs = new HashSet<>();
-        for (GKInstance physicalEntity: reactionPEs) {
+        for (GKInstance physicalEntity: findAllPhysicalEntitiesInReaction(humanReaction)) {
             if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) == humanInst) {
                 humanPEs.add(physicalEntity);
             }
