@@ -1,24 +1,24 @@
 package org.gk.qualityCheck;
 
+import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.GKSchemaClass;
 
 import java.util.*;
 
-public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends NonHumanEventsNotManuallyInferredCheck {
+public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends AbstractQualityCheck {
     
     @Override
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
-        if (report == null) {
-            return null;
-        }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
+
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
-            if (!manuallyInferred(reaction) && isHumanDatabaseObject(reaction, humanSpeciesInst)) {
+            if (!QACheckUtilities.manuallyInferred(reaction) && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst)) {
                 Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction, humanSpeciesInst);
                 for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
                     for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
@@ -33,8 +33,8 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
 
     private Map<GKInstance, Set<GKInstance>> findNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
-        for (GKInstance physicalEntity : findAllPhysicalEntitiesInReaction(reaction)) {
-            if (!isHumanDatabaseObject(physicalEntity, humanSpeciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
+        for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
+            if (!QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
                 Set<GKInstance> humanComponents = findHumanComponentsInComplex(physicalEntity, humanSpeciesInst);
                 if (humanComponents.size() > 0) {
                     nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, humanComponents);
@@ -45,7 +45,7 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
     }
 
     private Set<GKInstance> findHumanComponentsInComplex(GKInstance complex, GKInstance humanSpeciesInst) throws Exception {
-        Set<GKInstance> physicalEntitiesInComplex = findAllConstituentPEs(complex);
+        Set<GKInstance> physicalEntitiesInComplex = QACheckUtilities.findAllConstituentPEs(complex);
         Set<GKInstance> humanPEs = new HashSet<>();
         for (GKInstance physicalEntity : physicalEntitiesInComplex) {
             GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
@@ -61,12 +61,10 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
         String complexCreatedName = complexCreatedInst != null ? complexCreatedInst.getDisplayName() : "null";
         GKInstance componentCreatedInst = (GKInstance) componentWithHumanSpecies.getAttributeValue(ReactomeJavaConstants.created);
         String componentCreatedName = componentCreatedInst != null ? componentCreatedInst.getDisplayName() : "null";
-        String reportLine = String.join("\t", event.getDBID().toString(), event.getDisplayName(), complexWithHumanComponent.getDBID().toString(), complexWithHumanComponent.getDisplayName(), componentWithHumanSpecies.getDBID().toString(), componentWithHumanSpecies.getDisplayName(), componentWithHumanSpecies.getSchemClass().getName(), complexCreatedName, componentCreatedName);
-        return reportLine;
+        return String.join("\t", event.getDBID().toString(), event.getDisplayName(), complexWithHumanComponent.getDBID().toString(), complexWithHumanComponent.getDisplayName(), componentWithHumanSpecies.getDBID().toString(), componentWithHumanSpecies.getDisplayName(), componentWithHumanSpecies.getSchemClass().getName(), complexCreatedName, componentCreatedName);
     }
 
-    @Override
-    protected String[] getColumnHeaders() {
+    private String[] getColumnHeaders() {
         return new String[]{"DB_ID_RlE", "DisplayName_RlE", "DB_ID_Complex", "DisplayName_Complex", "DB_ID_Component", "DisplayName_Component", "Class_Component", "Created_Complex", "Created_Component"};
     }
 
@@ -74,4 +72,27 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends No
     public String getDisplayName() {
         return "Human_Reactions_With_NonHuman_Complexes_With_Human_Components";
     }
+
+    @Override
+    public void check() {
+    }
+
+    @Override
+    public void check(GKInstance instance) {
+    }
+
+    @Override
+    public void check(List<GKInstance> instances) {
+    }
+
+    @Override
+    public void check(GKSchemaClass cls) {
+    }
+
+    @Override
+    public void checkProject(GKInstance event) {
+    }
+
+    @Override
+    protected InstanceListPane getDisplayedList() { return null; }
 }
