@@ -6,7 +6,7 @@ import org.gk.persistence.MySQLAdaptor;
 
 import java.util.*;
 
-public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsNotManuallyInferredCheck {
+public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsNotManuallyInferredCheck {
 
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -16,9 +16,9 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
         }
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
-        for (GKInstance reaction : findReactionsNotUsedForManualInference(dba)) {
+        for (GKInstance reaction : findHumanReactionsNotUsedForManualInference(dba, humanSpeciesInst)) {
             for (GKInstance reactionPE : findAllPhysicalEntitiesInReaction(reaction)) {
-                if (hasNonHumanSpecies(reactionPE, humanSpeciesInst) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                if ((hasNonHumanSpecies(reactionPE, humanSpeciesInst) || hasHumanSpeciesWithRelatedSpecies(reactionPE, humanSpeciesInst)) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
                     report.addLine(getReportLine(reactionPE, reaction));
                 }
             }
@@ -27,10 +27,15 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
         return report;
     }
 
-    private List<GKInstance> findReactionsNotUsedForManualInference(MySQLAdaptor dba) throws Exception {
+    private boolean hasHumanSpeciesWithRelatedSpecies(GKInstance reactionPE, GKInstance humanSpeciesInst) throws Exception {
+        GKInstance speciesInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.species);
+        return speciesInst != null && speciesInst.equals(humanSpeciesInst) && reactionPE.getSchemClass().isValidAttribute(ReactomeJavaConstants.relatedSpecies) && reactionPE.getAttributeValue(ReactomeJavaConstants.relatedSpecies) != null;
+    }
+
+    private List<GKInstance> findHumanReactionsNotUsedForManualInference(MySQLAdaptor dba, GKInstance humanSpeciesInst) throws Exception {
         List<GKInstance> reactionsNotUsedForManualInference = new ArrayList<>();
         for (GKInstance event : findEventsNotUsedForManualInference(dba)) {
-            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent) && isHumanDatabaseObject(event, humanSpeciesInst)) {
                 reactionsNotUsedForManualInference.add(event);
             }
         }
@@ -52,6 +57,6 @@ public class NonHumanPhysicalEntitiesWithoutDiseaseCheck extends NonHumanEventsN
 
     @Override
     public String getDisplayName() {
-        return "NonHuman_PhysicalEntities_Without_Disease";
+        return "Human_Reactions_Containing_NonHuman_PhysicalEntities_Without_Disease";
     }
 }

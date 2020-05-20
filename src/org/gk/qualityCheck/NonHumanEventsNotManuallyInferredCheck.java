@@ -85,12 +85,7 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
     }
 
     private boolean hasSpeciesAttribute(GKInstance physicalEntity) {
-        if (physicalEntity.getSchemClass().isa(ReactomeJavaConstants.OtherEntity) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Drug) ||
-                physicalEntity.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity)) {
-            return false;
-        }
-        return true;
+        return physicalEntity.getSchemClass().isValidAttribute(ReactomeJavaConstants.species);
     }
 
     private void setSkipList() throws IOException {

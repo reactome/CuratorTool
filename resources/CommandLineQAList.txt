@@ -7,10 +7,10 @@ org.gk.qualityCheck.EntitySetSpeciesCheck
 #org.gk.qualityCheck.EntitySetTypeCheck
 org.gk.qualityCheck.HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities
 org.gk.qualityCheck.HumanReactionsWithNonHumanComplexWithHumanComponentCheck
+org.gk.qualityCheck.HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck
 org.gk.qualityCheck.ImbalanceCheck
 org.gk.qualityCheck.MandatoryAttributesCheck
 org.gk.qualityCheck.NonHumanEventsNotManuallyInferredCheck
-org.gk.qualityCheck.NonHumanPhysicalEntitiesWithoutDiseaseCheck
 org.gk.qualityCheck.NonHumanReactionsWithHumanPhysicalEntitiesCheck
 #org.gk.qualityCheck.PathwayELVCheck
 #org.gk.qualityCheck.PathwaySpeciesCheck
