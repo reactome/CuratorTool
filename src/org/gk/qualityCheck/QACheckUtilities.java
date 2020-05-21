@@ -58,12 +58,12 @@ public class QACheckUtilities {
      * @return
      * @throws Exception-- Thrown by MySQLAdaptor
      */
-    public static Set<GKInstance> findHumanReactionsNotUsedForManualInference(MySQLAdaptor dba, GKInstance humanSpeciesInst) throws Exception {
+    public static Set<GKInstance> findHumanReactionsNotUsedForManualInference(MySQLAdaptor dba) throws Exception {
         Set<GKInstance> reactionsNotUsedForManualInference = new HashSet<>();
         for (GKInstance event : findEventsNotUsedForManualInference(dba)) {
             // Filter for Human ReactionlikeEvents
             if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
-                    && QACheckUtilities.isHumanDatabaseObject(event, humanSpeciesInst)) {
+                    && QACheckUtilities.isHumanDatabaseObject(event)) {
 
                 reactionsNotUsedForManualInference.add(event);
             }
@@ -248,7 +248,7 @@ public class QACheckUtilities {
     }
 
     // Returns true if databaseObject (Event or PhysicalEntity) has single Homo sapiens species.
-    public static boolean isHumanDatabaseObject(GKInstance databaseObject, GKInstance humanSpeciesInst) throws Exception {
+    public static boolean isHumanDatabaseObject(GKInstance databaseObject) throws Exception {
         Collection<GKInstance> objectSpecies = databaseObject.getAttributeValuesList(ReactomeJavaConstants.species);
         return objectSpecies.size() == 1 && objectSpecies.contains(humanSpeciesInst);
     }
@@ -260,7 +260,7 @@ public class QACheckUtilities {
      * @return boolean -- true if has non-human species, false if has human species.
      * @throws Exception
      */
-    public static boolean hasNonHumanSpecies(GKInstance databaseObject, GKInstance humanSpeciesInst) throws Exception {
+    public static boolean hasNonHumanSpecies(GKInstance databaseObject) throws Exception {
         // Check if species is a valid attribute for physicalEntity.
         if (hasSpeciesAttribute(databaseObject) &&
             databaseObject.getAttributeValue(ReactomeJavaConstants.species) != null &&

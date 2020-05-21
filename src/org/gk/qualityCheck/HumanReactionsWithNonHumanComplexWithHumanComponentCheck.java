@@ -19,11 +19,10 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
-        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
 
-        for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba, humanSpeciesInst)) {
+        for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
             // QA Check is only on PhysicalEntities that are participants of Human ReactionlikeEvents that are not manually inferred
-            Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findAllNonHumanComplexesWithHumanComponentInReaction(reaction, humanSpeciesInst);
+            Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findAllNonHumanComplexesWithHumanComponentInReaction(reaction);
             for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
                 for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
                     report.addLine(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
@@ -41,15 +40,15 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
      * @return Map<GKInstance, Set<GKInstance> -- Key are non-human Complexes, Values are any human components found in that complex.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
-    private Map<GKInstance, Set<GKInstance>> findAllNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
+    private Map<GKInstance, Set<GKInstance>> findAllNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction) throws Exception {
         Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
         // First find all PhysicalEntities in the Reaction, and then filter that list for any NonHuman or nonSpecies Complexes.
         for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
-            if (!QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst)
+            if (!QACheckUtilities.isHumanDatabaseObject(physicalEntity)
                     && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
 
                 // Find any Human components in the NonHuman Complex.
-                nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, findAllHumanComponentsInComplex(physicalEntity, humanSpeciesInst));
+                nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, findAllHumanComponentsInComplex(physicalEntity));
             }
         }
         return nonHumanComplexesWithHumanComponentsMap;
@@ -62,11 +61,11 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
      * @return Set<GKInstance> -- Any Components in incoming Complex with human species.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
-    private Set<GKInstance> findAllHumanComponentsInComplex(GKInstance complex, GKInstance humanSpeciesInst) throws Exception {
+    private Set<GKInstance> findAllHumanComponentsInComplex(GKInstance complex) throws Exception {
         // Only find GKInstances within incoming Complex. It is recursive, so if Complex-within-Complex, it will return ALL components.
         Set<GKInstance> humanPEs = new HashSet<>();
         for (GKInstance physicalEntity : QACheckUtilities.findAllConstituentPEs(complex)) {
-            if (QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst)) {
+            if (QACheckUtilities.isHumanDatabaseObject(physicalEntity)) {
                 humanPEs.add(physicalEntity);
             }
         }

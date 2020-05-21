@@ -21,14 +21,13 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
-        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
         // This QA Check is only performed on Human ReactionlikeEvents that do not have any 'inferredFrom' referrals.
-        for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba, humanSpeciesInst)) {
+        for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
             for (GKInstance reactionPE : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
                 // Valid PhysicalEntities include those that have a nonHuman species OR have a human species AND have a relatedSpecies, and that do not have a populated disease attribute.
-                if ((QACheckUtilities.hasNonHumanSpecies(reactionPE, humanSpeciesInst) || hasHumanSpeciesWithRelatedSpecies(reactionPE, humanSpeciesInst))
+                if ((QACheckUtilities.hasNonHumanSpecies(reactionPE) || hasHumanSpeciesWithRelatedSpecies(reactionPE))
                         && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
 
                     report.addLine(getReportLine(reactionPE, reaction));
@@ -41,8 +40,8 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
 
 
      // Returns true if PhysicalEntities' species is Homo sapiens and if the relatedSpecies attribute is populated.
-    private boolean hasHumanSpeciesWithRelatedSpecies(GKInstance reactionPE, GKInstance humanSpeciesInst) throws Exception {
-        return QACheckUtilities.isHumanDatabaseObject(reactionPE, humanSpeciesInst)
+    private boolean hasHumanSpeciesWithRelatedSpecies(GKInstance reactionPE) throws Exception {
+        return QACheckUtilities.isHumanDatabaseObject(reactionPE)
                 && hasRelatedSpecies(reactionPE);
     }
 

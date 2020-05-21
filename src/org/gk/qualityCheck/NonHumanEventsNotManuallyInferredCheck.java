@@ -20,13 +20,12 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
-        GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
         // The actual method for finding Events that aren't manually inferred is used by multiple QA tests.
         for (GKInstance event : QACheckUtilities.findEventsNotUsedForManualInference(dba)) {
             // Many Events have multiple species. Cases where there are multiple species and one of them is Human are also excluded.
-            if (QACheckUtilities.hasNonHumanSpecies(event, humanSpeciesInst)) {
+            if (QACheckUtilities.hasNonHumanSpecies(event)) {
                 report.addLine(getReportLine(event));
             }
         }
