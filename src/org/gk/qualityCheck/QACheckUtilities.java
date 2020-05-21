@@ -54,7 +54,6 @@ public class QACheckUtilities {
     /**
      * Finds all Events not used for Inference, and then finds subset that are Human ReactionlikeEvents
      * @param dba MySQLAdaptor
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
      * @return
      * @throws Exception-- Thrown by MySQLAdaptor
      */
@@ -256,7 +255,6 @@ public class QACheckUtilities {
     /**
      * Returns true if the incoming DatabaseObject (Event or PhysicalEntity) is non-human.
      * @param databaseObject GKInstance -- Event or PhysicalEntity to be checked for non-human species attribute.
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
      * @return boolean -- true if has non-human species, false if has human species.
      * @throws Exception
      */
@@ -276,42 +274,54 @@ public class QACheckUtilities {
     }
 
     /**
-     * Checks pathway hierarchy of incoming GKInstance to see if it is a member of any skiplist pathways.
-     * @param nonHumanEvent GKInstance -- Event instance that is checked.
-     * @return boolean -- True if member of a skiplist pathway, false if not.
+     * Finds all parent DbIds of the incoming Event, and then checks if any of them are in the skiplist of Pathway DbIds.
+     * @param event GKInstance -- Event that is being checked for membership in a skiplist Pathway.
+     * @return boolean -- true if member of skiplist Pathway, false if not.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
-    public static boolean memberSkipListPathway(GKInstance nonHumanEvent) throws Exception {
+    public static boolean memberSkipListPathway(GKInstance event) throws Exception {
 
-        if (inSkipList(nonHumanEvent)) {
-            return true;
-        }
-        Collection<GKInstance> hasEventReferrals = nonHumanEvent.getReferers(ReactomeJavaConstants.hasEvent);
-        if (hasEventReferrals != null) {
-            // Recursively iterate through parent Events to see if member of skiplist pathway.
-            for (GKInstance hasEventReferral : hasEventReferrals) {
-                return memberSkipListPathway(hasEventReferral);
+        if (skiplistDbIDs != null) {
+            // Finds all parent Event DbIds.
+            Set<String> hierarchyDbIds = findEventHierarchyDbIds(event, new HashSet<>());
+            // Check if any returned Event DbIds (including original Events) are in skiplist.
+            for (String skiplistDbId : skiplistDbIDs) {
+                if (hierarchyDbIds.contains(skiplistDbId)) {
+                    return true;
+                }
             }
         }
         return false;
+    }
+
+    /**
+     * Finds parent DbIds of incoming Event through hasEvent referrers. Recurses until there are no more referrers.
+     * @param event GKInstance -- Event that is being checked for referrers. Its DbId is added to the Set being built.
+     * @param dbIds Set<String> -- Current Set of parent DbIds of Event.
+     * @return Set<String> -- Once TopLevelPathway has been found, returns all DbIds, inclusive, between TopLevelPathway and original Event.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
+    private static Set<String> findEventHierarchyDbIds(GKInstance event, Set<String> dbIds) throws Exception {
+        dbIds.add(event.getDBID().toString());
+        Collection<GKInstance> hasEventReferrals = event.getReferers(ReactomeJavaConstants.hasEvent);
+        if (hasEventReferrals != null) {
+            for (GKInstance hasEventReferral : hasEventReferrals) {
+                dbIds.addAll(findEventHierarchyDbIds(hasEventReferral, dbIds));
+            }
+        }
+        return dbIds;
     }
 
     public static void setSkipList(List<String> skippedDbIds) {
         skiplistDbIDs = skippedDbIds;
     }
 
-    public static boolean inSkipList(GKInstance nonHumanEvent) {
-        return skiplistDbIDs.contains(nonHumanEvent.getDBID().toString());
-    }
-
     public static void setHumanSpeciesInst(MySQLAdaptor dba) throws Exception {
         humanSpeciesInst = dba.fetchInstance(48887L);
     }
 
-    public static GKInstance getHumanSpeciesInst() {
-        return humanSpeciesInst;
-    }
-
+    // Sometimes created or species instances are not populated. This helper method checks if attribute value is
+    // populated. If it isn't, returns null.
     public static String getInstanceAttributeName(GKInstance instance, String attribute) throws Exception {
         GKInstance attributeInstance = (GKInstance) instance.getAttributeValue(attribute);
         return attributeInstance != null ? attributeInstance.getDisplayName() : null;

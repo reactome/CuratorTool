@@ -19,6 +19,7 @@ public class HumanReactionsWithNonHumanComplexesWithHumanComponentsCheck extends
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
+        QACheckUtilities.setSkipList(null);
 
         for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
             // QA Check is only on PhysicalEntities that are participants of human ReactionlikeEvents that are not manually inferred
