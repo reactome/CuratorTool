@@ -8,6 +8,10 @@ import org.gk.schema.GKSchemaClass;
 
 import java.util.*;
 
+/**
+ * Flags Human ReactionlikeEvents that do not have a populated 'disease' attribute, but have NonHuman participants.
+ */
+
 public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends AbstractQualityCheck {
 
 
@@ -15,13 +19,14 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        QACheckUtilities.addToSkipList("168249"); // Innate Immunity Pathway
+        QACheckUtilities.setSkipList(Arrays.asList("168249")); // Innate Immunity Pathway
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
 
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
-            if (!QACheckUtilities.isMemberSkipListPathway(reaction) && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst) && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
-                for (GKInstance nonHumanPE : findAllNonHumanEntitiesInReaction(reaction, humanSpeciesInst)) {
+            // isHumanDatabaseObject checks that the species attribute only contains a Homo sapiens species instance. Multi-species RlEs are excluded.
+            if (!QACheckUtilities.memberSkipListPathway(reaction) && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst) && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                for (GKInstance nonHumanPE : findAllNonHumanPhysicalEntitiesInReaction(reaction, humanSpeciesInst)) {
                     report.addLine(getReportLine(nonHumanPE, reaction));
                 }
             }
@@ -30,7 +35,14 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
         return report;
     }
 
-    private Set<GKInstance> findAllNonHumanEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
+    /**
+     * Finds all distinct NonHuman PhysicalEntities that exist in the incoming Human ReactionlikeEvent.
+     * @param reaction GKInstance -- ReactionlikeEvent with Homo sapiens species.
+     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance
+     * @return Set<GKInstance> -- Any NonHuman PhysicalEntities that exist in the Human ReactionlikeEvent.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
+    private Set<GKInstance> findAllNonHumanPhysicalEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Set<GKInstance> nonHumanPEsInReaction = new HashSet<>();
         for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
             if (QACheckUtilities.hasNonHumanSpecies(physicalEntity, humanSpeciesInst)) {
@@ -48,15 +60,16 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
         return String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), physicalEntity.getDBID().toString(), physicalEntity.getDisplayName(), physicalEntity.getSchemClass().getName(), speciesName, createdName);
     }
 
-    private String[] getColumnHeaders() {
-        return new String[] {"DB_ID_RlE", "DisplayName_RlE", "DB_ID_PE", "DisplayName_PE", "Class_PE", "Species_PE", "Created_PE"};
-    }
-
     @Override
     public String getDisplayName() {
         return "Human_Reactions_Without_Disease_And_Have_NonHuman_PhysicalEntities";
     }
 
+    private String[] getColumnHeaders() {
+        return new String[] {"DB_ID_RlE", "DisplayName_RlE", "DB_ID_PE", "DisplayName_PE", "Class_PE", "Species_PE", "Created_PE"};
+    }
+
+    // Unused, but required, AbstractQualityCheck methods.
     @Override
     public void check() {
     }

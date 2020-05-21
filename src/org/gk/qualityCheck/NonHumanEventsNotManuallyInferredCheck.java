@@ -6,8 +6,13 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ *  Finds all NonHuman Events that are not used for manual inference (ie. 'inferredFrom' referral is null)
+ */
 public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck {
 
     @Override
@@ -15,9 +20,11 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
+        QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
-        List<GKInstance> eventsNotUsedForInference = QACheckUtilities.findEventsNotUsedForManualInference(dba);
-        for (GKInstance event : eventsNotUsedForInference) {
+        // The actual method for finding Events that aren't manually inferred is used by multiple QA tests.
+        for (GKInstance event : QACheckUtilities.findEventsNotUsedForManualInference(dba)) {
+            // Many Events have multiple species. Cases where there are multiple species and one of them is Human are also excluded.
             List<GKInstance> eventSpecies = event.getAttributeValuesList(ReactomeJavaConstants.species);
             if (!eventSpecies.contains(humanSpeciesInst)) {
                 report.addLine(getReportLine(event));
@@ -33,7 +40,6 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         return String.join("\t", instance.getDBID().toString(), instance.getDisplayName(), speciesInst.getDisplayName(), createdInst.getDisplayName());
     }
 
-
     @Override
     public String getDisplayName() {
         return "NonHuman_Events_Not_Manually_Inferred";
@@ -43,6 +49,7 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         return new String[] {"DB_ID", "DisplayName", "Species", "Created"};
     }
 
+    // Unused, but required, AbstractQualityCheck methods.
     @Override
     public void check() {
     }
@@ -67,5 +74,4 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
     protected InstanceListPane getDisplayedList() {
         return null;
     }
-
 }

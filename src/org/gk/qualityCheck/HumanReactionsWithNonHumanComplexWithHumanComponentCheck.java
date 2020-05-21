@@ -8,6 +8,10 @@ import org.gk.schema.GKSchemaClass;
 
 import java.util.*;
 
+/**
+ * QA check that finds non-human complexes that contain human components, that are members of human, non-manually inferred ReactionlikeEvents.
+ */
+
 public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends AbstractQualityCheck {
     
     @Override
@@ -16,14 +20,12 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
 
-        Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
-        for (GKInstance reaction : reactions) {
-            if (!QACheckUtilities.manuallyInferred(reaction) && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst)) {
-                Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction, humanSpeciesInst);
-                for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
-                    for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
-                        report.addLine(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
-                    }
+        for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba, humanSpeciesInst)) {
+            // QA Check is only on PhysicalEntities that are participants of Human ReactionlikeEvents that are not manually inferred
+            Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findNonHumanComplexesWithHumanComponentInReaction(reaction, humanSpeciesInst);
+            for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
+                for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
+                    report.addLine(getReportLine(reaction, complexWithHumanComponent, componentWithHumanSpecies));
                 }
             }
         }
@@ -31,25 +33,37 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         return report;
     }
 
+    /**
+     * Finds any NonHuman complexes that have Human components.
+     * @param reaction GKInstance -- ReactionlikeEvent with Human species.
+     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
+     * @return Map<GKInstance, Set<GKInstance> -- Key is a NonHuman Complex, values are any Human components found in that complex.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
     private Map<GKInstance, Set<GKInstance>> findNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
+        // First find all PhysicalEntities in the Reaction, and then filter that list for any NonHuman or nonSpecies Complexes.
         for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
             if (!QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst) && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
-                Set<GKInstance> humanComponents = findHumanComponentsInComplex(physicalEntity, humanSpeciesInst);
-                if (humanComponents.size() > 0) {
-                    nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, humanComponents);
-                }
+                // Find any Human components in the NonHuman Complex.
+                nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, findHumanComponentsInComplex(physicalEntity, humanSpeciesInst));
             }
         }
         return nonHumanComplexesWithHumanComponentsMap;
     }
 
+    /**
+     * Finds any Human components in the incoming Complex
+     * @param complex GKInstance -- Complex with NonHuman species or no species.
+     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
+     * @return Set<GKInstance> -- Any components in incoming Complex with Human species
+     * @throws Exception -- Thrown by MySQLAdaptor
+     */
     private Set<GKInstance> findHumanComponentsInComplex(GKInstance complex, GKInstance humanSpeciesInst) throws Exception {
-        Set<GKInstance> physicalEntitiesInComplex = QACheckUtilities.findAllConstituentPEs(complex);
+        // Only find GKInstances within incoming Complex. It is recursive, so if Complex-within-Complex, it will return ALL components.
         Set<GKInstance> humanPEs = new HashSet<>();
-        for (GKInstance physicalEntity : physicalEntitiesInComplex) {
-            GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
-            if (humanSpeciesInst.equals(speciesInst)) {
+        for (GKInstance physicalEntity : QACheckUtilities.findAllConstituentPEs(complex)) {
+            if (QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst)) {
                 humanPEs.add(physicalEntity);
             }
         }
@@ -64,15 +78,17 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         return String.join("\t", event.getDBID().toString(), event.getDisplayName(), complexWithHumanComponent.getDBID().toString(), complexWithHumanComponent.getDisplayName(), componentWithHumanSpecies.getDBID().toString(), componentWithHumanSpecies.getDisplayName(), componentWithHumanSpecies.getSchemClass().getName(), complexCreatedName, componentCreatedName);
     }
 
-    private String[] getColumnHeaders() {
-        return new String[]{"DB_ID_RlE", "DisplayName_RlE", "DB_ID_Complex", "DisplayName_Complex", "DB_ID_Component", "DisplayName_Component", "Class_Component", "Created_Complex", "Created_Component"};
-    }
-
     @Override
     public String getDisplayName() {
         return "Human_Reactions_With_NonHuman_Complexes_With_Human_Components";
     }
 
+    private String[] getColumnHeaders() {
+        return new String[]{"DB_ID_RlE", "DisplayName_RlE", "DB_ID_Complex", "DisplayName_Complex", "DB_ID_Component", "DisplayName_Component", "Class_Component", "Created_Complex", "Created_Component"};
+    }
+
+
+    // Unused, but required, AbstractQualityCheck methods.
     @Override
     public void check() {
     }
