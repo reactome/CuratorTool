@@ -40,6 +40,7 @@ public class LiteratureReferenceAttributeAutoFiller extends AbstractAttributeAut
         if (adaptor == null)
             throw new IllegalStateException("LiteratureReferenceAttributeAutoFiller.process(): " +
             "No PersistenceAdaptor assigned.");
+        
         PMIDXMLInfoFetcher2 fetcher = new PMIDXMLInfoFetcher2();
         Integer pmid = (Integer) instance.getAttributeValue("pubMedIdentifier");
         if (pmid == null)

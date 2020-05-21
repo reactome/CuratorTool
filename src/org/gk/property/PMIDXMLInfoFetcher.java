@@ -17,7 +17,7 @@ import org.jdom.input.SAXBuilder;
 /**
  * This class is used to process PMID information in XML. This class should replace
  * the old one PMIDInfoFetcher that is not supported by PubMed any more (Jan, 2008).
- * This class has beeb deprecated. Use PMIDXMLInfoFetcher2 instead to get the full
+ * This class has been deprecated. Use PMIDXMLInfoFetcher2 instead to get the full
  * author information.
  * @author guanming
  */

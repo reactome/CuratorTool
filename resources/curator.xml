@@ -206,6 +206,12 @@
 <!--    <pdURL value="http://localhost:8080/ELVWebApp/ElvService" /> -->
     <!-- Used to perform some server-side activities (e.g. build project, server-side QA)-->
     <pdURL value="https://curator.reactome.org/ELVWebApp/ElvService" />
+    <!-- Used to fetch pubmed detailed information. It is broken into two parts for easy update. -->
+    <pubmedurl>
+    	<url1>https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&amp;retmode=xml&amp;id=</url1>
+    	<!-- empty for the time being -->
+    	<url2></url2>
+    </pubmedurl>
     <!-- Used to handle reach NLP work -->
 <!--     <reachURL>http://localhost:8080/ELVWebApp/ElvService</reachURL> -->
 	<!-- For release, use the cpws server for the time being-->

@@ -15,10 +15,12 @@ import java.util.List;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.gk.model.Person;
 import org.gk.model.Reference;
+import org.gk.util.GKApplicationUtilities;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.XMLOutputter;
+import org.jdom.xpath.XPath;
 import org.junit.Test;
 
 /**
@@ -29,15 +31,45 @@ import org.junit.Test;
  */
 public class PMIDXMLInfoFetcher2 {
     // http://www.ncbi.nlm.nih.gov/pubmed/18276894?report=XML&format=text
-    private final String URL1 = "https://www.ncbi.nlm.nih.gov/pubmed/";
-    private final String URL2 = "?report=XML&format=text";
+//    private String url1 = "https://www.ncbi.nlm.nih.gov/pubmed/";
+//    private String url2 = "?report=XML&format=text";
+    // Use this URL as the default on May 21, 2020.
+    private String url1 = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&id=";
+    private String url2 = "";
     // Used to parse XML elements
     
     public PMIDXMLInfoFetcher2() {
+        loadConfig();
+    }
+    
+    private void loadConfig() {
+        try {
+            InputStream is = GKApplicationUtilities.getConfig("curator.xml");
+            SAXBuilder builder = new SAXBuilder();
+            Document document = builder.build(is);
+            Element elm = (Element) XPath.selectSingleNode(document.getRootElement(), 
+                    "pubmedurl");
+            //        <pubmedurl>
+            //            <url1>https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&id=</url1>
+            //            <!-- empty for the time being -->
+            //            <url2></url2>
+            //        </pubmedurl>
+            String url = elm.getChildText("url1");
+            if (url != null)
+                this.url1 = url;
+            url = elm.getChildText("url2");
+            if (url != null)
+                this.url2 = url;
+            is.close();
+        }
+        catch(Exception e) {
+            System.err.println("PMIDXMLInfoFetcher.loadConfig(): " + e);
+            e.printStackTrace();
+        }
     }
     
     public Reference fetchInfo(Long pmid) throws Exception {
-        String url = URL1 + pmid + URL2;
+        String url = url1 + pmid + url2;
         URL pubmed = new URL(url);
         URLConnection connection = pubmed.openConnection();
         InputStream is = connection.getInputStream();
@@ -45,7 +77,6 @@ public class PMIDXMLInfoFetcher2 {
         InputStreamReader isr = new InputStreamReader(is);
         BufferedReader br = new BufferedReader(isr);
         String line = null;
-        boolean start = false;
         while ((line = br.readLine()) != null) {
             if (line.startsWith("<!DOCTYPE html"))
                 continue; // This line should not be in XML, which is wrong!

@@ -1,3 +1,7 @@
+Build 105 (Version 4.0) note (May 21, 2020)
+
+The NCBI just updated its PubMed web site, which disabled the original URL used to fetch detailed PubMed entry based on PMID. This build fixes this bug by using the eutils API with efetch. It is a little slower, but works.
+
 Build 104 (Version 4.0) note (May 8, 2020)
 
 New features added in this build:
