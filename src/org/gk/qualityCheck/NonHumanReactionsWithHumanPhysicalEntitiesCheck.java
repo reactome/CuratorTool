@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Flags all Human PhysicalEntities that are participants in a NonHuman ReactionlikeEvent.
+ * Flags all human PhysicalEntities that are participants in a non-human ReactionlikeEvent.
  */
 public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQualityCheck {
 
@@ -36,10 +36,9 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQua
     }
 
     /**
-     * Finds all distinct Human PhysicalEntities that exist in the incoming ReactionlikeEvent.
-     * @param reaction GKInstance -- ReactionlikeEvent with nonHuman species.
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
-     * @return Set<GKInstance> -- Any Human PhysicalEntities that exist in the ReactionlikeEvent.
+     * Finds all distinct human PhysicalEntities that exist in the incoming ReactionlikeEvent.
+     * @param reaction GKInstance -- ReactionlikeEvent with non-human species.
+     * @return Set<GKInstance> -- Any human PhysicalEntities that exist in the ReactionlikeEvent.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
     private Set<GKInstance> findAllHumanPhysicalEntitiesInReaction(GKInstance reaction) throws Exception {
@@ -53,20 +52,16 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQua
     }
 
     private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {
-
-        Collection<GKInstance> speciesInstances = physicalEntity.getAttributeValuesList(ReactomeJavaConstants.species);
-        String speciesNames = null;
-        if (speciesInstances != null) {
-            List<String> speciesNamesList = new ArrayList<>();
-            for (GKInstance speciesInst : speciesInstances) {
-                speciesNamesList.add(speciesInst.getDisplayName());
-            }
-            speciesNames = String.join(",", speciesNamesList);
-            speciesNames = speciesNames.isEmpty() ? null : speciesNames;
-        }
-        GKInstance createdInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.created);
-        String createdName = createdInst != null ? createdInst.getDisplayName() : null;
-        return String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), physicalEntity.getDBID().toString(), physicalEntity.getDisplayName(), physicalEntity.getSchemClass().getName(), speciesNames, createdName);
+        String speciesName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.species);
+        String createdName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.created);
+        return String.join("\t",
+                reaction.getDBID().toString(),
+                reaction.getDisplayName(),
+                physicalEntity.getDBID().toString(),
+                physicalEntity.getDisplayName(),
+                physicalEntity.getSchemClass().getName(),
+                speciesName,
+                createdName);
     }
 
     @Override

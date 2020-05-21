@@ -311,4 +311,9 @@ public class QACheckUtilities {
     public static GKInstance getHumanSpeciesInst() {
         return humanSpeciesInst;
     }
+
+    public static String getInstanceAttributeName(GKInstance instance, String attribute) throws Exception {
+        GKInstance attributeInstance = (GKInstance) instance.getAttributeValue(attribute);
+        return attributeInstance != null ? attributeInstance.getDisplayName() : null;
+    }
 }

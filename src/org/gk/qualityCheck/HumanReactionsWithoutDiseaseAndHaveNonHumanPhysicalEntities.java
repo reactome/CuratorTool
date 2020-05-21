@@ -9,7 +9,7 @@ import org.gk.schema.GKSchemaClass;
 import java.util.*;
 
 /**
- * Flags Human ReactionlikeEvents that do not have a populated 'disease' attribute, but have NonHuman participants.
+ * Flags human ReactionlikeEvents that do not have a populated 'disease' attribute, but have non-human participants.
  */
 
 public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends AbstractQualityCheck {
@@ -41,7 +41,6 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
     /**
      * Finds all distinct non-human PhysicalEntities that exist in the incoming human ReactionlikeEvent.
      * @param reaction GKInstance -- ReactionlikeEvent with Homo sapiens species.
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance
      * @return Set<GKInstance> -- Any non-human PhysicalEntities that exist in the human ReactionlikeEvent.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
@@ -56,11 +55,16 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
     }
 
     private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {
-        GKInstance speciesInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.species);
-        String speciesName = speciesInst != null ? speciesInst.getDisplayName() : "null";
-        GKInstance createdInst = (GKInstance) physicalEntity.getAttributeValue(ReactomeJavaConstants.created);
-        String createdName = createdInst != null ? createdInst.getDisplayName() : "null";
-        return String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), physicalEntity.getDBID().toString(), physicalEntity.getDisplayName(), physicalEntity.getSchemClass().getName(), speciesName, createdName);
+        String speciesName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.species);
+        String createdName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.created);
+        return String.join("\t",
+                reaction.getDBID().toString(),
+                reaction.getDisplayName(),
+                physicalEntity.getDBID().toString(),
+                physicalEntity.getDisplayName(),
+                physicalEntity.getSchemClass().getName(),
+                speciesName,
+                createdName);
     }
 
     @Override

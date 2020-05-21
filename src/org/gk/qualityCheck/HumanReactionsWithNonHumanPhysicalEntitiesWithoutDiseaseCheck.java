@@ -11,8 +11,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Flags all Human Reactions that contain Non-only-Human PhysicalEntities that do not have a populated 'disease' attribute.
- * Valid PhysicalEntities are those that have a NonHuman species or that have a Human species AND have a filled 'relatedSpecies'.
+ * Flags all human Reactions that contain Non-only-Human PhysicalEntities that do not have a populated disease attribute.
+ * Valid PhysicalEntities are those that have a non-human species or that have a human species AND have a filled relatedSpecies attribute.
  */
 public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck extends AbstractQualityCheck {
 
@@ -23,10 +23,11 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
         QACheckUtilities.setHumanSpeciesInst(dba);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
-        // This QA Check is only performed on Human ReactionlikeEvents that do not have any 'inferredFrom' referrals.
+        // This QA Check is only performed on human ReactionlikeEvents that do not have any inferredFrom referrals.
         for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
             for (GKInstance reactionPE : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
-                // Valid PhysicalEntities include those that have a nonHuman species OR have a human species AND have a relatedSpecies, and that do not have a populated disease attribute.
+                // Valid PhysicalEntities include those that have a non-human species OR have a human species AND have a relatedSpecies,
+                // and that do not have a populated disease attribute.
                 if ((QACheckUtilities.hasNonHumanSpecies(reactionPE) || hasHumanSpeciesWithRelatedSpecies(reactionPE))
                         && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
 
@@ -51,11 +52,17 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
                 && reactionPE.getAttributeValue(ReactomeJavaConstants.relatedSpecies) != null;
     }
 
-    private String getReportLine(GKInstance reactionPE, GKInstance reaction) throws Exception {
-        GKInstance speciesInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.species);
-        GKInstance createdInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.created);
-        String createdName = createdInst == null ? "null" : createdInst.getDisplayName();
-        return String.join("\t", reaction.getDBID().toString(), reaction.getDisplayName(), reactionPE.getDBID().toString(), reactionPE.getDisplayName(), reactionPE.getSchemClass().getName(), speciesInst.getDisplayName(), createdName);
+    private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {
+        String speciesName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.species);
+        String createdName = QACheckUtilities.getInstanceAttributeName(physicalEntity, ReactomeJavaConstants.created);
+        return String.join("\t",
+                reaction.getDBID().toString(),
+                reaction.getDisplayName(),
+                physicalEntity.getDBID().toString(),
+                physicalEntity.getDisplayName(),
+                physicalEntity.getSchemClass().getName(),
+                speciesName,
+                createdName);
     }
 
     @Override

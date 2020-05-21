@@ -9,10 +9,10 @@ import org.gk.schema.GKSchemaClass;
 import java.util.*;
 
 /**
- * QA check that finds non-human complexes that contain human components, that are members of human, non-manually inferred ReactionlikeEvents.
+ * QA check that finds non-human Complexes that contain human Components, that are members of human, non-manually inferred ReactionlikeEvents.
  */
 
-public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends AbstractQualityCheck {
+public class HumanReactionsWithNonHumanComplexesWithHumanComponentsCheck extends AbstractQualityCheck {
     
     @Override
     public QAReport checkInCommand() throws Exception {
@@ -21,7 +21,7 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         QACheckUtilities.setHumanSpeciesInst(dba);
 
         for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
-            // QA Check is only on PhysicalEntities that are participants of Human ReactionlikeEvents that are not manually inferred
+            // QA Check is only on PhysicalEntities that are participants of human ReactionlikeEvents that are not manually inferred
             Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = findAllNonHumanComplexesWithHumanComponentInReaction(reaction);
             for (GKInstance complexWithHumanComponent : nonHumanComplexesWithHumanComponentsMap.keySet()) {
                 for (GKInstance componentWithHumanSpecies : nonHumanComplexesWithHumanComponentsMap.get(complexWithHumanComponent)) {
@@ -36,18 +36,17 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
     /**
      * Finds any non-human Complexes that have human Components.
      * @param reaction GKInstance -- ReactionlikeEvent with Human species.
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
-     * @return Map<GKInstance, Set<GKInstance> -- Key are non-human Complexes, Values are any human components found in that complex.
+     * @return Map<GKInstance, Set<GKInstance> -- Key are non-human Complexes, Values are any human components found in that Complex.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
     private Map<GKInstance, Set<GKInstance>> findAllNonHumanComplexesWithHumanComponentInReaction(GKInstance reaction) throws Exception {
         Map<GKInstance, Set<GKInstance>> nonHumanComplexesWithHumanComponentsMap = new HashMap<>();
-        // First find all PhysicalEntities in the Reaction, and then filter that list for any NonHuman or nonSpecies Complexes.
+        // First find all PhysicalEntities in the Reaction, and then filter that list for any non-human or non-species Complexes.
         for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
             if (!QACheckUtilities.isHumanDatabaseObject(physicalEntity)
                     && physicalEntity.getSchemClass().isa(ReactomeJavaConstants.Complex)) {
 
-                // Find any Human components in the NonHuman Complex.
+                // Find any human Components in the non-human Complex.
                 nonHumanComplexesWithHumanComponentsMap.put(physicalEntity, findAllHumanComponentsInComplex(physicalEntity));
             }
         }
@@ -57,7 +56,6 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
     /**
      * Finds any human Components in the incoming Complex.
      * @param complex GKInstance -- Complex with non-human species or no species.
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
      * @return Set<GKInstance> -- Any Components in incoming Complex with human species.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
@@ -72,12 +70,19 @@ public class HumanReactionsWithNonHumanComplexWithHumanComponentCheck extends Ab
         return humanPEs;
     }
 
-    private String getReportLine(GKInstance event, GKInstance complexWithHumanComponent, GKInstance componentWithHumanSpecies) throws Exception {
-        GKInstance complexCreatedInst = (GKInstance) complexWithHumanComponent.getAttributeValue(ReactomeJavaConstants.created);
-        String complexCreatedName = complexCreatedInst != null ? complexCreatedInst.getDisplayName() : "null";
-        GKInstance componentCreatedInst = (GKInstance) componentWithHumanSpecies.getAttributeValue(ReactomeJavaConstants.created);
-        String componentCreatedName = componentCreatedInst != null ? componentCreatedInst.getDisplayName() : "null";
-        return String.join("\t", event.getDBID().toString(), event.getDisplayName(), complexWithHumanComponent.getDBID().toString(), complexWithHumanComponent.getDisplayName(), componentWithHumanSpecies.getDBID().toString(), componentWithHumanSpecies.getDisplayName(), componentWithHumanSpecies.getSchemClass().getName(), complexCreatedName, componentCreatedName);
+    private String getReportLine(GKInstance event, GKInstance complex, GKInstance component) throws Exception {
+        String complexCreatedName = QACheckUtilities.getInstanceAttributeName(complex, ReactomeJavaConstants.created);
+        String componentCreatedName = QACheckUtilities.getInstanceAttributeName(component, ReactomeJavaConstants.created);
+        return String.join("\t",
+                event.getDBID().toString(),
+                event.getDisplayName(),
+                complex.getDBID().toString(),
+                complex.getDisplayName(),
+                component.getDBID().toString(),
+                component.getDisplayName(),
+                component.getSchemClass().getName(),
+                complexCreatedName,
+                componentCreatedName);
     }
 
     @Override

@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- *  Finds all non-human Events that are not used for manual inference (ie. 'inferredFrom' referral is null)
+ *  Finds all non-human Events that are not used for manual inference (ie. inferredFrom referral is null)
  */
 public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck {
 
@@ -24,7 +24,7 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
 
         // The actual method for finding Events that aren't manually inferred is used by multiple QA tests.
         for (GKInstance event : QACheckUtilities.findEventsNotUsedForManualInference(dba)) {
-            // Many Events have multiple species. Cases where there are multiple species and one of them is Human are also excluded.
+            // Many Events have multiple species. Cases where there are multiple species and one of them is human are also excluded.
             if (QACheckUtilities.hasNonHumanSpecies(event)) {
                 report.addLine(getReportLine(event));
             }
@@ -33,10 +33,14 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
         return report;
     }
 
-    private String getReportLine(GKInstance instance) throws Exception {
-        GKInstance speciesInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.species);
-        GKInstance createdInst = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.created);
-        return String.join("\t", instance.getDBID().toString(), instance.getDisplayName(), speciesInst.getDisplayName(), createdInst.getDisplayName());
+    private String getReportLine(GKInstance event) throws Exception {
+        String speciesName = QACheckUtilities.getInstanceAttributeName(event, ReactomeJavaConstants.species);
+        String createdName = QACheckUtilities.getInstanceAttributeName(event, ReactomeJavaConstants.created);
+        return String.join("\t",
+                event.getDBID().toString(),
+                event.getDisplayName(),
+                speciesName,
+                createdName);
     }
 
     @Override
