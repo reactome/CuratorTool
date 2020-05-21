@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- *  Finds all NonHuman Events that are not used for manual inference (ie. 'inferredFrom' referral is null)
+ *  Finds all non-human Events that are not used for manual inference (ie. 'inferredFrom' referral is null)
  */
 public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck {
 
@@ -19,14 +19,14 @@ public class NonHumanEventsNotManuallyInferredCheck extends AbstractQualityCheck
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        QACheckUtilities.setHumanSpeciesInst(dba);
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
         // The actual method for finding Events that aren't manually inferred is used by multiple QA tests.
         for (GKInstance event : QACheckUtilities.findEventsNotUsedForManualInference(dba)) {
             // Many Events have multiple species. Cases where there are multiple species and one of them is Human are also excluded.
-            List<GKInstance> eventSpecies = event.getAttributeValuesList(ReactomeJavaConstants.species);
-            if (!eventSpecies.contains(humanSpeciesInst)) {
+            if (QACheckUtilities.hasNonHumanSpecies(event, humanSpeciesInst)) {
                 report.addLine(getReportLine(event));
             }
         }

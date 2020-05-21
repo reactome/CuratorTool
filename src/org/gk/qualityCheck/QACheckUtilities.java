@@ -12,6 +12,7 @@ import org.gk.persistence.MySQLAdaptor;
 public class QACheckUtilities {
 
     private static List<String> skiplistDbIDs = new ArrayList<>();
+    private static GKInstance humanSpeciesInst = new GKInstance();
 
     public static GKInstance getLatestCuratorIEFromInstance(GKInstance instance) throws Exception {
          @SuppressWarnings("unchecked")
@@ -61,7 +62,9 @@ public class QACheckUtilities {
         Set<GKInstance> reactionsNotUsedForManualInference = new HashSet<>();
         for (GKInstance event : findEventsNotUsedForManualInference(dba)) {
             // Filter for Human ReactionlikeEvents
-            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent) && QACheckUtilities.isHumanDatabaseObject(event, humanSpeciesInst)) {
+            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)
+                    && QACheckUtilities.isHumanDatabaseObject(event, humanSpeciesInst)) {
+
                 reactionsNotUsedForManualInference.add(event);
             }
         }
@@ -190,7 +193,7 @@ public class QACheckUtilities {
 
     /**
      * Finds all PhysicalEntities contained within a Complex, Polymer or EntitySet. Searches recursively by calling parent 'findAllPhysicalEntities' method.
-     * @param multiPEInstance GKInstance -- Type Complex, Polymer or EntitySet that contains multiple PhysicalEntities within it.
+     * @param multiPEInstance GKInstance -- Complex, Polymer or EntitySet instance that will be searched for all PhysicalEntity instances.
      * @return Set<GKInstance> -- All distinct PhysicalEntities that are found in Complex/Polymer/EntitySet.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
@@ -218,7 +221,7 @@ public class QACheckUtilities {
     /**
      * Finds all PhysicalEntities that exist within an EntitySet by searching for all member PEs (via 'hasMember' attribute)
      * and all candidate PEs (if entitySet is a CandidateSet; via 'hasCandidate attribute).
-     * @param entitySet
+     * @param entitySet GKInstance -- EntitySet instance that will be searched for all PhysicalEntities.
      * @return Set<GKInstance> -- All distinct PhysicalEntities that are found in EntitySet.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
@@ -231,7 +234,7 @@ public class QACheckUtilities {
             entitySetAttributes.remove(ReactomeJavaConstants.hasCandidate);
         }
         for (String entitySetAttribute : entitySetAttributes) {
-            // Recursively searches members/candidates for all PhysicalEntities.
+            // Recursively searches members/candidates in EntitySet for all PhysicalEntities.
             for (GKInstance setInstance : (Collection<GKInstance>) entitySet.getAttributeValuesList(entitySetAttribute)) {
                 physicalEntities.addAll(findAllPhysicalEntities((setInstance)));
             }
@@ -244,35 +247,30 @@ public class QACheckUtilities {
         return event.getReferers(ReactomeJavaConstants.inferredFrom) != null ? true : false;
     }
 
-    // Returns true if databaseObject has single Homo sapiens species.
+    // Returns true if databaseObject (Event or PhysicalEntity) has single Homo sapiens species.
     public static boolean isHumanDatabaseObject(GKInstance databaseObject, GKInstance humanSpeciesInst) throws Exception {
         Collection<GKInstance> objectSpecies = databaseObject.getAttributeValuesList(ReactomeJavaConstants.species);
         return objectSpecies.size() == 1 && objectSpecies.contains(humanSpeciesInst);
     }
 
     /**
-     * Returns true if the incoming physical entity has a non-human species attribute.
-     * @param physicalEntity GKInstance -- PhysicalEntity to be checked for non-human species attribute.
+     * Returns true if the incoming DatabaseObject (Event or PhysicalEntity) is non-human.
+     * @param databaseObject GKInstance -- Event or PhysicalEntity to be checked for non-human species attribute.
      * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
      * @return boolean -- true if has non-human species, false if has human species.
      * @throws Exception
      */
-    public static boolean hasNonHumanSpecies(GKInstance physicalEntity, GKInstance humanSpeciesInst) throws Exception {
+    public static boolean hasNonHumanSpecies(GKInstance databaseObject, GKInstance humanSpeciesInst) throws Exception {
         // Check if species is a valid attribute for physicalEntity.
-        if (!hasSpeciesAttribute(physicalEntity)) {
-            return false;
+        if (hasSpeciesAttribute(databaseObject) &&
+            databaseObject.getAttributeValue(ReactomeJavaConstants.species) != null &&
+            !databaseObject.getAttributeValuesList(ReactomeJavaConstants.species).contains(humanSpeciesInst)) {
+            return true;
         }
-        // Check that species attribute is populated.
-        if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) == null) {
-            return false;
-        }
-        // Check that populated species attribute is not Human.
-        if (physicalEntity.getAttributeValue(ReactomeJavaConstants.species) == humanSpeciesInst) {
-            return false;
-        }
-        return true;
+        return false;
     }
 
+    // Returns true if 'species' is a valid attribute in PhysicalEntity.
     public static boolean hasSpeciesAttribute(GKInstance physicalEntity) {
         return physicalEntity.getSchemClass().isValidAttribute(ReactomeJavaConstants.species);
     }
@@ -306,5 +304,11 @@ public class QACheckUtilities {
         return skiplistDbIDs.contains(nonHumanEvent.getDBID().toString());
     }
 
+    public static void setHumanSpeciesInst(MySQLAdaptor dba) throws Exception {
+        humanSpeciesInst = dba.fetchInstance(48887L);
+    }
 
+    public static GKInstance getHumanSpeciesInst() {
+        return humanSpeciesInst;
+    }
 }

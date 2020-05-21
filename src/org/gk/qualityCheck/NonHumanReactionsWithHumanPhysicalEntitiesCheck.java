@@ -19,15 +19,15 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQua
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        QACheckUtilities.setHumanSpeciesInst(dba);
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
             // Many Events have multiple species. Cases where there are multiple species and one of them is Human are also excluded.
-            Collection<GKInstance> reactionSpecies = reaction.getAttributeValuesList(ReactomeJavaConstants.species);
-            if (!reactionSpecies.contains(humanSpeciesInst)) {
-                for (GKInstance humanPE : findHumanPhysicalEntitiesInReaction(reaction, humanSpeciesInst)) {
+            if (QACheckUtilities.hasNonHumanSpecies(reaction, humanSpeciesInst)) {
+                for (GKInstance humanPE : findAllHumanPhysicalEntitiesInReaction(reaction, humanSpeciesInst)) {
                     report.addLine(getReportLine(humanPE, reaction));
                 }
             }
@@ -43,7 +43,7 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQua
      * @return Set<GKInstance> -- Any Human PhysicalEntities that exist in the ReactionlikeEvent.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
-    private Set<GKInstance> findHumanPhysicalEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
+    private Set<GKInstance> findAllHumanPhysicalEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
         Set<GKInstance> humanPEs = new HashSet<>();
         for (GKInstance physicalEntity: QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
             if (QACheckUtilities.isHumanDatabaseObject(physicalEntity, humanSpeciesInst)) {

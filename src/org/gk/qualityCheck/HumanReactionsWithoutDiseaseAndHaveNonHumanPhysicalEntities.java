@@ -20,12 +20,16 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setSkipList(Arrays.asList("168249")); // Innate Immunity Pathway
+        QACheckUtilities.setHumanSpeciesInst(dba);
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
 
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {
             // isHumanDatabaseObject checks that the species attribute only contains a Homo sapiens species instance. Multi-species RlEs are excluded.
-            if (!QACheckUtilities.memberSkipListPathway(reaction) && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst) && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+            if (!QACheckUtilities.memberSkipListPathway(reaction)
+                    && QACheckUtilities.isHumanDatabaseObject(reaction, humanSpeciesInst)
+                    && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+
                 for (GKInstance nonHumanPE : findAllNonHumanPhysicalEntitiesInReaction(reaction, humanSpeciesInst)) {
                     report.addLine(getReportLine(nonHumanPE, reaction));
                 }
@@ -36,20 +40,20 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
     }
 
     /**
-     * Finds all distinct NonHuman PhysicalEntities that exist in the incoming Human ReactionlikeEvent.
+     * Finds all distinct non-human PhysicalEntities that exist in the incoming human ReactionlikeEvent.
      * @param reaction GKInstance -- ReactionlikeEvent with Homo sapiens species.
      * @param humanSpeciesInst GKInstance -- Homo sapiens species instance
-     * @return Set<GKInstance> -- Any NonHuman PhysicalEntities that exist in the Human ReactionlikeEvent.
+     * @return Set<GKInstance> -- Any non-human PhysicalEntities that exist in the human ReactionlikeEvent.
      * @throws Exception -- Thrown by MySQLAdaptor.
      */
     private Set<GKInstance> findAllNonHumanPhysicalEntitiesInReaction(GKInstance reaction, GKInstance humanSpeciesInst) throws Exception {
-        Set<GKInstance> nonHumanPEsInReaction = new HashSet<>();
+        Set<GKInstance> nonHumanPEs = new HashSet<>();
         for (GKInstance physicalEntity : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
             if (QACheckUtilities.hasNonHumanSpecies(physicalEntity, humanSpeciesInst)) {
-                nonHumanPEsInReaction.add(physicalEntity);
+                nonHumanPEs.add(physicalEntity);
             }
         }
-        return nonHumanPEsInReaction;
+        return nonHumanPEs;
     }
 
     private String getReportLine(GKInstance physicalEntity, GKInstance reaction) throws Exception {

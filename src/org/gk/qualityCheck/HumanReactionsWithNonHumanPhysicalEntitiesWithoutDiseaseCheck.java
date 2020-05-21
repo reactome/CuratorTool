@@ -20,6 +20,7 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        QACheckUtilities.setHumanSpeciesInst(dba);
         GKInstance humanSpeciesInst = dba.fetchInstance(48887L);
         QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
 
@@ -27,7 +28,9 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
         for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba, humanSpeciesInst)) {
             for (GKInstance reactionPE : QACheckUtilities.findAllPhysicalEntitiesInReaction(reaction)) {
                 // Valid PhysicalEntities include those that have a nonHuman species OR have a human species AND have a relatedSpecies, and that do not have a populated disease attribute.
-                if ((QACheckUtilities.hasNonHumanSpecies(reactionPE, humanSpeciesInst) || hasHumanSpeciesWithRelatedSpecies(reactionPE, humanSpeciesInst)) && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                if ((QACheckUtilities.hasNonHumanSpecies(reactionPE, humanSpeciesInst) || hasHumanSpeciesWithRelatedSpecies(reactionPE, humanSpeciesInst))
+                        && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+
                     report.addLine(getReportLine(reactionPE, reaction));
                 }
             }
@@ -36,16 +39,17 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
         return report;
     }
 
-    /**
-     * Returns true if PhysicalEntities species is Homo sapiens and if the relatedSpecies attribute is populated.
-     * @param reactionPE GKInstance -- PhysicalEntity involved in a ReactionlikeEvent
-     * @param humanSpeciesInst GKInstance -- Homo sapiens species instance.
-     * @return
-     * @throws Exception -- Thrown by MySQLAdaptor
-     */
+
+     // Returns true if PhysicalEntities' species is Homo sapiens and if the relatedSpecies attribute is populated.
     private boolean hasHumanSpeciesWithRelatedSpecies(GKInstance reactionPE, GKInstance humanSpeciesInst) throws Exception {
-        GKInstance speciesInst = (GKInstance) reactionPE.getAttributeValue(ReactomeJavaConstants.species);
-        return speciesInst != null && speciesInst.equals(humanSpeciesInst) && reactionPE.getSchemClass().isValidAttribute(ReactomeJavaConstants.relatedSpecies) && reactionPE.getAttributeValue(ReactomeJavaConstants.relatedSpecies) != null;
+        return QACheckUtilities.isHumanDatabaseObject(reactionPE, humanSpeciesInst)
+                && hasRelatedSpecies(reactionPE);
+    }
+
+    // Returns true if PhysicalEntities' relatedSpecies attribute is populated.
+    private boolean hasRelatedSpecies(GKInstance reactionPE) throws Exception {
+        return reactionPE.getSchemClass().isValidAttribute(ReactomeJavaConstants.relatedSpecies)
+                && reactionPE.getAttributeValue(ReactomeJavaConstants.relatedSpecies) != null;
     }
 
     private String getReportLine(GKInstance reactionPE, GKInstance reaction) throws Exception {
