@@ -6,7 +6,7 @@ org.gk.qualityCheck.EntitySetCompartmentCheck
 org.gk.qualityCheck.EntitySetSpeciesCheck
 #org.gk.qualityCheck.EntitySetTypeCheck
 org.gk.qualityCheck.HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities
-org.gk.qualityCheck.HumanReactionsWithNonHumanComplexWithHumanComponentCheck
+org.gk.qualityCheck.HumanReactionsWithNonHumanComplexesWithHumanComponentsCheck
 org.gk.qualityCheck.HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck
 org.gk.qualityCheck.ImbalanceCheck
 org.gk.qualityCheck.MandatoryAttributesCheck
