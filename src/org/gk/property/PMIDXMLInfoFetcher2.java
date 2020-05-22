@@ -86,7 +86,9 @@ public class PMIDXMLInfoFetcher2 {
         isr.close();
         is.close();
         String text = builder.toString();
-        text = StringEscapeUtils.unescapeXml(text);
+        // The following code should not be used. The escaped XML is well taken care of
+        // by JDOM.
+//        text = StringEscapeUtils.unescapeXml(text);
         StringReader sr = new StringReader(text);
         SAXBuilder saxBuilder = new SAXBuilder();
         Document document = saxBuilder.build(sr);
@@ -261,7 +263,7 @@ public class PMIDXMLInfoFetcher2 {
     
     @Test
     public void testFetchInfo() throws Exception {
-        Long pmid = 18276894L;
+        Long pmid = 23356980L;
 //        pmid = 29146722L; // A title has "<i>" in
         Reference reference = fetchInfo(pmid);
         System.out.println("\"" + reference.getTitle() + "\" in \"" + reference.getJournal() + "\"");
