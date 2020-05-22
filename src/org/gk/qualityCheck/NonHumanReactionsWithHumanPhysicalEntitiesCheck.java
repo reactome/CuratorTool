@@ -6,8 +6,6 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -20,7 +18,7 @@ public class NonHumanReactionsWithHumanPhysicalEntitiesCheck extends AbstractQua
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
-        QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
+        QACheckUtilities.setSkipList(QACheckUtilities.getNonHumanPathwaySkipList());
 
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         for (GKInstance reaction : reactions) {

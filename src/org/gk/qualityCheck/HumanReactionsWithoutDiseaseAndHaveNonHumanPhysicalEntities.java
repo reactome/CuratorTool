@@ -9,17 +9,18 @@ import org.gk.schema.GKSchemaClass;
 import java.util.*;
 
 /**
- * Flags human ReactionlikeEvents that do not have a populated 'disease' attribute, but have non-human participants.
+ * Flags human ReactionlikeEvents that do not have a populated disease attribute, but have non-human participants.
  */
 
 public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends AbstractQualityCheck {
 
+    private static final String innateImmunityPathwayDbId = "168249";
 
     @Override
     public QAReport checkInCommand() throws Exception {
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        QACheckUtilities.setSkipList(Arrays.asList("168249")); // Innate Immunity Pathway
+        QACheckUtilities.setSkipList(Arrays.asList(innateImmunityPathwayDbId)); // Innate Immunity Pathway
         QACheckUtilities.setHumanSpeciesInst(dba);
 
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
@@ -27,7 +28,7 @@ public class HumanReactionsWithoutDiseaseAndHaveNonHumanPhysicalEntities extends
             // isHumanDatabaseObject checks that the species attribute only contains a Homo sapiens species instance. Multi-species RlEs are excluded.
             if (!QACheckUtilities.memberSkipListPathway(reaction)
                     && QACheckUtilities.isHumanDatabaseObject(reaction)
-                    && reaction.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                    && !QACheckUtilities.hasDisease(reaction)) {
 
                 for (GKInstance nonHumanPE : findAllNonHumanPhysicalEntitiesInReaction(reaction)) {
                     report.addLine(getReportLine(nonHumanPE, reaction));

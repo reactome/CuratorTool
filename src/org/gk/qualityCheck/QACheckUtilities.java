@@ -241,19 +241,29 @@ public class QACheckUtilities {
         return physicalEntities;
     }
 
-    // Returns true if 'inferredFrom' referral is null.
+    /**
+     * Checks if incoming Event is manually inferred by checking inferredFrom referral.
+     * @param event GKInstance -- Event instance being checked for inferredFrom referral.
+     * @return boolean -- true if inferredFrom referral exists, false if not.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
     public static boolean manuallyInferred(GKInstance event) throws Exception {
         return event.getReferers(ReactomeJavaConstants.inferredFrom) != null ? true : false;
     }
 
-    // Returns true if databaseObject (Event or PhysicalEntity) has single Homo sapiens species.
+    /**
+     * Checks if incoming DatabaseObject (Event or PhysicalEntity) has single Homo sapiens species.
+     * @param databaseObject GKInstance -- Event or PhysicalEntity instance being checked for only Homo sapiens species.
+     * @return boolean -- true if databaseObject only has a single, Homo sapiens species instance, false if not.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
     public static boolean isHumanDatabaseObject(GKInstance databaseObject) throws Exception {
         Collection<GKInstance> objectSpecies = databaseObject.getAttributeValuesList(ReactomeJavaConstants.species);
         return objectSpecies.size() == 1 && objectSpecies.contains(humanSpeciesInst);
     }
 
     /**
-     * Returns true if the incoming DatabaseObject (Event or PhysicalEntity) is non-human.
+     * Checks if the incoming DatabaseObject (Event or PhysicalEntity) is non-human.
      * @param databaseObject GKInstance -- Event or PhysicalEntity to be checked for non-human species attribute.
      * @return boolean -- true if has non-human species, false if has human species.
      * @throws Exception
@@ -268,9 +278,23 @@ public class QACheckUtilities {
         return false;
     }
 
-    // Returns true if 'species' is a valid attribute in PhysicalEntity.
+    /**
+     * Checks if species is a valid attribute in the incoming PhysicalEntity.
+     * @param physicalEntity GKInstance -- PhysicalEntity that is being checked to see if species is a valid attribute.
+     * @return boolean -- true if species is a valid attribute, false if not.
+     */
     public static boolean hasSpeciesAttribute(GKInstance physicalEntity) {
         return physicalEntity.getSchemClass().isValidAttribute(ReactomeJavaConstants.species);
+    }
+
+    /**
+     * Checks if
+     * @param databaseObject
+     * @return
+     * @throws Exception
+     */
+    public static boolean hasDisease(GKInstance databaseObject) throws Exception {
+        return databaseObject.getAttributeValue(ReactomeJavaConstants.disease) != null;
     }
 
     /**
@@ -312,16 +336,39 @@ public class QACheckUtilities {
         return dbIds;
     }
 
+    /**
+     * Reads skiplist file that contains Pathway DbIds that should not be included in QA check.
+     * @return List<String> -- List of DbIds.
+     */
+    public static List<String> getNonHumanPathwaySkipList() throws IOException {
+        return Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt"));
+    }
+
+    /**
+     * Takes incoming List of DbIds and sets them as global variable to be used throughout QA check.
+     * @param skippedDbIds List<String> -- List of DbIds taken from either file or provided in class.
+     */
     public static void setSkipList(List<String> skippedDbIds) {
         skiplistDbIDs = skippedDbIds;
     }
 
+    /**
+     * Finds Homo sapiens species instance and sets as global variable to be used throughout QA check.
+     * @param dba MySQLAdaptor
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
     public static void setHumanSpeciesInst(MySQLAdaptor dba) throws Exception {
         humanSpeciesInst = dba.fetchInstance(48887L);
     }
 
-    // Sometimes created or species instances are not populated. This helper method checks if attribute value is
-    // populated. If it isn't, returns null.
+    /**
+     *  Helper method checks that checks if the attribute exists in the incoming instance. Checks for either
+     *  created or species values. Returns displayName or, if attribute instance doesn't exist,  null.
+     * @param instance GKInstance -- Instance being checked for an attribute.
+     * @param attribute String -- Attribute value that will be checked in the incoming instance.
+     * @return String -- Either the attribute instance's displayName, or null.
+     * @throws Exception -- Thrown by MySQLAdaptor.
+     */
     public static String getInstanceAttributeName(GKInstance instance, String attribute) throws Exception {
         GKInstance attributeInstance = (GKInstance) instance.getAttributeValue(attribute);
         return attributeInstance != null ? attributeInstance.getDisplayName() : null;

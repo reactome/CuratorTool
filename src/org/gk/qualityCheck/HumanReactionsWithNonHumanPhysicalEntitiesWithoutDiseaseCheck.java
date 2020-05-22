@@ -6,13 +6,10 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaClass;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Flags all human Reactions that contain Non-only-Human PhysicalEntities that do not have a populated disease attribute.
- * Valid PhysicalEntities are those that have a non-human species or that have a human species AND have a filled relatedSpecies attribute.
+ * Flags all human Reactions that contain non-disease PhysicalEntities that are non-human, or are human PhysicalEntities with relatedSpecies.
  */
 public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck extends AbstractQualityCheck {
 
@@ -21,7 +18,7 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
         QAReport report = new QAReport();
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
         QACheckUtilities.setHumanSpeciesInst(dba);
-        QACheckUtilities.setSkipList(Files.readAllLines(Paths.get("QA_SkipList/Manually_Curated_NonHuman_Pathways.txt")));
+        QACheckUtilities.setSkipList(QACheckUtilities.getNonHumanPathwaySkipList());
 
         // This QA Check is only performed on human ReactionlikeEvents that do not have any inferredFrom referrals.
         for (GKInstance reaction : QACheckUtilities.findHumanReactionsNotUsedForManualInference(dba)) {
@@ -29,7 +26,7 @@ public class HumanReactionsWithNonHumanPhysicalEntitiesWithoutDiseaseCheck exten
                 // Valid PhysicalEntities include those that have a non-human species OR have a human species AND have a relatedSpecies,
                 // and that do not have a populated disease attribute.
                 if ((QACheckUtilities.hasNonHumanSpecies(reactionPE) || hasHumanSpeciesWithRelatedSpecies(reactionPE))
-                        && reactionPE.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+                        && !QACheckUtilities.hasDisease(reactionPE)) {
 
                     report.addLine(getReportLine(reactionPE, reaction));
                 }
