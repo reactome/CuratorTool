@@ -312,9 +312,6 @@ public class RevisionDetector {
             else pathways.add(event);
         }
 
-        // Pathways -> reaction level, check what changed in reaction, check if pathway itself has changed.
-        // (1) direct reaction, (2) indirect reaction.
-        // check if first type of reactions have changed, then check if second type of reactions have changed.
         Set<GKInstance> visited = new HashSet<GKInstance>();
         while (!pathways.isEmpty()) {
             List<GKInstance> queue = new ArrayList<GKInstance>();
