@@ -209,7 +209,6 @@ public class SlicingEngine {
      * @throws Exception
      */
     public void slice() throws Exception {
-        /*
         validateConditions();
         topLevelIDs = getReleasedProcesses();
         speciesIDs = getSpeciesIDs();
@@ -250,7 +249,6 @@ public class SlicingEngine {
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
-        */
         handleRevisions();
     }
 

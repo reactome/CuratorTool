@@ -1,5 +1,6 @@
 package org.gk.slicing;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,11 +29,6 @@ import org.junit.Test;
 public class RevisionDetector {
     private static final Logger logger = Logger.getLogger(RevisionDetector.class);
     private SlicingEngine sliceEngine;
-    // A parent pathway should encompass the revisions of it's children
-    // pathways, but their respective 'action' texts should not bubble up to the parent.
-    // This string is used to flag a revision while preventing the 'action' text from bubbling up.
-    private final String actionFilter = "actionFilter";
-
     public RevisionDetector() {
     }
 
@@ -225,7 +221,6 @@ public class RevisionDetector {
         GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
         Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
 
-
         Map<GKInstance, Set<String>> actionMap = createActionMap(previousSliceDBA, events);
         List<GKInstance> updateTrackers = new ArrayList<>();
         // Iterate over all instances in the slice.
@@ -261,9 +256,6 @@ public class RevisionDetector {
         if (actions == null || actions.size() == 0)
             return null;
 
-        // Prevent 'action' texts from recursive calls from 'bubbling up' to parent pathways.
-        actions.remove(actionFilter);
-
         // If a revision condition is met, create new _UpdateTracker instance.
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
         GKInstance updateTracker = new GKInstance(cls);
@@ -292,8 +284,7 @@ public class RevisionDetector {
      *
      * Current behavior for recording revisions for child events is:
      * <pre>
-     *   - A revision in a given RLE is recorded in the action set.
-     *   - If the RLE has a parent pathway, it's revision is added to the parent's action set.
+     *   - A revision in a child RLE is recorded in both the RLE's action set as well as it's parent's action set.
      *   - The 'actionFilter' value will be added to all parents above the parent pathway to prevent
      *     action texts from bubbling up past immediate parents.
      * </pre>
@@ -308,68 +299,79 @@ public class RevisionDetector {
         Map<GKInstance, Set<String>> actionMap = new HashMap<GKInstance, Set<String>>();
         Set<String> RLEActions = null;
         LinkedList<GKInstance> pathways = new LinkedList<GKInstance>();
-        List<GKInstance> processed = new ArrayList<GKInstance>();
 
         // For all events in 'events'.
         for (GKInstance event : events) {
-            // If event is an RLE, cache action values to set.
             if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                // Add RLE action strings to map.
                 GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(event.getDBID());
                 RLEActions = getRLERevisions(event, previousSliceEvent);
                 actionMap.put(event, RLEActions);
             }
             // If event is a Pathway, add to pathway list.
-            else
-                pathways.add(event);
+            else pathways.add(event);
         }
 
+        // Pathways -> reaction level, check what changed in reaction, check if pathway itself has changed.
+        // (1) direct reaction, (2) indirect reaction.
+        // check if first type of reactions have changed, then check if second type of reactions have changed.
+        Set<GKInstance> visited = new HashSet<GKInstance>();
         while (!pathways.isEmpty()) {
-            GKInstance pathway = pathways.poll();
-            GKInstance previousPathway = previousSliceDBA.fetchInstance(pathway.getDBID());
-            if (previousPathway == null)
-                continue;
+            List<GKInstance> queue = new ArrayList<GKInstance>();
+            queue.add(pathways.poll());
 
-            // Check if a child event (pathway or RLE) is added or removed.
-            Set<String> pathwayActions = getAttributeRevisions(pathway, previousPathway, ReactomeJavaConstants.hasEvent);
+            while (!queue.isEmpty()) {
+                GKInstance pathway = queue.remove(0);
+                GKInstance previousPathway = previousSliceDBA.fetchInstance(pathway.getDBID());
 
-            // Add immediate child event's actions to pathway's action set.
-            List<Object> childEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-            for (Object event : childEvents) {
-                if (actionMap.containsKey(event)) {
-                    Set<String> childActions = actionMap.get(event);
-                    pathwayActions.addAll(childActions);
+                if (visited.contains(pathway) || previousPathway == null) continue;
+                visited.add(pathway);
+
+                // Check if a child event (pathway or RLE) is added or removed.
+                Set<String> pathwayActions = getAttributeRevisions(pathway, previousPathway, ReactomeJavaConstants.hasEvent);
+
+                // Add immediate child event's actions to pathway's action set.
+                List<Object> childEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+                for (Object event : childEvents) {
+                    if (actionMap.containsKey(event)) {
+                        Set<String> childActions = actionMap.get(event);
+                        pathwayActions.addAll(childActions);
+                    }
+                }
+
+                // If no revisions were detected in the pathway, move on to the next pathway.
+                if (pathwayActions.size() == 0) continue;
+
+                if (actionMap.get(pathway) != null)
+                    actionMap.get(pathway).addAll(pathwayActions);
+                else
+                    actionMap.put(pathway, pathwayActions);
+
+
+                List<GKInstance> childPathways = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+                for (GKInstance childPathway : childPathways) {
+                    if (visited.contains(childPathway)) continue;
+                    queue.add(childPathway);
                 }
             }
-
-            // If no revisions were detected in the pathway, move on to the next pathway.
-            if (pathwayActions.size() == 0)
-                continue;
-
-            if (actionMap.get(pathway) != null)
-                actionMap.get(pathway).addAll(pathwayActions);
-            else
-                actionMap.put(pathway, pathwayActions);
-
-            // If revisions were detected in the pathway, add 'actionFilter' to all parent action
-            Collection<Object> referrers = pathway.getReferers(ReactomeJavaConstants.hasEvent);
-            Iterator<Object> iterator = referrers.iterator();
-            while (iterator.hasNext()) {
-                GKInstance referrer = (GKInstance) iterator.next();
-                if (processed.contains(referrer) || actionMap.containsKey(referrer))
-                    continue;
-
-                Set<String> filter = new HashSet<String>();
-                filter.add(actionFilter);
-                actionMap.put((GKInstance) referrer, filter);
-
-                processed.add(referrer);
-            }
-
-            processed.add(pathway);
         }
 
-
         return actionMap;
+    }
+
+    @Test
+    public void testCreateActionMap() throws InvalidAttributeException, Exception {
+        MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
+                                                        "slice",
+                                                        "liam",
+                                                        ")8J7m]!%[<");
+        Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
+
+        MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost",
+                                                         "previous_slice",
+                                                         "liam",
+                                                         ")8J7m]!%[<");
+        Map<GKInstance, Set<String>> actionMap = createActionMap(previousSliceDBA, events);
     }
 
     /**
