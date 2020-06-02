@@ -117,7 +117,7 @@ public class RevisionDetectorTest {
         action = "modifyText";
         assertEquals(action, String.join(",", actionMap.get(child)));
         assertEquals(action, String.join(",", actionMap.get(parent)));
-        action = "actionFilter";
+        action = "updatedPathway";
         assertEquals(action, String.join(",", actionMap.get(grandparent)));
 
         // Reset the revision.

@@ -339,21 +339,30 @@ public class RevisionDetector {
                 // If no revisions were detected in the pathway, move on to the next pathway.
                 if (pathwayActions.size() == 0) continue;
 
-                if (actionMap.get(pathway) != null)
-                    actionMap.get(pathway).addAll(pathwayActions);
-                else
-                    actionMap.put(pathway, pathwayActions);
+                addToMap(actionMap, pathway, pathwayActions);
 
+                Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.hasEvent);
+                for (GKInstance referrer : referrers)
+                    addToMap(actionMap, referrer, pathwayActions);
 
-                List<GKInstance> childPathways = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-                for (GKInstance childPathway : childPathways) {
-                    if (visited.contains(childPathway)) continue;
-                    queue.add(childPathway);
+                for (Object event : childEvents) {
+                    if (event == null) continue;
+                    GKInstance eventInstance = (GKInstance) event;
+                    if (visited.contains(eventInstance)) continue;
+                    if (!eventInstance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) continue;
+                    queue.add(eventInstance);
                 }
             }
         }
 
         return actionMap;
+    }
+
+    private void addToMap(Map<GKInstance, Set<String>> map, GKInstance pathway, Set<String> pathwayActions) {
+        if (map.get(pathway) != null)
+            map.get(pathway).addAll(pathwayActions);
+        else
+            map.put(pathway, pathwayActions);
     }
 
     @Test
