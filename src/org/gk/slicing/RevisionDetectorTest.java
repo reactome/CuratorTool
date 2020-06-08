@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,7 @@ public class RevisionDetectorTest {
     private RevisionDetector revisionDetector;
     private String action;
     private String attributeName;
+    Collection<GKInstance> events;
 
     // actions map
     private Map<GKInstance, Set<String>> actionMap;
@@ -55,6 +57,9 @@ public class RevisionDetectorTest {
         slicingEngine = new SlicingEngine();
         revisionDetector.setSlicingEngine(slicingEngine);
         actionMap = new HashMap<GKInstance, Set<String>>();
+
+        Collection<GKInstance> events = sliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
+        Map<GKInstance, Set<String>> actionMap = revisionDetector.getRLEActions(previousDBA, events);
     }
 
     @Test
@@ -62,45 +67,45 @@ public class RevisionDetectorTest {
         GKInstance pathway = null;
         GKInstance childPathway = null;
         List<GKInstance> events = new ArrayList<GKInstance>();
+        Set<String> actions = new HashSet<String>();
 
         // Example pathway #1 (Inhibition of Signaling by Overexpressed EGFR).
         pathway = (GKInstance) sliceDBA.fetchInstance(5638303L);
-        events.add(pathway);
-        actionMap = revisionDetector.createActionMap(sliceDBA, events);
-        assertNull(actionMap.get(pathway));
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
 
         // Add a new child pathway (tRNA processing).
         childPathway = sliceDBA.fetchInstance(72306L);
         events.add(childPathway);
         pathway.addAttributeValue(ReactomeJavaConstants.hasEvent, childPathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
+
         action = "addHasEvent";
-        assertEquals(action, String.join(",", actionMap.get(pathway)));
+        assertEquals(action, String.join(",", actions));
 
         // Reset the addition.
         pathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, childPathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
-        assertNull(actionMap.get(pathway));
-
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
 
         // Example pathway #2 (Hedgehog 'on' state).
         pathway = (GKInstance) sliceDBA.fetchInstance(5632684L);
         events.add(pathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
-        assertNull(actionMap.get(pathway));
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
 
         // Remove an existing child pathway.
         childPathway = (GKInstance) pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent).get(0);
         events.add(childPathway);
         pathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, childPathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
-        action = "removeHasEvent";
-        assertEquals(action, String.join(",", actionMap.get(pathway)));
+        action = "addHasEvent";
+        assertEquals(action, String.join(",", actions));
 
         // Reset the removal.
         pathway.addAttributeValue(ReactomeJavaConstants.hasEvent, childPathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
-        assertNull(actionMap.get(pathway));
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
 
 
         // Revise a child pathway (by changing the summation text of one of it's RLEs).
@@ -113,17 +118,21 @@ public class RevisionDetectorTest {
         GKInstance sourceRLESummation = (GKInstance) child.getAttributeValue(ReactomeJavaConstants.summation);
         String originalSummationText = (String) sourceRLESummation.getAttributeValue(ReactomeJavaConstants.text);
         sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, "revised");
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+
         action = "modifyText";
-        assertEquals(action, String.join(",", actionMap.get(child)));
-        assertEquals(action, String.join(",", actionMap.get(parent)));
+        actions = revisionDetector.getPathwayActions(sliceDBA, parent, actionMap);
+        assertEquals(action, String.join(",", actions));
+        actions = revisionDetector.getPathwayActions(sliceDBA, child, actionMap);
+        assertEquals(action, String.join(",", actions));
+
         action = "updatedPathway";
-        assertEquals(action, String.join(",", actionMap.get(grandparent)));
+        actions = revisionDetector.getPathwayActions(sliceDBA, grandparent, actionMap);
+        assertEquals(action, String.join(",", actions));
 
         // Reset the revision.
         sourceRLESummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
-        assertNull(actionMap.get(pathway));
+        actions = revisionDetector.getPathwayActions(sliceDBA, pathway, actionMap);
+        assertNull(actions);
     }
 
 
@@ -135,7 +144,6 @@ public class RevisionDetectorTest {
         GKInstance rle = (GKInstance) sliceDBA.fetchInstance(5357432L);
         Set<GKInstance> events = new HashSet<GKInstance>();
         events.add(rle);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         action = "";
         assertEquals(action, String.join(",", actionMap.get(rle)));
 
@@ -187,17 +195,17 @@ public class RevisionDetectorTest {
 
         Set<GKInstance> events = new HashSet<GKInstance>();
         events.add(rle);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals("", String.join(",", actionMap.get(rle)));
 
         // Add attribute value.
         rle.addAttributeValue(attributeName, revisedAttribute);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(rle)));
 
         // Reset revision.
         rle.setAttributeValue(attributeName, originalAttributes);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals("", String.join(",", actionMap.get(rle)));
     }
 
@@ -210,7 +218,7 @@ public class RevisionDetectorTest {
         GKInstance rle = (GKInstance) sliceDBA.fetchInstance(418904L);
         events.add(rle);
         action = "";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(rle)));
 
         // Save original summation text.
@@ -221,12 +229,12 @@ public class RevisionDetectorTest {
         GKInstance sourceSummation = (GKInstance) rle.getAttributeValuesList(ReactomeJavaConstants.summation).get(0);
         sourceSummation.setAttributeValue(attributeName, "revised");
         action = "modifyText";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(rle)));
 
         // Reset the revision,
         sourceSummation.setAttributeValue(ReactomeJavaConstants.text, originalSummationText);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         action = "";
         assertEquals(action, String.join(",", actionMap.get(rle)));
     }
@@ -245,7 +253,7 @@ public class RevisionDetectorTest {
         // Example RLE (DIT and MIT combine to form triiodothyronine).
         pathway = (GKInstance) sliceDBA.fetchInstance(209925L);
         events.add(pathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         action = "";
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
@@ -256,24 +264,22 @@ public class RevisionDetectorTest {
         GKInstance newAttributeInstance = sliceDBA.fetchInstance(5210962L);
         pathway.addAttributeValue(attributeName, newAttributeInstance);
         action = "addRegulatedBy";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
         // Remove original attribute instance.
         pathway.setAttributeValue(attributeName, newAttributeInstance);
         action = "add/removeRegulatedBy";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
+        actionMap = revisionDetector.getRLEActions(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
         // Remove all attribute instances.
         pathway.setAttributeValue(attributeName, null);
         action = "removeRegulatedBy";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
         // Reset revisions.
         pathway.setAttributeValue(attributeName, originalAttributes);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         action = "";
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
@@ -286,7 +292,6 @@ public class RevisionDetectorTest {
         // Example pathway (2-LTR circle formation).
         pathway = sliceDBA.fetchInstance(164843L);
         events.add(pathway);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertNull(actionMap.get(pathway));
 
         // Get a reference to the source instance's event list.
@@ -297,12 +302,10 @@ public class RevisionDetectorTest {
         GKInstance newRLE = sliceDBA.fetchInstance(8963915L);
         hasEvent.add(newRLE);
         action = "addHasEvent";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
         // Reset revision.
         hasEvent.remove(newRLE);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertNull(actionMap.get(pathway));
 
         // Add pathway (ABC transporters disorders).
@@ -312,12 +315,10 @@ public class RevisionDetectorTest {
         newPathway = sliceDBA.fetchInstance(419989L);
         hasEvent.add(newPathway);
         action = "addHasEvent";
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertEquals(action, String.join(",", actionMap.get(pathway)));
 
         // Reset revision.
         pathway.setAttributeValue(attributeName, originalAttributes);
-        actionMap = revisionDetector.createActionMap(previousDBA, events);
         assertNull(actionMap.get(pathway));
     }
 }

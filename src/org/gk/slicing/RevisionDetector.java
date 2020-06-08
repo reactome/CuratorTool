@@ -221,12 +221,21 @@ public class RevisionDetector {
         GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
         Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
 
-        Map<GKInstance, Set<String>> actionMap = createActionMap(previousSliceDBA, events);
+        Map<GKInstance, Set<String>> actionMap = getRLEActions(previousSliceDBA, events);
+
         List<GKInstance> updateTrackers = new ArrayList<>();
         // Iterate over all instances in the slice.
         GKInstance updateTracker = null;
         for (GKInstance sourceEvent : events) {
-            updateTracker = createUpdateTracker(currentSliceDBA, sourceEvent, actionMap.get(sourceEvent), release, defaultIE);
+            Set<String> actionText = null;
+
+            if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+               actionText = actionMap.get(sourceEvent);
+
+            if (sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+                actionText = getPathwayActions(previousSliceDBA, sourceEvent, actionMap);
+
+            updateTracker = createUpdateTracker(currentSliceDBA, sourceEvent, actionText, release, defaultIE);
             if (updateTracker != null) {
                 updateTrackers.add(updateTracker);
             }
@@ -279,6 +288,27 @@ public class RevisionDetector {
         return updateTracker;
     }
 
+    Map<GKInstance, Set<String>> getRLEActions(MySQLAdaptor previousSliceDBA, Collection<GKInstance> events)
+            throws InvalidAttributeException, Exception {
+        Map<GKInstance, Set<String>> actionMap = new HashMap<GKInstance, Set<String>>();
+        Set<String> RLEActions = new HashSet<String>();
+
+        int i = 0;
+        // Get all RLE actions.
+        for (GKInstance sourceEvent : events) {
+            if (!sourceEvent.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+                continue;
+
+            // Add RLE action strings to map.
+            GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(sourceEvent.getDBID());
+            RLEActions = getRLERevisions(sourceEvent, previousSliceEvent);
+            actionMap.put(sourceEvent, RLEActions);
+            System.out.println("i: " + i++);
+        }
+
+        return actionMap;
+    }
+
     /**
      * Return a mapping between event instances and their respective 'action' strings.
      *
@@ -289,95 +319,45 @@ public class RevisionDetector {
      *     action texts from bubbling up past immediate parents.
      * </pre>
      *
+     * Pathways -> reaction level, check what changed in reaction, check if pathway itself has changed.
+     * (1) direct reaction, (2) indirect reaction.
+     * check if first type of reactions have changed, then check if second type of reactions have changed.
+     *
+     * Everything for reactions in one for loop.
+     * Check pathways, one by one, regardless of order.
+     * Check revision for specific pathway, for first layer, check to see if it has specific reaction.
+     * If dosen't contain reaction, go one level down.
+     *
      * @param previousSliceDBA
      * @param events
      * @return Map
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    Map<GKInstance, Set<String>> createActionMap(MySQLAdaptor previousSliceDBA, Collection<GKInstance> events) throws InvalidAttributeException, Exception {
-        Map<GKInstance, Set<String>> actionMap = new HashMap<GKInstance, Set<String>>();
-        Set<String> RLEActions = null;
-        LinkedList<GKInstance> pathways = new LinkedList<GKInstance>();
+    Set<String> getPathwayActions(MySQLAdaptor previousSliceDBA, GKInstance pathway, Map<GKInstance, Set<String>> actionMap)
+            throws InvalidAttributeException, Exception {
+        if (!pathway.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+            return null;
 
-        // For all events in 'events'.
-        for (GKInstance event : events) {
-            if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-                // Add RLE action strings to map.
-                GKInstance previousSliceEvent = previousSliceDBA.fetchInstance(event.getDBID());
-                RLEActions = getRLERevisions(event, previousSliceEvent);
-                actionMap.put(event, RLEActions);
+        // Check if an immediate child event (pathway or RLE) is added or removed.
+        GKInstance previousPathway = previousSliceDBA.fetchInstance(pathway.getDBID());
+        Set<String> actions = getAttributeRevisions(pathway, previousPathway, ReactomeJavaConstants.hasEvent);
+
+        List<GKInstance> childEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+        for (GKInstance childEvent : childEvents) {
+            if (childEvent.getSchemClass().isa(ReactomeJavaConstants.Reaction)) {
+                Set<String> RLEAction = actionMap.get(childEvent);
+                if (RLEAction != null)
+                    actions.addAll(RLEAction);
             }
-            // If event is a Pathway, add to pathway list.
-            else pathways.add(event);
-        }
 
-        Set<GKInstance> visited = new HashSet<GKInstance>();
-        while (!pathways.isEmpty()) {
-            List<GKInstance> queue = new ArrayList<GKInstance>();
-            queue.add(pathways.poll());
-
-            while (!queue.isEmpty()) {
-                GKInstance pathway = queue.remove(0);
-                GKInstance previousPathway = previousSliceDBA.fetchInstance(pathway.getDBID());
-
-                if (visited.contains(pathway) || previousPathway == null) continue;
-                visited.add(pathway);
-
-                // Check if a child event (pathway or RLE) is added or removed.
-                Set<String> pathwayActions = getAttributeRevisions(pathway, previousPathway, ReactomeJavaConstants.hasEvent);
-
-                // Add immediate child event's actions to pathway's action set.
-                List<Object> childEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-                for (Object event : childEvents) {
-                    if (actionMap.containsKey(event)) {
-                        Set<String> childActions = actionMap.get(event);
-                        pathwayActions.addAll(childActions);
-                    }
-                }
-
-                // If no revisions were detected in the pathway, move on to the next pathway.
-                if (pathwayActions.size() == 0) continue;
-
-                addToMap(actionMap, pathway, pathwayActions);
-
-                Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.hasEvent);
-                for (GKInstance referrer : referrers)
-                    addToMap(actionMap, referrer, pathwayActions);
-
-                for (Object event : childEvents) {
-                    if (event == null) continue;
-                    GKInstance eventInstance = (GKInstance) event;
-                    if (visited.contains(eventInstance)) continue;
-                    if (!eventInstance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) continue;
-                    queue.add(eventInstance);
-                }
+            else if (childEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                Set<String> childActions = getPathwayActions(previousSliceDBA, childEvent, actionMap);
+                actions.addAll(childActions);
             }
         }
 
-        return actionMap;
-    }
-
-    private void addToMap(Map<GKInstance, Set<String>> map, GKInstance pathway, Set<String> pathwayActions) {
-        if (map.get(pathway) != null)
-            map.get(pathway).addAll(pathwayActions);
-        else
-            map.put(pathway, pathwayActions);
-    }
-
-    @Test
-    public void testCreateActionMap() throws InvalidAttributeException, Exception {
-        MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
-                                                        "slice",
-                                                        "liam",
-                                                        ")8J7m]!%[<");
-        Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
-
-        MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost",
-                                                         "previous_slice",
-                                                         "liam",
-                                                         ")8J7m]!%[<");
-        Map<GKInstance, Set<String>> actionMap = createActionMap(previousSliceDBA, events);
+        return actions;
     }
 
     /**
