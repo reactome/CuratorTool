@@ -6,7 +6,7 @@ dbHost=localhost
 # Database name. Usually it should be gk_central.
 #dbName=gk_central_110818
 #dbName=gk_central_082417
-dbName=gk_central_02_05_20_update_tracker
+dbName=gk_central_050620
 
 # Port number. Default 3306.
 dbPort=3306
@@ -21,7 +21,7 @@ dbPwd={}
 #releaseTopicsFileName=SinglePathway_Topic.txt
 #releaseTopicsFileName=small_topics.txt
 #releaseTopicsFileName=nursa_topics.txt
-releaseTopicsFileName=ver71_topics.txt
+releaseTopicsFileName=ver73_topics.txt
 
 # Name of the file containing a list of species that should be in the slice even though some of
 
@@ -35,17 +35,16 @@ logFileName=SlicingLog.txt
 
 # If no values are provided, the source database information will be used
 slicingDbHost=localhost
-slicingDbUser={}
-slicingDbPwd={}
+slicingDbUser=root
+slicingDbPwd=macmysql01
 slicingDbPort=3306
 
 # Slicing database name
-slicingDbName=test_slice_ver72
-#slicingDbName=test_gk_central_efs_new_updated_slice_67
+slicingDbName=test_ver73_slice
 
 # The following parameters are used for the comparing MySQLAdaptor information.
 # The "previousSlice" database will be used to detect revisions for the Event instances.
-needUpdateTrackers=true
+needUpdateTrackers=false
 # Control if UpdateTracker instances created should be written back to the source database, gk_central
 # To set this flag true, the above needUpdateTrackers has to be true. Otherwise, nothing will happen.
 uploadUpdateTrackersToSource=false
@@ -74,15 +73,15 @@ isInDev=true
 
 # Release number that is used to create a _Release instance
 #releaseNumber=2
-releaseNumber=72
+releaseNumber=73
 
 # Release Date, in the format of YYYY-MM-DD, which is used to create a _Release instance
 #releaseDate=2017-08-24
-releaseDate=2020-03-31
+releaseDate=2020-06-15
 
 # Last release Date, in the format of YYYY-MM-DD, which is used to assign releasetStatus for NEW or UPDATED event in homo sapiens.
 #lastReleaseDate=2000-01-01
-lastReleaseDate=2019-12-01
+lastReleaseDate=2020-03-15
 
 # This flag is used to control if the released attribute in StableIdentifier instances should be set to true. If this flag is true, StableIdentifiers in the slice database and their original ones in gk_central will be set to TRUE.
 setReleasedInStableIdentifier=false
