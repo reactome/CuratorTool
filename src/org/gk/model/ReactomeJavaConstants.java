@@ -355,15 +355,6 @@ public class ReactomeJavaConstants {
     
     // Attribute for existence of EHLD in Pathway
     public static final String hasEHLD = "hasEHLD";
-
-    // SlicingEngine/RevisionDetecteor constants
-    public static final String add = "add";
-    public static final String addRemove = "add/remove";
-    public static final String modify = "modify";
-    public static final String remove = "remove";
-    public static final String catalyst = "catalyst";
-    public static final String pathway = "pathway";
-    public static final String reaction = "reaction";
     
     // New classes added in April, 2020
     public static final String NonsenseMutation = "NonsenseMutation";
