@@ -126,7 +126,7 @@ public class RevisionDetector {
      * @throws Exception
      */
     @Test
-    public void testUploadUpdateTracers() throws Exception {
+    public void testUploadUpdateTrackers() throws Exception {
         PropertyConfigurator.configure("SliceLog4j.properties");
         this.sliceEngine = new SlicingEngine();
         sliceEngine.setDefaultPersonId(140537L);
@@ -135,13 +135,13 @@ public class RevisionDetector {
                                                   "root",
                 "macmysql01");
         MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
-                                                        "test_slice_ver72",
+                                                        "test_ver73_slice_update_tracker",
                                                         "root",
                 "macmysql01");
         MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost", 
                                                          "test_slice_ver71",
                                                          "root",
-                "macmysql01");
+                                                         "macmysql01");
         List<GKInstance> updateTrackers = createAllUpdateTrackers(currentSliceDBA,
                                                                   previousSliceDBA);
         int i = 0; 
@@ -159,6 +159,25 @@ public class RevisionDetector {
         //        });
         //        logger.info("Total UpdateTrackers: " + updateTrackers.size());
         //        uploadUpdateTrackers(sourceDBA, currentSliceDBA, new ArrayList<>(updateTrackers));
+    }
+    
+    @Test
+    public void testGetEventActions() throws Exception {
+        Long dbId = 4608870L;
+        MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
+                                                        "test_ver73_slice_update_tracker",
+                                                        "root",
+                "macmysql01");
+        GKInstance event = currentSliceDBA.fetchInstance(dbId);
+        MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost", 
+                                                         "test_slice_ver71",
+                                                         "root",
+                "macmysql01");
+        Map<GKInstance, Set<String>> eventToActions = new HashMap<>();
+        getEventActions(event,
+                        previousSliceDBA,
+                        eventToActions);
+        eventToActions.forEach((e, actions) -> System.out.println(e + " -> " + actions));
     }
 
     /**
@@ -231,6 +250,7 @@ public class RevisionDetector {
                                                      MySQLAdaptor previousSliceDBA) throws Exception {
         if (previousSliceDBA == null)
             return null;
+        logger.info("Create _UpdateTracker instances...");
         GKInstance release = getReleaseInstance(currentSliceDBA);
         GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
         Collection<GKInstance> events = currentSliceDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
@@ -285,7 +305,7 @@ public class RevisionDetector {
                 getEventActions(inst, preSliceDBA, eventToActions);
             }
             Set<String> instActions = eventToActions.get(inst);
-            if (instActions != null) {// Regardless what changes there.
+            if (instActions != null && instActions.size() > 0) {// Regardless what changes there.
                 String type = null;
                 if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
                     type = "ReactionLikeEvent";
