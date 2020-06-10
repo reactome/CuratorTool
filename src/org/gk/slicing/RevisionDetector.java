@@ -306,12 +306,19 @@ public class RevisionDetector {
             }
             Set<String> instActions = eventToActions.get(inst);
             if (instActions != null && instActions.size() > 0) {// Regardless what changes there.
-                String type = null;
-                if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
-                    type = "ReactionLikeEvent";
-                else
-                    type = "Pathway";
-                actions.add(UPDATE_ACTION.update + "Contained" + type);
+                if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                    actions.add(UPDATE_ACTION.update + "ContainedRLE");
+                }
+                else {
+                    // Bubble up UpdateContainedRLE if it is there
+                    Set<String> copy = new HashSet<>(instActions);
+                    if (copy.contains(UPDATE_ACTION.update + "ContainedRLE")) {
+                        actions.add(UPDATE_ACTION.update + "ContainedRLE");
+                        copy.remove(UPDATE_ACTION.update + "ContainedRLE");
+                    }
+                    if (copy.size() > 0) // Anything else will be marked as this.
+                        actions.add(UPDATE_ACTION.update + "ContainedPathway");
+                }
             }
         }
         if (pathwayLevelActions != null)

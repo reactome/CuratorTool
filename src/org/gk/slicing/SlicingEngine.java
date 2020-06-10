@@ -1211,7 +1211,6 @@ public class SlicingEngine {
 	    Statement statement = conn.createStatement();
 	    for (Iterator it = tables.iterator(); it.hasNext();) {
 	        String table = it.next().toString();
-	        System.err.println("Alter Table to MyISAM: " + table);
 	        statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
 	    }
 	    statement.close();
