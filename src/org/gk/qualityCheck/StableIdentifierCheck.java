@@ -452,9 +452,11 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                 instToValidStid.put(inst, newIdentifier);
                 continue; 
             }
-            String oldIdentifier = (String) stableId.getAttributeValue(ReactomeJavaConstants.identifier);
-            if (newIdentifier.equals(oldIdentifier))
-                continue;
+            if (stableId.getSchemClass().isValidAttribute(ReactomeJavaConstants.identifier)) {
+                String oldIdentifier = (String) stableId.getAttributeValue(ReactomeJavaConstants.identifier);
+                if (newIdentifier.equals(oldIdentifier))
+                    continue;
+            }
             instToValidStid.put(inst, newIdentifier);
             if (progressPane != null && progressPane.isCancelled())
                 break;
