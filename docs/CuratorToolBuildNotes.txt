@@ -1,3 +1,7 @@
+Build 106 (Version 4.0) note (July 27, 2020)
+
+Bug fix related to display referrers for instances displayed in the stoichiometry form in the attribute table. This fix covers the display for Reaction's inputs/outputs and Complex's hasComponent.
+
 Build 105 (Version 4.0) note (May 21, 2020)
 
 The NCBI just updated its PubMed web site, which disabled the original URL used to fetch detailed PubMed entry based on PMID. This build fixes this bug by using the eutils API with efetch. It is a little slower, but works.
