@@ -343,6 +343,12 @@ public class PersistenceManager {
         localCopy.setIsShell(false);
     }
     
+    public GKInstance download(GKInstance dbInstance) throws Exception {
+        GKInstance localRef = getLocalReference(dbInstance);
+        updateLocalFromDB(localRef, dbInstance);
+        return localRef;
+    }
+    
 	/**
 	 * Get the local copy for the specified Instance object. A local copy has the
 	 * same DB_ID as the specified instance. The method try to get a GKInstance from 

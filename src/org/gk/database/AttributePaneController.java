@@ -36,7 +36,6 @@ import org.gk.database.AttributePane.PropertyTableModel;
 import org.gk.graphEditor.ArrayListTransferable;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
-import org.gk.model.ReactomeJavaConstants;
 import org.gk.model.StoichiometryInstance;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
@@ -44,7 +43,6 @@ import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
-import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.FileUtilities;
@@ -339,7 +337,7 @@ public class AttributePaneController {
 	    int rowCount = propTable.getSelectedRowCount();
 	    int colCount = propTable.getSelectedColumnCount();
 	    if (rowCount != 1 ||
-	            colCount != 1)
+	        colCount != 1)
 	        return;
 	    PropertyTableModel model = (PropertyTableModel) propTable.getModel();
 	    // Only need to handle a single cell selection.
@@ -353,6 +351,8 @@ public class AttributePaneController {
 	}
 
     protected void displayReferrers(GKInstance instance) {
+        if (instance instanceof StoichiometryInstance)
+            instance = ((StoichiometryInstance)instance).getInstance(); // We need the wrapped instance
         ReverseAttributePane referrersPane = new ReverseAttributePane();
         referrersPane.displayReferrersWithCallback(instance, attributePane);
     }
