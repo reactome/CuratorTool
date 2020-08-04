@@ -682,6 +682,10 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		        else if (instance.getSchemClass().isa(ReactomeJavaConstants.DefinedSet))
 		            popup.add(actionCollection.getDeepCloneDefinedSet());
 		    }
+		    if (list.getSelectedValuesList().size() > 1 &&
+		        instance.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
+		            popup.add(actionCollection.getCreateMultimerAction());
+
 		    popup.add(actionCollection.getSwitchTypeAction());
 		    // Action to create EWAS from RefPepSeq
 		    if (instance.getSchemClass().isa(ReactomeJavaConstants.ReferencePeptideSequence) ||

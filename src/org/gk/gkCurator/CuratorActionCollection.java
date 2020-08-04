@@ -6,6 +6,9 @@ package org.gk.gkCurator;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -23,21 +26,28 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 
 import org.gk.database.AttributeEditConfig;
@@ -84,6 +94,7 @@ import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.AboutGKPane;
 import org.gk.util.BrowserLauncher;
+import org.gk.util.DialogControlPane;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.GKFileFilter;
 import org.gk.util.ProgressPane;
@@ -197,41 +208,143 @@ public class CuratorActionCollection {
 	    }
 	    return addHasModfiedResidueAction;
 	}
-	
-	public Action getCreateMultimerAction() {
-	    Action action = new AbstractAction("Create Multimer") {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createMultimer();
-            }
-        };
-        return action;
-	}
-	
-	@SuppressWarnings({"rawtypes", "unchecked"})
-	private void createMultimer() {
-	    java.util.List selection = getSelection();
-	    if (selection != null && selection.size() != 1)
-	        return;
-	    GKInstance inst = (GKInstance) selection.get(0);
-	    if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
-	        return;
+
+	private void createMultimerDialog(List<GKInstance> instances) {
+	    MultimerDialog dialog = new MultimerDialog(curatorFrame, instances);
+
+        dialog.setVisible(true);
+        if (!dialog.isOKClicked)
+            return;
+
+	    Map<GKInstance, Integer> numberMap = dialog.getMultimerNumbers();
+
+	    for (Entry<GKInstance, Integer> entry : numberMap.entrySet()) {
+	        GKInstance instance = entry.getKey();
+	        Integer number = entry.getValue();
+	        createMultimer(instance, number);
+	    }
+
 	    // Get the number of multimer
+	    /*
 	    String text = JOptionPane.showInputDialog(curatorFrame,
-	                                              "Enter a number to create a multimer:", 
-	                                              "Create Multimer", 
-	                                              JOptionPane.OK_CANCEL_OPTION);
+	            "Enter a number to create a multimer:",
+	            "Create Multimer",
+	            JOptionPane.OK_CANCEL_OPTION);
 	    if (text == null)
 	        return ; // Cancelled
 	    if (!text.matches("\\d+")) {
 	        JOptionPane.showMessageDialog(curatorFrame,
-	                                      "The entered value should be integer only!",
-	                                      "Error",
-	                                      JOptionPane.ERROR_MESSAGE);
+	                "The entered value should be integer only!",
+	                "Error",
+	                JOptionPane.ERROR_MESSAGE);
 	        return;
 	    }
-	    int number = new Integer(text);
+	    */
+	}
+
+	private class MultimerDialog extends JDialog {
+        private boolean isOKClicked = false;
+	    Map<GKInstance, Integer> numberMap;
+	    Map<GKInstance, JSpinner> spinnerMap;
+
+	    public MultimerDialog(JFrame parent, List<GKInstance> instances) {
+	        super(parent);
+
+	        numberMap = new HashMap<GKInstance, Integer>();
+	        spinnerMap = new HashMap<GKInstance, JSpinner>();
+	        init(instances);
+	    }
+
+	    public Map<GKInstance, Integer> getMultimerNumbers() {
+	        Set<GKInstance> invalidValues = new HashSet<GKInstance>();
+
+	        for (Entry<GKInstance, JSpinner> entry : spinnerMap.entrySet()) {
+	            GKInstance instance = entry.getKey();
+	            JSpinner spinner = entry.getValue();
+	            Object value = spinner.getValue();
+
+	            if (value == null || !(value instanceof Integer)) {
+	                invalidValues.add(instance);
+	                continue;
+	            }
+
+	            numberMap.put(instance, (Integer) value);
+	        }
+
+	        if (invalidValues.size() > 0) {
+	            String errMsg = new String("<HTML><p>Multimers creation failed with the following instance(s) due to invalid values<p><ul>");
+	            for (GKInstance instance : invalidValues) {
+	                errMsg.concat("<li>");
+	                errMsg.concat(instance.getDisplayName());
+	                errMsg.concat("</li>");
+	            }
+	            errMsg.concat("</ul></html>");
+	            JOptionPane.showMessageDialog(curatorFrame,
+                                              errMsg,
+                                              "Error",
+                                              JOptionPane.ERROR_MESSAGE);
+	        }
+
+	        return numberMap;
+	    }
+
+	    private void init(List<GKInstance> instances) {
+            setTitle("Create Multimer(s)");
+            Insets smallInset = new Insets(5,0,0,0);
+            Insets bigInset = new Insets(20,0,0,0);
+            int gridy = 0;
+
+	        JPanel contentPane = new JPanel();
+	        contentPane.setBorder(BorderFactory.createEtchedBorder());
+	        contentPane.setLayout(new GridBagLayout());
+	        GridBagConstraints constraints = new GridBagConstraints();
+	        constraints.anchor = GridBagConstraints.WEST;
+	        constraints.fill = GridBagConstraints.HORIZONTAL;
+	        constraints.insets = smallInset;
+
+	        JLabel label = new JLabel("Enter a number to create a multimer:");
+	        constraints.gridy = gridy++;
+	        contentPane.add(label, constraints);
+
+	        for (GKInstance instance : instances) {
+	            JLabel displayName = new JLabel(instance.getDisplayName());
+	            constraints.gridy = gridy++;
+	            constraints.insets = bigInset;
+	            contentPane.add(displayName, constraints);
+
+	            SpinnerNumberModel model = new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1);
+	            JSpinner spinner = new JSpinner(model);
+
+	            constraints.gridy = gridy++;
+	            constraints.insets = smallInset;
+	            contentPane.add(spinner, constraints);
+
+	            spinnerMap.put(instance, spinner);
+	        }
+
+	        JScrollPane scrollPane = new JScrollPane(contentPane);
+	        getContentPane().add(scrollPane, BorderLayout.CENTER);
+
+	        DialogControlPane controlPane = new DialogControlPane();
+	        controlPane.setBorder(BorderFactory.createEtchedBorder());
+	        controlPane.getOKBtn().setText("Submit");
+	        controlPane.getOKBtn().addActionListener(e -> {
+	            isOKClicked = true;
+	            dispose();
+	        });
+	        controlPane.getCancelBtn().addActionListener(e -> dispose());
+	        getContentPane().add(controlPane, BorderLayout.SOUTH);
+
+	        setSize(400, 300);
+	        setLocationRelativeTo(getOwner());
+	        setModal(true);
+	    }
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	private void createMultimer(GKInstance inst, int number) {
+	    if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
+	        return;
 	    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 	    GKInstance multimer = fileAdaptor.createNewInstance(ReactomeJavaConstants.Complex);
 	    try {
@@ -688,6 +801,34 @@ public class CuratorActionCollection {
         attDialog.setVisible(true);
     }
     
+    public Action getCreateMultimerAction() {
+        Action action = new AbstractAction("Create Multimer(s)") {
+            public void actionPerformed(ActionEvent e) {
+                List<GKInstance> selectedInstances = getSelection();
+                // Check if any shell instances are selected
+                boolean hasShell = false;
+                GKInstance instance = null;
+                for (Iterator it = selectedInstances.iterator(); it.hasNext();) {
+                    instance = (GKInstance) it.next();
+                    if (instance.isShell()) {
+                        hasShell = true;
+                        break;
+                    }
+                }
+                if (hasShell) {
+                    JOptionPane.showMessageDialog(curatorFrame,
+                            "Shell instance is selected. A shell instance cannot be edited." +
+                                    "\nPlease download it first to edit.",
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                createMultimerDialog(selectedInstances);
+            }
+        };
+        return action;
+    }
+
     public Action getRequestNewGOTermAction() {
         if (requestNewGOTermAction == null) {
             requestNewGOTermAction = new AbstractAction("Request New Term") {
