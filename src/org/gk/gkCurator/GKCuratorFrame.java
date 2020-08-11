@@ -684,7 +684,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		    }
 		    if (list.getSelectedValuesList().size() > 1 &&
 		        instance.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
-		            popup.add(actionCollection.getCreateMultimerAction());
+		            popup.add(actionCollection.getCreateMultimersAction());
 
 		    popup.add(actionCollection.getSwitchTypeAction());
 		    // Action to create EWAS from RefPepSeq
