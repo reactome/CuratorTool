@@ -144,8 +144,9 @@ public class GKBReader implements RenderablePropertyNames {
         String text = nodeElm.getAttributeValue("bgColor");
         if (text != null && text.length() > 0)
             node.setBackgroundColor(convertToColor(text));
-        else
-            node.setBackgroundColor(null); // In case shortcuts, which may take value from target
+        // Don't override the default background (e.g for chemical drugs)
+//        else
+//            node.setBackgroundColor(null); // In case shortcuts, which may take value from target
         text = nodeElm.getAttributeValue("fgColor");
         if (text != null && text.length() > 0)
             node.setForegroundColor(convertToColor(text));

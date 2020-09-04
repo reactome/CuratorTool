@@ -1012,6 +1012,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                 if (inst == null)
                     continue;
                 // Not for drug itself, which should be taken care of somewhere
+                // during RenderableDrug instantiation. 
                 if (inst.getSchemClass().isa(ReactomeJavaConstants.Drug))
                     continue;
                 boolean hasDrug = InstanceUtilities.hasDrug(inst);
