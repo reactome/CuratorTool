@@ -4,9 +4,15 @@
 package org.gk.database;
 
 import java.awt.BorderLayout;
+import java.awt.Window;
+import java.util.List;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+
+import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
+import org.gk.util.GKApplicationUtilities;
 
 /**
  * A customized JDialog to display a list of GKInstances.
@@ -14,6 +20,29 @@ import javax.swing.JFrame;
  */
 public class InstanceListDialog extends JDialog {
 	private InstanceListAttributePane contentPane;
+	
+	public static InstanceListDialog showInstanceList(List<GKInstance> instances,
+	                                                  String title,
+	                                                  String subTitle,
+	                                                  Window parentWindow,
+	                                                  boolean needInput) {
+	    InstanceListDialog listDialog = null;
+	    if (parentWindow instanceof JFrame)
+	        listDialog = new InstanceListDialog((JFrame)parentWindow, title, needInput);
+	    else if (parentWindow instanceof JDialog)
+	        listDialog = new InstanceListDialog((JDialog)parentWindow, title, needInput);
+	    else
+	        listDialog = new InstanceListDialog(title, needInput);
+        InstanceUtilities.sortInstances(instances);
+        listDialog.setDisplayedInstances(instances);
+        if (subTitle != null)
+            listDialog.setSubTitle(subTitle);
+        listDialog.setSize(600, 400);
+        GKApplicationUtilities.center(listDialog);
+        listDialog.setModal(true);
+        listDialog.setVisible(true);
+        return listDialog;
+	}
 	
 	public InstanceListDialog(String title, boolean needInput) {
 		super();

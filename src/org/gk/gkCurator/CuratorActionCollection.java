@@ -1959,15 +1959,7 @@ public class CuratorActionCollection {
 	private void showInstanceList(java.util.List instances,
 	                               String title,
 	                               String subTitle) {
-		InstanceListDialog listDialog = new InstanceListDialog(curatorFrame, title);
-		InstanceUtilities.sortInstances(instances);
-		listDialog.setDisplayedInstances(instances);
-		if (subTitle != null)
-			listDialog.setSubTitle(subTitle);
-		listDialog.setSize(600, 400);
-		GKApplicationUtilities.center(listDialog);
-		listDialog.setModal(true);
-		listDialog.setVisible(true);
+		InstanceListDialog.showInstanceList(instances, title, subTitle, curatorFrame, false);
 	}
 		
 	public Action getUpdateFromDBAction() {

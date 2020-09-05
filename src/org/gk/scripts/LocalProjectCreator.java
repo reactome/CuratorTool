@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +14,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
+import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.render.Renderable;
+import org.gk.render.RenderablePathway;
 import org.junit.Test;
 
 /**
@@ -28,7 +33,202 @@ import org.junit.Test;
 public class LocalProjectCreator {
     
     public LocalProjectCreator() {
+    }
+    
+    /**
+     * Fix a local project for Marc by switch species into the relatedSpecies slot.
+     * @throws Exception
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void fixHCMVProject() throws Exception {
+        String dirName = "/Users/wug/Documents/wgm/work/reactome/CuratorsProjects/";
+        String srcFileName = dirName + "HCMV_Fix_GW.rtpj";
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+        fileAdaptor.setSource(srcFileName);
         
+        Long dbId = 9610379L;
+        GKInstance lateEvent = fileAdaptor.fetchInstance(dbId);
+        
+        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test");
+        GKInstance dbLateEvent = dba.fetchInstance(dbId);
+        
+        List<GKInstance> hasEvent = lateEvent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+        List<GKInstance> dbHasEvent = dbLateEvent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+        Set<Long> dbHasEventIds = dbHasEvent.stream().map(inst -> inst.getDBID()).collect(Collectors.toSet());
+        int total = 0;
+        InstanceCloneHelper cloneHelper = new InstanceCloneHelper();
+        Map<GKInstance, GKInstance> original2clone = new HashMap<>();
+        GKInstance human = fileAdaptor.fetchInstance(48887L);
+        for (GKInstance hasEventInst : hasEvent) {
+            if (dbHasEventIds.contains(hasEventInst.getDBID()))
+                continue;
+            System.out.println("Working on: " + hasEventInst);
+            // Make a clone
+            GKInstance clone = cloneHelper.cloneInstance(hasEventInst, fileAdaptor);
+            String name = clone.getDisplayName();
+            if (name.startsWith("Clone of")) {
+                name = name.replace("Clone of ", "");
+                clone.setDisplayName(name);
+            }
+            // Switch instances to relatedInstance and set human as its instance
+            List<GKInstance> species = clone.getAttributeValuesList(ReactomeJavaConstants.species);
+            clone.setAttributeValue(ReactomeJavaConstants.relatedSpecies, species);
+            clone.setAttributeValue(ReactomeJavaConstants.species, human);
+            // Remove stable id
+            clone.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
+            original2clone.put(hasEventInst, clone);
+            total ++;
+        }
+        System.out.println("Total: " + total);
+        // Handle the pathway diagram
+        GKInstance diagramofHCMVInfection = fileAdaptor.fetchInstance(9609686L);
+        RenderablePathway diagram = new DiagramGKBReader().openDiagram(diagramofHCMVInfection);
+        List<Renderable> components = diagram.getComponents();
+        for (Renderable r : components) {
+            dbId = r.getReactomeId();
+            if (dbId == null)
+                continue;
+            GKInstance inst = fileAdaptor.fetchInstance(dbId);
+            if (inst == null)
+                throw new IllegalStateException(dbId + " is not found!");
+            GKInstance clone = original2clone.get(inst);
+            if (clone == null)
+                continue;
+            r.setReactomeId(clone.getDBID());
+        }
+        diagramofHCMVInfection.setIsDirty(true);
+        fileAdaptor.addDiagramForPathwayDiagram(diagramofHCMVInfection, diagram);
+        
+        for (int i = 0; i < hasEvent.size(); i++) {
+            GKInstance hasEventInst = hasEvent.get(i);
+            GKInstance clone = original2clone.get(hasEventInst);
+            if (clone == null)
+                continue;
+            hasEvent.set(i, clone);
+        }
+        lateEvent.setIsDirty(true);
+        
+        fileAdaptor.save(dirName + "HCMV_Fix_GW_Fix.rtpj");
+    }
+    
+    @Test
+    public void fixProject() throws Exception {
+        String dirName = "/Users/wug/Documents/wgm/work/reactome/covid-19/";
+        String srcFileName = dirName + "Ralf_Project_Fix.rtpj";
+        String targetFileName = dirName + "Ralf_Project_Fix_1.rtpj";
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                                            "gk_central_2020_07_16",
+                                            "root",
+                                            "macmysql01");
+        Long[] ieDbIds = {9695980L, 9695985L};
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+        fileAdaptor.setSource(srcFileName);
+        int count = 0;
+        PersistenceManager manager = PersistenceManager.getManager();
+        manager.setActiveFileAdaptor(fileAdaptor);
+        manager.setActiveMySQLAdaptor(dba);
+        for (Long dbId : ieDbIds) {
+            GKInstance ie = fileAdaptor.fetchInstance(dbId);
+            Collection<GKInstance> referrers = fileAdaptor.getReferers(ie);
+            System.out.println(ie + " <- " + referrers.size());
+            for (GKInstance referrer : referrers) {
+                Long referId = referrer.getDBID();
+                GKInstance dbCopy = dba.fetchInstance(referId);
+                if (dbCopy == null)
+                    continue;
+                System.out.println(referrer + " -> " + dbCopy);
+                count ++;
+                // Need to do some fix now
+                // Flip the current DB_ID
+                referrer.setDBID(-referId);
+                fileAdaptor.dbIDUpdated(referId, referrer);
+                referrer.setIsDirty(true);
+                GKInstance localCopy = manager.download(dbCopy);
+                localCopy.setIsDirty(true);
+            }
+        }
+        dba.cleanUp();
+//        fileAdaptor.save(targetFileName);
+        System.out.println("Total wrong instances: " + count);
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Test
+    public void removeIEInModified() throws Exception {
+        String dirName = "/Users/wug/Documents/wgm/work/reactome/covid-19/";
+        String srcFileName = dirName + "Inferred_SARS-CoV-2_Infection_local_v2_marc.rtpj";
+        String targetFileName = dirName + "Inferred_SARS-CoV-2_Infection_local_v2_marc_ie_removed.rtpj";
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+        fileAdaptor.setSource(srcFileName);
+        Collection<GKInstance> instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DatabaseObject);
+        Long toBeRemovedID = 9694660L;
+        int counter = 0;
+        for (GKInstance inst : instances) {
+            if (!inst.isDirty())
+                continue;
+            counter ++;
+            List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+            GKInstance lastIE = modified.get(modified.size() - 1);
+            if (!lastIE.getDBID().equals(toBeRemovedID))
+                throw new IllegalStateException(inst + " doesn't have the IE to be removed!");
+            modified.remove(modified.size() - 1);
+        }
+        System.out.println("Total dirty instances: " + counter);
+        fileAdaptor.save(targetFileName);
+    }
+    
+    /**
+     * Use this method to flip DB_IDs from positive to negative. This is used to create a new curator tool
+     * project for pathways orthologously predicted or coming from other sources.
+     * @throws Exception
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void flipInstancesDBIDs() throws Exception {
+        String dirName = "/Users/wug/Documents/wgm/work/reactome/covid-19/";
+        String srcFileName = dirName + "Inferred_SARS-CoV-2_Infection.rtpj";
+        String targetFileName = dirName + "Inferred_SARS-CoV-2_Infection_local_v2.rtpj";
+        Long oldMaxDBID = 9691821L; // Pre-configured
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+        fileAdaptor.setSource(srcFileName, true);
+        // The original database used to generate the source project
+        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+                                                  "test_cov_inference",
+                                                  "root",
+                                                  "macmysql01");
+        // Have to make sure all new instances have been fully downloaded.
+        PersistenceManager manager = PersistenceManager.getManager();
+        manager.setActiveFileAdaptor(fileAdaptor);
+        manager.setActiveMySQLAdaptor(sourceDBA);
+        while (true) {
+            Collection<GKInstance> instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DatabaseObject);
+            boolean hasShell = false;
+            for (GKInstance inst : instances) {
+                if (inst.isShell() && inst.getDBID() > oldMaxDBID) { // Only for inferred instances
+                    GKInstance dbCopy = sourceDBA.fetchInstance(inst.getDBID());
+                    System.out.println("Download " + inst);
+                    manager.updateLocalFromDB(inst, dbCopy);
+                    hasShell = true;
+                }
+            }
+            if (!hasShell)
+                break;
+        }
+        Collection<GKInstance> instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DatabaseObject);
+        for (GKInstance inst : instances) {
+            Long dbId = inst.getDBID();
+            if (dbId > oldMaxDBID) {
+                inst.setDBID(-dbId);
+                inst.setIsDirty(true);
+            }
+        }
+        // Need to handle pathway diagrams
+        fileAdaptor.assignInstancesToDiagrams();
+        fileAdaptor.save(targetFileName);
     }
     
     /**
