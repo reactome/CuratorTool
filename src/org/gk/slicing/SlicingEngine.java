@@ -91,8 +91,8 @@ public class SlicingEngine {
     private MySQLAdaptor targetDBA;
     private MySQLAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
-    private Map eventMap;
-    private Map<Long, GKInstance> sliceMap;
+    protected Map eventMap;
+    protected Map<Long, GKInstance> sliceMap;
     // To control references checking
     private Set checkedIDs;
     // IDs from the top-level pathways
@@ -483,7 +483,7 @@ public class SlicingEngine {
         }
     }
     
-    private void extractPathwayDiagrams() throws Exception {
+    protected void extractPathwayDiagrams() throws Exception {
         PathwayDiagramSlicingHelper diagramHelper = new PathwayDiagramSlicingHelper();
         diagramHelper.isInDev = isInDev;
         for (Long dbID : topLevelIDs) {
@@ -935,7 +935,7 @@ public class SlicingEngine {
         logger.info("extractRegulations: " + sliceMap.size() + " instances.");
     }
 
-    private void extractReferences() throws Exception {
+    protected void extractReferences() throws Exception {
         // Check all references in the events
         GKInstance instance = null;
         Long dbID = null;
