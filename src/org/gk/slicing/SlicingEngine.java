@@ -94,7 +94,7 @@ public class SlicingEngine {
     protected Map eventMap;
     protected Map<Long, GKInstance> sliceMap;
     // To control references checking
-    private Set checkedIDs;
+    protected Set checkedIDs;
     // IDs from the top-level pathways
     protected List<Long> topLevelIDs;
     // File name for the top-level events
@@ -753,7 +753,7 @@ public class SlicingEngine {
      * @param instance
      * @throws Exception
      */
-	private void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
+	public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
         Long dbID = instance.getDBID();
         SchemaClass cls = instance.getSchemClass();
         GKSchema schema = (GKSchema) targetDBA.getSchema();
@@ -950,7 +950,7 @@ public class SlicingEngine {
         logger.info("Time for extractReferences: " + (System.currentTimeMillis() - time1));
     }
     
-    private void extractReferencesToInstance(GKInstance instance) throws Exception {
+    protected void extractReferencesToInstance(GKInstance instance) throws Exception {
         Set current = new HashSet();
         Set next = new HashSet();
         current.add(instance);
@@ -1001,7 +1001,7 @@ public class SlicingEngine {
         }
     }
     
-    private void pushToMap(GKInstance instance, Map map) {
+    protected void pushToMap(GKInstance instance, Map map) {
         if (map.containsKey(instance.getDBID()))
             return;
         map.put(instance.getDBID(), instance);
