@@ -114,7 +114,7 @@
          these instances are generated from some software bugs, and should never be committed to the central
          database. -->
     <enableCommitLocalHasMoreInstance>false</enableCommitLocalHasMoreInstance>
-    <central_db dbName="gk_central" dbHost="reactomedev.oicr.on.ca" />
+    <central_db dbName="gk_central" dbHost="curator.reactome.org" />
     <!-- The following values are used for modification mapping in the entity-level view -->
     <modifiedResidues>
         <residue name="Serine [ChEBI:9116]" shortName="Ser" />
