@@ -36,6 +36,11 @@ public class StoichiometryInstance extends GKInstance implements Comparable {
         return this.instance;
     }
     
+    @Override
+    public Long getDBID() {
+        return this.instance.getDBID();
+    }
+    
     public String getDisplayName() {
         if (stoi == 0)
             return instance.getDisplayName();

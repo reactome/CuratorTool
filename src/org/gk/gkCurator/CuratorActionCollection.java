@@ -600,14 +600,12 @@ public class CuratorActionCollection {
             return; // Nothing to do
         // Get permission for auto-query cooridnates
         int reply = JOptionPane.showConfirmDialog(curatorFrame,
-                                                  "The Curator Tool can fetch start and end coordinates for you from the UniProt web site.\n" +
-                                                  "Do you want it to do this for you?\n" +
+                                                  "The Curator Tool can fetch start and end coordinates for you from\n" +
+                                                  "the UniProt web site. Do you want it to do this for you?\n" +
                                                   "Note: not all UniProt entries have coordinates.",
                                                   "Query Coordinates?",
                                                   JOptionPane.YES_NO_OPTION);
-        boolean needCoordinates = true;
-        if (reply != JOptionPane.YES_OPTION)
-            needCoordinates = false;
+        boolean needCoordinates = (reply == JOptionPane.YES_OPTION);
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
         for (Iterator it = selection.iterator(); it.hasNext();) {
             GKInstance instance = (GKInstance) it.next();

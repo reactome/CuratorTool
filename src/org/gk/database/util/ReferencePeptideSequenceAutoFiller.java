@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JOptionPane;
 
@@ -141,18 +143,17 @@ public class ReferencePeptideSequenceAutoFiller extends AbstractAttributeAutoFil
             return null;
         int[] coordinates = new int[2];
         coordinates[0] = coordinates[1] = -1; // initialize as -1
-        String[] tokens = line.split("(\\s)+");
-        if (tokens.length > 2) {
-            try {
-                coordinates[0] = Integer.parseInt(tokens[2]);
-            }
-            catch(NumberFormatException e) {} // Just do nothing
-        }
-        if (tokens.length > 3) {
-            try {
-                coordinates[1] = Integer.parseInt(tokens[3]);
-            }
-            catch(NumberFormatException e) {}
+        Pattern pattern = Pattern.compile("(\\d)+");
+        Matcher matcher = pattern.matcher(chainLine);
+        int index = 0;
+        int start = 0;
+        while (matcher.find(start)) {
+            int value = Integer.parseInt(matcher.group());
+            coordinates[index] = value;
+            start = matcher.end();
+            index ++;
+            if (index > 1)
+                break;
         }
         return coordinates;
     }
