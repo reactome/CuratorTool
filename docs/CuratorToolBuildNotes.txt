@@ -1,3 +1,13 @@
+Build 107 (Version 4.0) note (September 10, 2020)
+
+Three bug fixes in this build:
+
+1). Instances deleted in the local project will be excluded for being selected during duplication check when newly created instances are committed into gk_central. Thanks to Marc for spotting this bug.
+
+2). Copy/paste is enabled again for instances displayed in the input/output slot for ReactionlikeEvent. Thanks to Marija for reporting the bug.
+
+3). Start/end coordinates cane be fetched again when an EWAS instance is created from a ReferenceGeneProduct instance. It was broken because of the format change at UniProt. Thanks to Karen for reporting this bug.
+
 Build 106 (Version 4.0) note (July 27, 2020)
 
 Bug fix related to display referrers for instances displayed in the stoichiometry form in the attribute table. This fix covers the display for Reaction's inputs/outputs and Complex's hasComponent.
