@@ -30,9 +30,91 @@ import org.junit.Test;
  * @author wug
  *
  */
+@SuppressWarnings("unchecked")
 public class LocalProjectCreator {
     
     public LocalProjectCreator() {
+    }
+    
+    /**
+     * This method is used to fix instances that have been overwriten in their modified slot.
+     */
+    @Test
+    public void fixModifed() throws Exception {
+        // Instances there to be fixed
+        MySQLAdaptor targetDBA = new MySQLAdaptor("",
+                                                  "gk_central",
+                                                  "",
+                                                  "");
+        // Instances having correct modified slot values.
+        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+                                                  "before_cov_manual_updates",
+                                                  "",
+                                                  "");
+        // List of IEs with which instances should be checked
+        Collection<GKInstance> ies = targetDBA.fetchInstanceByAttribute(ReactomeJavaConstants.InstanceEdit,
+                                                                        ReactomeJavaConstants._displayName,
+                                                                        "=",
+                "Cook, Justin, 2020-08-27");
+        System.out.println("Total IEs: " + ies.size());
+        // Instances touched
+        Collection<GKInstance> touchedInstances = targetDBA.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
+                                                                                     ReactomeJavaConstants.modified,
+                                                                                     "=", 
+                                                                                     ies);
+        System.out.println("Total referred instances: " + touchedInstances.size());
+        // Check one by one
+        try {
+            int totalChanged = 0;
+            targetDBA.startTransaction();
+            for (GKInstance inst : touchedInstances) {
+                boolean isChanged = false;
+                System.out.println("Checking " + inst + "...");
+                // Set the source
+                GKInstance srcInst = sourceDBA.fetchInstance(inst.getDBID());
+                List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                List<Long> modifiedIds = modified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                List<GKInstance> sourceModified = srcInst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                List<Long> sourceModifiedIds = sourceModified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                if (modifiedIds.equals(sourceModifiedIds)) {
+                    System.out.println("Pass: Same list of modified!");
+                    continue;
+                }
+                int originalSize = modified.size();
+                // Need to update the target instance
+                for (int i = sourceModified.size() - 1; i >= 0; i--) {
+                    Long sourceId = sourceModifiedIds.get(i);
+                    // Just in case
+                    if (modifiedIds.contains(sourceId)) {
+                        System.out.println("InstanceEdit with DB_ID has been there: " + sourceId);
+                        continue;
+                    }
+                    GKInstance targetIE = targetDBA.fetchInstance(sourceId);
+                    // Have to make sure it exists
+                    if (targetIE == null)
+                        throw new IllegalStateException("InstanceEdit for DB_ID, " + sourceId + ", cannot be found!");
+                    if (!targetIE.getSchemClass().isa(ReactomeJavaConstants.InstanceEdit)) {
+                        throw new IllegalStateException(targetIE + " is not an InstanceEdit!");
+                    }
+                    modified.add(0, targetIE);
+                    isChanged = true;
+                }
+                if (!isChanged) {
+                    System.out.println("Nothing to be changed after checking.");
+                    continue;
+                }
+                System.out.println("Update modified by adding: " + originalSize + " -> " + modified.size());
+                inst.setAttributeValue(ReactomeJavaConstants.modified, modified);
+                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
+                totalChanged ++;
+            }
+            targetDBA.commit();
+            System.out.println("Total changed instance: " + totalChanged);
+        }
+        catch(Exception e) {
+            targetDBA.rollback();
+            e.printStackTrace();
+        }
     }
     
     /**
