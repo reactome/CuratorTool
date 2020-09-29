@@ -1827,9 +1827,11 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	    Properties prop = new Properties();
 	    try {
 	        File file = GKApplicationUtilities.getPropertyFile("curator.prop");
-	        FileInputStream fis = new FileInputStream(file);
-	        prop.load(fis);
-	        fis.close();
+	        if (file.exists()) {
+	            FileInputStream fis = new FileInputStream(file);
+	            prop.load(fis);
+	            fis.close();
+	        }
 	    }
 	    catch(IOException e) {
 	        System.err.println("GKVisualizationPane.main(): " + e);

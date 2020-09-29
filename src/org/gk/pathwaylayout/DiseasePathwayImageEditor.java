@@ -421,7 +421,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                     // use the existing one.
                     int dx = Math.abs(r.getPosition().x - normalNode.getPosition().x);
                     int dy = Math.abs(r.getPosition().y - normalNode.getPosition().y);
-                    if (dx < 10 && dy < 10) {
+                    if (dx < 100 && dy < 100) {
                         // We don't need to create a new Node if it exists already
                         cacheDiseaseNode(diseaseEntity, (Node)r, normalNode);
                         overlaidObjects.add(r); // Add it to overlaid object to cover edges

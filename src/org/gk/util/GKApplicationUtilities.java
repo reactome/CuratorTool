@@ -675,13 +675,7 @@ public class GKApplicationUtilities {
 	  */
 	 public static File getPropertyFile(String fileName) throws IOException {
 	     String filePath = REACTOME_DIR + File.separator + fileName;
-		 
 		 File file = new File(filePath);
-
-	     if (!file.exists()) {
-	     	throw new FileNotFoundException(filePath + " does not exist");
-	     }
-
 	     return file;
 	 }
 
