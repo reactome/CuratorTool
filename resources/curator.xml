@@ -91,6 +91,7 @@
         <autoFiller target="Disease.identifier" class="org.gk.database.util.DiseaseAttributeAutoFiller"/>
         <autoFiller target="SequenceOntology.identifier" class="org.gk.database.util.SOAttributeAutoFiller" />
         <autoFiller target="CellType.identifier" class="org.gk.database.util.CellTypeAttributeAutoFiller" />
+        <autoFiller target="Anatomy.identifier" class="org.gk.database.util.AnatomyAttributeAutoFiller" />
         <autoFiller target="ReferenceTherapeutic.identifier" class="org.gk.database.util.ReferenceTherapeuticAutoFiller" />
     </attributeAutoFillers>
 	<deletedInstances>
