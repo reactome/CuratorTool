@@ -264,22 +264,24 @@ public class InstanceDisplayNameGenerator {
 	}
 	
 	private static String generateEntityName(GKInstance instance) throws Exception {
-		StringBuffer buffer = new StringBuffer();
-		java.util.List values = instance.getAttributeValuesList("name");
-		if (values != null && values.size() > 0) {
-			buffer.append(values.get(0).toString());
-		}
-		else
-			buffer.append("unknown");
-		// Check compartment
-		values = instance.getAttributeValuesList("compartment");
-		if (values != null && values.size() > 0) {
-			GKInstance compartment = (GKInstance) values.get(0);
-			buffer.append(" [");
-			buffer.append(compartment.getDisplayName());
-			buffer.append("]");
-		}
-		return buffer.toString();
+	    StringBuffer buffer = new StringBuffer();
+	    java.util.List values = instance.getAttributeValuesList("name");
+	    if (values != null && values.size() > 0) {
+	        buffer.append(values.get(0).toString());
+	    }
+	    else
+	        buffer.append("unknown");
+	    // Check compartment
+	    if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment)) {
+	        values = instance.getAttributeValuesList(ReactomeJavaConstants.compartment);
+	        if (values != null && values.size() > 0) {
+	            GKInstance compartment = (GKInstance) values.get(0);
+	            buffer.append(" [");
+	            buffer.append(compartment.getDisplayName());
+	            buffer.append("]");
+	        }
+	    }
+	    return buffer.toString();
 	}
 	
 	private static String generateInstanceEditName(GKInstance instance) throws Exception {

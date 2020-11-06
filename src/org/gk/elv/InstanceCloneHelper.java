@@ -91,6 +91,7 @@ public class InstanceCloneHelper {
         rtn.add(ReactomeJavaConstants._doRelease);
         rtn.add(ReactomeJavaConstants.releaseStatus);
         rtn.add(ReactomeJavaConstants.releaseDate);
+        rtn.add(ReactomeJavaConstants.doi);
         return rtn;
     }
     

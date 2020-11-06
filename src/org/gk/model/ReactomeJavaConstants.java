@@ -196,6 +196,7 @@ public class ReactomeJavaConstants {
     public static final String referenceGroupCount = "referenceGroupCount";
     public static final String sourceX = "sourceX";
     public static final String releaseDate = "releaseDate";
+    public static final String doi = "doi";
     public static final String minCount = "minCount";
     public static final String targetX = "targetX";
     public static final String regulator = "regulator";
