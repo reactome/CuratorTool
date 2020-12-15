@@ -3,28 +3,24 @@ package org.gk.reach;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public class PaperFetch {
 
     public PaperFetch() {
     }
 
-    private String convertId(String pmid) throws IOException, SAXException, ParserConfigurationException {
+    public String convertId(String pmid) throws Exception {
         String pmcid = null;
         StringBuilder stringBuilder = new StringBuilder(ReachConstants.CONVERT_URL);
         stringBuilder.append(ReachConstants.TOOL_EMAIL);
@@ -44,15 +40,12 @@ public class PaperFetch {
         return pmcid;
     }
 
-    public Path fetchPaper(String paperId) throws IOException, SAXException, ParserConfigurationException {
-        String pmcid = null;
-        // If paperId begins with "PMC", remove "PMC" and fetch paper.
-        if (paperId.toUpperCase().startsWith(ReachConstants.PMC))
-            pmcid = paperId.substring(ReachConstants.PMC.length());
+    public String fetchPaper(String pmcid) throws IOException {
+        if (!pmcid.toUpperCase().startsWith(ReachConstants.PMC))
+            return null;
 
-        // Otherwise, pass paperId to the PMID -> PMCID converter and then fetch paper.
-        else
-            pmcid = convertId(paperId);
+        // If paperId begins with "PMC", remove "PMC" and fetch paper.
+        pmcid = pmcid.substring(ReachConstants.PMC.length());
 
         StringBuilder stringBuilder = new StringBuilder(ReachConstants.PAPER_URL);
         stringBuilder.append(ReachConstants.PMC_QUERY);
@@ -60,24 +53,23 @@ public class PaperFetch {
         stringBuilder.append(pmcid);
         stringBuilder.append(ReachConstants.TOOL_EMAIL);
         ReachCall reachCall = new ReachCall();
-        String nxml = reachCall.callHttpGet(stringBuilder.toString());
 
-        if (nxml == null || nxml.length() == 0)
-            return null;
-        Path path = Paths.get(paperId.concat(ReachConstants.NXML_EXT));
-        try(BufferedWriter writer = Files.newBufferedWriter(path,
-                                                            Charset.forName("UTF-8"), // Make it compatible in other OS.
-                                                            StandardOpenOption.CREATE,
-                                                            StandardOpenOption.WRITE)) {
-            writer.write(nxml, 0, nxml.length());
-        }
-        return path;
+        return reachCall.callHttpGet(stringBuilder.toString());
     }
-    
+
+    public void writeFile(Path path, String contents) throws IOException {
+       try (BufferedWriter writer = Files.newBufferedWriter(path,
+                                                           StandardCharsets.UTF_8,
+                                                           StandardOpenOption.CREATE,
+                                                           StandardOpenOption.WRITE)) {
+            writer.write(contents, 0, contents.length());
+        }
+    }
+
     @Test
     public void testFetchPaper() throws Exception {
         String pmcid = "PMC6683984";
-        Path path = fetchPaper(pmcid);
-        System.out.println("Downloaded file: " + path.getFileName());
+        String nxml = fetchPaper(pmcid);
+        System.out.println("Downloaded nxml: " + nxml);
     }
 }

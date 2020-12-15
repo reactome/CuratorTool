@@ -16,7 +16,6 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -189,6 +188,10 @@ public class PopupMenuManager {
             action = getRemoveStateAction(node, editor);
             action.setEnabled(node.getSelectionPosition() == SelectionPosition.STATE);
             popup.add(action);
+            popup.addSeparator();
+        }
+        if (actionCollection.getDisplayReachAction() != null) {
+            popup.add(actionCollection.getDisplayReachAction());
             popup.addSeparator();
         }
         if (!isForElv)

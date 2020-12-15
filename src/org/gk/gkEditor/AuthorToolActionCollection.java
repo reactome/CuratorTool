@@ -1313,4 +1313,8 @@ public class AuthorToolActionCollection {
     public PathwayEditor getPathwayEditor() {
         return this.pathwayEditor;
     }
+
+    protected Action getDisplayReachAction() {
+    	return null;
+    }
 }

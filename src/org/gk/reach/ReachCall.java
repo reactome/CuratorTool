@@ -81,9 +81,6 @@ public class ReachCall {
 	 * Send HTTP request (String) to given URL and return result.
 	 *
 	 * @param url
-	 * @param type
-	 * @param sendType
-	 * @param requestType
 	 * @param method
 	 * @return String
 	 * @throws IOException

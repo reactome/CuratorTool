@@ -1,37 +1,27 @@
 package org.gk.reach;
 
-import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.gk.reach.model.fries.FriesObject;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
-import org.gk.util.WSInfoHelper;
-import org.jdom.Document;
-import org.jdom.Element;
 import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.xpath.XPath;
 import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -45,33 +35,54 @@ import com.fasterxml.jackson.databind.ObjectWriter;
  * @author wug
  *
  */
-public class ReachCuratorToolWSHandler {
+public class ReachCuratorToolHandler {
     private ProgressPane progressPanel;
-    
-    public ReachCuratorToolWSHandler() {
+    private ReachProperties properties;
+
+    public ReachCuratorToolHandler() {
+        properties = new ReachProperties();
     }
-    
+
+    private ReachProperties getReachProperties() {
+        return properties;
+    }
+
+    private void setReachProperties(ReachProperties properties) {
+        this.properties = properties;
+    }
+
     /**
      * The user interface entry point for submit a job to the WS servlet.
      * @param parent
+     * @throws IOException
+     * @throws IOException
      */
-    public void submitPMCIDs(ReachResultTableFrame parent) {
-        String[] wsInfo = getWSUserInfo(parent);
-        if (wsInfo == null)
-            return; // Do nothing
+    public void submitPMCIDs(ReachResultTableFrame parent) throws IOException {
+        properties = loadProperties();
+
+        if (properties.anyNull())
+            properties = configureReach(parent);
+
+        // If the configuration did not set all of the needed REACH properties
+        // (e.g. user canceled download), don't show PMCID input dialog.
+        if (properties == null || properties.anyNull())
+            return;
+
+        setReachProperties(properties);
+
         PMCIDInputDialog dialog = new PMCIDInputDialog(parent);
         dialog.setVisible(true);
         if (!dialog.isOKClicked())
             return;
-        String[] pmcids = dialog.getPMCIDs();
-        if (pmcids == null || pmcids.length == 0) {
+        List<String> pmcids = Arrays.asList(dialog.getPMCIDs());
+        if (pmcids == null || pmcids.size() == 0) {
             JOptionPane.showMessageDialog(parent,
                                           "Cannot find any PMCID entered.",
                                           "No PMCID",
                                           JOptionPane.ERROR_MESSAGE);
             return;
         }
-        if (pmcids.length > 3) {
+        if (pmcids.size() > 3) {
             JOptionPane.showMessageDialog(parent,
                                           "Up to 3 PMCIDs are supported. Too many PMCIDs entered.",
                                           "Too PMCIDs",
@@ -81,31 +92,26 @@ public class ReachCuratorToolWSHandler {
         // Need to have a new thread and a progress pane for handling this long process
         Thread t = new Thread() {
             public void run() {
-                _submitPMCIDs(parent, pmcids, wsInfo);
+                _submitPMCIDs(parent, pmcids);
             }
         };
         t.start();
     }
-    
-    private String[] getWSUserInfo(JFrame parentFrame) {
-        try {
-            String[] wsInfo = new WSInfoHelper().getWSInfo(parentFrame);
-            if (wsInfo == null) {
-                JOptionPane.showMessageDialog(parentFrame,
-                                              "No connecting information to the server-side program is provided!",
-                                              "Error in Connection",
-                                              JOptionPane.ERROR_MESSAGE);
-                return null;
-            }
-            return wsInfo;
+
+    private ReachProperties loadProperties() throws IOException {
+        File propFile = GKApplicationUtilities.getPropertyFile("curator.prop");
+        Properties prop = new Properties();
+
+        try (FileInputStream fis = new FileInputStream(propFile)) {
+            prop.load(fis);
         }
-        catch(UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return null;
+
+        // If any REACH configuration is null, start configuration process.
+        ReachProperties properties = new ReachProperties(prop);
+        return properties;
     }
-    
-    private void _submitPMCIDs(ReachResultTableFrame parent, String[] pmcids, String[] wsInfo) {
+
+    private void _submitPMCIDs(ReachResultTableFrame parent, List<String> pmcids) {
         progressPanel = new ProgressPane();
         // Just want to enable the cancel action. Do nothing here.
         progressPanel.enableCancelAction(e -> {});
@@ -114,7 +120,7 @@ public class ReachCuratorToolWSHandler {
         parent.setGlassPane(progressPanel);
         parent.getGlassPane().setVisible(true);
         try {
-            List<FriesObject> objects = processReachViaWS(pmcids, wsInfo);
+            List<FriesObject> objects = processReach(pmcids, getReachProperties());
             if (objects == null) {
                 parent.getGlassPane().setVisible(false);
                 return; // Most likely it is canceled
@@ -125,7 +131,6 @@ public class ReachCuratorToolWSHandler {
                                               "Error in Reach NLP",
                                               JOptionPane.ERROR_MESSAGE);
                 parent.getGlassPane().setVisible(false);
-                return;
             }
             parent.setReachData(objects);
             parent.getGlassPane().setVisible(false);
@@ -139,85 +144,39 @@ public class ReachCuratorToolWSHandler {
             parent.getGlassPane().setVisible(false);
         }
     }
-    
+
     /**
      * Use this method to send a http get call to the Reactome curator tool servlet.
      * @param url
      * @return
      * @throws IOException
      */
-    private List<FriesObject> processReachViaWS(String[] pmcids, String[] wsInfo) throws IOException, JDOMException {
-        String reachURL = getServletURL();
-        if (reachURL == null)
-            throw new IllegalStateException("Cannot find the URL for REACH in the configuration.");
-        String urlText = reachURL + "?user=" + wsInfo[0] + 
-                                    "&key=" + wsInfo[1] + 
-                                    "&action=reach" +
-                                    "&pmcid=" + String.join(",", pmcids);
-        URL url = new URL(urlText);
-        // Make sure we have a good return code
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_PARTIAL) {
-            JOptionPane.showMessageDialog(progressPanel,
-                                          "Somebody is using the REACH NLP at the server. Please wait\n"
-                                          + "for several minutes and then try again.",
-                                          "Busy Server",
-                                          JOptionPane.INFORMATION_MESSAGE);
-            return null;
-        }
-        else if (connection.getResponseCode() == HttpURLConnection.HTTP_BAD_REQUEST) {
-            JOptionPane.showMessageDialog(progressPanel,
-                                          connection.getHeaderField("error"),
-                                          "Error in Request",
-                                          JOptionPane.INFORMATION_MESSAGE);
-            return null;
-        }
+    private List<FriesObject> processReach(List<String> pmcids, ReachProperties setup) throws IOException, JDOMException {
+        Path reachConf = setup.getReachConf();
+        Path reachJar = setup.getReachJar();
+        Path reachRoot = setup.getReachRoot();
+
         if (progressPanel != null)
             progressPanel.setText("Waiting for results...");
-        InputStream is = connection.getInputStream(); // Have to use this input stream. Otherwise, nothing to output
-        File dir = unzipDownloadFile(is);
-        is.close();
+        ReachProcessManager manager = new ReachProcessManager(reachRoot);
+        manager.process(pmcids, reachJar, reachConf);
         if (progressPanel != null) {
             if (progressPanel.isCancelled())
                 return null;
             progressPanel.setText("Reading the results...");
         }
-        List<FriesObject> objects = readUnzippedFiles(dir);
+        List<FriesObject> objects = createFriesObjects(reachRoot.resolve("output"));
         return objects;
     }
-    
-    private String getServletURL() throws IOException, JDOMException {
-        // We want to search reachURL in two places
-        String reachURL = null;
-        // The user editable curator.prop in the user's .reactome folder
-        InputStream is = GKApplicationUtilities.getConfig("curator.prop");
-        if (is != null) {
-            Properties prop = new Properties();
-            prop.load(is);
-            reachURL = prop.getProperty("reachURL");
-            is.close();
-        }
-        // The normal curator.xml configuration file
-        if (reachURL == null) {
-            InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
-            if (metaConfig != null) {
-                SAXBuilder builder = new SAXBuilder();
-                Document doc = builder.build(metaConfig);
-                Element elm = (Element) XPath.selectSingleNode(doc.getRootElement(), 
-                                                               "reachURL");
-                if (elm != null)
-                    reachURL = elm.getText();
-            }
-        }
-        return reachURL;
-    }
-    
-    private List<FriesObject> readUnzippedFiles(File dir) throws IOException {
+
+    private List<FriesObject> createFriesObjects(Path dir) throws IOException {
         Map<String, List<File>> idToFiles = new HashMap<>();
-        File[] files = dir.listFiles();
+        File[] files = dir.toFile().listFiles();
         if (files == null || files.length == 0)
             return new ArrayList<>();
         for (File file : files) {
+            if (file.getName().equals("restart.log"))
+                continue;
             String name = file.getName();
             String[] tokens = name.split("\\.");
             idToFiles.compute(tokens[0], (key, list) -> {
@@ -245,7 +204,7 @@ public class ReachCuratorToolWSHandler {
                 else if (name.endsWith("sentences.json"))
                     sentenceFile = file;
             }
-            if (eventFile == null || referenceFile == null || 
+            if (eventFile == null || referenceFile == null ||
                 sentenceFile == null || entityFile == null) {
                 throw new IllegalStateException("Not enough json files (4 required) for: " + id);
             }
@@ -254,7 +213,7 @@ public class ReachCuratorToolWSHandler {
         }
         return friesObjects;
     }
-    
+
     /**
      * Read all four json files into a single string to create a FriesObject. This method is based
      * on Liam's implementation in the reactome-reach-integration project.
@@ -278,78 +237,10 @@ public class ReachCuratorToolWSHandler {
         String sentenceText = new String(Files.readAllBytes(Paths.get(sentenceFile.getAbsolutePath())),
                                       StandardCharsets.UTF_8);
         String merged = "{ \"events\": " + eventText + ",\n" +
-                        "\"entities\": " + entityText + ",\n" + 
+                        "\"entities\": " + entityText + ",\n" +
                         "\"sentences\": " + sentenceText + ",\n" +
                         "\"reference\": " + referenceText + "}";
         return ReachUtils.readJsonText(merged);
-    }
-    
-    /**
-     * Unzip the download file from an InputStream, which should be from a URL,
-     * into a temporary folder.
-     * @param is
-     * @throws IOException
-     */
-    private File unzipDownloadFile(InputStream is) throws IOException {
-        File reachTempFile = GKApplicationUtilities.getTempFile("reach");
-        if (reachTempFile.exists()) {
-            // Clean up this folder
-            File[] files = reachTempFile.listFiles();
-            if (files != null && files.length > 0)
-                for (File file : files)
-                    file.delete();
-        }
-        else {
-            if(!reachTempFile.mkdirs())
-                throw new IllegalStateException("Cannot create a temp folder for reach: " + reachTempFile.getAbsolutePath());
-        }
-        unzipDownloadFile(is, reachTempFile);
-        return reachTempFile;
-    }
-
-    private void unzipDownloadFile(InputStream is, File reachTempFile) throws IOException {
-        // Unzip the download file
-        BufferedInputStream bis = new BufferedInputStream(is);
-        ZipInputStream zis = new ZipInputStream(bis);
-        ZipEntry entry = null;
-        byte[] buffer = new byte[1024]; // 1K buffer
-        while ((entry = zis.getNextEntry()) != null) {
-            File outFile = new File(reachTempFile, entry.getName());
-            FileOutputStream fos = new FileOutputStream(outFile);
-            int length = 0;
-            while ((length = zis.read(buffer, 0, buffer.length)) > 0)
-                fos.write(buffer, 0, length);
-            fos.close();
-        }
-        zis.closeEntry();
-        zis.close();
-        is.close();
-    }
-    
-    @Test
-    public void testUnzip() throws IOException {
-        File zipFile = new File("/Users/wug/Documents/reach/output/reach.json.zip");
-        File tempFolder = new File("temp");
-        File[] files = tempFolder.listFiles();
-        if (files != null)
-            for (File file : files)
-                file.delete();
-        unzipDownloadFile(new FileInputStream(zipFile), tempFolder);
-        files = tempFolder.listFiles();
-        if (files == null || files.length == 0) {
-            System.out.println("No file is generated!");
-        }
-        else {
-            for (File file : files)
-                System.out.println(file.getName());
-        }
-    }
-    
-    @Test
-    public void testReadUnzippedFiles() throws IOException {
-        File dir = new File("temp");
-        List<FriesObject> friesObjects = readUnzippedFiles(dir);
-        outputFriesObjects(friesObjects);
     }
 
     private void outputFriesObjects(List<FriesObject> friesObjects) throws JsonProcessingException {
@@ -362,13 +253,66 @@ public class ReachCuratorToolWSHandler {
             System.out.println(text);
         }
     }
-    
+
     @Test
-    public void testProcessReachViaWS() throws Exception {
-        String[] pmcids = {"PMC6683984", "PMC4750075"};
+    public void testProcessReach() throws Exception {
+        List<String> pmcids = Arrays.asList("PMC4750075");
         // Need the actual user name and key for a successful test.
-        List<FriesObject> objects = processReachViaWS(pmcids, new String[]{});
+        ReachProperties setup = new ReachProperties();
+        List<FriesObject> objects = processReach(pmcids, setup);
         outputFriesObjects(objects);
     }
-    
+
+    ReachProperties configureReach(ReachResultTableFrame parent) throws IOException {
+        ReachProperties properties = loadProperties();
+        ReachConfigurationDialog setupDialog = new ReachConfigurationDialog(parent, properties);
+
+        // Get REACH root directory.
+        setupDialog.showDialog();
+        setupDialog.setVisible(true);
+
+        if (!setupDialog.isOKClicked)
+            return null;
+
+        Path reachRoot = setupDialog.getReachProperties().getReachRoot();
+        Path reachJar = setupDialog.getReachProperties().getReachJar();
+
+        // Get REACH configuration file.
+        Path reachConf = createConfigFile(reachRoot);
+
+        // Create REACH setup object.
+        properties.setReachConf(reachConf);
+        properties.setReachJar(reachJar);
+        properties.setReachRoot(reachRoot);
+
+        if (!properties.anyNull())
+            saveProperties(properties);
+
+        return properties;
+    }
+
+    private void saveProperties(ReachProperties setup) throws IOException {
+        Properties prop = new Properties();
+        prop.setProperty("reachConf", setup.getReachConf().toString());
+        prop.setProperty("reachJar", setup.getReachJar().toString());
+        prop.setProperty("reachRoot", setup.getReachRoot().toString());
+
+        File propFile = GKApplicationUtilities.getPropertyFile("curator.prop");
+        try (FileInputStream fis = new FileInputStream(propFile);
+             FileOutputStream fos = new FileOutputStream(propFile, true)) {
+            prop.store(fos, "REACH Properties");
+        }
+    }
+
+    private Path createConfigFile(Path dir) throws IOException {
+        String confTemplate = new String(Files.readAllBytes(Paths.get("resources/applicationTemplate.conf")));
+        String confString = String.format(confTemplate, dir);
+
+        Path confFile = dir.resolve("application.conf");
+        try (BufferedWriter writer = Files.newBufferedWriter(confFile, StandardCharsets.UTF_8)) {
+            writer.write(confString, 0, confString.length());
+        }
+
+        return confFile;
+    }
 }

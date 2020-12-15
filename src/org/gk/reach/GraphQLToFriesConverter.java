@@ -120,6 +120,8 @@ public class GraphQLToFriesConverter {
         // are converted into Entity, even for bioprocess, which should be mapped
         // to Reactome's pathways
         fo.setType(p.getEntity_type());
+        // For easy access
+        argument.setType(p.getEntity_type());
         fo.setText(p.getEntity_text());
         String identifier = p.getIdentifier();
         if (identifier != null) {

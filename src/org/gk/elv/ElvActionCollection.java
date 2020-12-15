@@ -42,6 +42,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.gk.reach.ReachSearch;
 import org.gk.render.ConnectInfo;
 import org.gk.render.ConnectWidget;
 import org.gk.render.EntitySetAndEntitySetLink;
@@ -1011,6 +1012,30 @@ public class ElvActionCollection extends AuthorToolActionCollection {
         return editPropertiesAction;
     }
     
+    protected Action getDisplayReachAction() {
+        Action displayReachAction = new AbstractAction("Search REACH") {
+            
+            public void actionPerformed(ActionEvent e) {
+                List<GKInstance> instanceList = elv.getZoomablePathwayEditor().getSelection();
+                if (instanceList.size() == 0 || instanceList == null)
+                    return;
+                ReachSearch reactionAction;
+                try {
+                    reactionAction = new ReachSearch();
+                    reactionAction.searchReach(instanceList, elv);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                    JOptionPane.showMessageDialog(elv,
+                                                  "Error in Reach search: " + e1.getMessage(),
+                                                  "Error in Reach Search",
+                                                  JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            
+        };
+        return displayReachAction;
+    }
+
     @Override 
     protected void cut() {
         if (elv.isUsedAsDrawingTool()) {

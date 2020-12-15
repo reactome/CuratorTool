@@ -29,17 +29,16 @@ import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import javax.swing.event.HyperlinkEvent;
 
-import org.gk.model.GKInstance;
 import org.gk.model.Person;
 import org.gk.model.Reference;
 import org.gk.reach.model.fries.Argument;
 import org.gk.reach.model.fries.Event;
 import org.gk.reach.model.fries.FrameObject;
 import org.gk.reach.model.fries.FriesObject;
-import org.gk.reach.model.graphql.GraphQLObject;
-import org.gk.util.ProgressPane;
 
 @SuppressWarnings("serial")
 public class ReachResultTableFrame extends JFrame {
@@ -48,9 +47,6 @@ public class ReachResultTableFrame extends JFrame {
     private final String noResultsTitle = "No Results";
     private final String noRowsSelectedErrorMsg = "There are no rows that are currently selected.";
     private final String noRowsSelectedErrorTitle = "No Rows Selected";
-    private final String progressMessage = "Fetching element data...";
-    private final String progressTemplate = "<html>%s<br/>(%d / %d) %s</html>";
-    private final String title = "Reach: ";
     // Some user interfaces
     private JTextPane evidencePane;
     private JTable eventTable;
@@ -68,6 +64,10 @@ public class ReachResultTableFrame extends JFrame {
         eventTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         // Table sorter.
         eventTable.setAutoCreateRowSorter(true);
+        RowSorter<?> sorter = eventTable.getRowSorter();
+        List<RowSorter.SortKey> keys = new ArrayList<>();
+        keys.add(new RowSorter.SortKey(8, SortOrder.DESCENDING));
+        sorter.setSortKeys(keys);
 
         // Configure results area.
         evidencePane = new JTextPane();
@@ -119,7 +119,13 @@ public class ReachResultTableFrame extends JFrame {
         JButton processBtn = new JButton("Process");
         processBtn.setToolTipText("Submit PMCIDs for Reach NLP");
         processBtn.addActionListener(e -> {
-            new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
+//            new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
+            try {
+                new ReachCuratorToolHandler().submitPMCIDs(ReachResultTableFrame.this);
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
         });
         
         JButton importBtn = new JButton("Import");
@@ -153,83 +159,6 @@ public class ReachResultTableFrame extends JFrame {
         ConnectionTablePane panel = new ConnectionTablePane();
         panel.setTableData(eventTable);
         panel.showInDialog(this);
-    }
-
-    /**
-     * Use the instanceSet to fetch REACH results and add them to the table.
-     *
-     * @param instanceSet
-     * @return dataObjects, list of Fries objects.
-     * @throws Exception
-     */
-    public List<FriesObject> searchReach(List<GKInstance> instances) throws Exception {
-        // Configure progress bar for REACH queries.
-        ProgressPane progressPane = new ProgressPane();
-        setGlassPane(progressPane);
-        getGlassPane().setVisible(true);
-        setVisible(true);
-        progressPane.setMinimum(0);
-        progressPane.enableCancelAction(event -> dispose());
-        List<FriesObject> dataObjects = new ArrayList<FriesObject>();
-        setTitle(title + instances);
-        progressPane.setMaximum(instances.size());
-        int progress = 1;
-        // Update progress pane.
-        for (GKInstance instance : instances) {
-            if (progressPane.isCancelled())
-                return null;
-            progressPane.setValue(progress);
-            progressPane.setText(String.format(progressTemplate,
-                                               progressMessage,
-                                               progress++,
-                                               instances.size(),
-                                               instance.getDisplayName()));
-            List<FriesObject> friesObjects = getDataFromGraphQL(ReachUtils.extractId(instance));
-            if (friesObjects.size() == 0)
-                continue;
-            friesObjects.forEach(dataObjects::add);
-        }
-        // If no results found.
-        if (dataObjects.size() == 0) {
-            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-            JOptionPane.showMessageDialog(this, noResultsMsg, noResultsTitle, JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        return dataObjects;
-    }
-
-    /**
-     * Convert a given UniProt id to FriesObjects by querying GraphiQL instance.
-     *
-     * @param id
-     * @return friesObjects
-     * @throws IOException
-     */
-    private List<FriesObject> getDataFromGraphQL(String id) throws IOException {
-        // Create REACH queries for an element.
-        String template = new String(Files.readAllBytes(Paths.get(ReachConstants.GRAPHQL_SEARCH_TEMPLATE)));
-        String graphqlInput = String.format(template, id);
-        // Return a list of JSON responses from REACH.
-        ReachCall reachCall = new ReachCall();
-        String jsonOutput = reachCall.callGraphQL(graphqlInput);
-
-        //Use example graphql file as json
-        //      String graphQLOutputExample = "examples/reachOutputExample_full.json";
-        //      String jsonOutput = new String(Files.readAllBytes(Paths.get(graphQLOutputExample)), StandardCharsets.UTF_8);
-
-        GraphQLObject graphQLObject = ReachUtils.readJsonTextGraphQL(jsonOutput);
-        // Create Fries object for use in table.
-        GraphQLToFriesConverter graphQLToFriesConverter = new GraphQLToFriesConverter();
-        List<FriesObject> friesObjects = graphQLToFriesConverter.convertGraphQLObject(graphQLObject);
-        return friesObjects;
-
-        //Create Fries object from fries file
-        //        String friesOutput = "examples/PMC4306850.fries.json";
-        //        String jsonOutput = new String(Files.readAllBytes(Paths.get(friesOutput)), StandardCharsets.UTF_8);
-        //        List<FriesObject> friesObjects = new ArrayList<FriesObject>();
-        //        friesObjects.add(ReachUtils.readJsonText(jsonOutput));
-        //        return friesObjects;
-
     }
 
     /**
@@ -404,9 +333,20 @@ public class ReachResultTableFrame extends JFrame {
         List<Integer> positions = new ArrayList<>();
         for (Argument arg : event.getArguments()) {
             FrameObject obj = arg.getArg();
-            Integer position = obj.getStartPos().getOffset() - event.getStartPos().getOffset() + offset;
-            positions.add(position);
-            positions.add(position + obj.getEndPos().getOffset() - obj.getStartPos().getOffset());
+            // Just in case
+            if (obj.getStartPos() == null || obj.getEndPos() == null) {
+                String name = obj.getText();
+                int index = eventString.indexOf(name);
+                if (index > -1) {
+                    positions.add(index);
+                    positions.add(index + name.length() - 1);
+                }
+            }
+            else {
+                Integer position = obj.getStartPos().getOffset() - event.getStartPos().getOffset() + offset;
+                positions.add(position);
+                positions.add(position + obj.getEndPos().getOffset() - obj.getStartPos().getOffset());
+            }
         }
         Collections.sort(positions);
         Integer current = null;
@@ -414,13 +354,15 @@ public class ReachResultTableFrame extends JFrame {
             current = positions.get(0);
             positions.remove(0);
         }
+        boolean closeColor = false;
         for (int i = 0; i < eventString.length(); i++) {
+            closeColor = false;
             if (current != null && i == current) {
                 if (positions.size() % 2 == 1) {
                     builder.append("<b><font color=\"red\">"); // start the tag
                 }
                 else {
-                    builder.append("</font></b>"); // Close the tags
+                    closeColor = true;
                 }
                 if (positions.size() > 0) {
                     current = positions.get(0);
@@ -430,6 +372,8 @@ public class ReachResultTableFrame extends JFrame {
                     current = null;
             }
             builder.append(eventString.charAt(i));
+            if (closeColor)
+                builder.append("</font></b>"); // Close the tags
         }
     }
     
