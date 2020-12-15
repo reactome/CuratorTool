@@ -119,13 +119,13 @@ public class ReachResultTableFrame extends JFrame {
         JButton processBtn = new JButton("Process");
         processBtn.setToolTipText("Submit PMCIDs for Reach NLP");
         processBtn.addActionListener(e -> {
-//            new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
-            try {
-                new ReachCuratorToolHandler().submitPMCIDs(ReachResultTableFrame.this);
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
-            }
+            new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
+//            try {
+//                new ReachCuratorToolHandler().submitPMCIDs(ReachResultTableFrame.this);
+//            } catch (IOException e1) {
+//                // TODO Auto-generated catch block
+//                e1.printStackTrace();
+//            }
         });
         
         JButton importBtn = new JButton("Import");
