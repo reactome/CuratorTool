@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -94,6 +95,7 @@ import org.gk.util.XMLFileFilter;
  * A list of actions for this package.
  * @author wugm
  */
+@SuppressWarnings({"rawtypes", "unchecked", "serial"})
 public class CuratorActionCollection {
     private Action dbSchemaViewAction;
     private Action dbEventViewAction;
@@ -198,49 +200,56 @@ public class CuratorActionCollection {
 	    return addHasModfiedResidueAction;
 	}
 	
-	public Action getCreateMultimerAction() {
-	    Action action = new AbstractAction("Create Multimer") {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createMultimer();
-            }
-        };
-        return action;
+	private void createMultimers(List<GKInstance> instances) {
+	    List<GKInstance> ewases = instances.stream().filter(inst -> inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
+	                                       .collect(Collectors.toList());
+	    if (ewases.size() == 0) {
+	        JOptionPane.showMessageDialog(curatorFrame,
+	                                      "No EWAS instance is selected.",
+	                                      "No EWAS",
+	                                      JOptionPane.ERROR_MESSAGE);
+	        return; // Do nothing
+	    }
+	    int preSize = ewases.size();
+	    ewases = ewases.stream().filter(e -> !e.isShell()).collect(Collectors.toList());
+	    if (ewases.size() < preSize) {
+	        StringBuilder message = new StringBuilder();
+	        message.append("Shell instances cannot be used for creating multimer instances and are removed.\n");
+	        if (ewases.size() == 0)
+	            message.append("No EWAS is selected after filtering.");
+	        JOptionPane.showMessageDialog(curatorFrame,
+                                          message.toString(),
+                                          "Shell Instance Warning",
+                                          JOptionPane.WARNING_MESSAGE);
+            if (ewases.size() == 0)
+                return;
+	    }
+	    MultimerDialog dialog = new MultimerDialog(curatorFrame, ewases);
+        dialog.setVisible(true);
+        if (!dialog.getIsOKClicked())
+            return;
+        int number = dialog.getNum();
+        for (GKInstance inst : ewases)
+            createMultimer(inst, number);
 	}
 	
-	@SuppressWarnings({"rawtypes", "unchecked"})
-	private void createMultimer() {
-	    java.util.List selection = getSelection();
-	    if (selection != null && selection.size() != 1)
-	        return;
-	    GKInstance inst = (GKInstance) selection.get(0);
-	    if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntityWithAccessionedSequence))
-	        return;
-	    // Get the number of multimer
-	    String text = JOptionPane.showInputDialog(curatorFrame,
-	                                              "Enter a number to create a multimer:", 
-	                                              "Create Multimer", 
-	                                              JOptionPane.OK_CANCEL_OPTION);
-	    if (text == null)
-	        return ; // Cancelled
-	    if (!text.matches("\\d+")) {
-	        JOptionPane.showMessageDialog(curatorFrame,
-	                                      "The entered value should be integer only!",
-	                                      "Error",
-	                                      JOptionPane.ERROR_MESSAGE);
-	        return;
-	    }
-	    int number = new Integer(text);
-	    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+    private void createMultimer(GKInstance inst, int number) {
+        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 	    GKInstance multimer = fileAdaptor.createNewInstance(ReactomeJavaConstants.Complex);
 	    try {
 	        for (int i = 0; i < number; i++) {
 	            multimer.addAttributeValue(ReactomeJavaConstants.hasComponent, inst);
 	        }
+	        // In case this is a shell instance
 	        String ewasName = (String) inst.getAttributeValue(ReactomeJavaConstants.name);
-	        if (ewasName == null)
-	            ewasName = "";
+	        if (ewasName == null) {
+	            String displayName = inst.getDisplayName();
+	            int index = displayName.lastIndexOf('[');
+	            if (index > 0)
+	                ewasName = displayName.substring(0, index).trim();
+	            else
+	                ewasName = displayName;
+	        }
 	        multimer.setAttributeValue(ReactomeJavaConstants.name, ewasName + " " + getMultimerName(number));
 	        // Copy some attributes to this new instance
 	        String[] attributes = {ReactomeJavaConstants.compartment,
@@ -263,7 +272,7 @@ public class CuratorActionCollection {
 	                                      "Error in Creating Multimer",
 	                                      JOptionPane.ERROR_MESSAGE);
 	    }
-	}
+    }
 	
 	private String getMultimerName(int number) {
 	    switch (number) {
@@ -686,6 +695,22 @@ public class CuratorActionCollection {
         attDialog.setVisible(true);
     }
     
+    public Action getCreateMultimerAction() {
+        java.util.List selection = getSelection();
+        if (selection.isEmpty())
+            return null;
+        ImageIcon icon = createIcon("Multimer.png");
+        String text = "Create Multimer" + (selection.size() == 1 ? "" : "s");
+        Action action = new AbstractAction(text, icon) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                List<GKInstance> selectedInstances = getSelection();
+                createMultimers(selectedInstances);
+            }
+        };
+        return action;
+    }
+
     public Action getRequestNewGOTermAction() {
         if (requestNewGOTermAction == null) {
             requestNewGOTermAction = new AbstractAction("Request New Term") {
@@ -1922,7 +1947,6 @@ public class CuratorActionCollection {
 		                                                                     committedInstancesRtnOnly,
 		                                                                     curatorFrame);
 		if (list != null && list.size() > 0) {
-			StringBuffer buffer = new StringBuffer();
 			if (list.size() == 1) {
 				GKInstance instance = (GKInstance) list.get(0);
 				String message = new String("Instance \"" + instance.getDisplayName() + "\" has been checked into the database successfully.");
