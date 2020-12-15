@@ -288,6 +288,12 @@ public class ReachResultTableFrame extends JFrame {
         ReachTableModel tableModel = (ReachTableModel) eventTable.getModel();
         tableModel.setReachData(friesObjects);
         evidencePane.setText("<html><body></body></html>"); // Remove all displayed evidence text
+        if (tableModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this,
+                                          "No relationship can be found.",
+                                          "Empty Event",
+                                          JOptionPane.INFORMATION_MESSAGE);
+        }
     }
     
     public void setTableData(List<ReachResultTableRowData> rows) {

@@ -136,6 +136,7 @@ public class ReachCuratorToolWSHandler {
                                               "Error in Reach NLP",
                                               JOptionPane.ERROR_MESSAGE);
                 parent.getGlassPane().setVisible(false);
+                return;
             }
             parent.setReachData(objects);
             parent.getGlassPane().setVisible(false);
