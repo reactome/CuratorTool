@@ -217,6 +217,7 @@
 <!--     <reachURL>http://localhost:8080/ELVWebApp/ElvService</reachURL> -->
 	<!-- For release, use the cpws server for the time being-->
     <reachURL>http://cpws.reactome.org/ELVWebApp/ElvService</reachURL>
+    <reachJarURL>http://cpws.reactome.org/ELVWebApp/reach-1.5.2-SNAPSHOT-FAT.jar</reachJarURL>
     <allowableAminoAcids>A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y</allowableAminoAcids>
     <!-- After the database is connected, there is a background thread running, which pings the database 
     to keep the connection stable. The following value controls how long the thread should wait to make
