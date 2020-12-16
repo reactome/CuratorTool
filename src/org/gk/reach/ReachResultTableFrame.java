@@ -116,16 +116,16 @@ public class ReachResultTableFrame extends JFrame {
         openBut.setToolTipText("Open pre-generated Reach output files");
         JButton cancelBut = new JButton("Cancel");
         
-        JButton processBtn = new JButton("Process");
-        processBtn.setToolTipText("Submit PMCIDs for Reach NLP");
+        JButton processBtn = new JButton("Process (WS)");
+        processBtn.setToolTipText("Submit PMCIDs for Reach NLP via a WS server");
         processBtn.addActionListener(e -> {
             new ReachCuratorToolWSHandler().submitPMCIDs(ReachResultTableFrame.this);
-//            try {
-//                new ReachCuratorToolHandler().submitPMCIDs(ReachResultTableFrame.this);
-//            } catch (IOException e1) {
-//                // TODO Auto-generated catch block
-//                e1.printStackTrace();
-//            }
+        });
+        
+        JButton localProcessBtn = new JButton("Process (Local)");
+        localProcessBtn.setToolTipText("Submit PMCIDs for Reach NLP at your computer");
+        localProcessBtn.addActionListener(e -> {
+            new ReachCuratorToolHandler().submitPMCIDs(ReachResultTableFrame.this);
         });
         
         JButton importBtn = new JButton("Import");
@@ -146,6 +146,7 @@ public class ReachResultTableFrame extends JFrame {
         botPanel.add(acceptBut);
         botPanel.add(openBut);
         botPanel.add(processBtn);
+        botPanel.add(localProcessBtn);
         botPanel.add(importBtn);
         botPanel.add(exportBtn);
         botPanel.add(showConnectionBtn);

@@ -1,0 +1,22 @@
+{
+	allDocuments(identifier: "%s") {
+		pmc_id
+		pmid
+		evidence
+		publication_year
+		journal_title
+		extracted_information {
+			participant_a {
+				entity_text
+				identifier
+				entity_type
+			}
+			participant_b {
+				entity_text
+				identifier
+				entity_type
+			}
+            interaction_type
+		}
+	}
+}

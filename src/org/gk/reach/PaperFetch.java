@@ -7,9 +7,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.gk.model.GKInstance;
+import org.gk.model.ReactomeJavaConstants;
+import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;

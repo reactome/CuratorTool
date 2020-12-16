@@ -19,7 +19,6 @@ import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.log4j.Logger;
 import org.gk.model.Person;
 import org.gk.model.Reference;
 import org.jdom.Document;
@@ -34,18 +33,12 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
-public class ReachProcessManager {
-    // TODO update to client Curator Tool model (from initial server logging model).
-    private static final Logger logger = Logger.getLogger(ReachProcessManager.class);
-    private Path reachRoot;
+public class ReachLocalProcessManager {
     private Path paperDir;
     private Path outputDir;
     private Path errorLog;
 
-    public ReachProcessManager(Path reachRoot) throws IOException {
-        if (reachRoot == null)
-            return;
-
+    public ReachLocalProcessManager(Path reachRoot) throws IOException {
         if (!reachRoot.toFile().exists())
             Files.createDirectories(reachRoot);
 
@@ -62,7 +55,6 @@ public class ReachProcessManager {
         // The NCBI fetch api supports to download a single nxml file for multiple
         // PMCIDs. However, it is much easier to download them one by one for downstream
         // handling
-        logger.info("Process " + String.join(",", pmcids) + "...");
         Map<String, Reference> pmcid2reference = new HashMap<>();
         for (String pmcid : pmcids) {
             Reference reference = downloadPaper(pmcid);
@@ -87,8 +79,6 @@ public class ReachProcessManager {
             }
             return;
         }
-
-        logger.info("Done with " + String.join(",", pmcids));
     }
 
     private void dumpReferences(Map<String, Reference> pmcid2Reference) throws IOException {
@@ -98,7 +88,6 @@ public class ReachProcessManager {
         for (String pmcid : pmcid2Reference.keySet()) {
             Reference reference = pmcid2Reference.get(pmcid);
             if (reference == null) {
-                logger.error("Cannot see a Reference object for " + pmcid);
                 continue;
             }
             File file = new File(outputDir.toFile(), pmcid + ".reference.json");
@@ -188,7 +177,6 @@ public class ReachProcessManager {
             return reference;
         }
         catch(JDOMException e) {
-            logger.info(e.getMessage(), e);
             return null; // Cannot do anything then
         }
     }
@@ -221,18 +209,6 @@ public class ReachProcessManager {
             for (File file : files)
                 file.delete();
         }
-    }
-
-    private Path getReachRoot() {
-        return reachRoot;
-    }
-
-    private void createTmpDir() throws IOException {
-        String tmpDir = System.getProperty("java.io.tmpdir");
-        Path reachRoot = Paths.get(tmpDir).resolve("reach");
-
-        if (!reachRoot.toFile().exists())
-            Files.createDirectories(reachRoot);
     }
 
     @Test
