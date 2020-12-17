@@ -2,6 +2,7 @@ package org.gk.reach;
 
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -20,6 +21,12 @@ import org.gk.reach.model.fries.FriesObject;
 import org.gk.reach.model.graphql.GraphQLObject;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.util.BrowserLauncher;
+import org.gk.util.GKApplicationUtilities;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.JDOMException;
+import org.jdom.input.SAXBuilder;
+import org.jdom.xpath.XPath;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +41,27 @@ public class ReachUtils {
             return null;
         String identifier = (String) referenceEntity.getAttributeValue(ReactomeJavaConstants.identifier);
         return identifier;
+    }
+    
+    /**
+     * Get the configured Reach URLs from curator.xml in the resource folder.
+     * @param elmName
+     * @return
+     * @throws IOException
+     * @throws JDOMException
+     */
+    public static String getConfigReachURL(String elmName) throws IOException, JDOMException {
+        String reachURL = null;
+        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
+        if (metaConfig != null) {
+            SAXBuilder builder = new SAXBuilder();
+            Document doc = builder.build(metaConfig);
+            Element elm = (Element) XPath.selectSingleNode(doc.getRootElement(), 
+                                                           elmName);
+            if (elm != null)
+                reachURL = elm.getText();
+        }
+        return reachURL;
     }
     
     public static void doTablePopup(MouseEvent e,

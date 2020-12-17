@@ -25,12 +25,12 @@ import org.gk.reach.model.graphql.GraphQLObject;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.util.ProgressPane;
 
-public class ReachSearch {
+public class ReachGraphQLSearch {
     private final String progressMessage = "Fetching element data...";
     private final String progressTemplate = "<html>%s<br/>(%d/%d) %s</html>";
     private final String delimiter = ", ";
 
-    public ReachSearch() {
+    public ReachGraphQLSearch() {
     }
 
 	/**
@@ -202,14 +202,13 @@ public class ReachSearch {
      * @return friesObjects
      * @throws IOException
      */
-    private List<FriesObject> fetchDataFromGraphQL(String id) throws IOException {
+    private List<FriesObject> fetchDataFromGraphQL(String id) throws Exception {
         // Create REACH queries for an element.
         String template = new String(Files.readAllBytes(Paths.get(ReachConstants.GRAPHQL_SEARCH_TEMPLATE)));
         String graphqlInput = String.format(template, id);
         // Return a list of JSON responses from REACH.
-        ReachCall reachCall = new ReachCall();
+        ReachHttpCall reachCall = new ReachHttpCall();
         String jsonOutput = reachCall.callGraphQL(graphqlInput);
-        System.out.println(jsonOutput);
         //Use example graphql file as json
         //      String graphQLOutputExample = "examples/reachOutputExample_full.json";
         //      String jsonOutput = new String(Files.readAllBytes(Paths.get(graphQLOutputExample)), StandardCharsets.UTF_8);

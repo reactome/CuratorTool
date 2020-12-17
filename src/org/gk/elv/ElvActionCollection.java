@@ -42,7 +42,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.reach.ReachSearch;
+import org.gk.reach.ReachGraphQLSearch;
 import org.gk.render.ConnectInfo;
 import org.gk.render.ConnectWidget;
 import org.gk.render.EntitySetAndEntitySetLink;
@@ -1019,9 +1019,9 @@ public class ElvActionCollection extends AuthorToolActionCollection {
                 List<GKInstance> instanceList = elv.getZoomablePathwayEditor().getSelection();
                 if (instanceList.size() == 0 || instanceList == null)
                     return;
-                ReachSearch reactionAction;
+                ReachGraphQLSearch reactionAction;
                 try {
-                    reactionAction = new ReachSearch();
+                    reactionAction = new ReachGraphQLSearch();
                     reactionAction.searchReach(instanceList, elv);
                 } catch (Exception e1) {
                     e1.printStackTrace();

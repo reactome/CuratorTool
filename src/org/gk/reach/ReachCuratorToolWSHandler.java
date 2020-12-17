@@ -133,7 +133,7 @@ public class ReachCuratorToolWSHandler extends ReachProcessHandler {
         String reachURL = GKApplicationUtilities.getApplicationProperties().getProperty("reachURL");
         // The normal curator.xml configuration file
         if (reachURL == null) {
-            reachURL = getReachURL("reachURL");
+            reachURL = ReachUtils.getConfigReachURL("reachURL");
         }
         return reachURL;
     }

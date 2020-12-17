@@ -31,7 +31,7 @@ public class PaperFetch {
         stringBuilder.append(ReachConstants.TOOL_EMAIL);
         stringBuilder.append(ReachConstants.IDS_QUERY);
         stringBuilder.append(pmid);
-        ReachCall reachCall = new ReachCall();
+        ReachHttpCall reachCall = new ReachHttpCall();
         String response = reachCall.callHttpGet(stringBuilder.toString());
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -57,7 +57,7 @@ public class PaperFetch {
         stringBuilder.append(ReachConstants.ID_QUERY);
         stringBuilder.append(pmcid);
         stringBuilder.append(ReachConstants.TOOL_EMAIL);
-        ReachCall reachCall = new ReachCall();
+        ReachHttpCall reachCall = new ReachHttpCall();
 
         return reachCall.callHttpGet(stringBuilder.toString());
     }

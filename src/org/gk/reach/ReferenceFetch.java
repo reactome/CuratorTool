@@ -29,7 +29,7 @@ public class ReferenceFetch {
         stringBuilder.append(ReachConstants.RETMODE);
         stringBuilder.append(ReachConstants.TOOL_EMAIL);
 
-        ReachCall reachCall = new ReachCall();
+        ReachHttpCall reachCall = new ReachHttpCall();
         String metadata = reachCall.callHttpGet(stringBuilder.toString());
         PaperMetadata paperMetadataObj = ReachUtils.readJsonText(metadata, PaperMetadata.class);
         Map<String, Object> paperData = paperMetadataObj.getResult().getPaperData().get(paperId);

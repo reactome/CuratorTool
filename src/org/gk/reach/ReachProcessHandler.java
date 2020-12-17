@@ -198,18 +198,4 @@ public abstract class ReachProcessHandler {
         }
     }
 
-    protected String getReachURL(String elmName) throws IOException, JDOMException {
-        String reachURL = null;
-        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
-        if (metaConfig != null) {
-            SAXBuilder builder = new SAXBuilder();
-            Document doc = builder.build(metaConfig);
-            Element elm = (Element) XPath.selectSingleNode(doc.getRootElement(), 
-                                                           elmName);
-            if (elm != null)
-                reachURL = elm.getText();
-        }
-        return reachURL;
-    }
-
 }

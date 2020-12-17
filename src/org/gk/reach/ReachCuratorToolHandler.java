@@ -36,7 +36,7 @@ public class ReachCuratorToolHandler extends ReachProcessHandler {
         LocalReachConfigurator configurator = new LocalReachConfigurator(container,
                                                                          GKApplicationUtilities.getApplicationProperties());
         try {
-            String reachJarURL = getReachURL("reachJarURL");
+            String reachJarURL = ReachUtils.getConfigReachURL("reachJarURL");
             configurator.setReachJarURL(reachJarURL);
             setup = configurator.getReachConfig();
             return setup != null;
