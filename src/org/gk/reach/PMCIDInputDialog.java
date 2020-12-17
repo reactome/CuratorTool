@@ -22,9 +22,9 @@ public class PMCIDInputDialog extends JDialog {
     private boolean isOKClicked = false;
     private JTextField pmcidTf;
     
-    public PMCIDInputDialog(JFrame parent) {
+    public PMCIDInputDialog(JFrame parent, Integer maxPMCIDs) {
         super(parent);
-        init();
+        init(maxPMCIDs);
     }
     
     public boolean isOKClicked() {
@@ -43,7 +43,7 @@ public class PMCIDInputDialog extends JDialog {
         return ids.toArray(new String[] {});
     }
     
-    private void init() {
+    private void init(Integer maxPMCIDs) {
         setTitle("Enter PMCID");
         
         JPanel contentPane = new JPanel();
@@ -62,9 +62,14 @@ public class PMCIDInputDialog extends JDialog {
         pmcidTf.setColumns(30);
         constraints.gridy = 1;
         contentPane.add(pmcidTf, constraints);
-        JTextArea ta = new JTextArea("*: Up to three PMCIDs are supported. Add \", \" as "
+        StringBuilder message = new StringBuilder();
+        message.append("*: ");
+        if (maxPMCIDs != null && maxPMCIDs < Integer.MAX_VALUE)
+            message.append(String.format("Up to %d PMCIDs are supported. ", maxPMCIDs));
+        message.append("Add \", \" as "
                 + "delimit. The process may take several minutes. You may work in other "
                 + "place during waiting. The results will be displayed once it is done.");
+        JTextArea ta = new JTextArea(message.toString());
         Font font = ta.getFont();
         ta.setFont(font.deriveFont(Font.ITALIC));
         ta.setBackground(contentPane.getBackground());

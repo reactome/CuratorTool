@@ -1,3 +1,13 @@
+Build 108 (Version 4.0.1) note (December 17, 2020)
+
+New features added in this build:
+
+1). Create multimers for more than one selected EWAS instances: https://reactome.atlassian.net/browse/DEV-1849.
+
+2). A new popup menu is added in the local ELV pathway diagram view to search a pre-processed Reach functional relation database deployed at https://reach-api.nrnb-docker.ucsd.edu. This database was created by Augustin Luna et al from the pathway commons team at Harvard. To try this, select a protein or a complex to get the popup menu in the pathway diagram view for a local project and then choose "Search Reach Database". 
+
+3). Added a new way to conduct Reach NLP locally in the "Open Reach NLP" dialog. You can still try Reach via the web-based service (labeled as Process (WS)) up to 3 PMCIDS as one process. However, it is recommended to try the local service (labeled as Process (Local)) after downloading a jar file and configuring the process locally. Please be aware that the jar file is very big, around 2.6 GB! So it takes quite a while to download it.
+
 Build 107 (Version 4.0) note (September 10, 2020)
 
 Three bug fixes in this build:

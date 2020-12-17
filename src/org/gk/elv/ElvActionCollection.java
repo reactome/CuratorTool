@@ -1013,7 +1013,7 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     }
     
     protected Action getDisplayReachAction() {
-        Action displayReachAction = new AbstractAction("Search REACH") {
+        Action displayReachAction = new AbstractAction("Search Reach Database") {
             
             public void actionPerformed(ActionEvent e) {
                 List<GKInstance> instanceList = elv.getZoomablePathwayEditor().getSelection();

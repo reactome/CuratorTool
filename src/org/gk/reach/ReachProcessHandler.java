@@ -2,7 +2,6 @@ package org.gk.reach;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,13 +15,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.gk.reach.model.fries.FriesObject;
-import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.xpath.XPath;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,7 +41,7 @@ public abstract class ReachProcessHandler {
     public void submitPMCIDs(ReachResultTableFrame parent) {
         if (!ensureRequirements(parent))
             return;
-        PMCIDInputDialog dialog = new PMCIDInputDialog(parent);
+        PMCIDInputDialog dialog = new PMCIDInputDialog(parent, maxPmcidNumber);
         dialog.setVisible(true);
         if (!dialog.isOKClicked())
             return;
