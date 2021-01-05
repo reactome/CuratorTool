@@ -105,7 +105,9 @@ public class VariantCuration {
         	
         }
         
-        List<GKInstance> wtEwasList = new ArrayList<>(ewases);
+        Set<GKInstance> wtEwases = getNonDiseaseEntities(ewases);
+        
+        List<GKInstance> wtEwasList = new ArrayList<>(wtEwases);
         
         InstanceUtilities.sortInstances(wtEwasList);
         
@@ -138,7 +140,9 @@ public class VariantCuration {
 			addContainingPhysicalEntities(containingEntities);
 		}
 		
-		List<GKInstance> complexesAndEntityList = new ArrayList<>(complexesAndEntitySet);
+		Set<GKInstance> nonDiseaseComplexesAndEntities = getNonDiseaseEntities(complexesAndEntitySet);
+		
+		List<GKInstance> complexesAndEntityList = new ArrayList<>(nonDiseaseComplexesAndEntities);
 		
 		InstanceUtilities.sortInstances(complexesAndEntityList);
 		
@@ -267,6 +271,20 @@ public class VariantCuration {
 		}
 		
 		return containingComplexAndEntitySets;
+	}
+	
+	private Set<GKInstance> getNonDiseaseEntities(Set<GKInstance> entities) throws Exception {
+		if (entities == null || entities.isEmpty())
+			return entities;
+		
+		Set<GKInstance> wildTypeEntities = new HashSet<>();
+		for (GKInstance entity : entities) {
+			if (entity.getAttributeValue(ReactomeJavaConstants.disease) == null) {
+				wildTypeEntities.add(entity);
+			}
+		}
+		
+		return wildTypeEntities;		
 	}
 
 }
