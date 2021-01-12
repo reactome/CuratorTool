@@ -13,10 +13,10 @@ public class VariantCurationTest {
 	@Test
     public void testVariantCurationData() throws Exception {
 		
-		MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_091120",
-                                            "root",
-                                            "lake3%7g",
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test",
                                             3306);
 		
 		VariantCuration variantCuration = new VariantCuration(dba, "PPP2R1A");
