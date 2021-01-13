@@ -1,14 +1,17 @@
 package org.reactome.test;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.gk.model.GKInstance;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.variant.VariantCuration;
+import org.gk.variant.VariantBatchProcessor;
 import org.junit.Test;
 
-public class VariantCurationTest {
+public class VariantCurationTest {	
 	
 	@Test
     public void testVariantCurationData() throws Exception {
@@ -62,6 +65,25 @@ public class VariantCurationTest {
 		
 		reactions.forEach(System.out::println);		
 	}       
+	
+	@Test
+    public void testBatchProcessingNonsenseVariants() throws Exception {
+    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+    	LocalDateTime now = LocalDateTime.now();  
+    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/Disease_BRCA2_EWASs.tsv";
+        String dest = "/Users/shaox/Desktop/BRAC2NonsenseMutants_" + dtf.format(now) + ".rtpj";
+		
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test",
+                                            3306);	
+		
+		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
+		int numberOfRecordsProcessed = processor.processEwases();
+		// should be 150
+        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
+	}
 	
 
 }
