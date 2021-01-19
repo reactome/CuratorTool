@@ -85,5 +85,23 @@ public class VariantCurationTest {
         System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
 	}
 	
+	@Test
+    public void testBatchProcessingFusionVariants() throws Exception {
+    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+    	LocalDateTime now = LocalDateTime.now();  
+    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/test_fusion_mutations.tsv";
+        String dest = "/Users/shaox/Desktop/testFusionMutants_" + dtf.format(now) + ".rtpj";
+		
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test",
+                                            3306);	
+		
+		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
+		int numberOfRecordsProcessed = processor.processEwases();
+		// should be 5
+        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
+	}
 
 }
