@@ -86,6 +86,25 @@ public class VariantCurationTest {
 	}
 	
 	@Test
+    public void testBatchProcessingFragmntRplcedVariants() throws Exception {
+    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+    	LocalDateTime now = LocalDateTime.now();  
+    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/BRCA2_FrameShiftMutants_FragmentReplacement_sheet1.tsv";
+        String dest = "/Users/shaox/Desktop/BRCA2_FrameShift_EWAS_" + dtf.format(now) + ".rtpj";
+		
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test",
+                                            3306);	
+		
+		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
+		int numberOfRecordsProcessed = processor.processEwases();
+		// should be 169
+        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
+	}
+	
+	@Test
     public void testBatchProcessingFusionVariants() throws Exception {
     	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  

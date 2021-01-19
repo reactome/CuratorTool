@@ -81,6 +81,7 @@ public class VariantBatchProcessor {
                         nonsenseMutation.setDisplayName(displayNameOfNonsenseMutation);
                         
                         ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, nonsenseMutation);
+                        
                         String referenceDatabaseID = fileds[10];
                         GKInstance referenceDatabase = dba.fetchInstance(Long.parseLong(referenceDatabaseID));
                         GKInstance localMutReferenceDatabase = mngr.download(referenceDatabase);
@@ -106,6 +107,51 @@ public class VariantBatchProcessor {
                         GKInstance localSpecies = mngr.download(species);
                         ewas.setAttributeValue(ReactomeJavaConstants.species, localSpecies); 
                         
+                    } else if (hasModifiedResidue.equals(ReactomeJavaConstants.FragmentReplacedModification)) {
+                    	GKInstance frgmntRplcMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.FragmentReplacedModification);
+                    	String alteredAminoAcid= fileds[6];
+                    	String frameEnd= fileds[7];
+                    	String frgRplRefSeqID= fileds[8];
+                    	String frameStart= fileds[9];
+                    	GKInstance frgRplcReferenceSequence = dba.fetchInstance(Long.parseLong(frgRplRefSeqID));
+                        GKInstance localFrgRplcReferenceSequence = mngr.download(frgRplcReferenceSequence);
+                        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localFrgRplcReferenceSequence);
+                        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);
+                        Integer frgRplcStartCoordinate = Integer.parseInt(frameStart);
+                        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.startPositionInReferenceSequence, frgRplcStartCoordinate);
+                        Integer frgRplcEndCoordinate = Integer.parseInt(frameEnd);
+                        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.endPositionInReferenceSequence, frgRplcEndCoordinate);
+                        String displayNameOfFrgRplcMutation = InstanceDisplayNameGenerator.generateDisplayName(frgmntRplcMutation);
+                        frgmntRplcMutation.setDisplayName(displayNameOfFrgRplcMutation);
+                        ewas.addAttributeValue(ReactomeJavaConstants.hasModifiedResidue, frgmntRplcMutation);
+
+                    	frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);
+                    	
+                    	String referenceDatabaseID = fileds[11];
+                        GKInstance referenceDatabase = dba.fetchInstance(Long.parseLong(referenceDatabaseID));
+                        GKInstance localMutReferenceDatabase = mngr.download(referenceDatabase);
+                        String cosmicIDs = fileds[12];
+
+                        String[] cosmicIDsArray = cosmicIDs.split("\\|");
+                        for(String cosmicID : cosmicIDsArray){
+                        	GKInstance crossReference = fileAdaptor.createNewInstance(ReactomeJavaConstants.DatabaseIdentifier);
+                        	crossReference.setAttributeValue(ReactomeJavaConstants.referenceDatabase, localMutReferenceDatabase);
+                        	crossReference.setAttributeValue(ReactomeJavaConstants.identifier, cosmicID);
+                        	String displaynameCrossRef = InstanceDisplayNameGenerator.generateDisplayName(crossReference);
+                        	crossReference.setDisplayName(displaynameCrossRef);
+                        	
+                            ewas.addAttributeValue(ReactomeJavaConstants.crossReference, crossReference);
+                        }
+                        
+                        String diseaseID = fileds[13];
+                        GKInstance disease = dba.fetchInstance(Long.parseLong(diseaseID));
+                        GKInstance localDisease = mngr.download(disease);
+                        ewas.setAttributeValue(ReactomeJavaConstants.disease, localDisease);                        
+                        String speciesID = fileds[14];
+                        GKInstance species = dba.fetchInstance(Long.parseLong(speciesID)); 
+                        GKInstance localSpecies = mngr.download(species);
+                        ewas.setAttributeValue(ReactomeJavaConstants.species, localSpecies); 
+                    	
                     } else if (hasModifiedResidue.equals(ReactomeJavaConstants.FragmentInsertionModification) 
                     		   || hasModifiedResidue.equals("Fragment_Insertion_Modification")) {                    	
                     	GKInstance fragInsertMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.FragmentInsertionModification);
