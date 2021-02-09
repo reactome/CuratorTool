@@ -3,6 +3,8 @@ package org.gk.variant;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
@@ -19,9 +21,48 @@ public class VariantBatchProcessor {
 	private MySQLAdaptor dba;
 	PersistenceManager mngr;
 	
+	private String name;
+	
+	private String referenceEntityId;
+	
+	private String compartmentId;
+	
+	private String psiModId;
+	
+	private String cosmicIds;
+	
+	private String diseaseIds;
+	
+	private String alteredAminoAcid;
+	
 	public VariantBatchProcessor(String src, String dest, MySQLAdaptor dba) {
 		this.src = src;
 		this.dest = dest;
+		this.dba = dba;
+		mngr = PersistenceManager.getManager();
+		mngr.setActiveMySQLAdaptor(dba);
+	}
+	
+	public VariantBatchProcessor(String name, String reference, String compartment, String psi, String cosmids, String diseases, MySQLAdaptor dba) {
+		this.name = name;
+		referenceEntityId = reference;
+		compartmentId = compartment;
+		psiModId = psi;
+		cosmicIds = cosmids;
+		diseaseIds = diseases;
+		this.dba = dba;
+		mngr = PersistenceManager.getManager();
+		mngr.setActiveMySQLAdaptor(dba);
+	}
+	
+	public VariantBatchProcessor(String name, String reference, String compartment, String psi, String cosmids, String diseases, String alteredAa, MySQLAdaptor dba) {
+		this.name = name;
+		referenceEntityId = reference;
+		compartmentId = compartment;
+		psiModId = psi;
+		cosmicIds = cosmids;
+		diseaseIds = diseases;
+		alteredAminoAcid = alteredAa;
 		this.dba = dba;
 		mngr = PersistenceManager.getManager();
 		mngr.setActiveMySQLAdaptor(dba);
@@ -294,6 +335,161 @@ public class VariantBatchProcessor {
         }
 		return ct;
 				
+	}
+	
+	public GKInstance createNonsenseMutationEwas() throws Exception {
+		Pattern p = Pattern.compile("\\s+[A-Z](\\d+)\\*");
+        Matcher m = p.matcher(name);
+        String mut = null;
+        if (m.find()) {
+            mut = m.group(1);
+        } else {
+        	return null;
+        }
+        
+        int mutPnt = Integer.parseInt(mut);
+        
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+		mngr.setActiveFileAdaptor(fileAdaptor);
+        
+		GKInstance ewas = fileAdaptor.createNewInstance(ReactomeJavaConstants.EntityWithAccessionedSequence);
+		ewas.setAttributeValue(ReactomeJavaConstants.name, name);
+        GKInstance referenceEntity = dba.fetchInstance(Long.parseLong(referenceEntityId));
+        GKInstance localReferenceEntity = mngr.download(referenceEntity);
+        ewas.setAttributeValue(ReactomeJavaConstants.referenceEntity, localReferenceEntity);
+        int start = 1;
+        ewas.setAttributeValue(ReactomeJavaConstants.startCoordinate, start);
+        int end = mutPnt - 1;
+        ewas.setAttributeValue(ReactomeJavaConstants.endCoordinate, end);
+        GKInstance compartment = dba.fetchInstance(Long.parseLong(compartmentId));
+        GKInstance localCompartment = mngr.download(compartment);
+        ewas.setAttributeValue(ReactomeJavaConstants.compartment, localCompartment);
+        
+        GKInstance nonsenseMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.NonsenseMutation);
+        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.coordinate, mutPnt);
+        GKInstance psiMod = dba.fetchInstance(Long.parseLong(psiModId));
+        GKInstance localPsiMod = mngr.download(psiMod);
+        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.psiMod, localPsiMod);
+        GKInstance mutReferenceSequence = dba.fetchInstance(Long.parseLong(referenceEntityId));
+        GKInstance localMutReferenceSequence = mngr.download(mutReferenceSequence);
+        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localMutReferenceSequence);
+        String displayNameOfNonsenseMutation = InstanceDisplayNameGenerator.generateDisplayName(nonsenseMutation);
+        nonsenseMutation.setDisplayName(displayNameOfNonsenseMutation);        
+        ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, nonsenseMutation);
+        
+        String referenceDatabaseID = "1655447";
+        GKInstance referenceDatabase = dba.fetchInstance(Long.parseLong(referenceDatabaseID));
+        GKInstance localMutReferenceDatabase = mngr.download(referenceDatabase);
+
+        String[] cosmicIDsArray = cosmicIds.split("\\|");
+        for(String cosmicID : cosmicIDsArray){
+        	GKInstance crossReference = fileAdaptor.createNewInstance(ReactomeJavaConstants.DatabaseIdentifier);
+        	crossReference.setAttributeValue(ReactomeJavaConstants.referenceDatabase, localMutReferenceDatabase);
+        	crossReference.setAttributeValue(ReactomeJavaConstants.identifier, cosmicID);
+        	String displaynameCrossRef = InstanceDisplayNameGenerator.generateDisplayName(crossReference);
+        	crossReference.setDisplayName(displaynameCrossRef);
+        	
+            ewas.addAttributeValue(ReactomeJavaConstants.crossReference, crossReference);
+        }
+        
+        String[] diseaseArray = diseaseIds.split("\\|");
+        for(String diseaseID : diseaseArray){
+            GKInstance disease = dba.fetchInstance(Long.parseLong(diseaseID));
+            GKInstance localDisease = mngr.download(disease);
+            ewas.addAttributeValue(ReactomeJavaConstants.disease, localDisease);                       	
+        }                      
+        GKInstance species = dba.fetchInstance(ReactomeJavaConstants.humanID); 
+        GKInstance localSpecies = mngr.download(species);
+        ewas.setAttributeValue(ReactomeJavaConstants.species, localSpecies); 
+        
+        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
+        ewas.setDisplayName(displayNameOfEwas); 
+		
+		return ewas;
+	}
+	
+	public GKInstance createFrameShiftMutationEwas() throws Exception {
+		Pattern p1 = Pattern.compile("\\s+[A-Z](\\d+)[A-Z]fs\\*");
+        Matcher m1 = p1.matcher(name);
+        String mut = null;
+        if (m1.find()) {
+            mut = m1.group(1);
+        }  else {
+        	return null;
+        }
+        
+        Pattern p2 = Pattern.compile("\\s+[A-Z]\\d+[A-Z]fs\\*(\\d+)");
+        Matcher m2 = p2.matcher(name);
+        String shft = null;
+        if (m2.find()) {
+        	shft = m2.group(1);
+        } else {
+        	return null;
+        }
+        
+        int mutPnt = Integer.parseInt(mut);
+        
+        int shftPnt = Integer.parseInt(shft);
+        
+        XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+		mngr.setActiveFileAdaptor(fileAdaptor);
+        
+		GKInstance ewas = fileAdaptor.createNewInstance(ReactomeJavaConstants.EntityWithAccessionedSequence);
+		ewas.setAttributeValue(ReactomeJavaConstants.name, name);
+        GKInstance referenceEntity = dba.fetchInstance(Long.parseLong(referenceEntityId));
+        GKInstance localReferenceEntity = mngr.download(referenceEntity);
+        ewas.setAttributeValue(ReactomeJavaConstants.referenceEntity, localReferenceEntity);
+        int start = 1;
+        ewas.setAttributeValue(ReactomeJavaConstants.startCoordinate, start);
+        int end = mutPnt + shftPnt - 2;
+        ewas.setAttributeValue(ReactomeJavaConstants.endCoordinate, end);
+        GKInstance compartment = dba.fetchInstance(Long.parseLong(compartmentId));
+        GKInstance localCompartment = mngr.download(compartment);
+        ewas.setAttributeValue(ReactomeJavaConstants.compartment, localCompartment);
+        
+        GKInstance frgmntRplcMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.FragmentReplacedModification);
+    	GKInstance frgRplcReferenceSequence = dba.fetchInstance(Long.parseLong(referenceEntityId));
+        GKInstance localFrgRplcReferenceSequence = mngr.download(frgRplcReferenceSequence);
+        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localFrgRplcReferenceSequence);
+        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);
+        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.startPositionInReferenceSequence, mutPnt);
+        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.endPositionInReferenceSequence, end);
+        String displayNameOfFrgRplcMutation = InstanceDisplayNameGenerator.generateDisplayName(frgmntRplcMutation);
+        frgmntRplcMutation.setDisplayName(displayNameOfFrgRplcMutation);
+        ewas.addAttributeValue(ReactomeJavaConstants.hasModifiedResidue, frgmntRplcMutation);
+
+    	frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);
+    	
+        
+        String referenceDatabaseID = "1655447";
+        GKInstance referenceDatabase = dba.fetchInstance(Long.parseLong(referenceDatabaseID));
+        GKInstance localMutReferenceDatabase = mngr.download(referenceDatabase);
+
+        String[] cosmicIDsArray = cosmicIds.split("\\|");
+        for(String cosmicID : cosmicIDsArray){
+        	GKInstance crossReference = fileAdaptor.createNewInstance(ReactomeJavaConstants.DatabaseIdentifier);
+        	crossReference.setAttributeValue(ReactomeJavaConstants.referenceDatabase, localMutReferenceDatabase);
+        	crossReference.setAttributeValue(ReactomeJavaConstants.identifier, cosmicID);
+        	String displaynameCrossRef = InstanceDisplayNameGenerator.generateDisplayName(crossReference);
+        	crossReference.setDisplayName(displaynameCrossRef);
+        	
+            ewas.addAttributeValue(ReactomeJavaConstants.crossReference, crossReference);
+        }
+        
+        String[] diseaseArray = diseaseIds.split("\\|");
+        for(String diseaseID : diseaseArray){
+            GKInstance disease = dba.fetchInstance(Long.parseLong(diseaseID));
+            GKInstance localDisease = mngr.download(disease);
+            ewas.addAttributeValue(ReactomeJavaConstants.disease, localDisease);                       	
+        }                      
+        GKInstance species = dba.fetchInstance(ReactomeJavaConstants.humanID); 
+        GKInstance localSpecies = mngr.download(species);
+        ewas.setAttributeValue(ReactomeJavaConstants.species, localSpecies); 
+        
+        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
+        ewas.setDisplayName(displayNameOfEwas); 
+		
+		return ewas;
 	}
 
 }

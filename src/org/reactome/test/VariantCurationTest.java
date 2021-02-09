@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.gk.model.GKInstance;
 import org.gk.persistence.MySQLAdaptor;
@@ -121,6 +123,37 @@ public class VariantCurationTest {
 		int numberOfRecordsProcessed = processor.processEwases();
 		// should be 5
         System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
+	}
+	
+	@Test
+	public void testCreateNonsenseMutationEwas() throws Exception {
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                "gk_central",
+                "authortool",
+                "T001test",
+                3306);
+
+		VariantBatchProcessor processor = new VariantBatchProcessor("BRCA2 G405*", "50952", "70101", "611092", "COSV66465255", "1500689", dba);
+        
+        GKInstance ewas = processor.createNonsenseMutationEwas();
+        
+        System.out.println(ewas);		
+	}
+	
+	@Test
+	public void testCreateFrameShiftMutationEwas() throws Exception {
+		
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                "gk_central",
+                "authortool",
+                "T001test",
+                3306);
+
+		VariantBatchProcessor processor = new VariantBatchProcessor("BRCA2 E2981Rfs*37", "50952", "70101", "1655447", "COSV66454404", "1500689", "RKRFSYTEYLASIIRFIFSVNRRKEIQNLSSCNFKI", dba);
+        
+        GKInstance ewas = processor.createFrameShiftMutationEwas();
+        
+        System.out.println(ewas);	
 	}
 
 }
