@@ -4,6 +4,7 @@ import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.persistence.MySQLAdaptor.AttributeQueryRequest;
+import org.gk.property.PMIDXMLInfoFetcher2;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
@@ -15,73 +16,52 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.Reference;
 
 public class VariantCuration {
 			
-	private String dest;
+	protected String dest;
 	
-	private String name;
-	
-	private String mutationType;
-	
-	private String coordinate;
-	
-	private String wtResidue;
-	
-	private String replacedResidue;
-	
-	private String startCoordinate; 
-	
-	private String endCoordinate; 
+	protected String name;
 			
-	private List<GKInstance> wtEwases;
+	protected List<GKInstance> wtEwases;
 	
-	private Set<GKInstance> complexesAndEntitySet = new HashSet<>();
+	protected Set<GKInstance> complexesAndEntitySet = new HashSet<>();
 	
-	private Map<GKInstance, List<GKInstance>> complexesAndEntitySets = new HashMap<>();
+	protected Map<GKInstance, List<GKInstance>> complexesAndEntitySets = new HashMap<>();
 	
-	private Map<GKInstance, List<GKInstance>> reactions = new HashMap<>();
+	protected Map<GKInstance, List<GKInstance>> reactions = new HashMap<>();
 		
-	private String compartmentId;
+	protected String compartmentId;
 	
-	private String psiModId;
+	protected String psiModId;
 	
-	private String referenceDatabaseId;
+	protected String referenceDatabaseId;
 	
-	private String cosmicIds;
+	protected String cosmicIds;     // to do: refactor this from String to Long
 	
-	private String diseaseIds;
+	protected String diseaseIds;    // keep this as String since there could be multiple diseaseIds delimited by |
+		
+	protected String pmids;
 	
-	private String alteredAminoAcid;
+	protected Long speciesId;
 	
-	private Hashtable<String, String> aaDict = new Hashtable<String, String>();
+	protected Hashtable<String, String> aaDict = new Hashtable<String, String>();
 	
 	public VariantCuration() {
-		aaDict.put("A", "L-alanine");
-		aaDict.put("R", "L-arginine");
-		aaDict.put("N", "L-asparagine");
-		aaDict.put("D", "L-aspartic acid");
-		aaDict.put("C", "L-cysteine");
-		aaDict.put("E", "L-glutamic acid");
-		aaDict.put("Q", "L-glutamine");
-		aaDict.put("H", "L-histidine");
-		aaDict.put("I", "L-isoleucine");
-		aaDict.put("L", "L-leucine");
-		aaDict.put("K", "L-lysine");
-		aaDict.put("M", "L-methionine");
-		aaDict.put("F", "L-phenylalanine");
-		aaDict.put("P", "L-proline");
-		aaDict.put("U", "L-selenocysteine");
-		aaDict.put("S", "L-serine");
-		aaDict.put("T", "L-threonine");
-		aaDict.put("W", "L-tryptophan");
-		aaDict.put("Y", "L-tyrosine");
-		aaDict.put("V", "L-valine");
-		aaDict.put("G", "glycine");
+		setSpeciesId(ReactomeJavaConstants.humanID);    // default species set to human
+		setReferenceDatabaseId(ReactomeJavaConstants.cosmicID.toString());   // default is COSMIC
+		setDiseaseIds(ReactomeJavaConstants.cancerID.toString());  // default is cancel
+	}
+	
+	public String getDest() {
+		return dest;
+	}
+
+	public void setDest(String dest) {
+		this.dest = dest;
 	}
 	
 	public String getName() {
@@ -92,30 +72,60 @@ public class VariantCuration {
 		this.name = name;
 	}
 	
-	private List<GKInstance> getReferenceGeneProducts(String gene) throws Exception {		
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();		
-		
-        GKInstance human = dba.fetchInstance(ReactomeJavaConstants.humanID);
-        AttributeQueryRequest request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
-                                                                        ReactomeJavaConstants.geneName,
-                                                                        "=",
-                                                                        gene);
-        List<AttributeQueryRequest> queryList = new ArrayList<>();
-        queryList.add(request);
-        request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
-                                                  ReactomeJavaConstants.species,
-                                                  "=",
-                                                  human);
-        queryList.add(request);
-        @SuppressWarnings("unchecked")
-		Set<GKInstance> referenceEntities = dba.fetchInstance(queryList);
-        
-        List<GKInstance> referenceEntitiesList = new ArrayList<>(referenceEntities);
-        
-        InstanceUtilities.sortInstances(referenceEntitiesList);
-        		
-		return referenceEntitiesList;
+	public String getCompartmentId() {
+		return compartmentId;
+	}
+
+	public void setCompartmentId(String compartmentId) {
+		this.compartmentId = compartmentId;
+	}
+
+	public String getPsiModId() {
+		return psiModId;
+	}
+
+	public void setPsiModId(String psiModId) {
+		this.psiModId = psiModId;
+	}
+
+	public String getCosmicIds() {
+		return cosmicIds;
+	}
+
+	public void setCosmicIds(String cosmicIds) {
+		this.cosmicIds = cosmicIds;
+	}
+
+	public String getDiseaseIds() {
+		return diseaseIds;
+	}
+
+	public void setDiseaseIds(String diseaseIds) {
+		this.diseaseIds = diseaseIds;
+	}
+
+	public String getPmids() {
+		return pmids;
+	}
+
+	public void setPmids(String pmids) {
+		this.pmids = pmids;
+	}
+
+	public String getReferenceDatabaseId() {
+		return referenceDatabaseId;
+	}
+
+	public void setReferenceDatabaseId(String referenceDatabaseId) {
+		this.referenceDatabaseId = referenceDatabaseId;
+	}
+	
+	public Long getSpeciesId() {
+		return speciesId;
+	}
+
+	public void setSpeciesId(Long speciesId) {
+		this.speciesId = speciesId;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -256,8 +266,23 @@ public class VariantCuration {
 		return reactionList;
 	}
 	
+	public GKInstance getReferenceGeneProduct(String gene) throws Exception {	
+		if (gene == null)
+			return null;
+		
+		List<GKInstance> refs = getReferenceGeneProducts(gene);;
+		if (refs != null && !refs.isEmpty()) {
+			for(GKInstance ref : refs) {
+				if (ref.getSchemClass().isa(ReactomeJavaConstants.ReferenceGeneProduct)) {
+					return ref;
+				}			
+			}
+		}
+		return null;	
+	}
+	
 	// recursive method
-	private void addContainingPhysicalEntities(Set<GKInstance> physicalEntities) throws Exception {
+	protected void addContainingPhysicalEntities(Set<GKInstance> physicalEntities) throws Exception {
 		for(GKInstance pe : physicalEntities) {
 			Set<GKInstance> containingComplexAndEntitySets = getContainingPhysicalEntities(pe);
 			
@@ -276,7 +301,7 @@ public class VariantCuration {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Set<GKInstance> getContainingPhysicalEntities(GKInstance physicalEntity) throws Exception {
+	protected Set<GKInstance> getContainingPhysicalEntities(GKInstance physicalEntity) throws Exception {
 		PersistenceManager mngr = PersistenceManager.getManager(); 
 		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
 		
@@ -312,7 +337,7 @@ public class VariantCuration {
 		return containingComplexAndEntitySets;
 	}
 	
-	private Set<GKInstance> getNonDiseaseEntities(Set<GKInstance> entities) throws Exception {
+	protected Set<GKInstance> getNonDiseaseEntities(Set<GKInstance> entities) throws Exception {
 		if (entities == null || entities.isEmpty())
 			return entities;
 		
@@ -325,254 +350,35 @@ public class VariantCuration {
 		
 		return wildTypeEntities;		
 	}
-
-	public String getCompartmentId() {
-		return compartmentId;
-	}
-
-	public void setCompartmentId(String compartmentId) {
-		this.compartmentId = compartmentId;
-	}
-
-	public String getPsiModId() {
-		return psiModId;
-	}
-
-	public void setPsiModId(String psiModId) {
-		this.psiModId = psiModId;
-	}
-
-	public String getCosmicIds() {
-		return cosmicIds;
-	}
-
-	public void setCosmicIds(String cosmicIds) {
-		this.cosmicIds = cosmicIds;
-	}
-
-	public String getDiseaseIds() {
-		return diseaseIds;
-	}
-
-	public void setDiseaseIds(String diseaseIds) {
-		this.diseaseIds = diseaseIds;
-	}
 	
-	public String getAlteredAminoAcid() {
-		return alteredAminoAcid;
-	}
-	
-	public void setAlteredAminoAcid(String alteredAminoAcid) {
-		this.alteredAminoAcid = alteredAminoAcid;
-	}
-	
-	public GKInstance getReferenceGeneProduct(String gene) throws Exception {	
-		if (gene == null)
-			return null;
-		
-		List<GKInstance> refs = getReferenceGeneProducts(gene);;
-		if (refs != null && !refs.isEmpty()) {
-			for(GKInstance ref : refs) {
-				if (ref.getSchemClass().isa(ReactomeJavaConstants.ReferenceGeneProduct)) {
-					return ref;
-				}			
-			}
-		}
-		return null;	
-	}
-
-	public String getDest() {
-		return dest;
-	}
-
-	public void setDest(String dest) {
-		this.dest = dest;
-	}
-	
-	public GKInstance createReplacedResidueEwas() throws Exception {
-		if (name == null || name.trim().isEmpty())
-			throw new Exception("Gene name entered is empty string");
-        		
-		GKInstance ewas = createEwas(Integer.parseInt(startCoordinate), Integer.parseInt(endCoordinate), name);
-        
-        PersistenceManager mngr = PersistenceManager.getManager(); 
-        XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
-        
-        GKInstance replacedResidueMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.ReplacedResidue);
-        replacedResidueMutation.setAttributeValue(ReactomeJavaConstants.coordinate, Integer.parseInt(coordinate));
-        GKInstance psiMod1 = getPsiMod(wtResidue, "removal");
-        GKInstance localPsiMod1 = mngr.download(psiMod1);
-        replacedResidueMutation.addAttributeValue(ReactomeJavaConstants.psiMod, localPsiMod1);
-        GKInstance psiMod2 = getPsiMod(replacedResidue, "residue");
-        GKInstance localPsiMod2 = mngr.download(psiMod2);
-        replacedResidueMutation.addAttributeValue(ReactomeJavaConstants.psiMod, localPsiMod2);
-        GKInstance referenceEntity = getReferenceGeneProduct(name);
-        GKInstance localReferenceEntity = mngr.download(referenceEntity);
-        replacedResidueMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localReferenceEntity);
-        String displayNameOfReplacedResidueMutation = InstanceDisplayNameGenerator.generateDisplayName(replacedResidueMutation);
-        replacedResidueMutation.setDisplayName(displayNameOfReplacedResidueMutation);        
-        ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, replacedResidueMutation);
-        
-		String mutName = name + " " + wtResidue + coordinate + replacedResidue;
-        ewas.setAttributeValue(ReactomeJavaConstants.name, mutName);
-        
-        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
-        ewas.setDisplayName(displayNameOfEwas); 
-        		
-		return ewas;
-	}
-	
-	public GKInstance createNonsenseMutationEwas() throws Exception {
-		if (name == null || name.trim().isEmpty())
-			throw new Exception("Name is null or empty string");
-		
-		Pattern p = Pattern.compile("(\\w+)\\s+([A-Z])(\\d+)\\*");
-        Matcher m = p.matcher(name);
-        String mut = null;
-        String geneName = null;
-        String aaCode = null;
-        if (m.find()) {
-        	geneName = m.group(1);
-        	aaCode = m.group(2);
-            mut = m.group(3);
-        } else {
-        	throw new Exception("The name is not a nonsense mutation.");
-        }
-        
-        int mutPnt = Integer.parseInt(mut);
-        int start = 1;
-        int end = mutPnt - 1;
-        
-		GKInstance ewas = createEwas(start, end, geneName);
-        
-        PersistenceManager mngr = PersistenceManager.getManager(); 
-        XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
-        
-        GKInstance nonsenseMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.NonsenseMutation);
-        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.coordinate, mutPnt);
-        //GKInstance psiMod = dba.fetchInstance(Long.parseLong(psiModId));
-        GKInstance psiMod = getPsiMod(aaCode, "removal");
-        GKInstance localPsiMod = mngr.download(psiMod);
-        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.psiMod, localPsiMod);
-        GKInstance referenceEntity = getReferenceGeneProduct(geneName);
-        GKInstance localReferenceEntity = mngr.download(referenceEntity);
-        nonsenseMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localReferenceEntity);
-        String displayNameOfNonsenseMutation = InstanceDisplayNameGenerator.generateDisplayName(nonsenseMutation);
-        nonsenseMutation.setDisplayName(displayNameOfNonsenseMutation);        
-        ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, nonsenseMutation);
-        
-        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
-        ewas.setDisplayName(displayNameOfEwas); 
-        		
-		return ewas;
-	}
-
-	public String getReferenceDatabaseId() {
-		return referenceDatabaseId;
-	}
-
-	public void setReferenceDatabaseId(String referenceDatabaseId) {
-		this.referenceDatabaseId = referenceDatabaseId;
-	}
-	
-	public GKInstance createFrameShiftMutationEwas() throws Exception {       
-        if (name == null || name.trim().isEmpty())
-			throw new Exception("Name is null or empty string");
-        
-        PersistenceManager mngr = PersistenceManager.getManager(); 
-		XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
-		
-		Pattern p = Pattern.compile("(\\w+)\\s+[A-Z](\\d+)[A-Z]fs\\*(\\d+)");
-        Matcher m = p.matcher(name);
-        String mut = null;
-        String shft = null;
-        String geneName = null;
-        if (m.find()) {
-        	geneName = m.group(1);
-            mut = m.group(2);
-            shft = m.group(3);
-        } else {
-        	throw new Exception("The name is not a frame shift mutation.");
-        }
-        
-        int mutPnt = Integer.parseInt(mut);        
-        int shftPnt = Integer.parseInt(shft);
-        int start = 1;
-        int end = mutPnt + shftPnt - 2;
-        
-		GKInstance ewas = createEwas(start, end, geneName);
-        
-        GKInstance frgmntRplcMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.FragmentReplacedModification);
-        GKInstance referenceEntity = getReferenceGeneProduct(geneName);
-        GKInstance localReferenceEntity = mngr.download(referenceEntity);
-        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localReferenceEntity);
-        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);
-        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.startPositionInReferenceSequence, mutPnt);
-        frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.endPositionInReferenceSequence, end);
-        String displayNameOfFrgRplcMutation = InstanceDisplayNameGenerator.generateDisplayName(frgmntRplcMutation);
-        frgmntRplcMutation.setDisplayName(displayNameOfFrgRplcMutation);
-    	frgmntRplcMutation.setAttributeValue(ReactomeJavaConstants.alteredAminoAcidFragment, alteredAminoAcid);    	
-
-        ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, frgmntRplcMutation);
-        
-        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
-        ewas.setDisplayName(displayNameOfEwas); 
-		
-		return ewas;
-	}
-	
-	public GKInstance createFusioneMutationEwas() throws Exception {
-		if (name == null || name.trim().isEmpty())
-			throw new Exception("Name is null or empty string");
-		
+	protected List<GKInstance> getReferenceGeneProducts(String gene) throws Exception {		
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
+		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();		
 		
-		Pattern p = Pattern.compile("(\\w+)\\((\\d+)\\-(\\d+)\\)\\-(\\w+)\\((\\d+)\\-(\\d+)\\)\\s*fusion");
-        Matcher m = p.matcher(name);
-        String geneName1 = null;
-        String start1 = null;
-        String end1 = null;
-        String geneName2 = null;
-        String start2 = null;
-        String end2 = null;
-        if (m.find()) {
-        	geneName1 = m.group(1);
-            start1 = m.group(2);
-            end1 = m.group(3);
-            geneName2 = m.group(4);
-            start2 = m.group(5);
-            end2 = m.group(6);            
-        } else {
-        	throw new Exception("The name is not a fusion mutation.");
-        }
-		
-        int endInt1 = Integer.parseInt(end1); 
-        int coord = endInt1 + 1;
-        int startInt2 = Integer.parseInt(start2);
-        int endInt12 = Integer.parseInt(end2);
+        GKInstance human = dba.fetchInstance(speciesId);
+        AttributeQueryRequest request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
+                                                                        ReactomeJavaConstants.geneName,
+                                                                        "=",
+                                                                        gene);
+        List<AttributeQueryRequest> queryList = new ArrayList<>();
+        queryList.add(request);
+        request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
+                                                  ReactomeJavaConstants.species,
+                                                  "=",
+                                                  human);
+        queryList.add(request);
+        @SuppressWarnings("unchecked")
+		Set<GKInstance> referenceEntities = dba.fetchInstance(queryList);
         
-		GKInstance ewas = createEwas(Integer.parseInt(start1), endInt1, geneName1);
+        List<GKInstance> referenceEntitiesList = new ArrayList<>(referenceEntities);
         
-        GKInstance frgmntInsMutation = fileAdaptor.createNewInstance(ReactomeJavaConstants.FragmentInsertionModification);
-        GKInstance referenceEntity = getReferenceGeneProduct(geneName2);
-        GKInstance localReferenceEntity = mngr.download(referenceEntity);
-        frgmntInsMutation.setAttributeValue(ReactomeJavaConstants.referenceSequence, localReferenceEntity);
-        frgmntInsMutation.setAttributeValue(ReactomeJavaConstants.coordinate, coord);
-        frgmntInsMutation.setAttributeValue(ReactomeJavaConstants.startPositionInReferenceSequence, startInt2);
-        frgmntInsMutation.setAttributeValue(ReactomeJavaConstants.endPositionInReferenceSequence, endInt12);
-        String displayNameOfFrgmntInstMutation = InstanceDisplayNameGenerator.generateDisplayName(frgmntInsMutation);
-        frgmntInsMutation.setDisplayName(displayNameOfFrgmntInstMutation);
-
-        ewas.setAttributeValue(ReactomeJavaConstants.hasModifiedResidue, frgmntInsMutation);
-        
-        String displayNameOfEwas = InstanceDisplayNameGenerator.generateDisplayName(ewas);
-        ewas.setDisplayName(displayNameOfEwas); 
-		
-		return ewas;
+        InstanceUtilities.sortInstances(referenceEntitiesList);
+        		
+		return referenceEntitiesList;
 	}
 	
-	private GKInstance createEwas(int start, int end, String gene) throws Exception {  
+	@SuppressWarnings("unchecked")
+	protected GKInstance createEwas(int start, int end, String gene) throws Exception {  
 		PersistenceManager mngr = PersistenceManager.getManager(); 
 		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
 		XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
@@ -608,9 +414,51 @@ public class VariantCuration {
             GKInstance localDisease = mngr.download(disease);
             ewas.addAttributeValue(ReactomeJavaConstants.disease, localDisease);                       	
         }                      
-        GKInstance species = dba.fetchInstance(ReactomeJavaConstants.humanID); 
+        GKInstance species = dba.fetchInstance(speciesId); 
         GKInstance localSpecies = mngr.download(species);
         ewas.setAttributeValue(ReactomeJavaConstants.species, localSpecies); 
+        
+        if (pmids != null && !pmids.isEmpty()) {
+        	 String[] pmidArray = pmids.split("\\|");
+             for(String pmid : pmidArray) {          	
+				Set<GKInstance> pubsFound = 
+            			 (Set<GKInstance>) dba.fetchInstanceByAttribute(ReactomeJavaConstants.LiteratureReference, 
+            					                                        ReactomeJavaConstants.pubMedIdentifier, 
+            					                                        "=", 
+            					                                        pmid);
+                 if(pubsFound == null) {
+                     PMIDXMLInfoFetcher2 fetcher = new PMIDXMLInfoFetcher2();                            
+                     Long pmidLong = Long.parseLong(pmids);                            
+                     Integer pmidInt = Integer.parseInt(pmid);                           
+                     Reference ref = fetcher.fetchInfo(pmidLong);                                                      
+                     GKInstance newPub;                            
+                     if(ref == null) {
+                     	System.out.println("fetcher.fetchInfo(pmidLong) NOT WORKING");
+                     } else {                           	                            	
+                     	newPub = fileAdaptor.createNewInstance(ReactomeJavaConstants.LiteratureReference);
+                     	newPub.setAttributeValue(ReactomeJavaConstants.author, ref.getAuthor());
+                     	newPub.setAttributeValue(ReactomeJavaConstants.journal, ref.getJournal());
+                     	newPub.setAttributeValue(ReactomeJavaConstants.pages, ref.getPage());
+                     	newPub.setAttributeValue(ReactomeJavaConstants.pubMedIdentifier, pmidInt);
+                     	newPub.setAttributeValue(ReactomeJavaConstants.title, ref.getTitle());
+                     	newPub.setAttributeValue(ReactomeJavaConstants.volume, Integer.parseInt(ref.getVolume()));
+                     	newPub.setAttributeValue(ReactomeJavaConstants.year, new Integer(ref.getYear()));                            	
+                     	
+                     	String displayNameOfNewPub = InstanceDisplayNameGenerator.generateDisplayName(newPub);
+                     	newPub.setDisplayName(displayNameOfNewPub); 
+                     	ewas.addAttributeValue(ReactomeJavaConstants.literatureReference, newPub); 
+                     }
+                 } else {
+                 	for (GKInstance pub : pubsFound) {
+                 		GKInstance localPub = mngr.download(pub);
+                 		ewas.addAttributeValue(ReactomeJavaConstants.literatureReference, localPub);  
+
+                 	}
+                 }  
+            	 
+             }     	
+        	
+        }
         
 		return ewas;
 	}
@@ -640,51 +488,28 @@ public class VariantCuration {
 		return null;
 	}
 	
-	public String getMutationType() {
-		return mutationType;
+	protected void setAminoAcidDict() {
+		aaDict.put("A", "L-alanine");
+		aaDict.put("R", "L-arginine");
+		aaDict.put("N", "L-asparagine");
+		aaDict.put("D", "L-aspartic acid");
+		aaDict.put("C", "L-cysteine");
+		aaDict.put("E", "L-glutamic acid");
+		aaDict.put("Q", "L-glutamine");
+		aaDict.put("H", "L-histidine");
+		aaDict.put("I", "L-isoleucine");
+		aaDict.put("L", "L-leucine");
+		aaDict.put("K", "L-lysine");
+		aaDict.put("M", "L-methionine");
+		aaDict.put("F", "L-phenylalanine");
+		aaDict.put("P", "L-proline");
+		aaDict.put("U", "L-selenocysteine");
+		aaDict.put("S", "L-serine");
+		aaDict.put("T", "L-threonine");
+		aaDict.put("W", "L-tryptophan");
+		aaDict.put("Y", "L-tyrosine");
+		aaDict.put("V", "L-valine");
+		aaDict.put("G", "glycine");
 	}
 	
-	public void setmMtationType(String mutationType) {
-		this.mutationType = mutationType;
-	}
-	
-	public String getCoordinate() {
-		return coordinate;
-	}
-	
-	public void setCoordinate(String coordinate) {		
-	    this.coordinate = coordinate;	
-	}
-	
-	public String getWtResidue() {
-		return wtResidue;
-	}
-	
-	public void setWtResidue(String wtResidue) {
-		this.wtResidue = wtResidue;
-	}
-	
-	public String getReplacedResidue() {
-	    return replacedResidue;
-    }
-	
-	public void setReplacedResidue(String replacedResidue) {
-		this.replacedResidue = replacedResidue;
-	}
-	
-	public String getStartCoordinate() {
-		return startCoordinate;
-	}
-	
-	public void setStartCoordinate(String startCoordinate) {
-		this .startCoordinate = startCoordinate;
-	}
-	
-	public String getEndCoordinate() {
-		return endCoordinate;
-	}
-	
-	public void setEndCoordinate(String endCoordinate) {
-		this .endCoordinate = endCoordinate;
-	}
 }

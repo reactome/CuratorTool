@@ -10,6 +10,10 @@ import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.variant.VariantCuration;
+import org.gk.variant.FrameShiftVariantCuration;
+import org.gk.variant.FusioneVariantCuration;
+import org.gk.variant.NonsenseMutationVariantCuration;
+import org.gk.variant.ReplacedResidueVariantCuration;
 import org.gk.variant.VariantBatchProcessor;
 import org.junit.Test;
 
@@ -71,63 +75,7 @@ public class VariantCurationTest {
 		reactions.forEach(System.out::println);		
 	}       
 	
-	@Test
-    public void testBatchProcessingNonsenseVariants() throws Exception {
-    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
-    	LocalDateTime now = LocalDateTime.now();  
-    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/Disease_BRCA2_EWASs.tsv";
-        String dest = "/Users/shaox/Desktop/BRAC2NonsenseMutants_" + dtf.format(now) + ".rtpj";
-		
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test",
-                                            3306);	
-		
-		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
-		int numberOfRecordsProcessed = processor.processEwases();
-		// should be 150
-        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
-	}
-	
-	@Test
-    public void testBatchProcessingFragmntRplcedVariants() throws Exception {
-    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
-    	LocalDateTime now = LocalDateTime.now();  
-    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/BRCA2_FrameShiftMutants_FragmentReplacement_sheet1.tsv";
-        String dest = "/Users/shaox/Desktop/BRCA2_FrameShift_EWAS_" + dtf.format(now) + ".rtpj";
-		
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test",
-                                            3306);	
-		
-		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
-		int numberOfRecordsProcessed = processor.processEwases();
-		// should be 169
-        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
-	}
-	
-	@Test
-    public void testBatchProcessingFusionVariants() throws Exception {
-    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
-    	LocalDateTime now = LocalDateTime.now();  
-    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/test_fusion_mutations.tsv";
-        String dest = "/Users/shaox/Desktop/testFusionMutants_" + dtf.format(now) + ".rtpj";
-		
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test",
-                                            3306);	
-		
-		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest, dba);
-		int numberOfRecordsProcessed = processor.processEwases();
-		// should be 5
-        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
-	}
-	
+
 	@Test
 	public void testCreateReplacedResidueEwas() throws Exception {
 		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
@@ -138,11 +86,11 @@ public class VariantCurationTest {
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
-        String destination = "/Users/shaox/Desktop/replaced_residue_ewas_" + dtf.format(now) + ".rtpj";        
+        String destination = "/Users/shaox/Desktop/single_replaced_residue_ewas_" + dtf.format(now) + ".rtpj";        
         
-        VariantCuration variantCuration = new VariantCuration(); 
+        ReplacedResidueVariantCuration variantCuration = new ReplacedResidueVariantCuration(); 
         String name = "PPP2R1A";
-        variantCuration.setName(name);
+        variantCuration.setGeneName(name);
         variantCuration.setCompartmentId("70101");
         variantCuration.setStartCoordinate("1");
         variantCuration.setEndCoordinate("256");
@@ -165,7 +113,7 @@ public class VariantCurationTest {
 	}
 	
 	@Test
-	public void testCreateSingleNonsenseMutationEwas() throws Exception {
+	public void testCreateNonsenseMutationEwas() throws Exception {
 		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
@@ -174,15 +122,15 @@ public class VariantCurationTest {
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
-        String destination = "/Users/shaox/Desktop/nonse_mut_ewas_" + dtf.format(now) + ".rtpj";        
+        String destination = "/Users/shaox/Desktop/single_nonse_mut_ewas_" + dtf.format(now) + ".rtpj";        
         
-        VariantCuration variantCuration = new VariantCuration(); 
+        NonsenseMutationVariantCuration variantCuration = new NonsenseMutationVariantCuration(); 
         String name = "BRCA2 Q373*";
         variantCuration.setName(name);
         variantCuration.setCompartmentId("70101");
-        variantCuration.setReferenceDatabaseId("1655447");
+        //variantCuration.setReferenceDatabaseId("1655447");
         variantCuration.setCosmicIds("COSV99061731|COSM7335723");
-        variantCuration.setDiseaseIds("1500689");        
+        //variantCuration.setDiseaseIds("1500689");        
         
         PersistenceManager mngr = PersistenceManager.getManager();
 		mngr.setActiveMySQLAdaptor(dba);
@@ -196,7 +144,7 @@ public class VariantCurationTest {
 	}
 	
 	@Test
-	public void testCreateSingleFrameShiftMutationEwas() throws Exception {
+	public void testCreateFrameShiftMutationEwas() throws Exception {
 		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
@@ -205,15 +153,15 @@ public class VariantCurationTest {
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
-        String destination = "/Users/shaox/Desktop/frame_shift_ewas_" + dtf.format(now) + ".rtpj";        
+        String destination = "/Users/shaox/Desktop/single_frame_shift_ewas_" + dtf.format(now) + ".rtpj";        
         
-        VariantCuration variantCuration = new VariantCuration(); 
+        FrameShiftVariantCuration variantCuration = new FrameShiftVariantCuration(); 
         String name = "BRCA2 E2981Rfs*37";
         variantCuration.setName(name);
         variantCuration.setCompartmentId("70101");
-        variantCuration.setReferenceDatabaseId("1655447");
+        //variantCuration.setReferenceDatabaseId("1655447");
         variantCuration.setCosmicIds("COSV66454404");
-        variantCuration.setDiseaseIds("1500689");
+        //variantCuration.setDiseaseIds("1500689");
         variantCuration.setAlteredAminoAcid("RKRFSYTEYLASIIRFIFSVNRRKEIQNLSSCNFKI");      
         
         PersistenceManager mngr = PersistenceManager.getManager();
@@ -228,7 +176,7 @@ public class VariantCurationTest {
 	}
 	
 	@Test
-	public void testCreateSingleFusioneMutationEwas() throws Exception {
+	public void testCreateFusioneMutationEwas() throws Exception {
 		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
@@ -237,15 +185,16 @@ public class VariantCurationTest {
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
-        String destination = "/Users/shaox/Desktop/fusion_mut_ewas_" + dtf.format(now) + ".rtpj";        
+        String destination = "/Users/shaox/Desktop/single_fusion_mut_ewas_" + dtf.format(now) + ".rtpj";        
         
-        VariantCuration variantCuration = new VariantCuration(); 
+        FusioneVariantCuration variantCuration = new FusioneVariantCuration(); 
 		String name = "KLC1(1-420)-ALK(1058-1620) fusion";
 		variantCuration.setName(name);
         variantCuration.setCompartmentId("70101");
-        variantCuration.setReferenceDatabaseId("1655447");
+        //variantCuration.setReferenceDatabaseId("1655447");
         variantCuration.setCosmicIds("COSF1276");
-        variantCuration.setDiseaseIds("1500689");
+        //variantCuration.setDiseaseIds("1500689");
+        variantCuration.setPmids("21656749|24475247");
         
         PersistenceManager mngr = PersistenceManager.getManager();
 		mngr.setActiveMySQLAdaptor(dba);
@@ -257,6 +206,64 @@ public class VariantCurationTest {
         
         System.out.println(ewas);		
 		
+	}
+	
+	@Test
+	public void testCreateFragmentInsertionEwas() throws Exception {
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                "gk_central",
+                "authortool",
+                "T001test",
+                3306);
+
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+    	LocalDateTime now = LocalDateTime.now();  
+        String destination = "/Users/shaox/Desktop/single_fusion_fragmnt_insertion_ewas_" + dtf.format(now) + ".rtpj";        
+        
+        FusioneVariantCuration variantCuration = new FusioneVariantCuration(); 
+		String name = "HIP1(1-719)InsL-ALK(1059-1620) fusion";
+		variantCuration.setName(name);
+        variantCuration.setCompartmentId("70101");
+        //variantCuration.setReferenceDatabaseId("1655447");
+        variantCuration.setAlteredAminoAcid("DL");
+        variantCuration.setCosmicIds("COSF1615");
+        variantCuration.setDiseaseIds("1500689|8853117");
+        variantCuration.setPmids("24518094");
+        
+        PersistenceManager mngr = PersistenceManager.getManager();
+		mngr.setActiveMySQLAdaptor(dba);
+		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+		mngr.setActiveFileAdaptor(fileAdaptor);
+        GKInstance ewas = variantCuration.createFusioneMutationEwas();
+        
+        fileAdaptor.save(destination);
+        
+        System.out.println(ewas);		
+		
+	}
+	
+	@Test
+    public void testBatchProcessingVariousVariants() throws Exception {
+    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+    	LocalDateTime now = LocalDateTime.now();  
+    	String src = "/Users/shaox/eclipse-workspace/CuratorTool/resources/sampleMutations.tsv";
+        String dest = "/Users/shaox/Desktop/ewases_for_sampleMutations_" + dtf.format(now) + ".rtpj";
+		
+		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "gk_central",
+                                            "authortool",
+                                            "T001test",
+                                            3306);	
+		
+		PersistenceManager mngr = PersistenceManager.getManager();
+		mngr.setActiveMySQLAdaptor(dba);
+		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
+		mngr.setActiveFileAdaptor(fileAdaptor);
+		
+		VariantBatchProcessor processor = new VariantBatchProcessor(src, dest);
+		int numberOfRecordsProcessed = processor.createdEwases();
+		// should be 6
+        System.out.println("The total number of records processed is " + numberOfRecordsProcessed);	
 	}
 
 }
