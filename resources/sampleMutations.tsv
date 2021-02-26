@@ -1,0 +1,7 @@
+name	mutation_type	compartment.DB_ID	alteredAminoAcidFragment	DatabaseIdentifer.referenceDatabase.DB_ID	DatabaseIdentifier.identifier	disease.DB_IDs	pmids	species_id
+BRCA2 G4*	NonsenseMutation	70101			COSV104659054			48887
+BRCA2 W31*	NonsenseMutation	70101			COSV66451214			48887
+BRCA2 N986Kfs*2	FragmentReplacedModification	70101	K		COSV66455783			48887
+BRCA2 V726Sfs*25	FragmentReplacedModification	70101	SFRYKRRGLGCSMSPSTTFKSGIQ		COSV66450798			48887
+KIF5B(2-575)-ALK(1063-1620) fusion	FragmentInsertionModification	70101			COSF1381	1500689|1247848	21656749	48887
+HIP1(1-719)-ALK(1059-1620) fusion	FragmentInsertionModification	70101	DL		COSF1615	1500689|8853117	24518094	48887
