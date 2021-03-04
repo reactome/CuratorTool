@@ -361,4 +361,8 @@ public class ReactomeJavaConstants {
     public static final String NonsenseMutation = "NonsenseMutation";
     public static final String ModifiedNucleotide = "ModifiedNucleotide";
     public static final String TranscritonalModification = "TranscriptionalModification";
+    
+    public static final Long humanID = 48887L;
+    public static final Long cosmicID = 1655447L;
+    public static final Long cancerID = 1500689L;
 }
