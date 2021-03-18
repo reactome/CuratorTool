@@ -66,6 +66,7 @@ import org.gk.database.FrameManager;
 import org.gk.database.SchemaViewPane;
 import org.gk.database.StableIdentifierUpdater;
 import org.gk.database.SynchronizationManager;
+import org.gk.database.util.DrugAutoCreator;
 import org.gk.graphEditor.EntityLevelView;
 import org.gk.graphEditor.GraphEditorActionEvent;
 import org.gk.graphEditor.GraphEditorActionListener;
@@ -690,6 +691,11 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		            instance.getSchemClass().isa(ReactomeJavaConstants.ReferenceGeneProduct)) {
 		        popup.add(actionCollection.getCreateEwasFromRefPepSeqAction());
 		    }
+		    // Action to create drugs
+		    DrugAutoCreator drugCreator = new DrugAutoCreator();
+		    if (drugCreator.isActionable(list.getSelectedValuesList()))
+		        popup.add(drugCreator.getCreateDrugFromRTAction(list.getSelectedValuesList(),
+		                                                        this));
 		    popup.add(actionCollection.getDeleteInstanceAction());
 		    popup.addSeparator();
 		    popup.add(actionCollection.getCompareInstancesAction());

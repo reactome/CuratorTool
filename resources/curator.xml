@@ -225,4 +225,13 @@
     another ping. In other words, it controls the frequency of the ping. The default value is 1 minute, if 
     this value is not provided. -->
     <backgroundThreadDbCheck>1.0</backgroundThreadDbCheck> <!-- The unit is minute. -->
+    <!-- This mapping is used to map type in ReferenceTherapeutic to Drug types -->
+    <ReferenceTherapeutic2Drug default="ChemicalDrug">
+    	<map type="Synthetic organic" drug="ChemicalDrug" />
+    	<map type="Peptide" drug="ProteinDrug" />
+    	<map type="Antibody" drug="ProteinDrug" />
+    	<map type="Inorganic" drug="ChemicalDrug" />
+    	<map type="Natural product" drug="ChemicalDrug" />
+    	<map type="Metabolite" drug="ChemicalDrug" />
+    </ReferenceTherapeutic2Drug>
 </curator>
