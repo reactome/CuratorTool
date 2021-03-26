@@ -1126,6 +1126,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
         fileMenu.addSeparator();
 		JMenu importMenu = new JMenu("Import From...");
 		fileMenu.add(importMenu);
+		importMenu.add(actionCollection.getImportVariantFileAction());
 		importMenu.add(actionCollection.getImportFromAuthoringToolAction());
         importMenu.add(actionCollection.getImportFromAuthorTool2Action());
 		//importMenu.add(actionCollection.getImportFromVer1PrjAction());

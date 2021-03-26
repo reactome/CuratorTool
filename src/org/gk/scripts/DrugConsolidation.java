@@ -1,7 +1,9 @@
 package org.gk.scripts;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,6 +14,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
+import org.junit.Test;
 
 /**
  * This class is used to consolidate three drug subclasses, ChemicalDrug, ProteinDrug, and
@@ -26,6 +29,88 @@ import org.gk.schema.SchemaClass;
 public class DrugConsolidation {
     
     public DrugConsolidation() {
+    }
+    
+    /**
+     * Create DrugActionType instances as shown in the second slide of this file:
+     * https://docs.google.com/presentation/d/1NllQLkNdOq2eaGem4vP1IWB-PsQirPF-8iuuRzJcpzM/edit#slide=id.gb953c97efd_0_0 
+     * @throws Exception
+     */
+    @Test
+    public void createDrugActionTypes() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                                            "test_gk_central_031621_drug",
+                                            "", 
+                                            "");
+        // This is the list
+        String[] names = {
+                "Agonist",
+                "partial agonist",
+                "inverse agonist",
+                "Antagonist",
+                "allosteric antagonist",
+                "Inhibitor",
+                "gating inhibitor",
+                "antisense inhibitor",
+                "Opener",
+                "Blocker",
+                "Activator",
+                "Modulator",
+                "Positive modulator",
+                "Allosteric modulator",
+                "positive allosteric modulator",
+                "negative allosteric modulator"
+        };
+        List<GKInstance> toBeStored = new ArrayList<>();
+        GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, false);
+        toBeStored.add(ie);
+        SchemaClass drugActionTypeCls = dba.getSchema().getClassByName(ReactomeJavaConstants.DrugActionType);
+        Map<String, GKInstance> nameToInst = new HashMap<>();
+        for (String name : names) {
+            GKInstance instance = new GKInstance(drugActionTypeCls);
+            instance.setDbAdaptor(dba);
+            instance.addAttributeValue(ReactomeJavaConstants.name, name);
+            InstanceDisplayNameGenerator.setDisplayName(instance);
+            instance.setAttributeValue(ReactomeJavaConstants.created, ie);
+            nameToInst.put(name, instance);
+            toBeStored.add(instance);
+        }
+        // Need to create parent-child relationships
+        GKInstance parent = nameToInst.get("Agonist");
+        GKInstance child = nameToInst.get("partial agonist");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        child = nameToInst.get("inverse agonist");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        parent = nameToInst.get("Antagonist");
+        child = nameToInst.get("allosteric antagonist");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        parent = nameToInst.get("Inhibitor");
+        child = nameToInst.get("gating inhibitor");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        child = nameToInst.get("antisense inhibitor");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        parent = nameToInst.get("Modulator");
+        child = nameToInst.get("Positive modulator");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        child = nameToInst.get("Allosteric modulator");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        parent = child;
+        child = nameToInst.get("positive allosteric modulator");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        child = nameToInst.get("negative allosteric modulator");
+        child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+        System.out.println("Total instances to be stored: " + toBeStored.size());
+        try {
+            dba.startTransaction();
+            for (GKInstance inst : toBeStored) {
+                dba.storeInstance(inst);
+            }
+            dba.commit();
+        }
+        catch(Exception e) {
+            dba.rollback();
+            e.printStackTrace();
+        }
     }
     
     public static void main(String[] args) throws Exception {

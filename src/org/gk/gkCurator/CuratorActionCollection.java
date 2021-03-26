@@ -90,6 +90,7 @@ import org.gk.util.GKFileFilter;
 import org.gk.util.ProgressPane;
 import org.gk.util.WSInfoHelper;
 import org.gk.util.XMLFileFilter;
+import org.gk.variant.VariantBatchProcessor;
 
 /**
  * A list of actions for this package.
@@ -602,7 +603,7 @@ public class CuratorActionCollection {
         }
         return createEwasFromRefPepSeqAction;
     }
-    
+
     private void createEwasFromRefPepSeq() {
         java.util.List selection = getSelection(); 
         if (selection == null || selection.size() == 0)
@@ -1141,6 +1142,17 @@ public class CuratorActionCollection {
 			};
 		}
 		return addBookmarkAction;
+	}
+	
+	public Action getImportVariantFileAction() {
+	    Action importVariantFileAction = new AbstractAction("Variant Annotation File") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                VariantBatchProcessor processor = new VariantBatchProcessor();
+                processor.runBatch(curatorFrame);
+            }
+        };
+        return importVariantFileAction;
 	}
 	
 	public Action getImportFromAuthoringToolAction() {

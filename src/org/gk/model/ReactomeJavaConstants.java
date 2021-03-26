@@ -328,6 +328,10 @@ public class ReactomeJavaConstants {
     public static final String type = "type";
     public static final String approved = "approved";
     public static final String approvalSource = "approvalSource";
+    // For drug action type
+    public static final String DrugActionType = "DrugActionType";
+    public static final String InteractionEvent = "InteractionEvent";
+    public static final String hasInteraction = "hasInteraction";
     
     public static final String containedInPathway = "containedInPathway";
     public static final String regulatedBy = "regulatedBy";
