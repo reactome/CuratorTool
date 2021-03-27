@@ -1,3 +1,14 @@
+Build 109 (Version 4.0.1) note (March 27, 2021)
+
+New features added in this build:
+
+1). Create Drug instances from selected ReferenceTherapeutic instances in the instance list of the schema view, a feature requested by Bijay
+
+2). Auto create instances for variants from a variant annotation file by using menu Import From.../Variant Annotation File. Please check with Karen and Marija for the file format. Note: FragmentDeletionModification is not supported yet.
+
+3). The new gk_central schema is bundled in this new build.
+
+
 Build 108 (Version 4.0.1) note (December 17, 2020)
 
 New features added in this build:
