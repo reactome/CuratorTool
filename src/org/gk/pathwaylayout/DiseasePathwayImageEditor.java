@@ -794,7 +794,10 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
                 if (edge.getReactomeId() != null && normalIds.contains(edge.getReactomeId())) 
                     return true;
                 // Some special cases that use links
-                if (!(edge instanceof EntitySetAndEntitySetLink) && !(edge instanceof EntitySetAndMemberLink) && edge.getReactomeId() == null)
+                if (!(edge instanceof EntitySetAndEntitySetLink) && 
+                    !(edge instanceof EntitySetAndMemberLink) && 
+                    edge.getReactomeId() == null &&
+                    node.getReactomeId() == null) // For some weird use cases
                     return true;
             }
         }

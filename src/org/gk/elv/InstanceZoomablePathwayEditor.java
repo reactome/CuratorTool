@@ -594,6 +594,9 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
                 pathwayEditor.insertEdge((HyperEdge) r, 
                                          true);
             }
+            //TODO: If the instance is not a complex, this method doesn't do anything
+            // This is not right if this instance is a member of a drawn complex and should
+            // be fixed.
             if (editHandler != null)
                 editHandler.postInsert(instance, r);
             pathwayEditor.killUndo();
