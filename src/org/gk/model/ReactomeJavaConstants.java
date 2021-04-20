@@ -246,6 +246,7 @@ public class ReactomeJavaConstants {
     // Used as an attribute name
     public static final String psiMod = "psiMod"; 
     public static final String synonym = "synonym";
+    public static final String reactionType = "reactionType";
     // New constants for Book and URL
     public static final String URL = "URL";
     public static final String Book = "Book";
@@ -357,6 +358,8 @@ public class ReactomeJavaConstants {
     public static final String regulation = "regulation";
     public static final String ControlReference = "ControlReference";
     public static final String surroundedBy = "surroundedBy";
+    
+    public static final String resourceIdentifier = "resourceIdentifier";
     
     // Attribute for existence of EHLD in Pathway
     public static final String hasEHLD = "hasEHLD";
