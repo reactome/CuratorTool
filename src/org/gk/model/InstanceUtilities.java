@@ -1399,7 +1399,7 @@ public class InstanceUtilities {
       *
       * @param instance
       * @throws Exception
-      * @returns boolean
+      * @return boolean
       */
      public static boolean hasDrug(GKInstance instance) throws Exception {
          if (instance == null)
