@@ -58,7 +58,7 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
             if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment))
             {
                 loadAttributes(Arrays.asList(instance),
-                    ReactomeJavaConstants.PhysicalEntity,
+                    instance.getSchemClass().getName(),
                     ReactomeJavaConstants.compartment,
                     dba);
             }
