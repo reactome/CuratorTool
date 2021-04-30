@@ -246,9 +246,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         {
             if (subclass.isValidAttribute(ReactomeJavaConstants.compartment))
             {
-                loadAttributes(ReactomeJavaConstants.PhysicalEntity,
-                       ReactomeJavaConstants.compartment,
-                       dba);
+                loadAttributes(subclass.getName(), ReactomeJavaConstants.compartment, dba);
             }
         }
     }
