@@ -20,6 +20,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaClass;
+import org.gk.schema.GKSchemaClass;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -32,7 +33,7 @@ import org.gk.util.GKApplicationUtilities;
  *     2). Reaction compartment should be checked:
  *         a. If the reaction has one compartment, and this one compartment cannot contain these two compartment,
  * the reaction should be flagged
- *         b. If the reaction has two compartments, each of them should be a container of one of two entity compartment (include 
+ *         b. If the reaction has two compartments, each of them should be a container of one of two entity compartment (include
  * the identity). Otherwise, it should be flagged as false.
  * 3. If there is only one compartment used in the reaction participants, the reaction compartment should be the same as
  * this entity compartment. Otherwise, the reaction should be flagged.
@@ -52,12 +53,12 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
     // Entity compartment
     private List allowedRxtEntityCompartments;
     private ReactionQACheckHelper qaHelper;
-    
+
     public ReactionCompartmentCheck() {
         checkClsName = ReactomeJavaConstants.Reaction;
         qaHelper = new ReactionQACheckHelper();
     }
-    
+
     protected List getAllowedRxtEntityCompartments() throws IOException {
         if (allowedRxtEntityCompartments == null) {
             // Need to load
@@ -81,12 +82,12 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         }
         return allowedRxtEntityCompartments;
     }
-    
+
     @Override
     protected Set<GKInstance> filterInstancesForProject(Set<GKInstance> instances) {
         return filterInstancesForProject(instances, ReactomeJavaConstants.Reaction);
     }
-    
+
     private boolean isAdjacent(Collection<GKInstance> compartments) {
         // Check if these two compartments are adjacent
         Iterator<GKInstance> it = compartments.iterator();
@@ -99,7 +100,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
             return false; // These two compartments are not adjacent. A wrong case!
         return true;
     }
-    
+
     @Override
     protected Issue getIssue(GKInstance container, Set<GKInstance> containedCompartments,
             List<GKInstance> containerCompartments) throws Exception {
@@ -121,7 +122,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
                 // Need to check if reactionCompartment is a container of compartment1 and compartment2
                 Set containers1 = getAllContainers(compartment1);
                 Set containers2 = getAllContainers(compartment2);
-                // Ensure that the two entity compartments are contained by 
+                // Ensure that the two entity compartments are contained by
                 // the single Reaction compartment.
                 if (!containers1.contains(reactionCompartment) ||
                     !containers2.contains(reactionCompartment))
@@ -130,8 +131,8 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
             else if (containerCompartments.size() == 2) {
                 GKInstance rxtCompt1 = (GKInstance) containerCompartments.get(0);
                 GKInstance rxtCompt2 = (GKInstance) containerCompartments.get(1);
-                if (!checkTwoReactionAndTwoEntityCompartments(compartment1, 
-                                                              compartment2, 
+                if (!checkTwoReactionAndTwoEntityCompartments(compartment1,
+                                                              compartment2,
                                                               rxtCompt1,
                                                               rxtCompt2))
                     // Ensure that the two reaction compartment are containers
@@ -159,7 +160,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         }
         return null;
     }
-    
+
     protected boolean checkTwoReactionAndTwoEntityCompartments(GKInstance entityCompartment1,
                                                              GKInstance entityCompartment2,
                                                              GKInstance rxtCompartment1,
@@ -180,13 +181,13 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
             return true;
         return false;
     }
-    
+
     protected Set<GKInstance> getAllContainers(GKInstance compartment) throws Exception {
         return InstanceUtilities.getContainedInstances(compartment,
                                                        ReactomeJavaConstants.componentOf,
                                                        ReactomeJavaConstants.instanceOf);
     }
-    
+
     @Override
     protected Set<GKInstance> getAllContainedEntities(GKInstance reaction) throws Exception {
         return qaHelper.getAllContainedEntities(reaction);
@@ -198,7 +199,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
                                                                    checkAttribute);
         return tableModel;
     }
-    
+
     protected void loadAttributes(Collection instances) throws Exception {
         // Only MySQLAdator should be used to load attributes
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
@@ -223,7 +224,7 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
                        dba);
         if (progressPane != null && progressPane.isCancelled())
             return;
-        qaHelper.loadRegulations(dba, 
+        qaHelper.loadRegulations(dba,
                                  progressPane);
         if (progressPane != null && progressPane.isCancelled())
             return;
@@ -239,13 +240,21 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
         // by EntitySet compartment checking.
         if (progressPane != null)
             progressPane.setText("Load PhysicalEntity compartment...");
-        loadAttributes(ReactomeJavaConstants.PhysicalEntity, 
-                       ReactomeJavaConstants.compartment, 
+
+        Collection<GKSchemaClass> subclasses = ((GKSchemaClass)dba.getSchema().getClassByName(ReactomeJavaConstants.PhysicalEntity)).getSubClasses();
+        for (GKSchemaClass subclass : subclasses)
+        {
+            if (subclass.isValidAttribute(ReactomeJavaConstants.compartment))
+            {
+                loadAttributes(ReactomeJavaConstants.PhysicalEntity,
+                       ReactomeJavaConstants.compartment,
                        dba);
+            }
+        }
     }
-    
+
     /**
-     * Override the super class method so that a full catalyst and regulation can be 
+     * Override the super class method so that a full catalyst and regulation can be
      * checked out.
      */
     protected void grepCheckOutInstances(GKInstance reaction,
@@ -277,5 +286,5 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
             }
         }
     }
-    
+
 }
