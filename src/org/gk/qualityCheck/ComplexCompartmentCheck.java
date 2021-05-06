@@ -5,6 +5,7 @@
 package org.gk.qualityCheck;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +38,7 @@ import org.gk.persistence.MySQLAdaptor;
  * <ul>
  * <li>There should not be more than two compartment values in all subunits.</li>
  * </ul>
- * 
+ *
  * @author gwu
  */
 public class ComplexCompartmentCheck extends CompartmentCheck {
@@ -49,14 +50,14 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
     private final static String TOO_MANY_SUBUNIT_COMPARTMENTS = "More than two subunit compartments";
     private static final String COMPARTMENTS_MISMATCH = "Compartments mismatch";
     private static final String COMPARTMENTS_NOT_ADJACENT = "Noncontiguous compartments";
-   
+
     public ComplexCompartmentCheck() {
         checkClsName = ReactomeJavaConstants.Complex;
         followAttributes = new String[] {
                 ReactomeJavaConstants.hasComponent
         };
     }
-    
+
     @Override
     public String getDisplayName() {
         return "Complex_Compartment_Inconsistency";
@@ -72,21 +73,31 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
         // by EntitySet compartment checking.
         if (progressPane != null)
             progressPane.setText("Load PhysicalEntity compartment...");
-        loadAttributes(toBeLoaded,
-                       ReactomeJavaConstants.PhysicalEntity,
-                       ReactomeJavaConstants.compartment,
-                       dba);
+
+        for (GKInstance instance : toBeLoaded)
+        {
+            // PhysicalEntity does not have a "compartment" attribute anymore,
+            // but many subclasses may have this attribute.
+            if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment))
+            {
+                loadAttributes(Arrays.asList(instance),
+                    instance.getSchemClass().getName(),
+                    ReactomeJavaConstants.compartment,
+                    dba);
+            }
+
+        }
         loadAttributes(toBeLoaded,
                 ReactomeJavaConstants.Complex,
                 ReactomeJavaConstants.includedLocation,
                 dba);
     }
-    
+
     @Override
     protected Set<GKInstance> filterInstancesForProject(Set<GKInstance> instances) {
         return filterInstancesForProject(instances, ReactomeJavaConstants.Complex);
     }
-    
+
     @Override
     protected Issue getIssue(GKInstance complex, Set<GKInstance> containedCompartments,
                            List<GKInstance> containerCompartments) throws Exception {
@@ -102,7 +113,7 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
 //      This condition is not yet reported per the class javadoc.
 //      if (containedCompartments.size() > 2)
 //          return new Issue(Issue.Type.EXTRA_SUBUNIT_COMPARTMENTS);
-        
+
         GKInstance complexCompartment = (GKInstance) containerCompartments.get(0);
         @SuppressWarnings("unchecked")
         List<GKInstance> includedLocations =
@@ -149,9 +160,9 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
         if (!nonAdjacent.isEmpty()) {
             return new Issue(COMPARTMENTS_NOT_ADJACENT, nonAdjacent);
         }
-        
+
         return null;
-    }    
+    }
 
     private Issue createMismatchIssue(Collection<GKInstance> containedCompartments,
             Collection<GKInstance> includedLocations) throws Exception {
@@ -179,7 +190,7 @@ public class ComplexCompartmentCheck extends CompartmentCheck {
                 .collect(Collectors.joining(", "));
         builder.append(containedStr);
         String text = builder.toString();
-        
+
         return new Issue(text);
     }
 
