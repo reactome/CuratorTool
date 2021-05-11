@@ -290,7 +290,8 @@ public class RenderUtility {
 	
 	public static void switchRenderInfo(Renderable source, Renderable target) {
 		copyRenderInfo(source, target);
-		target.setBackgroundColor(Color.GREEN);
+		// Don't do this. Let the default handle it - NB by GW on May, 2021.
+//		target.setBackgroundColor(Color.GREEN);
 	    // Have to move all connecting info from source to target
         if (source instanceof Node && target instanceof Node) {
             ConnectInfo targetInfo = target.getConnectInfo();
