@@ -36,29 +36,13 @@ public class DefaultProcessNodeRenderer extends DefaultReactionNodeRenderer {
             bg = DEFAULT_BACKGROUND;
         g2.setPaint(bg);
         g2.fill(bounds);
-        if (isSelected) {
-            g2.setPaint(SELECTION_WIDGET_COLOR);
-        }
-        else if (isHighlited)
-            g2.setPaint(HIGHLIGHTED_COLOR);
-        else if (node.lineColor != null)
-            g2.setPaint(node.lineColor);
-        else
-            g2.setPaint(DEFAULT_OUTLINE_COLOR);
+        setDrawPaintAndStroke(g2);
         g2.draw(bounds);
         // Draw another rectangle
         bg = bg.brighter();
         g2.setPaint(bg);
         g2.fill(rect);
-        if (isSelected) {
-            g2.setPaint(SELECTION_WIDGET_COLOR);
-        }
-        else if (isHighlited)
-            g2.setPaint(HIGHLIGHTED_COLOR);
-        else if (node.lineColor != null)
-            g2.setPaint(node.lineColor);
-        else
-            g2.setPaint(DEFAULT_OUTLINE_COLOR);
+        setDrawPaintAndStroke(g2);
         g2.draw(rect);
         if (isSelected || isHighlited)
             g2.setStroke(oldStroke);
