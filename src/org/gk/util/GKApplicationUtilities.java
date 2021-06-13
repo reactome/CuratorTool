@@ -7,10 +7,21 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.Window;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -21,7 +32,16 @@ import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.plaf.metal.MetalLookAndFeel;
@@ -296,6 +316,29 @@ public class GKApplicationUtilities {
 		int x = (screenSize.width - size.width) / 2;
 		int y = (screenSize.height - size.height) / 2;
 		comp.setLocation(x, y);
+	}
+	
+	/**
+	 * Place the comp component at the center of the target component.
+	 * @param comp
+	 * @param target
+	 */
+	public static void center(Component comp, Component target) {
+	    int targetWidth = target.getWidth();
+	    int targetHeight = target.getHeight();
+	    Point targetPos = target.getLocationOnScreen();
+	    int targetX = targetPos.x;
+	    int targetY = targetPos.y;
+	    // Make sure it has at least 10 pixel
+	    int compW = Math.max(10, comp.getWidth());
+	    int compH = Math.max(10, comp.getHeight());
+	    int compX = targetX + (targetWidth - compW) / 2;
+//	    if (compX < 0) // This may be negative in a multiple monitors setting.
+//	        compX = 0;
+	    int compY = targetY + (targetHeight - compH) / 2;
+//	    if (compY < 0) // Don't do this correction. The y coordinate may be negative with multiple monitors.
+//	        compY = 0;
+	    comp.setLocation(compX, compY);
 	}
 
 	/**

@@ -53,6 +53,7 @@ import org.gk.render.RenderablePathway;
 import org.gk.render.RenderablePropertyNames;
 import org.gk.render.RenderableReaction;
 import org.gk.render.RenderableRegistry;
+import org.gk.scripts.ReactionRename;
 import org.gk.util.AboutGKPane;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -469,6 +470,18 @@ public class AuthorToolActionCollection {
             };
         }
         return selectAllAction;
+    }
+    
+    public Action getRLERelationInferAction() {
+        Action action = new AbstractAction("Infer Reaction Relationships") {
+            
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                ReactionRelationshipInferrer inferrer = new ReactionRelationshipInferrer();
+                inferrer.inferRelationships(pathwayEditor);
+            }
+        };
+        return action;
     }
     
     public Action getExportDiagramAction() {

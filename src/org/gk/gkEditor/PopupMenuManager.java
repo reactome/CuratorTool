@@ -226,6 +226,7 @@ public class PopupMenuManager {
                 // Display the properties for the displayed pathway
                 menu.addSeparator();
                 menu.add(actionCollection.getEditPropertiesAction());
+                menu.add(actionCollection.getRLERelationInferAction());
                 menu.addSeparator();
                 menu.add(actionCollection.getExportDiagramAction());
             }
