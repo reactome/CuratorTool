@@ -10,7 +10,6 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -26,7 +25,6 @@ import javax.swing.JPanel;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.SchemaClass;
@@ -197,47 +195,8 @@ public class InstanceDeletion {
     }
     
     private boolean downloadControlledVocabulary(JFrame parentFrame) {
-        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-        Collection<?> instances;
-        
-        // First check to see if any instances of this
-        // class are already present - if so, assume
-        // that we don't need to check out anything.
-        try {
-            instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DeletedControlledVocabulary);
-            if (instances != null && instances.size() > 0) {
-                // Some instances already present locally, so don't
-                // try to check any out from database.
-                return true; 
-            }
-        } 
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentFrame);
-        if (dbAdaptor == null)
-            return false;
-        try {
-            instances = dbAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DeletedControlledVocabulary);
-        } 
-        catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        if (instances == null || instances.size() == 0)
-            return true; // It is possible there is nothing in the database for this class.
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        List<?> instancesList = new ArrayList(instances);
-        try {
-            SynchronizationManager.getManager().checkOut(instancesList, 
-                                                         parentFrame);
-            return true;
-        } 
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        return SynchronizationManager.getManager().downloadControlledVocabulary(parentFrame,
+                                                                                ReactomeJavaConstants.DeletedControlledVocabulary);
     }
     
     /**

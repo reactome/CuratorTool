@@ -369,6 +369,11 @@ public class ReactomeJavaConstants {
     public static final String ModifiedNucleotide = "ModifiedNucleotide";
     public static final String TranscritonalModification = "TranscriptionalModification";
     
+    // New classes for negative preceding event 
+    public static final String NegativePrecedingEvent = "NegativePrecedingEvent";
+    public static final String negativePrecedingEvent = "negativePrecedingEvent";
+    public static final String NegativePrecedingEventReason = "NegativePrecedingEventReason";
+    
     public static final Long humanID = 48887L;
     public static final Long cosmicID = 1655447L;
     public static final Long cancerID = 1500689L;

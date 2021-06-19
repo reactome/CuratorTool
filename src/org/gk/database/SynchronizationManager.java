@@ -1494,5 +1494,55 @@ public class SynchronizationManager {
 		    }
 		}
 	}
+	
+	/**
+	 * Download controlled vocabulary.
+	 * @param parentFrame
+	 * @param clsName
+	 * @return
+	 */
+    public boolean downloadControlledVocabulary(JFrame parentFrame,
+                                                String clsName) {
+        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+        Collection<?> instances;
+        
+        // First check to see if any instances of this
+        // class are already present - if so, assume
+        // that we don't need to check out anything.
+        try {
+            instances = fileAdaptor.fetchInstancesByClass(clsName);
+            if (instances != null && instances.size() > 0) {
+                // Some instances already present locally, so don't
+                // try to check any out from database.
+                return true; 
+            }
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentFrame);
+        if (dbAdaptor == null)
+            return false;
+        try {
+            instances = dbAdaptor.fetchInstancesByClass(clsName);
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        if (instances == null || instances.size() == 0)
+            return true; // It is possible there is nothing in the database for this class.
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        List<?> instancesList = new ArrayList(instances);
+        try {
+            checkOut(instancesList, parentFrame);
+            return true;
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
 }

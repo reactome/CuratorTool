@@ -114,6 +114,8 @@ public class InstanceDisplayNameGenerator {
             if (schemaClass.isa(ReactomeJavaConstants._Release)) {
                 return generateReleaseName(instance);
             }
+            if (schemaClass.isa(ReactomeJavaConstants.NegativePrecedingEvent))
+                return generateNegativePrecedingEventName(instance);
             if (schemaClass.isValidAttribute("name")) {
                 java.util.List list = instance.getAttributeValuesList("name");
                 if (list != null && list.size() > 0) 
@@ -608,6 +610,22 @@ public class InstanceDisplayNameGenerator {
             replacement = name;
 	    }
 		return replaced + " " + pos + " replaced with " + replacement;
+	}
+	
+	private static String generateNegativePrecedingEventName(GKInstance instance) throws Exception {
+	    GKInstance precedingEvent = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.precedingEvent);
+	    GKInstance reason = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.reason);
+	    StringBuilder builder = new StringBuilder();
+	    if (reason != null)
+            builder.append(reason.getDisplayName());
+	    if (precedingEvent != null) {
+	        if (builder.length() > 0)
+	            builder.append(": ");
+	        builder.append(precedingEvent.getDisplayName());
+	    }
+	    if (builder.length() == 0) // Show something
+	        builder.append(instance.getSchemClass().getName() + ": " + instance.getDBID());
+	    return builder.toString();
 	}
 	
 	private static String getPsiModName(GKInstance psiMod) {
