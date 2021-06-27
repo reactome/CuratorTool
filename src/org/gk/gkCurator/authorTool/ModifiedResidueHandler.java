@@ -77,7 +77,7 @@ public class ModifiedResidueHandler {
             // This is a just sanity check: All TranslationModifications should have this attribute
             if (modifiedResidue.getSchemClass().isValidAttribute(ReactomeJavaConstants.psiMod)) {
                 GKInstance psiMod = (GKInstance) modifiedResidue.getAttributeValue(ReactomeJavaConstants.psiMod);
-                if (psiMod.getSchemClass().isValidAttribute(ReactomeJavaConstants.label)) {
+                if (psiMod != null && psiMod.getSchemClass().isValidAttribute(ReactomeJavaConstants.label)) {
                     String label = (String) psiMod.getAttributeValue(ReactomeJavaConstants.label);
                     feature.setLabel(label);
                 }

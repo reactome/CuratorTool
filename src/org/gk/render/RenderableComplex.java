@@ -255,6 +255,8 @@ public class RenderableComplex extends ContainerNode {
     
     @Override
     public void hideComponents(boolean hide) {
+        if (this.hideComponents == hide)
+            return; // Nothing to do
         this.hideComponents = hide;
         if (componentsInHiearchy == null)
             return;

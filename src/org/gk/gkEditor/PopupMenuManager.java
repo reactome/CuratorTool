@@ -14,8 +14,10 @@ import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -49,6 +51,7 @@ import org.gk.render.ProcessNode;
 import org.gk.render.ReactionType;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
+import org.gk.render.RenderableCell;
 import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderableComplex;
 import org.gk.render.RenderableFactory;
@@ -149,7 +152,8 @@ public class PopupMenuManager {
                     popup.add(getShowComponentAction(editor));
                 }
                 else {
-                    popup.add(getLayoutComplexAction(editor));
+                    if (!onlyCellNodeIsSelected(editor))
+                        popup.add(getLayoutComplexAction(editor)); // This should work for complex only
                     popup.add(getHideComponentsAction(editor));
                 }
             }
@@ -311,6 +315,12 @@ public class PopupMenuManager {
             if (edgeNumber > 0)
                 menu.add(actionCollection.getLayoutEdgesAction());
             menu.add(getDisplayFormatAction(editor));
+            if (onlyCellNodeIsSelected(editor)) {
+                // To support markers display
+                menu.addSeparator();
+                menu.add(getShowComponentAction(editor));
+                menu.add(getHideComponentsAction(editor));
+            }
             menu.show(editor, p.x, p.y);
         }
     }
@@ -857,7 +867,8 @@ public class PopupMenuManager {
     }
 
     private Action getHideComponentsAction(final GraphEditorPane graphPane) {
-        Action hideComponentsAction = new AbstractAction("Hide Components") {
+        boolean isForCell = onlyCellNodeIsSelected(graphPane);
+        Action hideComponentsAction = new AbstractAction(isForCell ? "Hide Markers" : "Hide Components") {
             public void actionPerformed(ActionEvent e) {
                 actionCollection.hideComponents(true);
             }
@@ -866,7 +877,8 @@ public class PopupMenuManager {
     }
 
     private Action getShowComponentAction(final GraphEditorPane graphPane) {
-        Action showComponentsAction = new AbstractAction("Show Components") {
+        boolean isForCell = onlyCellNodeIsSelected(graphPane);
+        Action showComponentsAction = new AbstractAction(isForCell ? "Show Markers" : "Show Components") {
             public void actionPerformed(ActionEvent e) {
                 actionCollection.hideComponents(false);
             }
@@ -881,6 +893,17 @@ public class PopupMenuManager {
             }
         };
         return layoutComplexAction;
+    }
+    
+    private boolean onlyCellNodeIsSelected(GraphEditorPane graphPane) {
+        List<Renderable> selection = graphPane.getSelection();
+        Set<Class> nodeTypes = new HashSet<>();
+        for (Renderable r : selection) {
+            if (r instanceof Node) {
+                nodeTypes.add(r.getClass());
+            }
+        }
+        return (nodeTypes.size() == 1 && nodeTypes.contains(RenderableCell.class));
     }
 
     private void layoutComplex(GraphEditorPane graphPane) {

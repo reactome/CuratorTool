@@ -408,10 +408,10 @@ public class GKBWriter implements RenderablePropertyNames {
     
     private void appendComplexInfo(RenderableComplex complex,
                                    org.jdom.Element complexElm) {
+        complexElm.setAttribute("hideComponents",
+                                complex.isComponentsHidden() + "");
         // components
         if (complex.isComponentsHidden()) {
-            complexElm.setAttribute("hideComponents",
-                                    "true");
             // Need to save the old bounds information
             appendComplexOldBounds(complex, complexElm);
         }

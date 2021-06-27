@@ -21,6 +21,7 @@ import org.gk.render.InstanceToRenderableConverter;
 import org.gk.render.Node;
 import org.gk.render.ProcessNode;
 import org.gk.render.Renderable;
+import org.gk.render.RenderableCell;
 import org.gk.render.RenderableChemical;
 import org.gk.render.RenderableChemicalDrug;
 import org.gk.render.RenderableComplex;
@@ -48,11 +49,11 @@ public class SearchDBTypeHelper {
             "Reaction",
             "Pathway",
             "Gene",
-            "RNA"
+            "RNA",
+            "Cell"
     };
     
     public SearchDBTypeHelper() {
-        
     }
     
     public String[] getTypes() {
@@ -82,6 +83,8 @@ public class SearchDBTypeHelper {
             clsNames.add(ReactomeJavaConstants.Pathway);
             //clsNames.add(ReactomeJavaConstants.ConceptualEvent);
         }
+        else if (type.equals("Cell"))
+            clsNames.add(ReactomeJavaConstants.Cell);
         return clsNames;
     }
     
@@ -192,6 +195,8 @@ public class SearchDBTypeHelper {
         SchemaClass cls = entity.getSchemClass();
         if (cls.isa(ReactomeJavaConstants.Complex))
             return RenderableComplex.class;
+        if (cls.isa(ReactomeJavaConstants.Cell))
+            return RenderableCell.class;
         else if (cls.isa(ReactomeJavaConstants.SimpleEntity))
             return RenderableChemical.class;
         // Rollback the original three sub drug types as of December 10, 2018.

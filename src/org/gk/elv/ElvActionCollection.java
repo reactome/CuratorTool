@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -772,6 +773,8 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     }
     
     private void hideComplexComponents(RenderableComplex complex) {
+        if (complex.isComponentsHidden())
+            return;
         List components = RenderUtility.getAllDescendents(complex);
         if (components == null || components.size() == 0)
             return;
@@ -790,17 +793,18 @@ public class ElvActionCollection extends AuthorToolActionCollection {
     }
     
     private void showComplexComponents(final RenderableComplex complex) {
+        if (!complex.isComponentsHidden())
+            return;
         InstanceZoomablePathwayEditor zoomableEditor = elv.getZoomablePathwayEditor();
         XMLFileAdaptor fileAdpator = zoomableEditor.getXMLFileAdaptor();
         GKInstance complexInst = fileAdpator.fetchInstance(complex.getReactomeId());
         try {
-            List list = complexInst.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
+            List<GKInstance> list = getInternalInstances(complexInst);
             if (list == null || list.size() == 0)
                 return; // Just a sanity check
             complex.hideComponents(false);
             // Want to create components now
-            for (Iterator it = list.iterator(); it.hasNext();) {
-                GKInstance comp = (GKInstance) it.next();
+            for (GKInstance comp : list) {
                 zoomableEditor.addComplexComponent(complex, comp);
             }
             complex.layout();
@@ -813,23 +817,51 @@ public class ElvActionCollection extends AuthorToolActionCollection {
             e.printStackTrace();
         }
     }
+    
+    @SuppressWarnings("unchecked")
+    private List<GKInstance> getInternalInstances(GKInstance instance) throws Exception {
+        List<String> attributes = getAttributesForInternalComps();
+        List<GKInstance> rtn = new ArrayList<>();
+        for (String attribute : attributes) {
+            if (instance.getSchemClass().isValidAttribute(attribute)) {
+                List<GKInstance> list = instance.getAttributeValuesList(attribute);
+                if (list != null)
+                    rtn.addAll(list);
+            }
+        }
+        return rtn;
+    }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected boolean isShowComponentActionNeeded(RenderableComplex complex) {
         XMLFileAdaptor fileAdaptor = elv.getZoomablePathwayEditor().getXMLFileAdaptor();
-        GKInstance complexInst = fileAdaptor.fetchInstance(complex.getReactomeId());
+        GKInstance instance = fileAdaptor.fetchInstance(complex.getReactomeId());
         try {
-            // A complex DefinedSet can be mapped to RenderableComplex. This should be excluded
-            if (!complexInst.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasComponent))
-                return false;
-            List components = complexInst.getAttributeValuesList(ReactomeJavaConstants.hasComponent);
-            return components != null && components.size() > 0;
+            // There are two cases: One for complex and another for cell. In total there are three attribute
+            List<String> attributes = getAttributesForInternalComps();
+            for (String attribute : attributes) {
+                if (instance.getSchemClass().isValidAttribute(attribute)) {
+                    List<GKInstance> list = instance.getAttributeValuesList(attribute);
+                    if (list != null && list.size() > 0)
+                        return true;
+                }
+            }
+            // Default 
+            return false;
         }
         catch(Exception e) {
             System.err.println("ElvActionCollection.isShowComponentActionNeeded(): " + e);
             e.printStackTrace();
         }
         return false;
+    }
+
+    protected List<String> getAttributesForInternalComps() {
+        List<String> attributes = Arrays.asList(ReactomeJavaConstants.hasComponent,
+                                                ReactomeJavaConstants.proteinMarker,
+                                                ReactomeJavaConstants.RNAMarker);
+        return attributes;
     }
     
     public Action getOpenDiagramAction() {
@@ -1191,7 +1223,8 @@ public class ElvActionCollection extends AuthorToolActionCollection {
         // Want to get the selected event
         GKInstance pathway = null;
         for (GKInstance instance : selections) {
-            if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+            if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway) ||
+                instance.getSchemClass().isa(ReactomeJavaConstants.CellLineagePath)) {
                 pathway = instance;
                 break;
             }

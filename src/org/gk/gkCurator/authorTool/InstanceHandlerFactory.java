@@ -39,7 +39,9 @@ public class InstanceHandlerFactory {
     
     public InstanceHandler getHandler(GKInstance instance) {
         SchemaClass cls = instance.getSchemClass();
-        if (cls.isa(ReactomeJavaConstants.Pathway))
+        if (cls.isa(ReactomeJavaConstants.Pathway) ||
+            cls.isa(ReactomeJavaConstants.CellLineagePath)) // Use pathway handler for CellLineagePath since they have
+                                                            // the same attribute, hasEvent, that needs to be handled.
             return pathwayHandler;
         if (cls.isa(ReactomeJavaConstants.ReactionlikeEvent))
             return reactionHandler;

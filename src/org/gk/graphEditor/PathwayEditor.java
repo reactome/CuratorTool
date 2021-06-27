@@ -1052,7 +1052,10 @@ public class PathwayEditor extends GraphEditorPane {
             r = (Renderable) it.next();
             // Escape compartment
             if (r instanceof RenderableCompartment ||
-                r instanceof Note)
+                r instanceof Note ||
+                // For RenderbableComplex like nodes, escape this action if components have been displayed
+                // since it is more like a compartment.
+                (r instanceof RenderableComplex && !((RenderableComplex)r).isComponentsHidden()))
                 continue; 
             if (r instanceof Node) {
                 Node node = (Node) r;

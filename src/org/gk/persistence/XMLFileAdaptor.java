@@ -214,6 +214,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
      * @throws Exception Thrown if unable to retrieve represented pathways from the RenderablePathway instance
      */
     public RenderablePathway getDiagram(GKInstance pathway) throws Exception {
+        if (pdInstToDiagram == null)
+            return null;
         // Search for diagram from pdInstanceToDiagram map
         for (GKInstance pdInst : pdInstToDiagram.keySet()) {
             List<?> pathways = pdInst.getAttributeValuesList(ReactomeJavaConstants.representedPathway);

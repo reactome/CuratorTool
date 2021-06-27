@@ -44,6 +44,8 @@ public class RendererFactory {
         Renderer complexRenderer = new DefaultComplexRenderer();
         clsToRenderer.put(RenderableComplex.class,
                           complexRenderer);
+        clsToRenderer.put(RenderableCell.class,
+                          new DefaultCellRenderer());
         Renderer pathwayRenderer = new DefaultPathwayRenderer();
         clsToRenderer.put(RenderablePathway.class,
                           pathwayRenderer);

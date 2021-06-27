@@ -100,4 +100,10 @@ public interface DefaultRenderConstants {
     public static final int DEFAULT_NODE_WIDTH = 130;
     
     public static final int DEFAULT_RED_CROSS_WIDTH = 3;
+    
+    // For cell rendering
+    public static final double CELL_INTERNAL_RECT_OFFSET_RATIO = 30.0d;
+    public static final double CELL_INTERNAL_RECT_HEIGHT_RATIO = 2.0d;
+    public static final Color DEFAULT_CELL_BACKGROUND = new Color(248, 203, 173);
+    public static final Color DEFAULT_CELL_INTERNAL_BACKGROUND = new Color(244, 177, 131);
 }

@@ -842,7 +842,7 @@ public class Node extends Renderable {
     
     @Override
     public Renderable generateShortcut() {
-        // If a subclass calles this method, the class name should
+        // If a subclass calls this method, the class name should
         // be the subclass
         try {
             Node node = getClass().newInstance();

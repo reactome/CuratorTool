@@ -241,7 +241,8 @@ public class EntityLevelView extends JPanel {
     private void selectEvent(GKInstance event) throws Exception {
         if (event == null)
             return;
-        if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+        if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway) ||
+            event.getSchemClass().isa(ReactomeJavaConstants.CellLineagePath)) {
             // Regardless turn this one for a pathway
             actionCollection.getViewAsDiseaseDiagramAction().setEnabled(true);
             List<GKInstance> containers = zoomableEditor.getDisplayedPathways();
@@ -283,7 +284,8 @@ public class EntityLevelView extends JPanel {
         // Get the displayed GKInstance
         if (zoomableEditor.getDisplayedPathways().contains(event) && !needRefresh)
             return;
-        if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+        if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway) ||
+            event.getSchemClass().isa(ReactomeJavaConstants.CellLineagePath)) {
             RenderablePathway diagram = diagramHandler.setDiagramForDisplay(event, 
                                                                             zoomableEditor);
             if (diagram == null)

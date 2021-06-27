@@ -374,6 +374,13 @@ public class ReactomeJavaConstants {
     public static final String negativePrecedingEvent = "negativePrecedingEvent";
     public static final String NegativePrecedingEventReason = "NegativePrecedingEventReason";
     
+    // Terms for Cytomics
+    public static final String CellLineagePath = "CellLineagePath";
+    public static final String CellDevelopmentSte = "CellDevelopmentStep";
+    public static final String Cell = "Cell";
+    public static final String proteinMarker = "proteinMarker";
+    public static final String RNAMarker = "RNAMarker";
+    
     public static final Long humanID = 48887L;
     public static final Long cosmicID = 1655447L;
     public static final Long cancerID = 1500689L;
