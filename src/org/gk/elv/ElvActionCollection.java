@@ -807,10 +807,14 @@ public class ElvActionCollection extends AuthorToolActionCollection {
             for (GKInstance comp : list) {
                 zoomableEditor.addComplexComponent(complex, comp);
             }
-            complex.layout();
+//            complex.layout();
             complex.invalidateBounds();
             complex.invalidateConnectWidgets();
             pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+            SwingUtilities.invokeLater(() -> {
+                complex.layout();
+                pathwayEditor.repaint(pathwayEditor.getVisibleRect());
+            });
         }
         catch(Exception e) {
             System.err.println("ElvActionCollection.showComplexComponent(): " + e);

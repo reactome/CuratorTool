@@ -188,6 +188,8 @@ public abstract class ContainerNode extends Node {
             return;
         Renderable node = (Renderable) list.get(0);
         Rectangle rect = node.getBounds();
+        if (rect == null)
+            return;
         if (bounds == null)
             bounds = new Rectangle(rect);
         else {
@@ -199,6 +201,8 @@ public abstract class ContainerNode extends Node {
         for (int i = 1; i < list.size(); i++) {
             node = (Renderable) list.get(i);
             rect = node.getBounds();
+            if (rect == null)
+                continue;
             int maxX = bounds.x + bounds.width;
             int maxY = bounds.y + bounds.height;
             if (bounds.x > rect.x) {

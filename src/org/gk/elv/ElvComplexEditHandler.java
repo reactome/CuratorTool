@@ -125,13 +125,13 @@ public class ElvComplexEditHandler extends ElvPhysicalEntityEditHandler {
             ((RenderableComplex)r).hideComponents(true);
         r.setPosition(new Point(complex.getPosition()));
         // Use the complex's bounds: smaller
-        Rectangle bounds = new Rectangle(complex.getBounds());
-        // Use half of the bounds
-        bounds.x += bounds.width / 4;
-        bounds.y += bounds.height / 4;
-        bounds.width /= 2;
-        bounds.height /= 2;
-        r.setBounds(bounds);
+//        Rectangle bounds = new Rectangle(complex.getBounds());
+//        // Use half of the bounds
+//        bounds.x += bounds.width / 4;
+//        bounds.y += bounds.height / 4;
+//        bounds.width /= 2;
+//        bounds.height /= 2;
+//        r.setBounds(bounds);
         complex.addComponent(r);
         r.setContainer(complex);
         return r;

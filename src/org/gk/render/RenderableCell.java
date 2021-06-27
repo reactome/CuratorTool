@@ -73,4 +73,14 @@ public class RenderableCell extends RenderableComplex {
         }
     }
     
+    /**
+     * Just need a very simple implementation here. The actualy display should be handled by the calling action.
+     */
+    @Override
+    public void hideComponents(boolean hide) {
+        if (this.hideComponents == hide)
+            return; // Nothing to do
+        this.hideComponents = hide;
+    }
+    
 }
