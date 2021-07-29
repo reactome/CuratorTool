@@ -205,8 +205,10 @@ public class InstanceMerger {
                                        GKInstance keptInstance,
                                        JFrame parentFrame) {
         try {
-            _deleted.setAttributeValue(ReactomeJavaConstants.replacementInstances,
-                                       keptInstance);
+            GKSchemaAttribute att = (GKSchemaAttribute) _deleted.getSchemClass().getAttribute(ReactomeJavaConstants.replacementInstances);
+            if (att.isValidValue(keptInstance))
+                _deleted.setAttributeValue(ReactomeJavaConstants.replacementInstances,
+                                           keptInstance);
             XMLFileAdaptor fileAdpator = PersistenceManager.getManager().getActiveFileAdaptor();
             Collection<?> c = fileAdpator.fetchInstanceByAttribute(ReactomeJavaConstants.DeletedControlledVocabulary,
                                                                    ReactomeJavaConstants._displayName,
