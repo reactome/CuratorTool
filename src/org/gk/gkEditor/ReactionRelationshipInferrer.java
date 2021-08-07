@@ -66,6 +66,7 @@ public class ReactionRelationshipInferrer {
     private Icon instanceIcon = GKApplicationUtilities.createImageIcon(getClass(), "Instance.gif");
     private Set<String> escapedEntities;
     private boolean includeEntitySetMember = true;
+    private boolean includeDrugs = false; // Default should be false
     
     public ReactionRelationshipInferrer() {
         String names = "ATP, ADP, Pi, H2O, GTP, GDP, CO2, H+";
@@ -318,6 +319,9 @@ public class ReactionRelationshipInferrer {
         Collection<GKInstance> regulations = InstanceUtilities.getRegulations(reaction);
         if (regulations != null && regulations.size() > 0) {
             for (GKInstance regulation : regulations) {
+                // Should escape negative relation
+                if (regulation.getSchemClass().isa(ReactomeJavaConstants.NegativeRegulation))
+                    continue;
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
                 if (regulator != null)
                     rtn.add(regulator);
@@ -327,6 +331,9 @@ public class ReactionRelationshipInferrer {
     }
     
     private boolean shouldEscape(GKInstance pe) {
+        // For drugs
+        if (pe.getSchemClass().isa(ReactomeJavaConstants.Drug) && !includeDrugs)
+            return true;
         String name = pe.getDisplayName().trim();
         // Remove compartment in the display name
         int index = name.lastIndexOf("[");
@@ -338,6 +345,7 @@ public class ReactionRelationshipInferrer {
     private class EscapeEntitiesDialog extends JDialog {
         private JTextField tf;
         private JCheckBox includeSetMember;
+        private JCheckBox includeDrugs;
         private boolean isOkClicked;
         
         public EscapeEntitiesDialog(JFrame owner) {
@@ -366,6 +374,10 @@ public class ReactionRelationshipInferrer {
             includeSetMember.setSelected(true);
             constraints.gridy ++;
             content.add(includeSetMember, constraints);
+            includeDrugs = new JCheckBox("Include drugs for analysis");
+            includeDrugs.setSelected(false); // Default for drugs should be false
+            constraints.gridy ++;
+            content.add(includeDrugs, constraints);
             
             getContentPane().add(content, BorderLayout.CENTER);
             
@@ -373,6 +385,7 @@ public class ReactionRelationshipInferrer {
             controlPane.getOKBtn().addActionListener(e -> {
                 updateEscapeEntities();
                 ReactionRelationshipInferrer.this.includeEntitySetMember = includeSetMember.isSelected();
+                ReactionRelationshipInferrer.this.includeDrugs = includeDrugs.isSelected();
                 isOkClicked = true;
                 dispose();
             });
@@ -380,7 +393,7 @@ public class ReactionRelationshipInferrer {
             getContentPane().add(controlPane, BorderLayout.SOUTH);
             getRootPane().setDefaultButton(controlPane.getOKBtn());
             
-            setSize(450, 250);
+            setSize(450, 275);
         }
         
         private void updateEscapeEntities() {
@@ -596,7 +609,7 @@ public class ReactionRelationshipInferrer {
                                                               boolean isSelected,
                                                               boolean cellHasFocus) {
                     Component rtn = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                    // This is a lable
+                    // This is a label
                     if (value != null) {
                         setIcon(instanceIcon);
                         setText(((GKInstance)value).getDisplayName());
