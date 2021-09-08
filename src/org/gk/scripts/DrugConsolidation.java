@@ -39,7 +39,7 @@ public class DrugConsolidation {
     @Test
     public void createDrugActionTypes() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                                            "test_gk_central_031621_drug",
+                                            "gk_central",
                                             "", 
                                             "");
         // This is the list

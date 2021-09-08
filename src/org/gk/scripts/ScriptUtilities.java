@@ -4,17 +4,23 @@
  */
 package org.gk.scripts;
 
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.gk.database.AttributeEditConfig;
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.GKApplicationUtilities;
+import org.w3c.dom.Document;
 
 /**
  * @author gwu
@@ -27,6 +33,21 @@ public class ScriptUtilities {
         Long dbId = 48887L;
         GKInstance inst = dba.fetchInstance(dbId);
         return inst;
+    }
+    
+    /**
+     * Use to control some behaviors.
+     * @throws Exception
+     */
+    public static void setUpAttrinuteEditConfig() throws Exception {
+        // Need some configuration
+        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
+        if (metaConfig == null)
+            return;
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = dbf.newDocumentBuilder();
+        Document document = builder.parse(metaConfig);
+        AttributeEditConfig.getConfig().loadConfig(document);
     }
     
     /**

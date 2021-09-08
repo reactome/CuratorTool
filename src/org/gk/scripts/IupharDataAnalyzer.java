@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.gk.database.util.LiteratureReferenceAttributeAutoFiller;
+import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
@@ -26,7 +27,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.schema.SchemaAttribute;
+import org.gk.util.FileUtilities;
 import org.junit.Test;
 
 /**
@@ -39,7 +40,12 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class IupharDataAnalyzer {
 //    private final static String DIR = "/Users/wug/datasets/iuphar/052219/";
-    private final static String DIR = "/Users/wug/datasets/iuphar/032620/";
+//    private final static String DIR = "/Volumes/ssd/datasets/iuphar/032620/";
+    private final String DIR = "/Volumes/ssd/datasets/iuphar/040221/";
+//    private final String outFile = DIR + "IUPHAR_Reactions_040221.rtpj";
+//    private final String outFile = DIR + "IUPHAR_Reactions_042321.rtpj";
+    private final String outFile = DIR + "IUPHAR_Reactions_051821.rtpj";
+    
     private final static Long CYTOSOL_DB_ID = 70101L;
     private final static Long EXTRACELLULAR_REGION_ID = 984L;
     private final static long PLASMA_MEMBRANE_ID = 876L;
@@ -49,15 +55,18 @@ public class IupharDataAnalyzer {
 
     private Map<String, Ligand> idToLigand;
     private List<Long> orderedCompartmentIds;
+    
+    // Turn this off during development for fast generation
+    private boolean needFetchPubMed = true;
 
     public IupharDataAnalyzer() {
     }
 
     private MySQLAdaptor getDBA() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_032620",
-                                            "root",
-                                            "macmysql01");
+                                            "gk_central_042321",
+                                            "",
+                                            "");
         return dba;
     }
 
@@ -75,7 +84,10 @@ public class IupharDataAnalyzer {
         String srcFileName = DIR + "interactions.tsv";
         Set<String> actions = Files.lines(Paths.get(srcFileName))
                                    .skip(1)
-                                   .map(line -> line.split("\t")[18])
+                                   .map(line -> {
+                                       String[] tokens = line.split("\t");
+                                       return tokens[18] + "|" + tokens[19];
+                                    })
                                    .collect(Collectors.toSet());
         System.out.println("Total actions: " + actions.size());
         actions.stream().sorted().forEach(System.out::println);
@@ -106,25 +118,39 @@ public class IupharDataAnalyzer {
         Set<String> ligands = new HashSet<>();
         Map<String, Set<String>> bindToPubmedIds = new HashMap<>();
         Map<String, String> bindToAction = new HashMap<>();
-        Files.lines(Paths.get(srcFileName))
-        .skip(1) // The header line
-        .map(line -> line.split("\t"))
-        .filter(tokens -> {
-//            System.out.println(Arrays.asList(tokens));
-            return approvedDrugIds.contains(tokens[13]);
-        }) // Make sure drugs are approved
-        .filter(tokens -> tokens[3].length() > 0) // Make sure we have protein UniProt ids
-        .filter(tokens -> tokens.length == 37) // We require pubmed ids
-        .filter(tokens -> tokens[36].trim().length() > 0) // pubmed id should not be empty.
-        .filter(tokens -> tokens[11].equals("Human")) // Make sure human proteins only
-        .forEach(tokens -> {
+        FileUtilities fu = new FileUtilities();
+        fu.setInput(srcFileName);
+        String line = fu.readLine();
+        int counter = 0;
+        int totalLine = 0;
+        while ((line = fu.readLine()) != null) {
+            totalLine ++;
+            String[] tokens = line.split("\t");
+            if (!approvedDrugIds.contains(tokens[13]))
+                continue;
+            // There are 199 cases in the 2021 version using target_ligand_uniprot
+            if (tokens[3].length() == 0 && tokens[9].length() == 0)
+                continue;
+            if (tokens.length < 38) // A new col is added in the 2021 version: approved_drug. Total 38 instead of 37.
+                continue;
+            if (tokens[37].trim().length() == 0)
+                continue;
+            if (!tokens[11].equals("Human"))
+                continue;
             ligands.add(tokens[13]); // Use IUPHAR ID for drugs
-            // In sone cases, multiple proteins are listed in one single cell
-            String[] proteinIds = tokens[3].split("\\|");
+            // In some cases, multiple proteins are listed in one single cell
+            String proteinIdsCell = null;
+            if (tokens[3].trim().length() > 0)
+                proteinIdsCell = tokens[3];
+            else if (tokens[9].trim().length() > 0)
+                proteinIdsCell = tokens[9];
+            if (proteinIdsCell == null)
+                throw new IllegalStateException("No target id or target_ligand id in the followling line: \n" + line);
+            String[] proteinIds = proteinIdsCell.trim().split("\\|");
             for (String proteinId : proteinIds) {
                 proteins.add(proteinId);
                 String key = proteinId + "\t" + tokens[13];
-                String pubmedId = tokens[36].trim();
+                String pubmedId = tokens[37].trim();
                 bindToPubmedIds.compute(key, (k, v) -> {
                     if (v == null)
                         v = new HashSet<>();
@@ -133,9 +159,23 @@ public class IupharDataAnalyzer {
                     return v;
                 });
                 // If action is empty, we will still keep it as a value for further analysis.
-                bindToAction.put(key, tokens[18]);
+                // As of 2021, this is a combination of type and action so that
+                // they can be used to map to DrugActionType
+                StringBuilder actionType = new StringBuilder();
+                if (tokens[18].length() > 0 && !tokens[18].equals("None"))
+                    actionType.append(tokens[18]);
+                if (tokens[19].length() > 0 && !tokens[19].equals("None")) {
+                    if (actionType.length() > 0)
+                        actionType.append("|");
+                    actionType.append(tokens[19]);
+                }
+                bindToAction.put(key, actionType.toString());
             }
-        });
+            counter ++;
+        }
+        fu.close();
+        System.out.println("Total processed lines: " + counter);
+        System.out.println("Total lines: " + totalLine);
         System.out.println("Total proteins: " + proteins.size());
         System.out.println("Total ligands: " + ligands.size());
         Set<String> pubmedIds = bindToPubmedIds.values().stream().flatMap(set -> set.stream()).collect(Collectors.toSet());
@@ -146,6 +186,7 @@ public class IupharDataAnalyzer {
 //            return;
         
         setUpPersisteneceManager();
+        ScriptUtilities.setUpAttrinuteEditConfig();
 
         Map<String, GKInstance> proteinToEWAS = createEWASesForProteins(proteins);
         System.out.println("Total geneToEWAS: " + proteinToEWAS.size());
@@ -158,11 +199,58 @@ public class IupharDataAnalyzer {
                                proteinToEWAS,
                                ligandToDrug);
         assignCompartments();
+        mapDefintionToDrugActionType();
 
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
 //        fileAdaptor.save(DIR + "IUPHAR_Reactions_052219.rtpj");
 //        fileAdaptor.save(DIR + "IUPHAR_Reactions_061719.rtpj");
-        fileAdaptor.save(DIR + "IUPHAR_Reactions_032620.rtpj");
+        fileAdaptor.save(outFile);
+    }
+    
+    private void mapDefintionToDrugActionType() throws Exception {
+        Collection<GKInstance> reactions = PersistenceManager.getManager().getActiveFileAdaptor().fetchInstancesByClass(ReactomeJavaConstants.Reaction);
+        for (GKInstance reaction : reactions) {
+            GKInstance drugActionType = fetchDrugActionType(reaction);
+            if (drugActionType == null)
+                continue;
+            reaction.addAttributeValue(ReactomeJavaConstants.reactionType, 
+                                       drugActionType);
+        }
+    }
+    
+    private GKInstance fetchDrugActionType(GKInstance reaction) throws Exception {
+        String actionType = (String) reaction.getAttributeValue(ReactomeJavaConstants.definition);
+        if (actionType == null)
+            return null;
+        // Search based on the following three combination
+        List<String> keys = new ArrayList<>();
+        String[] tokens = actionType.split("\\|");
+        Stream.of(tokens).forEach(token -> keys.add(token.toLowerCase()));
+        if (tokens.length == 2) {
+            keys.add(tokens[1].toLowerCase() + " " + tokens[0].toLowerCase());
+            // This is also possible: e.g. Antibody Binding
+            keys.add(tokens[0].toLowerCase() + " " + tokens[1].toLowerCase());
+        }
+        for (String key : keys) {
+            XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+            Collection<GKInstance> c = fileAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.DrugActionType,
+                                                                            ReactomeJavaConstants.name,
+                                                                            "=",
+                                                                            key);
+            if (c != null && c.size() > 0)
+                return c.stream().findAny().get();
+            // Check if we have this reference in database
+            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+            c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.DrugActionType,
+                                             ReactomeJavaConstants.name,
+                                             "=",
+                                             key);
+            if (c != null && c.size() > 0) {
+                GKInstance dbCopy = c.stream().findAny().get();
+                return getInstance(dbCopy.getDBID());
+            }
+        }
+        return null;
     }
     
     private void assignCompartments() throws Exception {
@@ -260,18 +348,8 @@ public class IupharDataAnalyzer {
     }
     
     private GKInstance cloneDrug(GKInstance drug, XMLFileAdaptor fileAdaptor) throws Exception {
-        GKInstance clone = fileAdaptor.createNewInstance(drug.getSchemClass().getName());
-        Collection<SchemaAttribute> attributes = drug.getSchemaAttributes();
-        for (SchemaAttribute att : attributes) {
-            List<?> list = drug.getAttributeValuesList(att);
-            if (list.size() == 0)
-                continue;
-            if (att.isMultiple())
-                clone.setAttributeValue(att, new ArrayList<>(list));
-            else
-                clone.setAttributeValue(att, list.get(0));
-        }
-        return clone;
+        InstanceCloneHelper helper = new InstanceCloneHelper();
+        return helper.cloneInstance(drug, fileAdaptor);
     }
     
     private Set<GKInstance> grepDrugsWithMultipleCompartments(XMLFileAdaptor fileAdaptor) throws Exception {
@@ -428,6 +506,13 @@ public class IupharDataAnalyzer {
             GKInstance lr = getLiteratureReference(pubmedId);
             reaction.addAttributeValue(ReactomeJavaConstants.literatureReference, lr);
         }
+        
+        // Check if this reaction is in the database already
+        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Collection<GKInstance> matched = dba.fetchIdenticalInstances(reaction);
+        if (matched != null && matched.size() > 0) {
+            System.out.println(reaction + " is in gk_central.");
+        }
     }
     
     private GKInstance createEntitySetForDrugs(List<GKInstance> drugs, 
@@ -525,10 +610,12 @@ public class IupharDataAnalyzer {
         GKInstance lr = fileAdaptor.createNewInstance(ReactomeJavaConstants.LiteratureReference);
         lr.setAttributeValue(ReactomeJavaConstants.pubMedIdentifier, new Integer(pubmedId));
         // Want to fetch all information from pubmed
-        System.out.println("Query pubmed for " + pubmedId + "...");
-        LiteratureReferenceAttributeAutoFiller fetcher = new LiteratureReferenceAttributeAutoFiller();
-        fetcher.setPersistenceAdaptor(fileAdaptor); // Local should be used
-        fetcher.process(lr, null);
+        if (needFetchPubMed) {
+            System.out.println("Query pubmed for " + pubmedId + "...");
+            LiteratureReferenceAttributeAutoFiller fetcher = new LiteratureReferenceAttributeAutoFiller();
+            fetcher.setPersistenceAdaptor(fileAdaptor); // Local should be used
+            fetcher.process(lr, null);
+        }
         InstanceDisplayNameGenerator.setDisplayName(lr);
         return lr;
     }

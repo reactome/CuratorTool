@@ -1,3 +1,8 @@
+Build 110 (Version 4.0.1) note (June 19, 2021)
+
+This release is created to support automatically infer preceding/following relationships among reactions drawn in a pathway diagram. To do this, the schema of gk_central has been updated and bundled in this build. 
+
+
 Build 109 (Version 4.0.1) note (March 27, 2021)
 
 New features added in this build:

@@ -1,10 +1,13 @@
 package org.gk.scripts;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
@@ -15,7 +18,6 @@ import org.gk.qualityCheck.QACheckUtilities;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
-import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
 
 /**
@@ -33,8 +35,8 @@ public class RegulationMigration {
     public void testHandleCAReferences() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "test_gk_central_schema_update_gw",
-                                            "root",
-                                            "macmysql01");
+                                            "",
+                                            "");
         handleCatalystActivityRefereces(dba);
     }
     
@@ -197,6 +199,232 @@ public class RegulationMigration {
         instance.setSchemaClass(cls);
         instance.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
         return instance;
+    }
+    
+    @Test
+    public void checkRegulationSummtationTextForMerge() throws Exception {
+        MySQLAdaptor dba = getDBA();
+        // Fetch all human RLEs
+        Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+                                                                        ReactomeJavaConstants.species,
+                                                                        "=",
+                                                                        ScriptUtilities.getHomoSapiens(dba));
+        dba.loadInstanceAttributeValues(humanRLEs, new String[] {
+                ReactomeJavaConstants.regulatedBy,
+                ReactomeJavaConstants.inferredFrom,
+                ReactomeJavaConstants.summation
+        });
+        // Want to get inferredFrom too
+        Set<GKInstance> totalRLEs = new HashSet<>();
+        for (GKInstance humanRLE : humanRLEs) {
+            GKInstance inferredFrom = (GKInstance) humanRLE.getAttributeValue(ReactomeJavaConstants.inferredFrom);
+            if (inferredFrom != null)
+                totalRLEs.add(inferredFrom);
+        }
+        System.out.println("Total RLEs for inference: " + totalRLEs.size());
+        Set<GKInstance> inferredFromRLEs = new HashSet<>(totalRLEs);
+        totalRLEs.addAll(humanRLEs);
+        
+        Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
+        dba.loadInstanceAttributeValues(regulations, new String[] {
+                ReactomeJavaConstants.summation
+        });
+        
+        Set<GKInstance> selectedRegulations = new HashSet<>();
+        for (GKInstance rle : humanRLEs) {
+            List<GKInstance> rleRegulations = rle.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+            for (GKInstance rleRegulation : rleRegulations) {
+                GKInstance summation = (GKInstance) rleRegulation.getAttributeValue(ReactomeJavaConstants.summation);
+                if (summation == null)
+                    continue;
+                String text = (String) summation.getAttributeValue(ReactomeJavaConstants.text);
+                if (text == null)
+                    continue;
+                selectedRegulations.add(rleRegulation);
+            }
+        }
+        System.out.println("Total regulations to be exported: " + selectedRegulations.size());
+        
+        FileUtilities fu = new FileUtilities();
+        String out = "RLERegulationSummationText_040721.txt";
+        fu.setOutput(out);
+        fu.printLine("RLE_DB_ID\t" + 
+                     "LastIE\t" + 
+                     "IEWithCurrentCurator\t" + 
+                     "RLE_DisplayName\t" + 
+                     "UsedForInferrence\t" +  // This is a new column
+                     "Regulation_DB_ID\t" + 
+                     "Regulation_DisplayName\t" + 
+                     "RLE_Summation\t" + 
+                     "RLE_Summation_Number\t" + 
+                     "RLE_Summation_Text\t" + 
+                     "Regulation_Summation\t" + 
+                     "Regulation_Summation_Number\t" + 
+                     "Regulation_Summation_Text");
+        
+        StringBuilder builder = new StringBuilder();
+        for (GKInstance regulation : selectedRegulations) {
+            Collection<GKInstance> rles = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
+            for (GKInstance rle : rles) {
+                builder.append(rle.getDBID());
+                GKInstance lastIE = ScriptUtilities.getAuthor(rle);
+                builder.append("\t").append(lastIE.getDisplayName());
+                lastIE = getCurrentAuthor(rle);
+                builder.append("\t").append(lastIE == null ? "" : lastIE.getDisplayName());
+                builder.append("\t").append(rle.getDisplayName());
+                builder.append("\t").append(inferredFromRLEs.contains(rle));
+                builder.append("\t").append(regulation.getDBID());
+                builder.append("\t").append(regulation.getDisplayName());
+                appendSummations(builder, rle);
+                appendSummations(builder, regulation);
+                fu.printLine(builder.toString());
+                builder.setLength(0);
+            }
+        }
+        fu.close();
+    }
+    
+    private GKInstance getCurrentAuthor(GKInstance inst) throws Exception {
+        String[] alumni = {
+            "de Bono",
+            "Duenas",
+            "Garapati",
+            "Gopinathrao",
+            "Guerreiro",
+            "Joshi-Tope",
+            "Jupe",
+            "Mahajan",
+            "Murillo",
+            "Schmidt",
+            "Vastrik",
+            "Wu" // Add myself
+        };
+        Set<String> escaped = Stream.of(alumni).collect(Collectors.toSet());
+        List<GKInstance> list = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+        if (list != null) {
+            for (GKInstance ie : list) {
+                String name = ie.getDisplayName().split(",")[0]; // Get the last name
+                if (escaped.contains(name))
+                    continue;
+                return ie;
+            }
+        }
+        GKInstance ie = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.created);
+        String name = ie.getDisplayName().split(",")[0];
+        if (escaped.contains(name))
+            return null;
+        return ie;
+    }
+
+    private void appendSummations(StringBuilder builder, GKInstance rle) throws InvalidAttributeException, Exception {
+        List<GKInstance> rleSummations = rle.getAttributeValuesList(ReactomeJavaConstants.summation);
+        String summationIds = rleSummations.stream().map(i -> i.getDBID() + "").collect(Collectors.joining("|"));
+        builder.append("\t").append(summationIds);
+        builder.append("\t").append(rleSummations.size());
+        String summationText = "";
+        for (GKInstance summation : rleSummations) {
+            String text = (String) summation.getAttributeValue(ReactomeJavaConstants.text);
+            if (summationText.length() > 0)
+                summationText += "|";
+            summationText += text;
+        }
+        summationText = summationText.replaceAll("\n", "<br>");
+        summationText = summationText.replaceAll("\t", " "); // In case
+        builder.append("\t").append(summationText);
+    }
+    
+    
+    /**
+     * This method is different from checkRegulationSummation() in that it focues on Regulation instances.
+     * @throws Exception
+     */
+    @Test
+    public void dumpRegulationWithSummation() throws Exception {
+        MySQLAdaptor dba = getDBA();
+        Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
+                                                                          ReactomeJavaConstants.summation,
+                                                                          "!=",
+                                                                          "null");
+        System.out.println("Total regulations: " + regulations.size());
+        String fileName = "RegulationWithSummation_061121.txt";
+        FileUtilities fu = new FileUtilities();
+        fu.setOutput(fileName);
+        fu.printLine(
+                    "Regulation_ID\t" + 
+                    "Regulation_DisplayName\t" + 
+                    "Regulation_LastIE\t" + 
+                    "Regulation_Summation\t" + 
+                    "Regulation_Summation_Number\t" + 
+                    "Regulation_Summation_Text\t" + 
+                    "RLE_ID\t" + 
+                    "RLE_DisplayName\t" + 
+                    "RLE_Species\t" +
+                    "RLE_Summation\t" + 
+                    "RLE_Summation_Number\t" + 
+                    "RLE_Summation_Text\t" + 
+                    "Inferred_RLE_DB_ID\t" + 
+                    "Inferred_RLE_DisplayName\t" + 
+                    "Inferred_RLE_Species\t" + 
+                    "Inferred_RLE_Summation\t" +
+                    "Inferred_RLE_Number\t" + 
+                    "Inferred_RLE_Summation_Text"
+                    );
+        StringBuilder builder = new StringBuilder();
+        for (GKInstance regulation: regulations) {
+            GKInstance lastIE = ScriptUtilities.getAuthor(regulation);
+            Collection<GKInstance> rles = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
+            if (rles == null || rles.size() == 0) {
+                builder.append(regulation.getDBID()).append("\t");
+                builder.append(regulation.getDisplayName()).append("\t");
+                builder.append(lastIE.getDisplayName());
+                appendSummations(builder, regulation);
+                fu.printLine(builder.toString());
+                builder.setLength(0);
+                continue;
+            }
+            for (GKInstance rle : rles) {
+                Collection<GKInstance> inferredRLEs = rle.getReferers(ReactomeJavaConstants.inferredFrom);
+                if (inferredRLEs == null || inferredRLEs.size() == 0) {
+                    builder.append(regulation.getDBID()).append("\t");
+                    builder.append(regulation.getDisplayName()).append("\t");
+                    builder.append(lastIE.getDisplayName());
+                    appendSummations(builder, regulation);
+                    List<GKInstance> species = rle.getAttributeValuesList(ReactomeJavaConstants.species);
+                    String speciesText = species.stream().map(s -> s.getDisplayName()).collect(Collectors.joining(","));
+                    builder.append("\t");
+                    builder.append(rle.getDBID()).append("\t");
+                    builder.append(rle.getDisplayName()).append("\t");
+                    builder.append(speciesText);
+                    appendSummations(builder, rle);
+                    fu.printLine(builder.toString());
+                    builder.setLength(0);
+                    continue;
+                }
+                for (GKInstance infRLE : inferredRLEs) {
+                    builder.append(regulation.getDBID()).append("\t");
+                    builder.append(regulation.getDisplayName()).append("\t");
+                    builder.append(lastIE.getDisplayName());
+                    appendSummations(builder, regulation);
+                    List<GKInstance> species = rle.getAttributeValuesList(ReactomeJavaConstants.species);
+                    String speciesText = species.stream().map(s -> s.getDisplayName()).collect(Collectors.joining(","));
+                    builder.append("\t");
+                    builder.append(rle.getDBID()).append("\t");
+                    builder.append(rle.getDisplayName()).append("\t");
+                    builder.append(speciesText);
+                    appendSummations(builder, rle);
+                    builder.append("\t");
+                    builder.append(infRLE.getDBID()).append("\t");
+                    builder.append(infRLE.getDisplayName());
+                    species = infRLE.getAttributeValuesList(ReactomeJavaConstants.species);
+                    speciesText = species.stream().map(s -> s.getDisplayName()).collect(Collectors.joining(","));
+                    builder.append("\t").append(speciesText);
+                    appendSummations(builder, infRLE);
+                    fu.printLine(builder.toString());
+                    builder.setLength(0);
+                }
+            }
+        }
+        fu.close();
     }
     
     @Test
@@ -376,7 +604,7 @@ public class RegulationMigration {
     
     private MySQLAdaptor getDBA() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_101618",
+                "gk_central_061121",
                 "root",
                 "macmysql01");
         return dba;
@@ -384,7 +612,7 @@ public class RegulationMigration {
     
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
-            System.err.println("Provide four parameters: dbHost, dbName, dbUser, dbPwd, and operation (one of CheckErrors, CheckWarnings, Migration, UpdateDisplayNames, and DeleteNotReleasedStableIds)");
+            System.err.println("Provide four parameters: dbHost, dbName, dbUser, dbPwd, and operation (one of CheckErrors, CheckWarnings, Migration, MigrateSummation, UpdateDisplayNames, and DeleteNotReleasedStableIds)");
             System.exit(1);
         }
         MySQLAdaptor dba = new MySQLAdaptor(args[0], args[1], args[2], args[3]);
@@ -403,11 +631,175 @@ public class RegulationMigration {
             regulationMigration.checkWarnings(regulations);
             regulationMigration.migrate(dba, regulations);    
         }
+        else if (args[4].equals("MigrateSummation")) {
+            regulationMigration.migrateSummation(dba);
+        }
         else if (args[4].equals("UpdateDisplayNames")) {
             regulationMigration.updateDisplayNames(regulations, dba);
         }
         else if (args[4].equals("DeleteNotReleasedStableIds")) {
             regulationMigration.deleteNotReleasedStableIds(regulations, dba);
+        }
+    }
+    
+    /**
+     * This method is used to migrate regulation Summation text to RLEs.
+     * @throws Exception
+     * TODO: There is a bug in this method: need to update display names of
+     * Summation instances with text reset.
+     */
+    public void migrateSummation(MySQLAdaptor dba) throws Exception {
+        // Make sure the list file exists
+        String name = "RLE_Regulation_Summation_Text_Review.tsv";
+        name = "Regulations_with_summations_on_non-human_RLEs_Plant_instances.tsv";
+        File file = new File(name);
+        if (!file.exists())
+            throw new IllegalStateException("File doesn't exist: " + name);
+        FileUtilities fu = new FileUtilities();
+        fu.setInput(name);
+        String line = fu.readLine(); // Skip the header line
+        Set<GKInstance> toBeDeletedSummations = new HashSet<>();
+        Set<GKInstance> toBeUpdateRegulations = new HashSet<>();
+        Set<GKInstance> toBeUpdateRLEs = new HashSet<>();
+        Set<GKInstance> toBeUpdateSummations = new HashSet<>();
+        // A set of column indices to be used
+        // These are for RLE_Regulation_Summation_Text_Review.tsv
+//        int actionCol = 13;
+//        int rleDBIdCol = 0;
+//        int regulationDBIDCol = 5;
+//        int regSummationDBIdCol = 10;
+//        int newRegSumTextCol = 12;
+//        int originalRegSumTextCol = 11;
+//        int rleSummationCol = 7;
+        // These are for rice instances
+        int actionCol = 14;
+        int rleDBIdCol = 6;
+        int regulationDBIDCol = 0;
+        int regSummationDBIdCol = 3;
+        int newRegSumTextCol = 13;
+        int originalRegSumTextCol = 5;
+        int rleSummationCol = 9;
+        
+        while ((line = fu.readLine()) != null) {
+            String[] tokens = line.split("\t");
+            if (tokens[regSummationDBIdCol].contains("|"))
+            	continue; // Escape if there is more than one DB_ID for handling
+            String action = tokens[actionCol];
+            GKInstance rle = dba.fetchInstance(new Long(tokens[rleDBIdCol]));
+            GKInstance regulation = dba.fetchInstance(new Long(tokens[regulationDBIDCol]));
+            GKInstance regSummation = dba.fetchInstance(new Long(tokens[regSummationDBIdCol]));
+            // See if there is any new text
+            String newRegSumText = tokens[newRegSumTextCol].trim().length() == 0 ? null : tokens[newRegSumTextCol].trim();
+            String originalRegSumText = tokens[originalRegSumTextCol].trim();
+            GKInstance rleSummation = tokens[rleSummationCol].trim().length() == 0 ? null : dba.fetchInstance(new Long(tokens[rleSummationCol]));
+            if (action.equals("MigrateSummationInstance")) {
+                // Don't forget to load all
+                rle.getAttributeValuesList(ReactomeJavaConstants.summation);
+                rle.addAttributeValue(ReactomeJavaConstants.summation, regSummation);
+                toBeUpdateRLEs.add(rle);
+                // See if the text should be updated
+                if (newRegSumText != null) {
+                    regSummation.setAttributeValue(ReactomeJavaConstants.text, newRegSumText);
+                    toBeUpdateSummations.add(regSummation);
+                }
+            }
+            else if (action.equals("MergeSummationText") || action.equals("MergeSummation")) {
+                if (rleSummation == null)
+                    throw new IllegalStateException(rle + " doesn't have any Summation. No way to merge summation text!");
+                String rleSumText = (String) rleSummation.getAttributeValue(ReactomeJavaConstants.text);
+                if (rleSumText == null)
+                    throw new IllegalStateException(rleSummation + " doesn't have any text!");
+                String newRleSumText = rleSumText.trim() + " " + 
+                                       (newRegSumText == null ? originalRegSumText.trim() : newRegSumText.trim());
+                rleSummation.setAttributeValue(ReactomeJavaConstants.text, newRleSumText);
+                toBeUpdateSummations.add(rleSummation);
+                // Delete the original Summation
+                toBeDeletedSummations.add(regSummation);
+            }
+            if (action.equals("noAction") || action.equals("NoAction")) {
+                // Delete the Summation instance for regulation
+                toBeDeletedSummations.add(regSummation);
+            }
+            // Regardless this should be common
+            List<GKInstance> summations = regulation.getAttributeValuesList(ReactomeJavaConstants.summation);
+            summations.remove(regSummation);
+            regulation.setAttributeValue(ReactomeJavaConstants.summation, summations);
+            toBeUpdateRegulations.add(regulation);
+        }
+        fu.close();
+        System.out.println("Summations to be deleted: " + toBeDeletedSummations.size());
+        System.out.println("Regulations to be updated for summation: " + toBeUpdateRegulations.size());
+        System.out.println("RLEs to be updated for summation: " + toBeUpdateRLEs.size());
+        System.out.println("Summations to be updated for text: " + toBeUpdateSummations.size());
+//        if (true)
+//        	return;
+        // Start to push to the database
+        try {
+            dba.startTransaction();
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            // Don't forget to add IE
+            System.out.println("Starting updating Summations for text...");
+            int counter = 0;
+            for (GKInstance summation : toBeUpdateSummations) {
+                System.out.println("Updating " + summation + "...");
+                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.text);
+                summation.getAttributeValuesList(ReactomeJavaConstants.modified);
+                summation.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.modified);
+                // Check if _displayName needs to be updated
+                String displayName = summation.getDisplayName();
+                String newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(summation);
+                if (!displayName.equals(newDisplayName)) {
+                	summation.setDisplayName(newDisplayName);
+                	System.out.println("\tUpdate display name to " + newDisplayName);
+                	dba.updateInstanceAttribute(summation, ReactomeJavaConstants._displayName);
+                }
+                counter ++;
+            }
+            System.out.println("Total: " + counter);
+            counter = 0;
+            System.out.println("Starting updating RLEs for summation...");
+            for (GKInstance rle : toBeUpdateRLEs) {
+                System.out.println("Updating " + rle + "...");
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.summation);
+                rle.getAttributeValuesList(ReactomeJavaConstants.modified);
+                rle.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.modified);
+                counter ++;
+            }
+            System.out.println("Total: " + counter);
+            counter = 0;
+            System.out.println("Starting updating Regulations for summation...");
+            for (GKInstance regulation : toBeUpdateRegulations) {
+                System.out.println("Updating " + regulation + "...");
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation);
+                regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
+                regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                counter ++;
+            }
+            System.out.println("Total: " + counter);
+            counter = 0;
+            dba.commit();
+            // If a Summation is not used any more, we will just delete it
+            System.out.println("Starting deleting Summations that are not used...");
+            for (GKInstance summation : toBeDeletedSummations) {
+                Collection<GKInstance> referrers = summation.getReferers(ReactomeJavaConstants.summation);
+                if (referrers!= null && referrers.size() > 0) {
+                    System.out.println(summation + " is used.");
+                    continue;
+                }
+                System.out.println("Deleting " + summation + "...");
+                dba.deleteInstance(summation);
+                counter ++;
+            }
+            System.out.println("Total: " + counter);
+            dba.commit();
+        }
+        catch(Exception e) {
+            System.err.println(e);
+            e.printStackTrace();
+            dba.rollback();
         }
     }
     

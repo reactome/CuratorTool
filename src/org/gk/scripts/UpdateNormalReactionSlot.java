@@ -38,8 +38,8 @@ public class UpdateNormalReactionSlot {
     public MySQLAdaptor getDBA() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
                                             "test_slice_64",
-                                            "wgm",
-                                            "zhe10jiang23");
+                                            "",
+                                            "");
         return dba;
     }
     
@@ -89,13 +89,7 @@ public class UpdateNormalReactionSlot {
     @Test
     public void splitNormalReactions() throws Exception {
         // Need some configration
-        InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
-        if (metaConfig == null)
-            return;
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = dbf.newDocumentBuilder();
-        Document document = builder.parse(metaConfig);
-        AttributeEditConfig.getConfig().loadConfig(document);
+        ScriptUtilities.setUpAttrinuteEditConfig();
         
         String srcFileName = PROJECT_DIR + "NormalReactionSlotFix_Before.rtpj";
         String targetFileName = PROJECT_DIR + "NormalReactionSlotFix_After.rtpj";
