@@ -21,10 +21,10 @@ import org.junit.Test;
  *
  */
 @SuppressWarnings("unchecked")
-public class UpdateNormalReactionSlot {
+public class UpdateNormalReactionSlot1 {
     private final String PROJECT_DIR = "/Users/wug/Documents/wgm/work/reactome/CuratorsProjects/";
     
-    public UpdateNormalReactionSlot() {
+    public UpdateNormalReactionSlot1() {
         
     }
     
