@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class ReferenceTherapeuticAutoFiller extends AbstractAttributeAutoFiller {
+	private final String DB_NAME = "Guide to Pharmacology";
     private final String BASE_URL = "https://www.guidetopharmacology.org/services/";
     private final String LIGAND_URL = BASE_URL + "ligands/"; // ID should be after
 
@@ -47,7 +48,7 @@ public class ReferenceTherapeuticAutoFiller extends AbstractAttributeAutoFiller 
             return;
         }
         // Add ReferenceDatabase
-        GKInstance referenceDb = getReferenceDatabasae("IUPHAR");
+        GKInstance referenceDb = getReferenceDatabasae(DB_NAME);
         if (referenceDb == null) {
             JOptionPane.showMessageDialog(parentComp,
                                           "Error in Fetching",
