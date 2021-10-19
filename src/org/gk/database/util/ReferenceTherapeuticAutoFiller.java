@@ -31,7 +31,7 @@ public class ReferenceTherapeuticAutoFiller extends AbstractAttributeAutoFiller 
 
     @Override
     protected String getConfirmationMessage() {
-        return "Do you want the tool to fetch information from the IUPHAR database?";
+        return "Do you want the tool to fetch information from the " + DB_NAME + " database?";
     }
 
     @Override
@@ -52,7 +52,7 @@ public class ReferenceTherapeuticAutoFiller extends AbstractAttributeAutoFiller 
         if (referenceDb == null) {
             JOptionPane.showMessageDialog(parentComp,
                                           "Error in Fetching",
-                                          "Cannot get the ReferenceDatabase instance for IUPHAR.",
+                                          "Cannot get the ReferenceDatabase instance for " + DB_NAME,
                                           JOptionPane.ERROR_MESSAGE);
             return;
         }

@@ -32,13 +32,13 @@ import org.junit.Test;
 
 /**
  * This class is modified from org.reactome.nursa.LocalProjectBuilder in the caBigR3 project 
- * to process data from IUPHAR. Currently it is used to automatically create binding reactions
+ * to process data from Guide to Pharmacology. Currently it is used to automatically create binding reactions
  * between drugs and targets. 
  * @author wug
  *
  */
 @SuppressWarnings("unchecked")
-public class IupharDataAnalyzer {
+public class GuideToPharmacologyDataAnalyzer {
 //    private final static String DIR = "/Users/wug/datasets/iuphar/052219/";
 //    private final static String DIR = "/Volumes/ssd/datasets/iuphar/032620/";
     private final String DIR = "/Volumes/ssd/datasets/iuphar/040221/";
@@ -49,7 +49,7 @@ public class IupharDataAnalyzer {
     private final static Long CYTOSOL_DB_ID = 70101L;
     private final static Long EXTRACELLULAR_REGION_ID = 984L;
     private final static long PLASMA_MEMBRANE_ID = 876L;
-    private final static Long IUPHAR_DB_ID = 9016465L;
+    private final static Long GUIDE_TO_PHARMACOLOGY_DB_ID = 9016465L;
     private final static Long PUBCHEM_DB_ID = 5263704L;
     private final static Long HOMO_SAPIENS_ID = 48887L;
 
@@ -59,7 +59,7 @@ public class IupharDataAnalyzer {
     // Turn this off during development for fast generation
     private boolean needFetchPubMed = true;
 
-    public IupharDataAnalyzer() {
+    public GuideToPharmacologyDataAnalyzer() {
     }
 
     private MySQLAdaptor getDBA() throws Exception {
@@ -137,7 +137,7 @@ public class IupharDataAnalyzer {
                 continue;
             if (!tokens[11].equals("Human"))
                 continue;
-            ligands.add(tokens[13]); // Use IUPHAR ID for drugs
+            ligands.add(tokens[13]); // Use Guide to Pharmacology ID for drugs
             // In some cases, multiple proteins are listed in one single cell
             String proteinIdsCell = null;
             if (tokens[3].trim().length() > 0)
@@ -672,8 +672,8 @@ public class IupharDataAnalyzer {
 
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
         GKInstance refTherapeutic = fileAdaptor.createNewInstance(ReactomeJavaConstants.ReferenceTherapeutic);
-        GKInstance iuphar = getInstance(IUPHAR_DB_ID);
-        refTherapeutic.setAttributeValue(ReactomeJavaConstants.referenceDatabase, iuphar);
+        GKInstance guideToPharmacology = getInstance(GUIDE_TO_PHARMACOLOGY_DB_ID);
+        refTherapeutic.setAttributeValue(ReactomeJavaConstants.referenceDatabase, guideToPharmacology);
         refTherapeutic.setAttributeValue(ReactomeJavaConstants.identifier, ligandId);
         // Copy values from ligand to refTherapeutic
         refTherapeutic.setAttributeValue(ReactomeJavaConstants.name, ligand.name);
