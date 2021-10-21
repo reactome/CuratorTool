@@ -1,3 +1,12 @@
+Build 111 (Version 4.0.1) note (October 21, 2021)
+
+New features and update in this build:
+
+1). Added features to support drawing cytomics events
+2). Added a choice to exclude drugs and negative regulators during auto-connecting reactions in a pathway diagram
+3). Bug fix: Don't add non-allowable instances to the replacementInstances slot in the _Deleted instance automatically
+4). Bug fix: Use "Guide to Pharmacology", instead of IUPHAR, for auto-fetching information from Guide to Pharmacology.
+
 Build 110 (Version 4.0.1) note (June 19, 2021)
 
 This release is created to support automatically infer preceding/following relationships among reactions drawn in a pathway diagram. To do this, the schema of gk_central has been updated and bundled in this build. 
