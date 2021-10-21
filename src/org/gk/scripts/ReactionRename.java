@@ -26,7 +26,38 @@ import org.junit.Test;
 public class ReactionRename {
     
     public ReactionRename() {
-        
+    }
+    
+    @Test
+    public void processHumanReactions() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+                "gk_current_ver77",
+                "root",
+                "macmysql01");
+    	GKInstance human = dba.fetchInstance(ReactomeJavaConstants.humanID);
+    	Collection<GKInstance> humanReactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
+    			ReactomeJavaConstants.species,
+    			"=",
+    			human);
+    	System.out.println("Total human reactions: " + humanReactions.size());
+    	GKInstance humanReaction = humanReactions.stream().findAny().get();
+    	List<GKInstance> input = humanReaction.getAttributeValuesList(ReactomeJavaConstants.input);
+    	System.out.println("input: " + input);
+    	List<GKInstance> output = humanReaction.getAttributeValuesList(ReactomeJavaConstants.output);
+    	System.out.println("output: " + output);
+    	// There is only one CatalyastActivity if any
+    	GKInstance cas = (GKInstance) humanReaction.getAttributeValue(ReactomeJavaConstants.catalystActivity);
+    	if (cas != null) {
+    		GKInstance catalyst = (GKInstance) cas.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+    		System.out.println("catalyst: " + catalyst);
+    	}
+    	// A reaction may have multiple regulations
+    	List<GKInstance> regulations = humanReaction.getAttributeValuesList(ReactomeJavaConstants.regulatedBy);
+    	if (regulations != null && regulations.size() > 0) {
+    		GKInstance regulation = regulations.stream().findAny().get();
+    		GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
+    		System.out.println("One regulator: " + regulator);
+    	}
     }
     
     private MySQLAdaptor getDBA() throws Exception {
