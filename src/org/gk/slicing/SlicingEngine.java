@@ -1220,10 +1220,11 @@ public class SlicingEngine {
         StringBuilder mysqldump = new StringBuilder();
         if (isInDev && path != null)
             mysqldump.append(path);
+        mysqldump.append("mysqldump --skip-lock-tables --column-statistics=0 ");
         if (tableName == null)
-            mysqldump.append("mysqldump --skip-lock-tables -d ");
+            mysqldump.append("-d ");
         else
-            mysqldump.append("mysqldump --skip-lock-tables -q --add-drop-table -e --add-locks ");
+            mysqldump.append("-q --add-drop-table -e --add-locks ");
         attachConnectInfo(mysqldump, sourceDBA);
         mysqldump.append(" ");
         mysqldump.append(sourceDBA.getDBName());
