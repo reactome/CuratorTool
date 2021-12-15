@@ -35,8 +35,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
@@ -74,7 +74,7 @@ import org.gk.util.GKApplicationUtilities;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class SlicingEngine {
     // For logging
-    private static final Logger logger = Logger.getLogger(SlicingEngine.class);
+    private static final Logger logger = LogManager.getLogger(SlicingEngine.class.getName());
     // Constants
     private final String DUMP_FILE_NAME = "slicingDump.sql";
     private final String SCHEMA_FILE_NAME = "slicingSchema.sql";
@@ -434,7 +434,6 @@ public class SlicingEngine {
      * Create a default instance edit for a given database adaptor.
      *
      * @param dba
-     * @param personId
      * @return GKInstance
      * @throws Exception
      * @throws InvalidAttributeException
@@ -1259,7 +1258,7 @@ public class SlicingEngine {
 
     public static void main(String[] args) {
         // Set up log4j
-        PropertyConfigurator.configure("SliceLog4j.properties");
+        //PropertyConfigurator.configure("SliceLog4j.properties");
         // Get information from the command line
         //SlicingEngine engine = new SlicingEngine();
         // Try project based slicing engine

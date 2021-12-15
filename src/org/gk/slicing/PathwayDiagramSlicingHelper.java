@@ -12,7 +12,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
@@ -38,7 +39,8 @@ import org.junit.Test;
  */
 public class PathwayDiagramSlicingHelper {
     // Logger for this class.
-    private final static Logger logger = Logger.getLogger(PathwayDiagramSlicingHelper.class);
+    private final static Logger logger = LogManager.getLogger(PathwayDiagramSlicingHelper.class.getName());
+
     protected boolean isInDev = false;
     // Cached for helping diagram processing
     private DiagramGKBReader diagramReader;

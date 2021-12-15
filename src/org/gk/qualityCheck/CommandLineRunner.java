@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -25,7 +25,7 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class CommandLineRunner {
 
-    private static Logger logger = Logger.getLogger(CommandLineRunner.class);
+    private static Logger logger = LogManager.getLogger(CommandLineRunner.class.getName());
 
     // TODO - on QA check refactoring, get the summary constants
     // below from a common class.
@@ -42,7 +42,7 @@ public class CommandLineRunner {
     };
 
     public static void main(String[] args) throws Exception {
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         
         File authFile = getAuthFile();
         Properties authProps = new Properties();

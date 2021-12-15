@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
@@ -47,7 +48,7 @@ import org.junit.Test;
  */
 public class ReactionELVCheck extends AbstractQualityCheck {
     
-    private static Logger logger = Logger.getLogger(ReactionELVCheck.class);
+    private static Logger logger = LogManager.getLogger(ReactionELVCheck.class.getName());
 
     private static final String[] HEADERS = {
             "Reaction_DB_ID", "Reaction_Name", "_doRelease", "Species", "Is_in_Disease",

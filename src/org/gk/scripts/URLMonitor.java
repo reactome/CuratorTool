@@ -4,6 +4,9 @@
  */
 package org.gk.scripts;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -18,8 +21,6 @@ import java.util.Set;
 //import javax.mail.Transport;
 //import javax.mail.internet.InternetAddress;
 //import javax.mail.internet.MimeMessage;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 
 /**
  * A class that is used to monitor a http URL.
@@ -27,7 +28,7 @@ import org.apache.log4j.PropertyConfigurator;
  *
  */
 public class URLMonitor {
-    private final static Logger logger = Logger.getLogger(URLMonitor.class);
+    private final static Logger logger = LogManager.getLogger(URLMonitor.class.getName());
     private Set<String> downURLs;
     
     public URLMonitor() {
@@ -39,7 +40,7 @@ public class URLMonitor {
             System.err.println("Run this application using three parameters: a file containing a list of URLs, a file containing a list of emails, and time interval");
             System.exit(1);
         }
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         URLMonitor monitor = new URLMonitor();
         monitor.monitor(args[0], 
                         args[1],

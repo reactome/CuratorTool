@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -58,7 +57,7 @@ public class PathwayDiagramScripts {
             System.err.println("Usage java -Xmx1024m org.gk.scripts.PathwayDiagramScripts dbHost dbName dbUser dbPwd diagramId imageBaseDir");
             System.exit(1);
         }
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         try {
             MySQLAdaptor dba = new MySQLAdaptor(args[0],
                                                 args[1],

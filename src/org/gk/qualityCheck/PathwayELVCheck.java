@@ -14,7 +14,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -22,7 +23,6 @@ import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
-import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 
 /**
@@ -36,7 +36,7 @@ import org.junit.Test;
  */
 public class PathwayELVCheck extends ReactionELVCheck {
 
-    private static Logger logger = Logger.getLogger(PathwayELVCheck.class);
+    private static Logger logger = LogManager.getLogger(PathwayELVCheck.class.getName());
     
     public PathwayELVCheck() {
     }

@@ -24,7 +24,8 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.gkEditor.CoordinateSerializer;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
@@ -53,7 +54,7 @@ import org.junit.Test;
  *
  */
 public class DiagramGeneratorFromDB {
-    private static final Logger logger = Logger.getLogger(DiagramGeneratorFromDB.class);
+    private static final Logger logger = LogManager.getLogger(DiagramGeneratorFromDB.class.getName());
     // Information file
     private final String INFO_FILE_NAME = "info";
     private final String COORDINATE_JSON_FILE_NAME = "orderedcoordinates.json";
@@ -667,10 +668,9 @@ public class DiagramGeneratorFromDB {
     /**
      * Disease and normal pathway sharing the same pathway diagram. If isNormalInDisease is true,
      * only objects related to normal pathways should be drawn.
-     * @param diagram
-     * @param pathwayDir
-     * @param isForDisease
-     * @param isNormalInDisease
+     * @param diagram Pathway diagram instance
+     * @param pathway Pathway instance
+     * @param pathwayDir Where to save images
      * @return
      * @throws Exception
      */
@@ -915,7 +915,7 @@ public class DiagramGeneratorFromDB {
     
     /**
      * This helper method is used to grep a list of DB_IDs for pathways having diagrams available.
-     * @param dbda
+     * @param dba
      * @return
      * @throws Exception
      */

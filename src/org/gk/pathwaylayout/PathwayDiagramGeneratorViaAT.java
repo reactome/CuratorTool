@@ -22,7 +22,8 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.database.SynchronizationManager;
 import org.gk.gkCurator.authorTool.CuratorToolToAuthorToolConverter;
 import org.gk.gkEditor.AuthorToolActionCollection;
@@ -51,7 +52,7 @@ import org.junit.Test;
 public class PathwayDiagramGeneratorViaAT {
     private MySQLAdaptor dba;
     private Long defaultPersonId;
-    private static Logger logger = Logger.getLogger(PathwayDiagramGeneratorViaAT.class);
+    private static Logger logger = LogManager.getLogger(PathwayDiagramGeneratorViaAT.class.getName());
     
     public PathwayDiagramGeneratorViaAT() {
     }

@@ -45,7 +45,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
-import org.apache.log4j.PropertyConfigurator;
 import org.gk.database.AttributeEditEvent;
 import org.gk.database.AttributeEditListener;
 import org.gk.database.AttributeEditManager;
@@ -160,7 +159,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     }
     
     protected void testCheckInCommand(MySQLAdaptor dba) throws Exception {
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         setDatasource(dba);
         QAReport report = checkInCommand();
         report.output(report.getReportLines().size());

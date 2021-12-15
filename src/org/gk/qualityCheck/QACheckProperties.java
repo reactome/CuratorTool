@@ -1,5 +1,8 @@
 package org.gk.qualityCheck;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -13,8 +16,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.log4j.Logger;
-
 /**
  * QACheckProperties is the singleton common QA check properties service.
  * 
@@ -24,7 +25,7 @@ import org.apache.log4j.Logger;
  */
 public class QACheckProperties {
 
-    private final static Logger logger = Logger.getLogger(QACheckProperties.class);
+    private final static Logger logger = LogManager.getLogger(QACheckProperties.class.getName());
 
     private static final String CUTOFF_DATE_PROP = "cutoffDate";
 

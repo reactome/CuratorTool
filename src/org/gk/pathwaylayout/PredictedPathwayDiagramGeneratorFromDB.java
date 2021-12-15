@@ -5,7 +5,6 @@
 package org.gk.pathwaylayout;
 
 import java.awt.Point;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,8 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+//import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
@@ -50,7 +50,7 @@ import org.junit.Test;
  *
  */
 public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFromDB {
-    private static final Logger logger = Logger.getLogger(PredictedPathwayDiagramGeneratorFromDB.class);
+    private static final Logger logger = LogManager.getLogger(PredictedPathwayDiagramGeneratorFromDB.class.getName());
     
     private GKInstance defaultIE;
     private Long defaultPersonId;
@@ -842,7 +842,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     
     @Test
     public void testGenerateDiagramsForOtherSpecies() throws Exception {
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         MySQLAdaptor dba = new MySQLAdaptor("localhost", 
                                             "gk_current_ver32", 
                                             "root", 
@@ -858,7 +858,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     
     @Test
     public void testGenerateImageFiles() throws Exception {
-        PropertyConfigurator.configure("resources/log4j.properties");
+        //PropertyConfigurator.configure("resources/log4j.properties");
         MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca", 
                                             "test_reactome_34_brie8_diagrams",
                                             "authortool", 
@@ -891,7 +891,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         }
         try {
             // Set the logging
-            PropertyConfigurator.configure("resources/log4j.properties");
+            //PropertyConfigurator.configure("resources/log4j.properties");
             //logger.info("Log4j is configured!");
             MySQLAdaptor dba = new MySQLAdaptor(args[0],
                                                 args[1],

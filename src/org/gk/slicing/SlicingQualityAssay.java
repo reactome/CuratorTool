@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.database.StableIdentifierGenerator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -33,7 +34,7 @@ import org.gk.util.StringUtils;
  *
  */
 public class SlicingQualityAssay {
-    private final static Logger logger = Logger.getLogger(SlicingQualityAssay.class);
+    private final static Logger logger = LogManager.getLogger(SlicingQualityAssay.class.getName());
     private Map<Long, GKInstance> sliceMap;
     private MySQLAdaptor sourceDBA;
     

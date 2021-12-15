@@ -13,9 +13,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
@@ -38,7 +38,7 @@ import org.junit.Test;
  *
  */
 public class ReactionSyncELVCheck extends ReactionELVCheck {
-    private static final Logger logger = Logger.getLogger(ReactionSyncELVCheck.class);
+    private static final Logger logger = LogManager.getLogger(ReactionSyncELVCheck.class.getName());
 
     private static final String[] HEADERS = {
             "Diagram_DBID", 

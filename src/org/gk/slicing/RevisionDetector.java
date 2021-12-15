@@ -9,8 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
@@ -24,7 +25,7 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class RevisionDetector {
-    private static final Logger logger = Logger.getLogger(RevisionDetector.class);
+    private static final Logger logger = LogManager.getLogger(RevisionDetector.class.getName());
     private SlicingEngine sliceEngine;
 
     public RevisionDetector() {
@@ -127,7 +128,7 @@ public class RevisionDetector {
      */
     @Test
     public void testUploadUpdateTrackers() throws Exception {
-        PropertyConfigurator.configure("SliceLog4j.properties");
+        //PropertyConfigurator.configure("SliceLog4j.properties");
         this.sliceEngine = new SlicingEngine();
         sliceEngine.setDefaultPersonId(140537L);
         MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
@@ -244,7 +245,6 @@ public class RevisionDetector {
      * @return List
      * @throws InvalidAttributeException
      * @throws Exception
-     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
      */
     private List<GKInstance> createAllUpdateTrackers(MySQLAdaptor currentSliceDBA,
                                                      MySQLAdaptor previousSliceDBA) throws Exception {

@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
@@ -45,7 +46,7 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class ProjectBasedSlicingEngine extends SlicingEngine {
-    private static Logger logger = Logger.getLogger(ProjectBasedSlicingEngine.class);
+    private static Logger logger = LogManager.getLogger(ProjectBasedSlicingEngine.class.getName());
     
     private String project = null;
     private boolean useForSpecies = false;
