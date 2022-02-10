@@ -419,7 +419,8 @@ public class ReactionRelationshipInferrer {
         
         private void init(TableModel tableModel) {
             setTitle("Reaction Relationship Inference");
-            JLabel label = new JLabel("Review the following inferred relationships and check ones you want to approve:");
+            JLabel label = new JLabel("Review the following inferred relationships and check ones you want to approve (" + 
+            		tableModel.getRowCount() + " in total):");
             label.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
             getContentPane().add(label, BorderLayout.NORTH);
             JTable table = new JTable(tableModel);
