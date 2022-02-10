@@ -3,8 +3,10 @@ package org.gk.scripts;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -425,6 +427,67 @@ public class RegulationMigration {
             }
         }
         fu.close();
+    }
+    
+    /**
+     * This should be the last step to remove summation from Regulation.
+     * @throws Exception
+     */
+    @Test
+    public void deleteRegulationSummationForAll() throws Exception {
+    	MySQLAdaptor dba = getDBA();
+    	// Get Regulations having summations
+    	Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
+    			ReactomeJavaConstants.summation,
+    			"is not null",
+    			null);
+    	System.out.println("Total Regulations having summation: " + regulations.size());
+    	try {
+    		// Check if the summation is used elseSystem.out.println("Starting updating Regulations...");
+    		System.out.println("Starting to remove summations from regulations and then delete summations that are not used else...");
+    		dba.startTransaction();
+    		GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+    		for (GKInstance regulation : regulations) {
+    			System.out.println("Handling " + regulation + "...");
+    			List<GKInstance> summations = regulation.getAttributeValuesList(ReactomeJavaConstants.summation);
+    			if (summations.size() > 1) {
+    				System.out.println("More than one summation: " + summations);
+    			}
+    			// In case we have more than one summation.
+    			Map<GKInstance, Boolean> summation2deletion = new HashMap<>();
+    			for (GKInstance summation : summations) {
+    				// Can be used in the summation attribute in other classes
+    				Collection<GKInstance> referrers = summation.getReferers(ReactomeJavaConstants.summation);
+    				referrers.remove(regulation);
+    				if (referrers.size() > 0) {
+    					System.out.println("More than one referrer: " + regulation + " -> " + summation);
+    					summation2deletion.put(summation, Boolean.FALSE);
+    				}
+    				else {
+    					summation2deletion.put(summation, Boolean.TRUE);
+    				}
+    			}
+    			// Null summation
+    			regulation.setAttributeValue(ReactomeJavaConstants.summation, null);
+    			dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation);
+    			// Update modified
+                regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
+                regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+    			for (GKInstance summation : summation2deletion.keySet()) {
+    				Boolean deletion = summation2deletion.get(summation);
+    				if (deletion) {
+    					System.out.println("Deleting " + summation + "...");
+    					dba.deleteInstance(summation); 
+    				}
+    			}
+    		}
+    		dba.commit();
+    	}
+    	catch(Exception e) {
+    		dba.rollback();
+    		e.printStackTrace();
+    	}
     }
     
     @Test

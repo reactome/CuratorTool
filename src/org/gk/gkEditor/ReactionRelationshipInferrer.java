@@ -12,6 +12,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -625,7 +626,12 @@ public class ReactionRelationshipInferrer {
             box.setRenderer(renderer);
         }
         
-        private List<GKInstance> getReasons(JTable table) {
+        private List<GKInstance> getReasons(int row, JTable table) {
+        	// This should be based on the Action 
+        	RelationshipTableModel model = (RelationshipTableModel) table.getModel();
+        	ActionTerm action = (ActionTerm) model.getValueAt(row, 3);
+        	if (action == ActionTerm.Approve || action == ActionTerm.No_Action)
+        		return Collections.EMPTY_LIST;
             try {
                 // Assume download has been done previously
                 XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
@@ -643,7 +649,7 @@ public class ReactionRelationshipInferrer {
                                               "Error in Controlled Vocabulary",
                                               JOptionPane.ERROR_MESSAGE);
             }
-            return null;
+            return Collections.EMPTY_LIST;
         }
 
         @Override
@@ -655,7 +661,7 @@ public class ReactionRelationshipInferrer {
             JComboBox<GKInstance> box = (JComboBox<GKInstance>) super.getTableCellEditorComponent(table, value, isSelected, row, column);
             // Fill the list on the fly
             box.removeAllItems();
-            List<GKInstance> reasons = getReasons(table);
+            List<GKInstance> reasons = getReasons(row, table);
             if (reasons != null) 
                 reasons.forEach(box::addItem);
             return box;

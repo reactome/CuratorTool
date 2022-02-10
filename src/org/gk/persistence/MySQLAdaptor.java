@@ -186,6 +186,10 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		                                              // since we just want to use encrypted connection. Authentication
 		                                              // will be handled by user name and password as usual.
 		prop.put("useSSL", "true"); // If ssl is not enabled, useSSL will just fall back to non-encrypted connection
+		// Have to force to use this protocol. Otherwise, it cannot work with the latest version of Java 8 under Windows.
+		// This is changed on October 22, 2021. May need to monitor this issue.
+		// For more information, see https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-using-ssl.html
+		prop.put("enabledTLSProtocols", "TLSv1.2");
         return prop;
     }
 
