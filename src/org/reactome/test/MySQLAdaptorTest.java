@@ -34,7 +34,7 @@ import org.gk.util.AuthorToolAppletUtilities;
 import org.gk.util.SwingImageCreator;
 import org.junit.Test;
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ResultTreeType;
+// import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ResultTreeType;
 
 /**
  * 
