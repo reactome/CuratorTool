@@ -108,16 +108,11 @@ public class GKSchema implements Schema, Serializable {
 			if (o instanceof GKSchemaAttribute) {
 				GKSchemaAttribute a = (GKSchemaAttribute) o;
 				Collection schemaClasses = a.getSchemaClass();
-				if (schemaClasses.isEmpty()) {
-					addAttribute(a);
-				} else {
-					Iterator j = schemaClasses.iterator();
-					//There should be just one element in this collection this time
-					GKSchemaClass schemaClass = (GKSchemaClass) j.next();
-					schemaClass.addAttribute(a);
-					a.setOrigin(schemaClass);
-					setInverseAttribute(a);
-				}
+                Iterator j = schemaClasses.iterator();
+                //There should be just one element in this collection this time
+                GKSchemaClass schemaClass = (GKSchemaClass) j.next();
+                schemaClass.addAttribute(a);
+                a.setOrigin(schemaClass);
 			} else if (o instanceof GKSchemaClass) {
 				//SchemaTestApp.printObject(o);
 				addClass((GKSchemaClass) o);
