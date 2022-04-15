@@ -71,10 +71,12 @@ public class Neo4JAdaptorTest {
         assumeTrue(neo4jAdaptor.getSchemaTimestamp() != null);
     }
 
+
     @Test
     public void testLoadInstanceAttributeValues() throws Exception {
         Schema schema = neo4jAdaptor.fetchSchema();
-        Collection<Instance> instances = neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", Collections.singletonList(9612973L));
+        Collection<Instance> instances =
+                neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", Collections.singletonList(9612973L));
         GKInstance gkIns = (GKInstance) instances.iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(gkIns);
         assumeTrue(gkIns.getAttributeValuesList("displayName").size() > 0);
@@ -86,6 +88,31 @@ public class Neo4JAdaptorTest {
             }
         }
         assumeTrue(foundEvent);
+    }
+
+    @Test
+    public void testChainChangeLogInReferenceGeneProduct() throws Exception {
+        Schema schema = neo4jAdaptor.fetchSchema();
+        Collection<Instance> instances =
+                neo4jAdaptor.fetchInstancesByClass(
+                        "ReferenceGeneProduct",
+                        Collections.singletonList(48889l));
+        GKInstance gkIns = (GKInstance) instances.iterator().next();
+        neo4jAdaptor.loadInstanceAttributeValues(gkIns);
+        assumeTrue(gkIns.getAttributeValuesList("chainChangeLog").size() > 0);
+    }
+
+    @Test
+    public void testDoReleaseInEvent() throws Exception {
+        Schema schema = neo4jAdaptor.fetchSchema();
+        Collection<Instance> instances =
+                neo4jAdaptor.fetchInstancesByClass(
+                        "Event",
+                        Collections.singletonList(15869l));
+        GKInstance gkIns = (GKInstance) instances.iterator().next();
+        neo4jAdaptor.loadInstanceAttributeValues(gkIns);
+        assumeTrue(gkIns.getAttributeValuesList("doRelease").size() > 0);
+        assumeTrue((Boolean) gkIns.getAttributeValuesList("doRelease").get(0));
     }
 
     @Test
