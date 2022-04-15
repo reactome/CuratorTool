@@ -12,6 +12,7 @@ import org.neo4j.driver.*;
 import java.util.*;
 
 import static org.junit.Assume.*;
+import static org.junit.Assume.assumeTrue;
 
 public class Neo4JAdaptorTest {
 
@@ -66,6 +67,11 @@ public class Neo4JAdaptorTest {
     }
 
     @Test
+    public void testSchemaTimestamp() throws Exception {
+        assumeTrue(neo4jAdaptor.getSchemaTimestamp() != null);
+    }
+
+    @Test
     public void testLoadInstanceAttributeValues() throws Exception {
         Schema schema = neo4jAdaptor.fetchSchema();
         Collection<Instance> instances = neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", Collections.singletonList(9612973L));
@@ -102,7 +108,8 @@ public class Neo4JAdaptorTest {
     @Test
     public void testFetchInstanceByDBId() throws Exception {
         GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
-        assumeTrue(instance.getSchemClass().getName().equals("TopLevelPathway"));
+        assumeTrue(instance.getSchemClass().getName().equals("DatabaseObject"));
+        assumeTrue(instance.getDisplayName().equals("Autophagy"));
     }
 
     @Test
@@ -126,6 +133,18 @@ public class Neo4JAdaptorTest {
     @Test
     public void testFetchSchemaClassnameByDBID() throws Exception {
         assumeTrue(neo4jAdaptor.fetchSchemaClassnameByDBID(9612973l).equals("TopLevelPathway"));
+    }
+
+    @Test
+    public void testStableIdentifier() throws Exception {
+        Schema schema = neo4jAdaptor.fetchSchema();
+        SchemaClass sc = schema.getClassByName("TopLevelPathway");
+        // Create TopLevelPathway instance
+        GKInstance instance = neo4jAdaptor.fetchInstance(9613829l);
+        List<GKInstance> instances =
+                (List<GKInstance>) instance.getAttributeValuesList("stableIdentifier");
+        assumeTrue(instances.size() == 1);
+        assumeTrue(instances.get(0).getAttributeValue("identifier").equals("R-HSA-9613829"));
     }
 
     @Test

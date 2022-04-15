@@ -78,9 +78,9 @@ public class Neo4JSchemaParser {
                         ska.setType(Class.forName("java.lang.Boolean"));
                         ska.setTypeAsInt(SchemaAttribute.BOOLEAN_TYPE);
                     } else {
-                        if (!typeSimpleName.equals("InteractionEvent") && !typeSimpleName.equals("HasEvent")) {
-                            // TODO: N.B. hasInteraction:InteractionEvent and hasEvent:HasEvent have not been released yet
-                            // (hence not in graph.db)
+                        if (!typeSimpleName.equals("InteractionEvent")) {
+                            // TODO: N.B. InteractionEvent shows in https://curator.reactome.org/cgi-bin/classbrowser?DB=gk_central&CLASS=DatabaseIdentifier
+                            //  but has not been released yet (hence graph-importer does not output it into graph.db)
                             GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
                             typeSC.setName(typeSimpleName);
                             ska.addAllowedClass(typeSC);

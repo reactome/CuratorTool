@@ -81,8 +81,8 @@
 	<classpathentry kind="lib" path="lib/neo4j-common-4.3.11.jar"/>
 	<classpathentry kind="lib" path="lib/reactive-streams-1.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-simple-1.6.1.jar"/>
-	<classpathentry kind="lib" path="lib/graph-core-curator.jar"/>
 	<classpathentry kind="lib" path="lib/aspectjrt-1.9.7.jar"/>
 	<classpathentry kind="lib" path="lib/commons/commons-lang3-3.12.0.jar"/>
+	<classpathentry kind="lib" path="lib/graph-core-curator-1.0.0-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
