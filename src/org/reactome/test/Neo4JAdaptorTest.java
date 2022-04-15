@@ -67,6 +67,20 @@ public class Neo4JAdaptorTest {
     }
 
     @Test
+    public void testAttributeCategory() throws Exception {
+        Schema schema = neo4jAdaptor.fetchSchema();
+        SchemaClass sc = schema.getClassByName("Event");
+        Collection<SchemaAttribute> attributes = sc.getAttributes();
+        assumeTrue(attributes.size() > 0);
+        for (SchemaAttribute attribute : attributes) {
+            if (attribute.getName().equals("summation")) {
+                assumeTrue(attribute.getCategory() == SchemaAttribute.MANDATORY);
+                break;
+            }
+        }
+    }
+
+    @Test
     public void testSchemaTimestamp() throws Exception {
         assumeTrue(neo4jAdaptor.getSchemaTimestamp() != null);
     }

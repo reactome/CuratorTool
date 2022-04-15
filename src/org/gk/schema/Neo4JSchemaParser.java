@@ -1,16 +1,22 @@
 package org.gk.schema;
 
+import org.reactome.server.graph.curator.domain.annotations.ReactomeConstraint;
+import org.reactome.server.graph.curator.domain.annotations.ReactomeTransient;
 import org.reactome.server.graph.curator.domain.model.DatabaseObject;
 import org.reactome.server.graph.curator.service.helper.AttributeClass;
 import org.reactome.server.graph.curator.service.helper.AttributeProperties;
 import org.reactome.server.graph.curator.service.util.DatabaseObjectUtils;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
 public class Neo4JSchemaParser {
 
     private Map cache = new HashMap();
+    // className -> (field Name -> Field in the the Java class corresponding to className_
+    private Map<String, Map<String, Field>> classNameToFields = new HashMap();
 
     public GKSchema parseNeo4JResults(
             Collection<String> classNames)
@@ -56,6 +62,8 @@ public class Neo4JSchemaParser {
                     ska.setMinCardinality(1);
                     ska.setMultiple(true);
                 }
+                setCategory(parentName, ska, ap);
+                
                 //System.out.println("  " + ap.getName() + " : " + ap.getCardinality() + " : " +
                 //        ap.getOrigin().getSimpleName() + " : " + ap.getClass().getSimpleName());
                 for (AttributeClass ac : ap.getAttributeClasses()) {
@@ -97,7 +105,48 @@ public class Neo4JSchemaParser {
         return gks;
     }
 
+    /**
+     * Sets SchemaAttribute category for ap in ska
+     * @param className
+     * @param ska
+     * @param ap
+     */
+    private void setCategory(String className, GKSchemaAttribute ska, AttributeProperties ap)
+     throws ClassNotFoundException {
+        if (!classNameToFields.containsKey(className)) {
+            String parentClazzName = DatabaseObject.class.getPackage().getName() + "." + className;
+            Class<?> parentClazz = Class.forName(parentClazzName);
+            List<Field> fields = getAllFields(new ArrayList<>(), parentClazz);
+            Map<String, Field> fieldName2Field = new HashMap();
+            for (Field field: fields) {
+                fieldName2Field.put(field.getName(), field);
+            }
+            classNameToFields.put(className, fieldName2Field);
+        }
+        Field field = classNameToFields.get(className).get(ap.getName());
+        if (field != null) {
+            Annotation annotation = field.getAnnotation(ReactomeConstraint.class);
+            if (annotation != null) {
+                String category = ((ReactomeConstraint) annotation).constraint().toString();
+                ska.setCategory(category);
+            }
+        }
+    }
 
+    /**
+     * Method used to get all fields for given class, event inherited fields
+     *
+     * @param fields List of fields for storing fields during recursion
+     * @param type   Current class
+     * @return inherited and declared fields
+     */
+    private List<Field> getAllFields(List<Field> fields, Class<?> type) {
+        fields.addAll(Arrays.asList(type.getDeclaredFields()));
+        if (type.getSuperclass() != null && !type.getSuperclass().equals(Object.class)) {
+            fields = getAllFields(fields, type.getSuperclass());
+        }
+        return fields;
+    }
 
     private GKSchemaAttribute schemaAttributeFromCacheOrNew(String id) {
         GKSchemaAttribute s;
