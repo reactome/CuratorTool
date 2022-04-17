@@ -659,7 +659,13 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				select.add(tableName + "." + attName + "_class");
 				attributeHandlers.add(new SingleInstanceAttributeHandler(att, ++colCount, ++colCount));
 			} else {
-				select.add(tableName + "." + attName);
+				String tabCol = tableName + "." + attName;
+				if (attName.equals("storedATXML")) {
+					// Convert LONGBLOB to String
+					select.add("CONVERT(" + tabCol + " USING utf8)");
+				} else {
+					select.add(tabCol);
+				}
 				attributeHandlers.add(new SingleValueAttributeHandler(att, ++colCount));
 			}
 		}

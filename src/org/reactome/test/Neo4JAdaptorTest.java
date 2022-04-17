@@ -2,7 +2,11 @@ package org.reactome.test;
 
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
+import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.Neo4JAdaptor;
+import org.gk.render.Renderable;
+import org.gk.render.RenderablePathway;
 import org.gk.schema.*;
 import org.junit.After;
 import org.junit.Before;
@@ -19,6 +23,8 @@ public class Neo4JAdaptorTest {
     private Driver driver;
     static Boolean checkedOnce = false;
     private Neo4JAdaptor neo4jAdaptor;
+    private Schema schema = null;
+
 
     @Before
     public void baseTest() throws Exception {
@@ -29,6 +35,8 @@ public class Neo4JAdaptorTest {
                     "reactome");
             driver = neo4jAdaptor.getConnection();
             assumeTrue(fitForService());
+            if (schema == null)
+                schema = neo4jAdaptor.fetchSchema();
         }
     }
 
@@ -39,11 +47,10 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testFetchSchema() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
         assumeTrue(schema.getClasses().size() > 0);
         assumeTrue(schema.getTimestamp() != null);
-        SchemaClass sc = schema.getClassByName("TopLevelPathway");
-        assumeTrue(sc.getName().equals("TopLevelPathway"));
+        SchemaClass sc = schema.getClassByName("Pathway");
+        assumeTrue(sc.getName().equals("Pathway"));
         Collection<SchemaAttribute> attributes = sc.getAttributes();
         assumeTrue(attributes.size() > 0);
         boolean foundDbId = false;
@@ -68,7 +75,6 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testAttributeCategory() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
         SchemaClass sc = schema.getClassByName("Event");
         Collection<SchemaAttribute> attributes = sc.getAttributes();
         assumeTrue(attributes.size() > 0);
@@ -88,9 +94,8 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testLoadInstanceAttributeValues() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
         Collection<Instance> instances =
-                neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", Collections.singletonList(9612973L));
+                neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L));
         GKInstance gkIns = (GKInstance) instances.iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(gkIns);
         assumeTrue(gkIns.getAttributeValuesList("displayName").size() > 0);
@@ -106,7 +111,6 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testChainChangeLogInReferenceGeneProduct() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
         Collection<Instance> instances =
                 neo4jAdaptor.fetchInstancesByClass(
                         "ReferenceGeneProduct",
@@ -118,7 +122,6 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testDoReleaseInEvent() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
         Collection<Instance> instances =
                 neo4jAdaptor.fetchInstancesByClass(
                         "Event",
@@ -131,18 +134,18 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testFetchInstancesByClass() throws Exception {
-        Collection<Instance> instances = neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", null);
+        Collection<Instance> instances = neo4jAdaptor.fetchInstancesByClass("Pathway", null);
         assumeTrue(instances.size() > 0);
         List<Long> dbIds = new ArrayList();
         dbIds.add(9612973l);
         dbIds.add(1640170l);
-        instances = neo4jAdaptor.fetchInstancesByClass("TopLevelPathway", dbIds);
+        instances = neo4jAdaptor.fetchInstancesByClass("Pathway", dbIds);
         assumeTrue(instances.size() == 2);
     }
 
     @Test
     public void testFetchInstanceByClassAndDBId() throws Exception {
-        GKInstance instance = neo4jAdaptor.fetchInstance("TopLevelPathway", 9612973l);
+        GKInstance instance = neo4jAdaptor.fetchInstance("Pathway", 9612973l);
         assumeNotNull(instance);
     }
 
@@ -155,14 +158,14 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testGetClassInstanceCount() throws Exception {
-        long cnt = neo4jAdaptor.getClassInstanceCount("TopLevelPathway");
+        long cnt = neo4jAdaptor.getClassInstanceCount("Pathway");
         assumeTrue(cnt > 0);
     }
 
     @Test
     public void testGetAllInstanceCounts() throws Exception {
         Map<String, Long> classNameToCount = neo4jAdaptor.getAllInstanceCounts();
-        assumeTrue(classNameToCount.get("TopLevelPathway") > 0);
+        assumeTrue(classNameToCount.get("Pathway") > 0);
     }
 
     @Test
@@ -173,14 +176,13 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testFetchSchemaClassnameByDBID() throws Exception {
-        assumeTrue(neo4jAdaptor.fetchSchemaClassnameByDBID(9612973l).equals("TopLevelPathway"));
+        assumeTrue(neo4jAdaptor.fetchSchemaClassnameByDBID(9612973l).equals("Pathway"));
     }
 
     @Test
     public void testStableIdentifier() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
-        SchemaClass sc = schema.getClassByName("TopLevelPathway");
-        // Create TopLevelPathway instance
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
         GKInstance instance = neo4jAdaptor.fetchInstance(9613829l);
         List<GKInstance> instances =
                 (List<GKInstance>) instance.getAttributeValuesList("stableIdentifier");
@@ -190,9 +192,8 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testStoreAndDeleteInstance() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
-        SchemaClass sc = schema.getClassByName("TopLevelPathway");
-        // Create TopLevelPathway instance
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
         GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
         instance.setDBID(null);
         instance.setDisplayName("TestName");
@@ -212,16 +213,15 @@ public class Neo4JAdaptorTest {
         // Deleting an instance removes it and its relationships, but not nodes at the other end of those relationships
         assumeTrue(neo4jAdaptor.fetchInstance(sc.getName(), dbID) == null);
         long dbID1 = instance1.getDBID();
-        assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(),dbID1) != null);
+        assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) != null);
         neo4jAdaptor.deleteInstance(instance1);
         assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) == null);
     }
 
     @Test
     public void testUpdateAttribute() throws Exception {
-        Schema schema = neo4jAdaptor.fetchSchema();
-        SchemaClass sc = schema.getClassByName("TopLevelPathway");
-        // Create TopLevelPathway instance
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
         GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
         instance.setDBID(null);
         instance.setDisplayName("TestName");
@@ -255,6 +255,79 @@ public class Neo4JAdaptorTest {
         neo4jAdaptor.deleteInstance(instance1);
         GKInstance orphanInstance = neo4jAdaptor.fetchInstance(compartmentDBID);
         neo4jAdaptor.deleteInstance(orphanInstance);
+    }
+
+    @Test
+    public void test_Deleted() throws Exception {
+        SchemaClass sc = schema.getClassByName("_Deleted");
+        GKInstance instance = neo4jAdaptor.fetchInstance(188476l);
+        instance.setSchemaClass(sc);
+        neo4jAdaptor.loadInstanceAttributeValues(instance);
+        assumeTrue(((String) instance.getAttributeValuesList("curatorComment").iterator().next())
+                .contains("Merged the events"));
+        GKInstance deletedInstance =
+                (GKInstance) instance.getAttributeValuesList("deletedInstance").iterator().next();
+        assumeTrue(deletedInstance.getAttributeValue("className").equals(ReactomeJavaConstants.Reaction));
+    }
+
+    @Test
+    public void test_DeletedInstance() throws Exception {
+        SchemaClass sc = schema.getClassByName("_DeletedInstance");
+        GKInstance instance = neo4jAdaptor.fetchInstance(9737808l);
+        instance.setSchemaClass(sc);
+        neo4jAdaptor.loadInstanceAttributeValues(instance);
+        assumeTrue(((String) instance.getAttributeValuesList("name").iterator().next())
+                .contains("Phosphorylation of proteins"));
+        GKInstance stableIdentifierInst =
+                (GKInstance) instance.getAttributeValuesList("deletedStableIdentifier").iterator().next();
+        neo4jAdaptor.loadInstanceAttributeValues(stableIdentifierInst);
+        assumeTrue(stableIdentifierInst.getAttributeValue("identifier").equals("REACT_270"));
+    }
+
+    @Test
+    public void test_Release() throws Exception {
+        boolean exceptionThrown = false;
+        try {
+            // _Release in gkCentral mysql db has no records - hence no class won't have been loaded
+            neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._Release, null);
+        } catch (InvalidClassException e) {
+            exceptionThrown = true;
+        }
+        assumeTrue(exceptionThrown);
+    }
+
+    @Test
+    public void test_UpdateTracker() throws Exception {
+        boolean exceptionThrown = false;
+        try {
+            // _UpdateTracker in gkCentral mysql db has no records - hence no class won't have been loaded
+            neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker, null);
+        } catch (InvalidClassException e) {
+            exceptionThrown = true;
+        }
+        assumeTrue(exceptionThrown);
+    }
+
+    @Test
+    public void testPathwayDiagram() throws Exception {
+        SchemaClass sc = schema.getClassByName("PathwayDiagram");
+        GKInstance instance = neo4jAdaptor.fetchInstance(5263598l);
+        instance.setSchemaClass(sc);
+        neo4jAdaptor.loadInstanceAttributeValues(instance, sc.getAttribute("storedATXML"));
+        String xmlStr = (String) instance.getAttributeValuesList("storedATXML").iterator().next();
+        assumeTrue(xmlStr != null && xmlStr.length() > 0);
+        DiagramGKBReader reader = new DiagramGKBReader();
+        RenderablePathway renderableDiagram = reader.openDiagram(xmlStr);
+        // Check the edges
+        List<?> components = renderableDiagram.getComponents();
+        assumeTrue(components != null && components.size() > 0);
+        boolean foundDBID = false;
+        for (Iterator<?> it1 = components.iterator(); it1.hasNext(); ) {
+            Renderable r = (Renderable) it1.next();
+            if (r.getReactomeId() != null && r.getReactomeId() == 7660l)
+                foundDBID = true;
+        }
+        assumeTrue(foundDBID);
     }
 
     private boolean fitForService() {

@@ -23,3 +23,6 @@ reactome_base_sonatype/classes/
 reactome_base_sonatype/dist/javadoc/
 reactome_base_sonatype/dist/META-INF/
 classes/*
+gkdev.eml
+out
+src/META-INF
