@@ -8,12 +8,14 @@ import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 
-import java.sql.SQLException;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Neo4JAdaptor implements PersistenceAdaptor {
+    private String host;
     private String database;
+    private int port = 7687;
     protected Driver driver;
     private Schema schema;
     private InstanceCache instanceCache = new InstanceCache();
@@ -32,19 +34,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     /**
-     * Creates a new instance of Neo4JAdaptor
+     * Creates a new instance of MySQLAdaptor
      *
-     * @param uri      Database uri
+     * @param host     Database host
      * @param database Database name
      * @param username User name to connect to the database
      * @param password Password for the specified user name to connect to the database
+     * @param port     Database port
      */
-    public Neo4JAdaptor(
-            String uri,
-            String database,
-            String username,
-            String password) {
-        driver = GraphDatabase.driver(uri, AuthTokens.basic(username, password));
+    public Neo4JAdaptor(String host, String database, String username, String password, int port) {
+        driver = GraphDatabase.driver("bolt://" + host + ":" + port, AuthTokens.basic(username, password));
         this.database = database;
         try {
             fetchSchema();
@@ -57,8 +56,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return driver;
     }
 
-    public String getDatabaseName() {
+    public String getDBName() {
         return database;
+    }
+
+    public String getDBHost() {
+        return this.host;
     }
 
     public Schema fetchSchema() throws Exception {
@@ -243,8 +246,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         loadInstanceAttributeValues(Collections.singletonList(instance), Collections.singletonList(attribute));
 
     }
-
-    // TODO: &&&& Create a test for these AttributeQueryRequest methods
+    
     public Collection fetchInstanceByAttribute(SchemaAttribute attribute,
                                                String operator,
                                                Object value) throws Exception {
@@ -291,32 +293,22 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * Update the database for a specific attribute of an instance by providing the local instance and the name of the
      * attribute to update
      *
-     * @param instance  GKInstance containing the updated attribute
-     * @param attribute SchemaAttribute object representing the attribute to update for the corresponding instance in
-     *                  the database
-     * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
-     */
-    public void updateInstanceAttribute(GKInstance instance, SchemaAttribute attribute) throws Exception {
-        updateInstanceAttribute(instance, attribute.getName());
-    }
-
-    /**
-     * Update the database for a specific attribute of an instance by providing the local instance and the name of the
-     * attribute to update
-     *
      * @param instance      GKInstance containing the updated attribute
      * @param attributeName Name of the attribute to update for the corresponding instance in the database
      * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
      */
-    public void updateInstanceAttribute(GKInstance instance, String attributeName) throws Exception {
+    public void updateInstanceAttribute(GKInstance instance, String attributeName, Transaction tx) throws Exception {
+        // TODO: Add declaration to PersistenceAdaptor once MySQLAdaptor has been eliminated
         if (instance.getDBID() == null) {
             throw (new DBIDNotSetException(instance));
         }
         SchemaAttribute attribute = instance.getSchemClass().getAttribute(attributeName);
-        try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-            deleteFromDBInstanceAttributeValue(attribute, instance, session);
-            storeAttribute(attribute, instance, session);
-        }
+        deleteFromDBInstanceAttributeValue(attribute, instance, tx);
+        storeAttribute(attribute, instance, tx);
+    }
+
+    public void updateInstanceAttribute(GKInstance instance, String attributeName) throws Exception {
+        // TODO: Remove from PersistenceAdaptor once MySQLAdaptor has been eliminated
     }
 
     /**
@@ -325,12 +317,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * database.
      *
      * @param instance GKInstance to store (it might be from the local file system)
+     * @param tx       transaction
      * @return dbId of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
      *                   the instance
      */
+    public Long storeInstance(GKInstance instance, Transaction tx) throws Exception {
+        // TODO: Add declaration to PersistenceAdaptor once MySQLAdaptor has been eliminated
+        return storeInstance(instance, false, tx);
+    }
+
     public Long storeInstance(GKInstance instance) throws Exception {
-        return storeInstance(instance, false);
+        // TODO: Remove from PersistenceAdaptor once MySQLAdaptor has been eliminated
+        return null;
     }
 
     /**
@@ -340,11 +339,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param instance   GKInstance to store (it might be from the local file system)
      * @param forceStore when true, store the instance even if already in the database
+     * @param tx         transaction
      * @return dbId of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
      *                   the instance
      */
-    public Long storeInstance(GKInstance instance, boolean forceStore) throws Exception {
+    public Long storeInstance(GKInstance instance, boolean forceStore, Transaction tx) throws Exception {
         Long dbID = null;
         if (forceStore) {
             dbID = instance.getDBID();
@@ -358,43 +358,41 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 ((List<GKSchemaClass>) cls.getOrderedAncestors()).stream().map((x) ->
                         (x.getName())).collect(Collectors.toList());
         StringBuilder stmt = new StringBuilder();
-        try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-            if (dbID == null) {
-                // Mint new dbId
-                stmt.append("MATCH (s:Seq {key:\"dbIdSeq\"}) CALL apoc.atomic.add(s,'value',1,10) YIELD newValue as seq RETURN seq");
-                Value result = executeTransaction(stmt.toString(), session);
-                if (result != null) {
-                    dbID = result.asLong();
-                    instance.setDBID(dbID);
-                } else {
-                    throw (new Exception("Unable to get auto-incremented dbID value."));
-                }
+        if (dbID == null) {
+            // Mint new dbId
+            stmt.append("MATCH (s:Seq {key:\"dbIdSeq\"}) CALL apoc.atomic.add(s,'value',1,10) YIELD newValue as seq RETURN seq");
+            Value result = executeTransaction(stmt.toString(), tx);
+            if (result != null) {
+                dbID = result.asLong();
+                instance.setDBID(dbID);
+            } else {
+                throw (new Exception("Unable to get auto-incremented dbID value."));
             }
-            // Store Instance
-            // Note: ancestors are attached as labels
-            StringBuilder labels = new StringBuilder(cls.getName());
-            if (classHierarchy.size() > 0) {
-                labels.append(":").append(String.join(":", classHierarchy));
-            }
-            stmt.setLength(0);
-            stmt.append("create (n:").append(labels).append("{")
-                    .append("dbId: ").append(dbID)
-                    .append(", displayName: \"").append(instance.getDisplayName()).append("\"")
-                    .append(", schemaClass: \"").append(cls.getName()).append("\"")
-                    .append("}) RETURN n.dbId");
-            Value result = executeTransaction(stmt.toString(), session);
-            dbID = result.asLong();
+        }
+        // Store Instance
+        // Note: ancestors are attached as labels
+        StringBuilder labels = new StringBuilder(cls.getName());
+        if (classHierarchy.size() > 0) {
+            labels.append(":").append(String.join(":", classHierarchy));
+        }
+        stmt.setLength(0);
+        stmt.append("create (n:").append(labels).append("{")
+                .append("dbId: ").append(dbID)
+                .append(", displayName: \"").append(instance.getDisplayName()).append("\"")
+                .append(", schemaClass: \"").append(cls.getName()).append("\"")
+                .append("}) RETURN n.dbId");
+        Value result = executeTransaction(stmt.toString(), tx);
+        dbID = result.asLong();
 
-            // Store attributes
-            for (Iterator ai = instance.getSchemaAttributes().iterator(); ai.hasNext(); ) {
-                GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
-                storeAttribute(att, instance, session);
-            }
+        // Store attributes
+        for (Iterator ai = instance.getSchemaAttributes().iterator(); ai.hasNext(); ) {
+            GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
+            storeAttribute(att, instance, tx);
         }
         return dbID;
     }
 
-    private void storeAttribute(SchemaAttribute att, GKInstance instance, Session session)
+    private void storeAttribute(SchemaAttribute att, GKInstance instance, Transaction tx)
             throws Exception {
         if (instance.getDisplayName().equals("TopLevelPathway") && att.getName().equals("compartment")) {
             boolean val = Boolean.TRUE;
@@ -406,7 +404,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         List<String> stmts = new ArrayList();
         if (att.isInstanceTypeAttribute()) {
             for (GKInstance attrValInstance : (List<GKInstance>) attVals) {
-                Long valDbID = storeInstance(attrValInstance);
+                Long valDbID = storeInstance(attrValInstance, tx);
                 StringBuilder stmt = new StringBuilder("MATCH (n:")
                         .append(cls.getName()).append("{")
                         .append("dbId:").append(instance.getDBID()).append("}) ")
@@ -435,11 +433,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             stmts.add(stmt.toString());
         }
         for (String stmt : stmts) {
-            executeTransaction(stmt, session);
+            executeTransaction(stmt, tx);
         }
     }
 
-    private void deleteFromDBInstanceAttributeValue(SchemaAttribute att, GKInstance instance, Session session)
+    private void deleteFromDBInstanceAttributeValue(SchemaAttribute att, GKInstance instance, Transaction tx)
             throws Exception {
         SchemaClass cls = instance.getSchemClass();
         if (att.getName().equals("dbId")) return;
@@ -452,7 +450,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     .append("-[r:")
                     .append(att.getName())
                     .append("]->() DELETE r");
-            executeTransaction(stmt.toString(), session);
+            executeTransaction(stmt.toString(), tx);
         }
     }
 
@@ -468,17 +466,17 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *                   instance from the database
      */
 
-    public void deleteInstance(GKInstance instance) throws Exception {
+    public void deleteInstance(GKInstance instance, Transaction tx) throws Exception {
         Long dbID = instance.getDBID();
         // In case this instance is in the referrers cache of its references
         cleanUpReferences(instance);
         SchemaClass cls = fetchSchemaClassByDBID(dbID);
-        deleteInstanceFromNeo4J(cls, dbID);
+        deleteInstanceFromNeo4J(cls, dbID, tx);
         // Delete the Instance from the cache, but only after it has been deleted from referrers.
         instanceCache.remove(instance.getDBID());
     }
 
-    public String fetchSchemaClassnameByDBID(Long dbID) throws SQLException {
+    public String fetchSchemaClassnameByDBID(Long dbID) {
         StringBuilder query = new StringBuilder("MATCH (n) WHERE n.dbId=").append(dbID).append(" RETURN n.schemaClass");
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
@@ -490,7 +488,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    public SchemaClass fetchSchemaClassByDBID(Long dbID) throws SQLException {
+    public SchemaClass fetchSchemaClassByDBID(Long dbID) {
         return schema.getClassByName(fetchSchemaClassnameByDBID(dbID));
     }
 
@@ -517,33 +515,29 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    private void deleteInstanceFromNeo4J(SchemaClass cls, Long dbID) throws Exception {
-        try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-            // NB. DELETE DETACH removes the node and all its relationships
-            // (but not nodes at the other end of those relationships)
-            StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{")
-                    .append("dbId:").append(dbID)
-                    .append("}) DETACH DELETE n");
-            executeTransaction(stmt.toString(), session);
-        }
+    private void deleteInstanceFromNeo4J(SchemaClass cls, Long dbID, Transaction tx) {
+        // NB. DELETE DETACH removes the node and all its relationships
+        // (but not nodes at the other end of those relationships)
+        StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{")
+                .append("dbId:").append(dbID)
+                .append("}) DETACH DELETE n");
+        executeTransaction(stmt.toString(), tx);
     }
 
     // TODO: c.f. https://neo4j.com/docs/java-reference/current/transaction-management/
-    private Value executeTransaction(String statement, Session session) {
+    public Value executeTransaction(String statement, Transaction tx) {
         Throwable txEx = null;
         for (int i = 0; i < RETRIES; i++) {
             try {
-                return session.writeTransaction(tx -> {
-                    Result result = tx.run(statement);
-                    if (result.hasNext()) {
-                        return result.next().get(0);
-                    }
-                    return null;
-                });
+                Result result = tx.run(statement);
+                if (result.hasNext()) {
+                    return result.next().get(0);
+                }
+                return null;
             } catch (Throwable ex) {
                 txEx = ex;
 
-                // Add whatever exceptions to retry on here
+                // Re-try only on DeadlockDetectedException
                 if (!(ex instanceof DeadlockDetectedException)) {
                     break;
                 }

@@ -29,10 +29,11 @@ public class Neo4JAdaptorTest {
     @Before
     public void baseTest() throws Exception {
         if (!checkedOnce) {
-            neo4jAdaptor = new Neo4JAdaptor("bolt://localhost:7687",
+            neo4jAdaptor = new Neo4JAdaptor("localhost",
                     "graph.db",
                     "neo4j",
-                    "reactome");
+                    "reactome",
+                    7687);
             driver = neo4jAdaptor.getConnection();
             assumeTrue(fitForService());
             if (schema == null)
@@ -207,15 +208,23 @@ public class Neo4JAdaptorTest {
         instance1.setDisplayName("TestCompartment");
         // Set Compartment instance as value for attribute "compartment"
         instance.setAttributeValue("compartment", Collections.singletonList(instance1));
-        long dbID = neo4jAdaptor.storeInstance(instance);
-        assumeTrue(dbID >= 9760736);
-        neo4jAdaptor.deleteInstance(instance);
-        // Deleting an instance removes it and its relationships, but not nodes at the other end of those relationships
-        assumeTrue(neo4jAdaptor.fetchInstance(sc.getName(), dbID) == null);
-        long dbID1 = instance1.getDBID();
-        assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) != null);
-        neo4jAdaptor.deleteInstance(instance1);
-        assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) == null);
+        try (Session session = driver.session(SessionConfig.forDatabase(neo4jAdaptor.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            long dbID = neo4jAdaptor.storeInstance(instance, tx);
+            tx.commit();
+            assumeTrue(dbID >= 9760736);
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance, tx);
+            tx.commit();
+            // Deleting an instance removes it and its relationships, but not nodes at the other end of those relationships
+            assumeTrue(neo4jAdaptor.fetchInstance(sc.getName(), dbID) == null);
+            long dbID1 = instance1.getDBID();
+            assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) != null);
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance1, tx);
+            tx.commit();
+            assumeTrue(neo4jAdaptor.fetchInstance(sc1.getName(), dbID1) == null);
+        }
     }
 
     @Test
@@ -234,27 +243,33 @@ public class Neo4JAdaptorTest {
         instance1.setDisplayName("TestCompartment");
         // Set that instance as value for attribute "compartment"
         instance.setAttributeValue("compartment", Collections.singletonList(instance1));
-        // Store instance
-        long dbID = neo4jAdaptor.storeInstance(instance);
-        long compartmentDBID = ((GKInstance) instance.getAttributeValue("compartment")).getDBID();
-        // Update "displayName" and "compartment" attributes in instance (in memory and not in Neo4j yet)
-        instance.setAttributeValue("displayName", "TestName 2");
-        instance1.setAttributeValue("displayName", "TestCompartment 2");
-        instance1.setDBID(null);
-        neo4jAdaptor.updateInstanceAttribute(instance, "displayName");
-        neo4jAdaptor.updateInstanceAttribute(instance, "compartment");
-        // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
-        GKInstance fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
-        fetchedInstance.setSchemaClass(sc);
-        GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
-        // Test that the attribute changes made in memory were committed to the DB
-        assumeTrue(compartmentValueInstance.getAttributeValue("displayName").equals("TestCompartment 2"));
-        assumeTrue(fetchedInstance.getAttributeValue("displayName").equals("TestName 2"));
-        // Clean up after test
-        neo4jAdaptor.deleteInstance(instance);
-        neo4jAdaptor.deleteInstance(instance1);
-        GKInstance orphanInstance = neo4jAdaptor.fetchInstance(compartmentDBID);
-        neo4jAdaptor.deleteInstance(orphanInstance);
+        try (Session session = driver.session(SessionConfig.forDatabase(neo4jAdaptor.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Store instance
+            long dbID = neo4jAdaptor.storeInstance(instance, tx);
+            long compartmentDBID = ((GKInstance) instance.getAttributeValue("compartment")).getDBID();
+            // Update "displayName" and "compartment" attributes in instance (in memory and not in Neo4j yet)
+            instance.setAttributeValue("displayName", "TestName 2");
+            instance1.setAttributeValue("displayName", "TestCompartment 2");
+            instance1.setDBID(null);
+            neo4jAdaptor.updateInstanceAttribute(instance, "displayName", tx);
+            neo4jAdaptor.updateInstanceAttribute(instance, "compartment", tx);
+            tx.commit();
+            // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
+            GKInstance fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
+            fetchedInstance.setSchemaClass(sc);
+            GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
+            // Test that the attribute changes made in memory were committed to the DB
+            assumeTrue(compartmentValueInstance.getAttributeValue("displayName").equals("TestCompartment 2"));
+            assumeTrue(fetchedInstance.getAttributeValue("displayName").equals("TestName 2"));
+            // Clean up after test
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance, tx);
+            neo4jAdaptor.deleteInstance(instance1, tx);
+            GKInstance orphanInstance = neo4jAdaptor.fetchInstance(compartmentDBID);
+            neo4jAdaptor.deleteInstance(orphanInstance, tx);
+            tx.commit();
+        }
     }
 
     @Test
