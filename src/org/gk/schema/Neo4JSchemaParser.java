@@ -24,15 +24,6 @@ public class Neo4JSchemaParser {
 
         for (String className : classNames) {
             GKSchemaClass s = schemaClassFromCacheOrNew(className);
-            /* TODO: The following propertyName's not represented in Neo4J schema:
-            - propertyName.equals("category"), distinct property_value
-                NOMANUALEDIT
-                MANDATORY
-                OPTIONAL
-                REQUIRED
-                e.g. Event:figure	SchemaClassAttribute	category	OPTIONAL	SYMBOL
-                TODO: category (of attributes) is not represented in graph-core model - hence I cannot import it from Neo4j
-             */
             Class clazz = DatabaseObjectUtils.getClassForName(className);
             if (Modifier.isAbstract(clazz.getModifiers()))
                 s.setAbstract(Boolean.TRUE);
@@ -48,52 +39,55 @@ public class Neo4JSchemaParser {
                 String parentName = ap.getOrigin().getSimpleName();
                 GKSchemaClass parentSC = schemaClassFromCacheOrNew(parentName);
                 parentSC.setName(parentName);
-                String skaId = parentName+":"+ap.getName();
-                GKSchemaAttribute ska = schemaAttributeFromCacheOrNew(skaId);
-                ska.setName(ap.getName());
-                ska.addSchemaClass(parentSC);
+                List<String> skaIds = Arrays.asList(parentName + ":" + ap.getName(), ap.getName());
+                for (String skaId : skaIds) {
+                    GKSchemaAttribute ska = schemaAttributeFromCacheOrNew(skaId);
+                    ska.setName(ap.getName());
+                    if (skaId.contains(":"))
+                        ska.addSchemaClass(parentSC);
+                        setCategory(parentName, ska, ap);
 
-                String cardinality = ap.getCardinality();
-                if (cardinality == "1") {
-                    ska.setMinCardinality(1);
-                    ska.setMaxCardinality(1);
-                    ska.setMultiple(false);
-                } else if (cardinality == "+") {
-                    ska.setMinCardinality(1);
-                    ska.setMultiple(true);
-                }
-                setCategory(parentName, ska, ap);
-                
-                //System.out.println("  " + ap.getName() + " : " + ap.getCardinality() + " : " +
-                //        ap.getOrigin().getSimpleName() + " : " + ap.getClass().getSimpleName());
-                for (AttributeClass ac : ap.getAttributeClasses()) {
-                    // System.out.println("    " + ap.getName() + " :: " + ac.getClass().getSimpleName() + " : "
-                    // + ac.getType().getSimpleName());
-                    String typeSimpleName = ac.getType().getSimpleName();
-                    if (typeSimpleName.equals("String")) {
-                        ska.setType(Class.forName("java.lang.String"));
-                        ska.setTypeAsInt(SchemaAttribute.STRING_TYPE);
-                    } else if (typeSimpleName.equals("Integer")) {
-                        ska.setType(Class.forName("java.lang.Integer"));
-                        ska.setTypeAsInt(SchemaAttribute.INTEGER_TYPE);
-                    } else if (typeSimpleName.equals("Float")) {
-                        ska.setType(Class.forName("java.lang.Float"));
-                        ska.setTypeAsInt(SchemaAttribute.FLOAT_TYPE);
-                    } else if (typeSimpleName.equals("Long")) {
-                        ska.setType(Class.forName("java.lang.Long"));
-                        ska.setTypeAsInt(SchemaAttribute.LONG_TYPE);
-                    } else if (typeSimpleName.equals("Boolean")) {
-                        ska.setType(Class.forName("java.lang.Boolean"));
-                        ska.setTypeAsInt(SchemaAttribute.BOOLEAN_TYPE);
-                    } else {
-                        if (!typeSimpleName.equals("InteractionEvent")) {
-                            // TODO: N.B. InteractionEvent shows in https://curator.reactome.org/cgi-bin/classbrowser?DB=gk_central&CLASS=DatabaseIdentifier
-                            //  but has not been released yet (hence graph-importer does not output it into graph.db)
-                            GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
-                            typeSC.setName(typeSimpleName);
-                            ska.addAllowedClass(typeSC);
-                            ska.setType(Class.forName("org.gk.model.Instance"));
-                            ska.setTypeAsInt(SchemaAttribute.INSTANCE_TYPE);
+                    String cardinality = ap.getCardinality();
+                    if (cardinality == "1") {
+                        ska.setMinCardinality(1);
+                        ska.setMaxCardinality(1);
+                        ska.setMultiple(false);
+                    } else if (cardinality == "+") {
+                        ska.setMinCardinality(1);
+                        ska.setMultiple(true);
+                    }
+
+                    //System.out.println("  " + ap.getName() + " : " + ap.getCardinality() + " : " +
+                    //        ap.getOrigin().getSimpleName() + " : " + ap.getClass().getSimpleName());
+                    for (AttributeClass ac : ap.getAttributeClasses()) {
+                        // System.out.println("    " + ap.getName() + " :: " + ac.getClass().getSimpleName() + " : "
+                        // + ac.getType().getSimpleName());
+                        String typeSimpleName = ac.getType().getSimpleName();
+                        if (typeSimpleName.equals("String")) {
+                            ska.setType(Class.forName("java.lang.String"));
+                            ska.setTypeAsInt(SchemaAttribute.STRING_TYPE);
+                        } else if (typeSimpleName.equals("Integer")) {
+                            ska.setType(Class.forName("java.lang.Integer"));
+                            ska.setTypeAsInt(SchemaAttribute.INTEGER_TYPE);
+                        } else if (typeSimpleName.equals("Float")) {
+                            ska.setType(Class.forName("java.lang.Float"));
+                            ska.setTypeAsInt(SchemaAttribute.FLOAT_TYPE);
+                        } else if (typeSimpleName.equals("Long")) {
+                            ska.setType(Class.forName("java.lang.Long"));
+                            ska.setTypeAsInt(SchemaAttribute.LONG_TYPE);
+                        } else if (typeSimpleName.equals("Boolean")) {
+                            ska.setType(Class.forName("java.lang.Boolean"));
+                            ska.setTypeAsInt(SchemaAttribute.BOOLEAN_TYPE);
+                        } else {
+                            if (!typeSimpleName.equals("InteractionEvent")) {
+                                // TODO: N.B. InteractionEvent shows in https://curator.reactome.org/cgi-bin/classbrowser?DB=gk_central&CLASS=DatabaseIdentifier
+                                //  but has not been released yet (hence graph-importer does not output it into graph.db)
+                                GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
+                                typeSC.setName(typeSimpleName);
+                                ska.addAllowedClass(typeSC);
+                                ska.setType(Class.forName("org.gk.model.Instance"));
+                                ska.setTypeAsInt(SchemaAttribute.INSTANCE_TYPE);
+                            }
                         }
                     }
                 }
@@ -107,18 +101,19 @@ public class Neo4JSchemaParser {
 
     /**
      * Sets SchemaAttribute category for ap in ska
+     *
      * @param className
      * @param ska
      * @param ap
      */
     private void setCategory(String className, GKSchemaAttribute ska, AttributeProperties ap)
-     throws ClassNotFoundException {
+            throws ClassNotFoundException {
         if (!classNameToFields.containsKey(className)) {
             String parentClazzName = DatabaseObject.class.getPackage().getName() + "." + className;
             Class<?> parentClazz = Class.forName(parentClazzName);
             List<Field> fields = getAllFields(new ArrayList<>(), parentClazz);
             Map<String, Field> fieldName2Field = new HashMap();
-            for (Field field: fields) {
+            for (Field field : fields) {
                 fieldName2Field.put(field.getName(), field);
             }
             classNameToFields.put(className, fieldName2Field);
