@@ -36,6 +36,7 @@ import org.junit.Test;
  * @author wgm
  *
  */
+@SuppressWarnings("unchecked")
 public class PathwayDiagramSlicingHelper {
     // Logger for this class.
     private final static Logger logger = Logger.getLogger(PathwayDiagramSlicingHelper.class);

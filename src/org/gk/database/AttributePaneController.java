@@ -1046,6 +1046,13 @@ public class AttributePaneController {
 	protected void removeSelectedCell() {
 	    if (!isRemoveSupported())
 	        return;
+	    // Add a confirm dialog
+	    int reply = JOptionPane.showConfirmDialog(attributePane,
+	    		                                  "Are you sure you want to remove the selected value?",
+	    		                                  "Confirming Removal",
+	    		                                  JOptionPane.OK_CANCEL_OPTION);
+	    if (reply != JOptionPane.OK_OPTION)
+	    	return;
 	    JTable propTable = attributePane.getPropertyTable();
 	    int[] rows = propTable.getSelectedRows();
 	    int col = propTable.getSelectedColumn();

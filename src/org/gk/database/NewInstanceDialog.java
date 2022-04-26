@@ -63,6 +63,7 @@ public class NewInstanceDialog extends JDialog {
 		getContentPane().add(contentPane, BorderLayout.CENTER);
 		// Create links between GUIs
 		installListeners();
+		setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 	}
 	
 	protected JPanel createContentPane() {

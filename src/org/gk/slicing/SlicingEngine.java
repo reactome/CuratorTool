@@ -488,7 +488,7 @@ public class SlicingEngine {
         diagramHelper.isInDev = isInDev;
         for (Long dbID : topLevelIDs) {
             GKInstance process = sliceMap.get(dbID);
-            // It may not be a realease ready. A mistake in the
+            // It may not be release ready. A mistake in the
             // topic file.
             if (process == null)
                 continue;
