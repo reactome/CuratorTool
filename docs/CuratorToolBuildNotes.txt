@@ -1,3 +1,12 @@
+Build 112 (Version 4.0.2) note (April 26, 2022)
+
+This is a minor maintenance build with the following updates:
+
+1). Added two safety features per request from Marija and described in https://reactome.atlassian.net/browse/CUR-144: A warning dialog will appear before a value is removed in the attribute editing table; The new instance editing dialog cannot be closed by clicking the "close" icon at the top-left corner corner. Curators must click the "OK" or "Cancel" button to close the dialog to avoid accidental editing loss.
+
+2). In the automatic preceding/following reaction relationship inference window, nothing is displayed for the reason column when the curator chooses "Approve" or "No Action". Also the total number of inferred relationships is shown in the dialog.
+
+
 Build 111 (Version 4.0.1) note (October 21, 2021)
 
 New features and update in this build:

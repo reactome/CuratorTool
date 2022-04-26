@@ -98,7 +98,7 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
 	public static final String PROJECT_EXT_NAME = ".rtpj";
 	public static final String VERSION = "4.0.1";
-	public static final int BUILD_NUMBER = 111;
+	public static final int BUILD_NUMBER = 112;
     static final String QA_MENU_TEXT = "QA Check";
 	// For tab title
 	private final String PROJECT_TITLE = "Event Hierarchical View";
