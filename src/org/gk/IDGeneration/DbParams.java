@@ -2,10 +2,7 @@
  * Created on June 6, 2011
  */
 package org.gk.IDGeneration;
-
-import java.sql.SQLException;
-
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /** 
  * Lightweight class for holding parameters for various
@@ -20,8 +17,8 @@ public class DbParams  {
 	public String port = "";
 	public String password = "";
 	
-	public MySQLAdaptor getDba() {
-		MySQLAdaptor dba = null;
+	public Neo4JAdaptor getDba() {
+		Neo4JAdaptor dba = null;
 		
 		if (dbName == null) {
 			System.err.println("IDGenerationCommandLine.DbParams.getDba: dbName == null. aborting!");
@@ -33,20 +30,9 @@ public class DbParams  {
 		}
 		
 		try {
-			dba = new MySQLAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
+			dba = new Neo4JAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
 		} catch (NumberFormatException e) {
 			System.err.println("IDGenerationCommandLine.DbParams.getDba: port number is strange: " + port);
-			e.printStackTrace();
-		} catch (SQLException e) {
-			System.err.println("IDGenerationCommandLine.DbParams.getDba: something went wrong with mysql");
-			if (dbName != null)
-				System.err.println("IDGenerationCommandLine.DbParams.getDba: dbName=" + dbName);
-			else
-				System.err.println("IDGenerationCommandLine.DbParams.getDba: dbName is null!");
-			if (hostname != null)
-				System.err.println("IDGenerationCommandLine.DbParams.getDba: hostname=" + hostname);
-			else
-				System.err.println("IDGenerationCommandLine.DbParams.getDba: hostname is null!");
 			e.printStackTrace();
 		} catch (Exception e) {
 			System.err.println("IDGenerationCommandLine.DbParams.getDba: something went wrong");

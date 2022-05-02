@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * A Tool to check Reactome database consistence by checking Events
@@ -50,11 +50,11 @@ public class FindEmptyEvents {
 				}
 			}
 			
-			MySQLAdaptor targetAdaptor;
+			Neo4JAdaptor targetAdaptor;
 			if (port == 0) {
-				targetAdaptor = new MySQLAdaptor(hostname, dbName, username, password);
+				targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password);
 			} else {
-				targetAdaptor = new MySQLAdaptor(hostname, dbName, username, password, port);
+				targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password, port);
 			}
 			
 			GKInstance speciesInstance = null;

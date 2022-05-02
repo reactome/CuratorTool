@@ -11,10 +11,14 @@ import java.util.Set;
 import org.gk.database.StableIdentifierGenerator;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Methods handling stable identifiers are collected here.
@@ -22,18 +26,18 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class StableIdentifierHandler {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     private String outFileName;
     private Long defaultPerson = 140537L; // For Guanming Wu at CSHL
     
     public static void main(String[] args) throws Exception {
-        // Make sure we have enough parameters to create a MySQLAdaptor object
+        // Make sure we have enough parameters to create a Neo4JAdaptor object
         if (args.length < 5) {
             System.err.println("Usage java org.gk.scripts.StableIdentifierHandler dbHost dbName dbUser dbPwd outputFile {defaultPersonId}");
             System.exit(0);
         }
         StableIdentifierHandler handler = new StableIdentifierHandler();
-        MySQLAdaptor dba = new MySQLAdaptor(args[0],
+        Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
                                             args[1],
                                             args[2],
                                             args[3]);
@@ -56,9 +60,9 @@ public class StableIdentifierHandler {
 	    this.outFileName = outputFile;
 	}
 	
-	private MySQLAdaptor getDBA() throws Exception {
+	private Neo4JAdaptor getDBA() throws Exception {
 	    if (dba == null) {
-	        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+	        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
 	                                            "gk_central_061316", 
 	                                            "root", 
 	                                            "macmysql01");
@@ -67,7 +71,7 @@ public class StableIdentifierHandler {
 	    return dba;
 	}
 	
-	public void setDBA(MySQLAdaptor dba) {
+	public void setDBA(Neo4JAdaptor dba) {
 	    this.dba = dba;
 	}
 	
@@ -87,7 +91,7 @@ public class StableIdentifierHandler {
 	 */
 	@Test
 	public void validateNewApproach() throws Exception {
-	    MySQLAdaptor gkcentral = new MySQLAdaptor("",
+	    Neo4JAdaptor gkcentral = new Neo4JAdaptor("",
 	                                              "",
 	                                              "",
 	                                              "");
@@ -129,11 +133,11 @@ public class StableIdentifierHandler {
 	 */
 	@Test
 	public void compareStableIds() throws Exception {
-	    MySQLAdaptor gkcentral = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+	    Neo4JAdaptor gkcentral = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
 	                                         "gk_central",
 	                                         "authortool",
 	                                         "T001test");
-	    MySQLAdaptor slice = new MySQLAdaptor("reactomerelease.oicr.on.ca",
+	    Neo4JAdaptor slice = new Neo4JAdaptor("reactomerelease.oicr.on.ca",
 	                                          "test_slice_58a",
 	                                          "{CHANGE_ME}",
 	                                          "{CHANGE_ME}");
@@ -169,107 +173,94 @@ public class StableIdentifierHandler {
 	 */
 	@Test
 	public void fixStableIdsInDB() throws Exception {
-	    MySQLAdaptor dba = getDBA();
-	    Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
-	    System.out.println("Total instances having no stable ids: " + instToStid.size());
-	    int count = 0;
-	    Map<GKInstance, GKInstance> instToDbStid = new HashMap<GKInstance, GKInstance>();
-	    for (GKInstance inst : instToStid.keySet()) {
-	        GKInstance localStid = instToStid.get(inst);
-	        String identifier = (String) localStid.getAttributeValue(ReactomeJavaConstants.identifier);
-	        // Find if such an instance existing already
-	        Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.StableIdentifier,
-	                                                                ReactomeJavaConstants.identifier,
-	                                                                "=",
-	                                                                identifier);
-	        if (c == null || c.size() == 0) {
-	            System.out.println(inst + "\tnull");
-	            count ++;
-	        }
-	        else if (c.size() > 1)
-	            System.out.println(inst + "\t" + c);
-	        else {
-	            System.out.println(inst + "\t" + c.iterator().next());
-	            instToDbStid.put(inst,  c.iterator().next());
-	        }
-	    }
-	    System.out.println("Instances don't have stableIds created: " + count);
-	    instToStid.keySet().removeAll(instToDbStid.keySet());
-	    System.out.println("The following instances have no StableIds in the database:");
-	    System.out.println(instToStid.keySet());
-	    
-	    // Perform fix now
-        boolean needTransaction = dba.supportsTransactions();
-        try {
-            if (needTransaction)
-                dba.startTransaction();
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-                                                                   ScriptUtilities.GUANMING_WU_DB_ID,
-                                                                   true); // Will store this IE directly
-            for (GKInstance inst : instToDbStid.keySet()) {
-                System.out.println("Fix " + inst);
-                // Store StableIdentifier
-                GKInstance stid = (GKInstance) instToDbStid.get(inst);
-                // Update The original GKInstance now attached with StableIdentifier
-                inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stid);
-                inst.getAttributeValue(ReactomeJavaConstants.modified);
-                inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.stableIdentifier);
-                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
-            }
-            if (needTransaction)
-                dba.commit();
-        }
-        catch(Exception e) {
-            if (needTransaction)
-                dba.rollback();
-            e.printStackTrace();
-            throw e;
-        }
+		Neo4JAdaptor dba = getDBA();
+		Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
+		System.out.println("Total instances having no stable ids: " + instToStid.size());
+		int count = 0;
+		Map<GKInstance, GKInstance> instToDbStid = new HashMap<GKInstance, GKInstance>();
+		for (GKInstance inst : instToStid.keySet()) {
+			GKInstance localStid = instToStid.get(inst);
+			String identifier = (String) localStid.getAttributeValue(ReactomeJavaConstants.identifier);
+			// Find if such an instance existing already
+			Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.StableIdentifier,
+					ReactomeJavaConstants.identifier,
+					"=",
+					identifier);
+			if (c == null || c.size() == 0) {
+				System.out.println(inst + "\tnull");
+				count++;
+			} else if (c.size() > 1)
+				System.out.println(inst + "\t" + c);
+			else {
+				System.out.println(inst + "\t" + c.iterator().next());
+				instToDbStid.put(inst, c.iterator().next());
+			}
+		}
+		System.out.println("Instances don't have stableIds created: " + count);
+		instToStid.keySet().removeAll(instToDbStid.keySet());
+		System.out.println("The following instances have no StableIds in the database:");
+		System.out.println(instToStid.keySet());
+
+		// Perform fix now
+		Driver driver = dba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+					ScriptUtilities.GUANMING_WU_DB_ID,
+					true, tx); // Will store this IE directly
+			for (GKInstance inst : instToDbStid.keySet()) {
+				System.out.println("Fix " + inst);
+				// Store StableIdentifier
+				GKInstance stid = (GKInstance) instToDbStid.get(inst);
+				// Update The original GKInstance now attached with StableIdentifier
+				inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stid);
+				inst.getAttributeValue(ReactomeJavaConstants.modified);
+				inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+				dba.updateInstanceAttribute(inst, ReactomeJavaConstants.stableIdentifier, tx);
+				dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+			}
+			tx.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
 	}
-	
+
 	public void generateStableIdsInDB() throws Exception {
-	    MySQLAdaptor dba = getDBA();
-	    Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
-	    // Load modified for some perform gain
-	    SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.modified);
-	    dba.loadInstanceAttributeValues(instToStid.keySet(), att);
-	    
-	    // Save stable ids in the database
-	    boolean needTransaction = dba.supportsTransactions();
-	    try {
-	        if (needTransaction)
-	            dba.startTransaction();
-	        GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-	                                                               this.defaultPerson,
-	                                                               true); // Will store this IE directly
-	        for (GKInstance inst : instToStid.keySet()) {
-	            // Store StableIdentifier
-	            GKInstance stid = (GKInstance) instToStid.get(inst);
-	            stid.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
-	            dba.storeInstance(stid);
-	            // Update The original GKInstance now attached with StableIdentifier
-	            inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stid);
-	            inst.getAttributeValue(ReactomeJavaConstants.modified);
-	            inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-	            dba.updateInstanceAttribute(inst, ReactomeJavaConstants.stableIdentifier);
-	            dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
-	        }
-	        if (needTransaction)
-	            dba.commit();
-	    }
-	    catch(Exception e) {
-	        if (needTransaction)
-	            dba.rollback();
-	        throw e;
-	    }
-	    String fileName = outFileName;
-	    if (fileName == null)
-	        fileName = "StableIdentifierHandler_Local_Test_070516.txt";
-	    outputInstToStid(instToStid, fileName);
+		Neo4JAdaptor dba = getDBA();
+		Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
+		// Load modified for some perform gain
+		SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.modified);
+		dba.loadInstanceAttributeValues(instToStid.keySet(), att);
+
+		// Save stable ids in the database
+		Driver driver = dba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+					this.defaultPerson,
+					true, tx); // Will store this IE directly
+			for (GKInstance inst : instToStid.keySet()) {
+				// Store StableIdentifier
+				GKInstance stid = (GKInstance) instToStid.get(inst);
+				stid.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+				dba.storeInstance(stid, tx);
+				// Update The original GKInstance now attached with StableIdentifier
+				inst.setAttributeValue(ReactomeJavaConstants.stableIdentifier, stid);
+				inst.getAttributeValue(ReactomeJavaConstants.modified);
+				inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+				dba.updateInstanceAttribute(inst, ReactomeJavaConstants.stableIdentifier, tx);
+				dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+			}
+			tx.commit();
+		}
+		String fileName = outFileName;
+		if (fileName == null)
+			fileName = "StableIdentifierHandler_Local_Test_070516.txt";
+		outputInstToStid(instToStid, fileName);
 	}
 	
-	private Map<GKInstance, GKInstance> generateInstToSTID(MySQLAdaptor dba) throws Exception {
+	private Map<GKInstance, GKInstance> generateInstToSTID(Neo4JAdaptor dba) throws Exception {
 	    Map<GKInstance, GKInstance> instToStid = new HashMap<GKInstance, GKInstance>();
 	    StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
 	    SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject).getAttribute(ReactomeJavaConstants.stableIdentifier);
@@ -293,26 +284,19 @@ public class StableIdentifierHandler {
 	 * @throws Exception
 	 */
 	public void assignReleasedToStid() throws Exception {
-	    MySQLAdaptor dba = getDBA();
+	    Neo4JAdaptor dba = getDBA();
 	    Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
 	    // For this update, we will not add IE to avoid problem
 	    dba.loadInstanceAttributeValues(c, new String[]{ReactomeJavaConstants.released});
-	    boolean needTransaction = false;
-	    try {
-	        needTransaction = dba.supportsTransactions();
-	        if (needTransaction)
-	            dba.startTransaction();
-	        for (GKInstance inst : c) {
-	            inst.setAttributeValue(ReactomeJavaConstants.released, Boolean.TRUE);
-	            dba.updateInstanceAttribute(inst, ReactomeJavaConstants.released);
-	        }
-	        if (needTransaction)
-	            dba.commit();
-	    }
-	    catch(Exception e) {
-	        dba.rollback();
-	        throw e; // Re-throw this Exception for the client so that it can stop the running.
-	    }
+		Driver driver = dba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			for (GKInstance inst : c) {
+				inst.setAttributeValue(ReactomeJavaConstants.released, Boolean.TRUE);
+				dba.updateInstanceAttribute(inst, ReactomeJavaConstants.released, tx);
+			}
+			tx.commit();
+		}
 	}
 	
 	/**
@@ -322,7 +306,7 @@ public class StableIdentifierHandler {
 	 */
 	@Test
 	public void generateInstToSTIDMap() throws Exception {
-		MySQLAdaptor dba = getDBA();
+		Neo4JAdaptor dba = getDBA();
 		Map<GKInstance, GKInstance> instToStid = generateInstToSTID(dba);
 //		String fileName = "/Users/Gwu/Documents/temp/GK_Central_Instance_STID_062716.txt";
 		String fileName = "/Users/Gwu/Documents/temp/GK_Central_Instance_STID_080116.txt";
@@ -381,7 +365,7 @@ public class StableIdentifierHandler {
 	@Test
 	public void checkInstancesForStableIds() throws Exception {
 		Set<GKInstance> instancesNoStableIds = new HashSet<GKInstance>();
-		MySQLAdaptor dba = getDBA();
+		Neo4JAdaptor dba = getDBA();
 		String[] names = getClassNamesWithStableIds();
 		for (String name : names) {
 			Collection<GKInstance> insts = dba.fetchInstancesByClass(name);

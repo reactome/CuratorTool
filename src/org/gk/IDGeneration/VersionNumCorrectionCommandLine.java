@@ -17,7 +17,11 @@ import java.util.Set;
 import javax.swing.JFrame;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /** 
  *  This is the main class for correcting errors in version
@@ -84,7 +88,7 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
     	if (!testMode)
     		handleYesNo("Running this program will change live databases irreversibly.");
     	
-		MySQLAdaptor dba = identifierDbParams.getDba();
+		Neo4JAdaptor dba = identifierDbParams.getDba();
     	correctVersionNums(dba, testMode);
     }
     
@@ -196,7 +200,7 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
 	 *  besides reporting the errors, it will also attempt to
 	 *  correct them.
 	 */
-	public static void correctVersionNums(MySQLAdaptor dba, boolean testMode) {
+	public static void correctVersionNums(Neo4JAdaptor dba, boolean testMode) {
 		IdentifierDatabase identifierDatabase = new IdentifierDatabase();
 		if (dba==null) {
 			System.err.println("IdentifierDatabase.checkVersionNums: WARNING: no DBA available");
@@ -226,12 +230,14 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
 		String releaseNum;
 		String projectName;
 		Long instanceDB_ID;
-		MySQLAdaptor releaseDba;
+		Neo4JAdaptor releaseDba;
 		String newVersion;
 		GKInstance previousReleaseInstance;
 		GKInstance previousReleaseStableIdentifier;
 		String previousReleasedentifierVersion;
-		try {
+		Driver driver = dba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
 			for (Iterator ri = stableIdentifiers.iterator(); ri.hasNext();) {
 				stableIdentifier = (GKInstance)ri.next();
 				releaseIdToVersionNumMap = new HashMap();
@@ -299,7 +305,7 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
 						// Update identifier database
 						if (!testMode) {
 							previousStableIdentifierVersion.setAttributeValue("identifierVersion", newVersion);
-							dba.updateInstanceAttribute(previousStableIdentifierVersion, "identifierVersion");
+							dba.updateInstanceAttribute(previousStableIdentifierVersion, "identifierVersion", tx);
 						}
 						
 						// Update release database, if necessary
@@ -318,7 +324,7 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
 									
 									if (!testMode) {
 										previousReleaseStableIdentifier.setAttributeValue("identifierVersion", newVersion);
-										dba.updateInstanceAttribute(previousReleaseStableIdentifier, "identifierVersion");
+										dba.updateInstanceAttribute(previousReleaseStableIdentifier, "identifierVersion", tx);
 									}
 								}
 							}
@@ -337,6 +343,7 @@ public class VersionNumCorrectionCommandLine  extends JFrame {
 					previousStableIdentifierVersion = stableIdentifierVersion;
 				}
 			}
+			tx.commit();
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.getMaxReleaseStableIdentifier: something nasty happened while trying to get an Identifier instance for the identifier database");
 			e.printStackTrace();

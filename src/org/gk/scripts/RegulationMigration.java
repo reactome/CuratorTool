@@ -15,12 +15,16 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.qualityCheck.QACheckUtilities;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to migrate Regulation instances directly under ReactionlikeEvent.
@@ -35,14 +39,14 @@ public class RegulationMigration {
     
     @Test
     public void testHandleCAReferences() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "test_gk_central_schema_update_gw",
                                             "",
                                             "");
         handleCatalystActivityRefereces(dba);
     }
     
-    public void handleCatalystActivityRefereces(MySQLAdaptor dba) throws Exception {
+    public void handleCatalystActivityRefereces(Neo4JAdaptor dba) throws Exception {
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.CatalystActivity);
         dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.literatureReference});
         dba.loadInstanceReverseAttributeValues(regulations,  new String[] {ReactomeJavaConstants.catalystActivity});
@@ -50,53 +54,54 @@ public class RegulationMigration {
         System.out.println("\nTotal to be handled CatalystActivities: " + toBeHandled.size());
         handleCatalystActivityReferences(toBeHandled, dba);
     }
-    
+
     private void handleCatalystActivityReferences(Set<GKInstance> cas,
-                                                  MySQLAdaptor dba) throws Exception {
-        if (dba.supportsTransactions())
-            dba.startTransaction();
-        GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
-        System.out.println("Total to be handled: " + cas.size());
-        Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
-        System.out.println("\nStarting to handling CatalystActivities: ");
-        for (GKInstance ca : cas) {
-            System.out.println("Handling " + ca + "...");
-            // Create a RegulationReference
-            GKInstance catalystActivityReference = createInstance(ReactomeJavaConstants.CatalystActivityReference,
-                                                            defaultIE,
-                                                            dba);
-            catalystActivityReference.setAttributeValue(ReactomeJavaConstants.catalystActivity, ca);
-            List<GKInstance> references = ca.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
-            catalystActivityReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
-                                                  new ArrayList<>(references));
-            Collection<GKInstance> rles = ca.getReferers(ReactomeJavaConstants.catalystActivity);
-            for (GKInstance rle : rles) {
-                rle.addAttributeValue(ReactomeJavaConstants.catalystActivityReference, catalystActivityReference);
-                toBeUpdatedRLEs.add(rle);
+                                                  Neo4JAdaptor dba) throws Exception {
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
+            System.out.println("Total to be handled: " + cas.size());
+            Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
+            System.out.println("\nStarting to handling CatalystActivities: ");
+            for (GKInstance ca : cas) {
+                System.out.println("Handling " + ca + "...");
+                // Create a RegulationReference
+                GKInstance catalystActivityReference = createInstance(ReactomeJavaConstants.CatalystActivityReference,
+                        defaultIE,
+                        dba);
+                catalystActivityReference.setAttributeValue(ReactomeJavaConstants.catalystActivity, ca);
+                List<GKInstance> references = ca.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                catalystActivityReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
+                        new ArrayList<>(references));
+                Collection<GKInstance> rles = ca.getReferers(ReactomeJavaConstants.catalystActivity);
+                for (GKInstance rle : rles) {
+                    rle.addAttributeValue(ReactomeJavaConstants.catalystActivityReference, catalystActivityReference);
+                    toBeUpdatedRLEs.add(rle);
+                }
+                InstanceDisplayNameGenerator.setDisplayName(catalystActivityReference);
+                dba.storeInstance(catalystActivityReference, tx);
             }
-            InstanceDisplayNameGenerator.setDisplayName(catalystActivityReference);
-            dba.storeInstance(catalystActivityReference);
+            System.out.println("\nStarting to updating ReactionlikeEvents: ");
+            for (GKInstance rle : toBeUpdatedRLEs) {
+                System.out.println("Updating " + rle + "...");
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivityReference, tx);
+                ScriptUtilities.addIEToModified(rle, defaultIE, dba, tx);
+            }
+            tx.commit();
         }
-        System.out.println("\nStarting to updating ReactionlikeEvents: ");
-        for (GKInstance rle : toBeUpdatedRLEs) {
-            System.out.println("Updating " + rle + "...");
-            dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivityReference);
-            ScriptUtilities.addIEToModified(rle, defaultIE, dba);
-        }
-        if (dba.supportsTransactions())
-            dba.commit();
     }
     
     @Test
     public void testHandleRegulationReferences() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "test_gk_central_schema_update_gw",
                                             "root",
                                             "macmysql01");
         handleRegulationReferences(dba);
     }
     
-    public void handleRegulationReferences(MySQLAdaptor dba) throws Exception {
+    public void handleRegulationReferences(Neo4JAdaptor dba) throws Exception {
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.literatureReference});
         dba.loadInstanceReverseAttributeValues(regulations,  new String[] {ReactomeJavaConstants.regulatedBy});
@@ -154,46 +159,47 @@ public class RegulationMigration {
         }
         return toBeHandled;
     }
-    
+
     private void handleRegulationReferences(Set<GKInstance> regulations,
-                                            MySQLAdaptor dba) throws Exception {
-        if (dba.supportsTransactions())
-            dba.startTransaction();
-        GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
-        System.out.println("Total to be handled: " + regulations.size());
-        Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
-        System.out.println("\nStarting to handling Regulations: ");
-        for (GKInstance regulation : regulations) {
-            System.out.println("Handling " + regulation + "...");
-            // Create a RegulationReference
-            GKInstance regulationReference = createInstance(ReactomeJavaConstants.RegulationReference,
-                                                            defaultIE,
-                                                            dba);
-            regulationReference.setAttributeValue(ReactomeJavaConstants.regulation, regulation);
-            List<GKInstance> references = regulation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
-            regulationReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
-                                                  new ArrayList<>(references));
-            Collection<GKInstance> rles = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
-            for (GKInstance rle : rles) {
-                rle.addAttributeValue(ReactomeJavaConstants.regulationReference, regulationReference);
-                toBeUpdatedRLEs.add(rle);
+                                            Neo4JAdaptor dba) throws Exception {
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
+            System.out.println("Total to be handled: " + regulations.size());
+            Set<GKInstance> toBeUpdatedRLEs = new HashSet<>();
+            System.out.println("\nStarting to handling Regulations: ");
+            for (GKInstance regulation : regulations) {
+                System.out.println("Handling " + regulation + "...");
+                // Create a RegulationReference
+                GKInstance regulationReference = createInstance(ReactomeJavaConstants.RegulationReference,
+                        defaultIE,
+                        dba);
+                regulationReference.setAttributeValue(ReactomeJavaConstants.regulation, regulation);
+                List<GKInstance> references = regulation.getAttributeValuesList(ReactomeJavaConstants.literatureReference);
+                regulationReference.setAttributeValue(ReactomeJavaConstants.literatureReference,
+                        new ArrayList<>(references));
+                Collection<GKInstance> rles = regulation.getReferers(ReactomeJavaConstants.regulatedBy);
+                for (GKInstance rle : rles) {
+                    rle.addAttributeValue(ReactomeJavaConstants.regulationReference, regulationReference);
+                    toBeUpdatedRLEs.add(rle);
+                }
+                InstanceDisplayNameGenerator.setDisplayName(regulationReference);
+                dba.storeInstance(regulationReference, tx);
             }
-            InstanceDisplayNameGenerator.setDisplayName(regulationReference);
-            dba.storeInstance(regulationReference);
+            System.out.println("\nStarting to updating ReactionlikeEvents: ");
+            for (GKInstance rle : toBeUpdatedRLEs) {
+                System.out.println("Updating " + rle + "...");
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulationReference, tx);
+                ScriptUtilities.addIEToModified(rle, defaultIE, dba, tx);
+            }
+            tx.commit();
         }
-        System.out.println("\nStarting to updating ReactionlikeEvents: ");
-        for (GKInstance rle : toBeUpdatedRLEs) {
-            System.out.println("Updating " + rle + "...");
-            dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulationReference);
-            ScriptUtilities.addIEToModified(rle, defaultIE, dba);
-        }
-        if (dba.supportsTransactions())
-            dba.commit();
     }
     
     private GKInstance createInstance(String clsName,
                                       GKInstance defaultIE,
-                                      MySQLAdaptor dba) throws Exception {
+                                      Neo4JAdaptor dba) throws Exception {
         GKInstance instance = new GKInstance();
         instance.setDbAdaptor(dba);
         // Should not call fetchSchema(). Otherwise, a new schema will be created.
@@ -205,7 +211,7 @@ public class RegulationMigration {
     
     @Test
     public void checkRegulationSummtationTextForMerge() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                                                                         ReactomeJavaConstants.species,
@@ -342,7 +348,7 @@ public class RegulationMigration {
      */
     @Test
     public void dumpRegulationWithSummation() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
                                                                           ReactomeJavaConstants.summation,
                                                                           "!=",
@@ -435,64 +441,62 @@ public class RegulationMigration {
      */
     @Test
     public void deleteRegulationSummationForAll() throws Exception {
-    	MySQLAdaptor dba = getDBA();
-    	// Get Regulations having summations
-    	Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
-    			ReactomeJavaConstants.summation,
-    			"is not null",
-    			null);
-    	System.out.println("Total Regulations having summation: " + regulations.size());
-    	try {
-    		// Check if the summation is used elseSystem.out.println("Starting updating Regulations...");
-    		System.out.println("Starting to remove summations from regulations and then delete summations that are not used else...");
-    		dba.startTransaction();
-    		GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
-    		for (GKInstance regulation : regulations) {
-    			System.out.println("Handling " + regulation + "...");
-    			List<GKInstance> summations = regulation.getAttributeValuesList(ReactomeJavaConstants.summation);
-    			if (summations.size() > 1) {
-    				System.out.println("More than one summation: " + summations);
-    			}
-    			// In case we have more than one summation.
-    			Map<GKInstance, Boolean> summation2deletion = new HashMap<>();
-    			for (GKInstance summation : summations) {
-    				// Can be used in the summation attribute in other classes
-    				Collection<GKInstance> referrers = summation.getReferers(ReactomeJavaConstants.summation);
-    				referrers.remove(regulation);
-    				if (referrers.size() > 0) {
-    					System.out.println("More than one referrer: " + regulation + " -> " + summation);
-    					summation2deletion.put(summation, Boolean.FALSE);
-    				}
-    				else {
-    					summation2deletion.put(summation, Boolean.TRUE);
-    				}
-    			}
-    			// Null summation
-    			regulation.setAttributeValue(ReactomeJavaConstants.summation, null);
-    			dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation);
-    			// Update modified
+        Neo4JAdaptor dba = getDBA();
+        // Get Regulations having summations
+        Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
+                ReactomeJavaConstants.summation,
+                "is not null",
+                null);
+        System.out.println("Total Regulations having summation: " + regulations.size());
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Check if the summation is used elseSystem.out.println("Starting updating Regulations...");
+            System.out.println("Starting to remove summations from regulations and then delete summations that are not used else...");
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
+            for (GKInstance regulation : regulations) {
+                System.out.println("Handling " + regulation + "...");
+                List<GKInstance> summations = regulation.getAttributeValuesList(ReactomeJavaConstants.summation);
+                if (summations.size() > 1) {
+                    System.out.println("More than one summation: " + summations);
+                }
+                // In case we have more than one summation.
+                Map<GKInstance, Boolean> summation2deletion = new HashMap<>();
+                for (GKInstance summation : summations) {
+                    // Can be used in the summation attribute in other classes
+                    Collection<GKInstance> referrers = summation.getReferers(ReactomeJavaConstants.summation);
+                    referrers.remove(regulation);
+                    if (referrers.size() > 0) {
+                        System.out.println("More than one referrer: " + regulation + " -> " + summation);
+                        summation2deletion.put(summation, Boolean.FALSE);
+                    } else {
+                        summation2deletion.put(summation, Boolean.TRUE);
+                    }
+                }
+                // Null summation
+                regulation.setAttributeValue(ReactomeJavaConstants.summation, null);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation, tx);
+                // Update modified
                 regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
-    			for (GKInstance summation : summation2deletion.keySet()) {
-    				Boolean deletion = summation2deletion.get(summation);
-    				if (deletion) {
-    					System.out.println("Deleting " + summation + "...");
-    					dba.deleteInstance(summation); 
-    				}
-    			}
-    		}
-    		dba.commit();
-    	}
-    	catch(Exception e) {
-    		dba.rollback();
-    		e.printStackTrace();
-    	}
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified, tx);
+                for (GKInstance summation : summation2deletion.keySet()) {
+                    Boolean deletion = summation2deletion.get(summation);
+                    if (deletion) {
+                        System.out.println("Deleting " + summation + "...");
+                        dba.deleteInstance(summation, tx);
+                    }
+                }
+            }
+            tx.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     @Test
     public void checkRegulationSummation() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                 ReactomeJavaConstants.species,
@@ -601,7 +605,7 @@ public class RegulationMigration {
     
     @Test
     public void checkRegulationLiteratureReference() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                 ReactomeJavaConstants.species,
@@ -665,8 +669,8 @@ public class RegulationMigration {
         return shared;
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                 "gk_central_061121",
                 "root",
                 "macmysql01");
@@ -678,7 +682,7 @@ public class RegulationMigration {
             System.err.println("Provide four parameters: dbHost, dbName, dbUser, dbPwd, and operation (one of CheckErrors, CheckWarnings, Migration, MigrateSummation, UpdateDisplayNames, and DeleteNotReleasedStableIds)");
             System.exit(1);
         }
-        MySQLAdaptor dba = new MySQLAdaptor(args[0], args[1], args[2], args[3]);
+        Neo4JAdaptor dba = new Neo4JAdaptor(args[0], args[1], args[2], args[3]);
         RegulationMigration regulationMigration = new RegulationMigration();
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         if (args[4].equals("CheckErrors")) {
@@ -711,7 +715,7 @@ public class RegulationMigration {
      * TODO: There is a bug in this method: need to update display names of
      * Summation instances with text reset.
      */
-    public void migrateSummation(MySQLAdaptor dba) throws Exception {
+    public void migrateSummation(Neo4JAdaptor dba) throws Exception {
         // Make sure the list file exists
         String name = "RLE_Regulation_Summation_Text_Review.tsv";
         name = "Regulations_with_summations_on_non-human_RLEs_Plant_instances.tsv";
@@ -742,11 +746,11 @@ public class RegulationMigration {
         int newRegSumTextCol = 13;
         int originalRegSumTextCol = 5;
         int rleSummationCol = 9;
-        
+
         while ((line = fu.readLine()) != null) {
             String[] tokens = line.split("\t");
             if (tokens[regSummationDBIdCol].contains("|"))
-            	continue; // Escape if there is more than one DB_ID for handling
+                continue; // Escape if there is more than one DB_ID for handling
             String action = tokens[actionCol];
             GKInstance rle = dba.fetchInstance(new Long(tokens[rleDBIdCol]));
             GKInstance regulation = dba.fetchInstance(new Long(tokens[regulationDBIDCol]));
@@ -765,15 +769,14 @@ public class RegulationMigration {
                     regSummation.setAttributeValue(ReactomeJavaConstants.text, newRegSumText);
                     toBeUpdateSummations.add(regSummation);
                 }
-            }
-            else if (action.equals("MergeSummationText") || action.equals("MergeSummation")) {
+            } else if (action.equals("MergeSummationText") || action.equals("MergeSummation")) {
                 if (rleSummation == null)
                     throw new IllegalStateException(rle + " doesn't have any Summation. No way to merge summation text!");
                 String rleSumText = (String) rleSummation.getAttributeValue(ReactomeJavaConstants.text);
                 if (rleSumText == null)
                     throw new IllegalStateException(rleSummation + " doesn't have any text!");
-                String newRleSumText = rleSumText.trim() + " " + 
-                                       (newRegSumText == null ? originalRegSumText.trim() : newRegSumText.trim());
+                String newRleSumText = rleSumText.trim() + " " +
+                        (newRegSumText == null ? originalRegSumText.trim() : newRegSumText.trim());
                 rleSummation.setAttributeValue(ReactomeJavaConstants.text, newRleSumText);
                 toBeUpdateSummations.add(rleSummation);
                 // Delete the original Summation
@@ -797,72 +800,72 @@ public class RegulationMigration {
 //        if (true)
 //        	return;
         // Start to push to the database
-        try {
-            dba.startTransaction();
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
             // Don't forget to add IE
             System.out.println("Starting updating Summations for text...");
             int counter = 0;
             for (GKInstance summation : toBeUpdateSummations) {
                 System.out.println("Updating " + summation + "...");
-                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.text);
+                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.text, tx);
                 summation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 summation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(summation, ReactomeJavaConstants.modified, tx);
                 // Check if _displayName needs to be updated
                 String displayName = summation.getDisplayName();
                 String newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(summation);
                 if (!displayName.equals(newDisplayName)) {
-                	summation.setDisplayName(newDisplayName);
-                	System.out.println("\tUpdate display name to " + newDisplayName);
-                	dba.updateInstanceAttribute(summation, ReactomeJavaConstants._displayName);
+                    summation.setDisplayName(newDisplayName);
+                    System.out.println("\tUpdate display name to " + newDisplayName);
+                    dba.updateInstanceAttribute(summation, ReactomeJavaConstants._displayName, tx);
                 }
-                counter ++;
+                counter++;
             }
             System.out.println("Total: " + counter);
             counter = 0;
             System.out.println("Starting updating RLEs for summation...");
             for (GKInstance rle : toBeUpdateRLEs) {
                 System.out.println("Updating " + rle + "...");
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.summation);
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.summation, tx);
                 rle.getAttributeValuesList(ReactomeJavaConstants.modified);
                 rle.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.modified);
-                counter ++;
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.modified, tx);
+                counter++;
             }
             System.out.println("Total: " + counter);
             counter = 0;
             System.out.println("Starting updating Regulations for summation...");
             for (GKInstance regulation : toBeUpdateRegulations) {
                 System.out.println("Updating " + regulation + "...");
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.summation, tx);
                 regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
-                counter ++;
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified, tx);
+                counter++;
             }
             System.out.println("Total: " + counter);
             counter = 0;
-            dba.commit();
+            tx.commit();
+            tx = session.beginTransaction();
             // If a Summation is not used any more, we will just delete it
             System.out.println("Starting deleting Summations that are not used...");
             for (GKInstance summation : toBeDeletedSummations) {
                 Collection<GKInstance> referrers = summation.getReferers(ReactomeJavaConstants.summation);
-                if (referrers!= null && referrers.size() > 0) {
+                if (referrers != null && referrers.size() > 0) {
                     System.out.println(summation + " is used.");
                     continue;
                 }
                 System.out.println("Deleting " + summation + "...");
-                dba.deleteInstance(summation);
-                counter ++;
+                dba.deleteInstance(summation, tx);
+                counter++;
             }
             System.out.println("Total: " + counter);
-            dba.commit();
-        }
-        catch(Exception e) {
+            tx.commit();
+        } catch (Exception e) {
             System.err.println(e);
             e.printStackTrace();
-            dba.rollback();
         }
     }
     
@@ -873,13 +876,14 @@ public class RegulationMigration {
      * @throws Exception
      */
     public void deleteNotReleasedStableIds(Collection<GKInstance> regulations,
-                                           MySQLAdaptor dba) throws Exception {
-        try {
-            dba.startTransaction();
+                                           Neo4JAdaptor dba) throws Exception {
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             int c = 0;
             // Don't forget to add IE
             System.out.println("Starting updating Regulations...");
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
             for (GKInstance regulation : regulations) {
                 System.out.println("Checking " + regulation + "...");
                 GKInstance stableId = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
@@ -891,20 +895,19 @@ public class RegulationMigration {
                 System.out.println("Deleting " + stableId);
                 // Delete stable id
                 regulation.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.stableIdentifier);
-                dba.deleteInstance(stableId);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.stableIdentifier, tx);
+                dba.deleteInstance(stableId, tx);
                 // Update modified
                 regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified, tx);
                 c ++;
             }
-            dba.commit();
+            tx.commit();
             System.out.println("Total deletions: " + c);
         }
         catch(Exception e) {
             System.err.println(e);
-            dba.rollback();
         }
     }
     
@@ -913,13 +916,14 @@ public class RegulationMigration {
      * @throws Exception
      */
     public void updateDisplayNames(Collection<GKInstance> regulations,
-                                   MySQLAdaptor dba) throws Exception {
-        try {
-            dba.startTransaction();
+                                   Neo4JAdaptor dba) throws Exception {
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             // Don't forget to add IE
             System.out.println("Starting updating Regulations...");
             int c = 0;
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
             for (GKInstance regulation : regulations) {
                 String displayName = regulation.getDisplayName();
                 String newName = InstanceDisplayNameGenerator.generateDisplayName(regulation);
@@ -927,18 +931,17 @@ public class RegulationMigration {
                     continue;
                 System.out.println("Updating " + regulation + "...");
                 InstanceDisplayNameGenerator.setDisplayName(regulation);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName, tx);
                 regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified, tx);
                 c ++;
             }
-            dba.commit();
+            tx.commit();
             System.out.println("Total updated: " + c);
         }
         catch(Exception e) {
             System.err.println(e);
-            dba.rollback();
         }
     }
     
@@ -966,82 +969,80 @@ public class RegulationMigration {
             }
         }
     }
-    
-    public void migrate(MySQLAdaptor dba,
+
+    public void migrate(Neo4JAdaptor dba,
                         Collection<GKInstance> regulations) throws Exception {
-        try {
-            // Sort Regulations based on DB_IDs so that they can be added based on DB_IDs
-            List<GKInstance> regulationList = new ArrayList<>(regulations);
-            regulationList.sort((reg1, reg2) -> reg1.getDBID().compareTo(reg2.getDBID()));
-            Set<GKInstance> reactions = new HashSet<>(); // To be updated
-            // These regulations need to update their _displayName since their targets are updated
-            Set<GKInstance> regulationsToBeUpdated = new HashSet<>();
-            for (GKInstance regulation : regulationList) {
-                GKInstance regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
-                if (regulatedEntity == null)
-                    continue; // Do nothing
-                if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-                    System.err.println(regulation + " has a pathway as its regulatedEntity: " + regulatedEntity);
-                    continue;
-                }
-                boolean needRegulationUpdate = false;
-                Set<GKInstance> targets = new HashSet<>();
-                if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-                    targets.add(regulatedEntity);
-                }
-                else if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.CatalystActivity)) {
-                    Collection<GKInstance> referrers = regulatedEntity.getReferers(ReactomeJavaConstants.catalystActivity);
-                    // Just in case this CAS is reused. Usually it should not be true
-                    if (referrers != null && referrers.size() > 0)
-                        targets.addAll(referrers);
-                    needRegulationUpdate = true;
-                }
-                if (targets.size() == 0) {
-                    System.err.println("Cannot find a target for " + regulation);
-                    continue; 
-                }
-                if (targets.size() > 1) {
-                    System.out.println(regulation + " will be assigned to multiple ReactionlikeEvent instances!");
-                }
-                // Another check
-                for (GKInstance target : targets) {
-                    if (target.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
-                        target.addAttributeValue(ReactomeJavaConstants.regulatedBy, regulation);
-                        reactions.add(target);
-                    }
-                }
-                if (needRegulationUpdate) {
-                    regulationsToBeUpdated.add(regulation);
+        // Sort Regulations based on DB_IDs so that they can be added based on DB_IDs
+        List<GKInstance> regulationList = new ArrayList<>(regulations);
+        regulationList.sort((reg1, reg2) -> reg1.getDBID().compareTo(reg2.getDBID()));
+        Set<GKInstance> reactions = new HashSet<>(); // To be updated
+        // These regulations need to update their _displayName since their targets are updated
+        Set<GKInstance> regulationsToBeUpdated = new HashSet<>();
+        for (GKInstance regulation : regulationList) {
+            GKInstance regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
+            if (regulatedEntity == null)
+                continue; // Do nothing
+            if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+                System.err.println(regulation + " has a pathway as its regulatedEntity: " + regulatedEntity);
+                continue;
+            }
+            boolean needRegulationUpdate = false;
+            Set<GKInstance> targets = new HashSet<>();
+            if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+                targets.add(regulatedEntity);
+            } else if (regulatedEntity.getSchemClass().isa(ReactomeJavaConstants.CatalystActivity)) {
+                Collection<GKInstance> referrers = regulatedEntity.getReferers(ReactomeJavaConstants.catalystActivity);
+                // Just in case this CAS is reused. Usually it should not be true
+                if (referrers != null && referrers.size() > 0)
+                    targets.addAll(referrers);
+                needRegulationUpdate = true;
+            }
+            if (targets.size() == 0) {
+                System.err.println("Cannot find a target for " + regulation);
+                continue;
+            }
+            if (targets.size() > 1) {
+                System.out.println(regulation + " will be assigned to multiple ReactionlikeEvent instances!");
+            }
+            // Another check
+            for (GKInstance target : targets) {
+                if (target.getSchemClass().isValidAttribute(ReactomeJavaConstants.regulatedBy)) {
+                    target.addAttributeValue(ReactomeJavaConstants.regulatedBy, regulation);
+                    reactions.add(target);
                 }
             }
-            dba.startTransaction();
+            if (needRegulationUpdate) {
+                regulationsToBeUpdated.add(regulation);
+            }
+        }
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             // Don't forget to add IE
             System.out.println("Starting updating ReactionlikeEvent...");
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true);
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, true, tx);
             for (GKInstance reaction : reactions) {
                 System.out.println("Updating " + reaction + "...");
-                dba.updateInstanceAttribute(reaction, ReactomeJavaConstants.regulatedBy);
+                dba.updateInstanceAttribute(reaction, ReactomeJavaConstants.regulatedBy, tx);
                 reaction.getAttributeValuesList(ReactomeJavaConstants.modified);
                 reaction.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(reaction, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(reaction, ReactomeJavaConstants.modified, tx);
             }
-            dba.commit();
-            dba.startTransaction();
+            tx.commit();
+            tx = session.beginTransaction();
             System.out.println("Starting updating Regulation...");
             // To get the referrers, the changes for regulatedBy should be in the database first
             for (GKInstance regulation : regulationsToBeUpdated) {
                 System.out.println("Updating " + regulation + "...");
                 InstanceDisplayNameGenerator.setDisplayName(regulation);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants._displayName, tx);
                 regulation.getAttributeValuesList(ReactomeJavaConstants.modified);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(regulation, ReactomeJavaConstants.modified, tx);
             }
-            dba.commit();
-        }
-        catch(Exception e) {
+            tx.commit();
+        } catch (Exception e) {
             System.err.println(e);
-            dba.rollback();
         }
     }
     

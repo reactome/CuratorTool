@@ -8,6 +8,7 @@ import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.*;
+import org.gk.scripts.InstanceReferenceChecker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,6 +93,21 @@ public class Neo4JAdaptorTest {
         assumeTrue(neo4jAdaptor.getSchemaTimestamp() != null);
     }
 
+    @Test
+    public void testFetchStableIdentifiersWithDuplicateDBIds() {
+        List<Map<String, Object>> sIds = neo4jAdaptor.fetchStableIdentifiersWithDuplicateDBIds();
+        assumeTrue(sIds.size() > 0);
+        assumeTrue(sIds.get(0).get("identifier") != null);
+        assumeTrue(sIds.get(0).get("oldIdentifier") != null);
+        assumeTrue(sIds.get(0).get("dbId") != null);
+    }
+
+    @Test
+    public void testFetchEWASModifications() {
+        List<List<Long>> mods = neo4jAdaptor.fetchEWASModifications();
+        assumeTrue(mods.size() > 0);
+        assumeTrue(mods.get(0).size() == 2);
+    }
 
     @Test
     public void testLoadInstanceAttributeValues() throws Exception {
@@ -273,6 +289,94 @@ public class Neo4JAdaptorTest {
     }
 
     @Test
+    public void testDeleteInstanceAttribute() throws Exception {
+        neo4jAdaptor.setUseCache(false);
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
+        GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
+        instance.setDBID(null);
+        instance.setDisplayName("TestName");
+        instance.setSchemaClass(sc);
+        // Create instance-type value for attribute "compartment": instance1
+        SchemaClass sc1 = schema.getClassByName("Compartment");
+        GKInstance instance1 = neo4jAdaptor.fetchInstance(7660l);
+        instance1.setSchemaClass(sc1);
+        instance1.setDBID(null);
+        instance1.setDisplayName("TestCompartment");
+        // Set that instance as value for attribute "compartment"
+        instance.setAttributeValue("compartment", Collections.singletonList(instance1));
+        try (Session session = driver.session(SessionConfig.forDatabase(neo4jAdaptor.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Store instance
+            long dbID = neo4jAdaptor.storeInstance(instance, tx);
+            tx.commit();
+            // Re-fetch instance dbID from DB and confirm that attribute: "compartment" is still present
+            GKInstance fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
+            fetchedInstance.setSchemaClass(sc);
+            neo4jAdaptor.loadInstanceAttributeValues(fetchedInstance);
+            GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
+            assumeTrue(compartmentValueInstance != null);
+            // Remove instance attribute (instance1) from DB and check that value "compartment" is now absent
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance1, tx);
+            tx.commit();
+            fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
+            fetchedInstance.setSchemaClass(sc);
+            fetchedInstance.setIsInflated(false);
+            neo4jAdaptor.loadInstanceAttributeValues(fetchedInstance);
+            assumeTrue(fetchedInstance.getAttributeValuesList("compartment").size() == 0);
+            // Tidy-up
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance, tx);
+            tx.commit();
+        }
+    }
+
+    @Test
+    public void testUpdateInstance() throws Exception {
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
+        GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
+        instance.setDBID(null);
+        instance.setDisplayName("TestName");
+        instance.setSchemaClass(sc);
+        // Create instance-type value for attribute "compartment": instance1
+        SchemaClass sc1 = schema.getClassByName("Compartment");
+        GKInstance instance1 = neo4jAdaptor.fetchInstance(7660l);
+        instance1.setSchemaClass(sc1);
+        instance1.setDBID(null);
+        instance1.setDisplayName("TestCompartment");
+        // Set that instance as value for attribute "compartment"
+        instance.setAttributeValue("compartment", Collections.singletonList(instance1));
+        try (Session session = driver.session(SessionConfig.forDatabase(neo4jAdaptor.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Store instance
+            long dbID = neo4jAdaptor.storeInstance(instance, tx);
+            tx.commit();
+            tx = session.beginTransaction();
+            long compartmentDBID = ((GKInstance) instance.getAttributeValue("compartment")).getDBID();
+            // Update "displayName" and "compartment" attributes in instance (in memory and not in Neo4j yet)
+            instance1.setAttributeValue("displayName", "TestCompartment 2");
+            neo4jAdaptor.updateInstance(instance1, tx);
+            tx.commit();
+            // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
+            GKInstance fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
+            fetchedInstance.setSchemaClass(sc);
+            neo4jAdaptor.loadInstanceAttributeValues(fetchedInstance);
+            GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
+            // Test that the attribute changes made in memory were committed to the DB
+            assumeTrue(compartmentValueInstance.getAttributeValue("displayName").equals("TestCompartment 2"));
+            // Clean up after test
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(instance, tx);
+            neo4jAdaptor.deleteInstance(instance1, tx);
+            GKInstance orphanInstance = neo4jAdaptor.fetchInstance(compartmentDBID);
+            neo4jAdaptor.deleteInstance(orphanInstance, tx);
+            tx.commit();
+        }
+    }
+
+    @Test
     public void test_Deleted() throws Exception {
         SchemaClass sc = schema.getClassByName("_Deleted");
         GKInstance instance = neo4jAdaptor.fetchInstance(188476l);
@@ -343,6 +447,75 @@ public class Neo4JAdaptorTest {
                 foundDBID = true;
         }
         assumeTrue(foundDBID);
+    }
+
+    @Test
+    public void testExisting() throws Exception {
+        List<Long> dbIds = Arrays.asList(new Long[] { 5263598l, 0l });
+        Set<Long> existingDBIds = neo4jAdaptor.existing(dbIds, false, false);
+        assumeTrue(existingDBIds.size() == 1);
+        assumeTrue(existingDBIds.iterator().next() == 5263598l);
+        Set<Long> missingDBIds = neo4jAdaptor.existing(dbIds, false, true);
+        assumeTrue(missingDBIds.size() > 600000);
+    }
+
+    @Test
+    public void testFetchDBIDsByAttributeValueCount() throws Exception {
+        // Simple Attribute
+        SchemaClass sc = schema.getClassByName("Reaction");
+        GKSchemaAttribute att = (GKSchemaAttribute) sc.getAttribute("name");
+        Collection<Long> dbIds = neo4jAdaptor.fetchDBIDsByAttributeValueCount(
+                att, Arrays.asList("Homoserine dehydrogenase","blah"), 1);
+        assumeTrue(dbIds.size() > 0);
+        // Instance-type attribute
+        sc = schema.getClassByName("FrontPage");
+        att = (GKSchemaAttribute) sc.getAttribute("frontPageItem");
+        dbIds = neo4jAdaptor.fetchDBIDsByAttributeValueCount(
+                att, Arrays.asList(170877), 1);
+        assumeTrue(dbIds.size() > 0);
+    }
+
+    @Test
+    public void testFetchIdenticalInstances() throws Exception {
+        GKInstance instance =
+                (GKInstance) neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L)).iterator().next();
+        Set<Instance> identicals = neo4jAdaptor.fetchIdenticalInstances(instance);
+        // TODO: This test fails because MySQL's property_name=value_defines_instance is not stored in graph-core-curator - TBC
+        assumeTrue(identicals != null && identicals.size() > 0);
+    }
+
+    @Test
+    public void testGetMaxDBID() throws Exception {
+        assumeTrue(neo4jAdaptor.fetchMaxDbId() > 0);
+    }
+
+    @Test
+    public void testLoadInstanceReverseAttributeValues() throws Exception {
+        Collection<Instance> instances =
+                neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L));
+        SchemaClass sc = schema.getClassByName("Pathway");
+        SchemaAttribute attribute = sc.getAttribute("hasEvent");
+        neo4jAdaptor.loadInstanceReverseAttributeValues(instances, attribute);
+        boolean allReferrersPresent = true;
+        for (Iterator ii = instances.iterator(); ii.hasNext();) {
+            GKInstance ins = (GKInstance) ii.next();
+            List<GKInstance> attInstances = (List<GKInstance>) ins.getAttributeValuesList(attribute.getName());
+            for (GKInstance attInstance : attInstances) {
+                if (attInstance.getReferers(attribute).size() == 0) {
+                    allReferrersPresent = false;
+                    break;
+                }
+            }
+            assumeTrue(allReferrersPresent);
+        }
+    }
+
+    @Test
+    // Not this test takes a long time to run
+    public void testInstanceReferenceCheckerCheck() throws Exception {
+        InstanceReferenceChecker checker = new InstanceReferenceChecker();
+        checker.setDBA(neo4jAdaptor);
+        assumeTrue(checker.check().length() > 0);
     }
 
     private boolean fitForService() {

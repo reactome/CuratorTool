@@ -156,13 +156,13 @@ public class CuratorOptionDialog extends JDialog {
 	    if(!dbPane.commitForTab())
 	        return;
 	    PersistenceManager.ConnectInfo newConnectInfo = new PersistenceManager.ConnectInfo(prop);
-	    if (PersistenceManager.getManager().getActiveMySQLAdaptor() != null &&
+	    if (PersistenceManager.getManager().getActiveNeo4JAdaptor() != null &&
 	        !newConnectInfo.equals(oldConnectInfo)) {
-	        // Need to reset the active MySQLAdaptor
+	        // Need to reset the active Neo4JAdaptor
 	        FrameManager.getManager().closeBrowser();
-	        PersistenceManager.getManager().setActiveMySQLAdaptor(null);
+	        PersistenceManager.getManager().setActiveNeo4JAdaptor(null);
 	        SynchronizationManager.getManager().refresh();
-	        //PersistenceManager.getManager().initMySQLAdaptor(this);	
+	        //PersistenceManager.getManager().initNeo4JAdaptor(this);	
 	    }	
 	    prop.setProperty("lookAndFeel", (String)lfBox.getSelectedItem());
 	    // Check attribute edit pane

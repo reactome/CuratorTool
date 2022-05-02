@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
@@ -26,7 +26,7 @@ import org.gk.schema.SchemaAttribute;
 class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 	private boolean deleteBackToSource = false;
 	
-	public OrthologousEventPreviousInstanceFinder(String currentReleaseNum, MySQLAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase, boolean deleteBackToSource) {
+	public OrthologousEventPreviousInstanceFinder(String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase, boolean deleteBackToSource) {
 		super(currentReleaseNum, previousDba, allowIDsFromUnspecifiedReleases, identifierDatabase);
 		
 		this.deleteBackToSource = deleteBackToSource;
@@ -90,7 +90,7 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 		return previousInstance;				
 	}
 	
-	public GKInstance _getPreviousInstance(MySQLAdaptor previousDba, GKInstance instance) {
+	public GKInstance _getPreviousInstance(Neo4JAdaptor previousDba, GKInstance instance) {
 		if (previousDba==null)
 			return null;
 		if (instance==null)
@@ -296,7 +296,7 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 				if (i1 < validReleaseCount) {
 					release = validReleases.get(i1);
 					releaseNum = (String)release.getAttributeValue("num");
-					MySQLAdaptor dba = null;
+					Neo4JAdaptor dba = null;
 					try {
 						dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName);
 					} catch (Exception e1) {
@@ -361,7 +361,7 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 	 * @return
 	 * @throws Exception
 	 */
-	// TODO: this method was copied from MySQLAdaptor, where is is private.  It
+	// TODO: this method was copied from Neo4JAdaptor, where is is private.  It
 	// would be good to have just one, public, method for approximate comparison
 	// of instances.
 	private boolean areReasonablyIdentical(GKInstance instance1, GKInstance instance2) throws Exception {

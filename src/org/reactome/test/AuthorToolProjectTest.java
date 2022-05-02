@@ -16,7 +16,7 @@ import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.render.HyperEdge;
@@ -32,14 +32,14 @@ import org.junit.Test;
  *
  */
 public class AuthorToolProjectTest {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     
     public AuthorToolProjectTest() {
     }
     
-    public MySQLAdaptor getDBA() throws Exception {
+    public Neo4JAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new MySQLAdaptor("localhost",
+            dba = new Neo4JAdaptor("localhost",
                                    "reactome_25_pathway_diagram",
                                    "root",
                                    "macmysql01",
@@ -50,8 +50,8 @@ public class AuthorToolProjectTest {
     
     @Test
     public void exportPathwayIntoATProject() throws Exception {
-        MySQLAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveMySQLAdaptor(dba);
+        Neo4JAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;
         GKInstance pathway = dba.fetchInstance(dbId);
@@ -142,7 +142,7 @@ public class AuthorToolProjectTest {
     }
     
     private Map<Long, GKInstance> loadVertex(GKInstance pathwayDiagram,
-                                             MySQLAdaptor dba) throws Exception {
+                                             Neo4JAdaptor dba) throws Exception {
         // This is used to test human apoptosis
         // Need to get vertex
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, 

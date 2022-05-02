@@ -9,29 +9,28 @@ import java.util.Collection;
 import java.util.List;
 
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This model class is used to help process data for comparing reactions in the sky.
  * @author wgm
  */
 public class ComparingReactionsInSkyModel {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
 
     public ComparingReactionsInSkyModel() {
     }
 
-    public ComparingReactionsInSkyModel(MySQLAdaptor dba) {
+    public ComparingReactionsInSkyModel(Neo4JAdaptor dba) {
         this.dba = dba;
     }
 
-    public void setMySQLAdapter(MySQLAdaptor adapter) {
+    public void setNeo4JAdaptor(Neo4JAdaptor adapter) {
         this.dba = adapter;
     }
 
     /**
      * Get the list of reactions that should be in the sky.
-     * @param releasedPathways a list of top-level pathway instances.
      * @return
      */
     public List getReactionsInSky() {

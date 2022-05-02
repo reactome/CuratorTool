@@ -15,7 +15,7 @@ package org.gk.persistence;
 public class TransactionsNotSupportedException extends Exception {
 
 	/**
-	 * @param dba MySQLAdaptor object connected to the database that does not support transactions
+	 * @param dba Neo4JAdaptor object connected to the database that does not support transactions
 	 */
 	public TransactionsNotSupportedException(MySQLAdaptor dba) {
 		super("Database " + dba.getDBName() + "@" + dba.getDBHost() + " does not support transactions");

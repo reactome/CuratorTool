@@ -26,7 +26,7 @@ import org.gk.model.ClassAttributeFollowingInstruction;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.jgraph.graph.GraphConstants;
@@ -68,10 +68,10 @@ public class Utils {
 		return null;
 	}
 
-	public static Collection getLocatedReactionsForSpecies(MySQLAdaptor dba,String speciesName) throws Exception {
+	public static Collection getLocatedReactionsForSpecies(Neo4JAdaptor dba,String speciesName) throws Exception {
 		GKInstance species = (GKInstance)dba.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=",speciesName).iterator().next();
-		MySQLAdaptor.AttributeQueryRequest aqr1 = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.species,"=",species);
-		MySQLAdaptor.ReverseAttributeQueryRequest aqr2 = 
+		Neo4JAdaptor.AttributeQueryRequest aqr1 = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.species,"=",species);
+		Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 = 
 			dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.ReactionCoordinates,ReactomeJavaConstants.locatedEvent,"IS NOT NULL",null);
 		List aqrList = new ArrayList();
 		aqrList.add(aqr1);
@@ -82,9 +82,9 @@ public class Utils {
 		//return dba.fetchInstance(aqrList);
 	}
 	
-	public static Collection getLocatedReactionsForSpecies(MySQLAdaptor dba, GKInstance species) throws Exception {
-		MySQLAdaptor.AttributeQueryRequest aqr1 = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.species,"=",species);
-		MySQLAdaptor.ReverseAttributeQueryRequest aqr2 = 
+	public static Collection getLocatedReactionsForSpecies(Neo4JAdaptor dba, GKInstance species) throws Exception {
+		Neo4JAdaptor.AttributeQueryRequest aqr1 = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.species,"=",species);
+		Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 = 
 			dba.createReverseAttributeQueryRequest(
 					dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent),
 					dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionCoordinates).getAttribute(ReactomeJavaConstants.locatedEvent),
@@ -98,7 +98,7 @@ public class Utils {
 		//return dba.fetchInstance(aqrList);
 	}
 
-	public static Collection getSampleReactions(MySQLAdaptor dba) throws Exception {
+	public static Collection getSampleReactions(Neo4JAdaptor dba) throws Exception {
 		return dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.DB_ID,"=",Arrays.asList(new String[]{"83660","83656","75146","114365","139908","114264","140216","75244","139913","114254","139917","141310","114306","139897","114361","114256","83656","114284","140978","75187","139898","139920","139903","114252","114307","140230","114354","114261","114259","83586","114276","114279","114263","114419","114278","114352","139918","83650","141156","139895","139905","114275","140217","75238","140232","139952","141159","139919","139899","73945"}));
 		//return dba.fetchInstanceByAttribute(ReactomeJavaConstants.Reaction,ReactomeJavaConstants.DB_ID,"=",Arrays.asList(new String[]{"73945","141159","141156","139952"}));
 		//return dba.fetchInstanceByAttribute(ReactomeJavaConstants.Reaction,ReactomeJavaConstants.DB_ID,"=",Arrays.asList(new String[]{"73945"}));
@@ -112,7 +112,7 @@ public class Utils {
 				"159567","159574","176606","174389","176041"}));*/
 	}
 	
-	public static Set<GKInstance> fetchHiddenEntities(MySQLAdaptor dba) throws Exception {
+	public static Set<GKInstance> fetchHiddenEntities(Neo4JAdaptor dba) throws Exception {
 		return (Set<GKInstance>) dba.fetchInstanceByAttribute(ReactomeJavaConstants.PhysicalEntity,ReactomeJavaConstants.name,"=",Arrays.asList(new String[]{"ATP","ADP",
 				"H2O","H+","O2","electron","H2","NAD","NADH"}));
 	}
@@ -402,13 +402,13 @@ public class Utils {
 		return closest;
 	}
 	
-	public static Collection<GKInstance> getTopLevelPathwaysForSpecies(MySQLAdaptor dba, GKInstance species) throws Exception {
+	public static Collection<GKInstance> getTopLevelPathwaysForSpecies(Neo4JAdaptor dba, GKInstance species) throws Exception {
 		ArrayList qr = new ArrayList();
 		qr.add(dba.createAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.species, "=", species));
 		qr.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		HashSet<GKInstance> out = new HashSet<GKInstance>();
 		out.addAll(dba.fetchInstance(qr));
-		MySQLAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
+		Neo4JAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
 		subquery.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		qr.set(1, dba.createAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.inferredFrom, "=", subquery));
 		out.addAll(dba.fetchInstance(qr));
@@ -416,12 +416,12 @@ public class Utils {
 		//return dba.fetchInstance(qr);
 	}
 
-	public static Collection<GKInstance> getTopLevelPathways(MySQLAdaptor dba) throws Exception {
+	public static Collection<GKInstance> getTopLevelPathways(Neo4JAdaptor dba) throws Exception {
 		ArrayList qr = new ArrayList();
 		qr.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		HashSet<GKInstance> out = new HashSet<GKInstance>();
 		out.addAll(dba.fetchInstance(qr));
-		MySQLAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
+		Neo4JAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
 		subquery.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		qr.set(0, dba.createAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.inferredFrom, "=", subquery));
 		out.addAll(dba.fetchInstance(qr));

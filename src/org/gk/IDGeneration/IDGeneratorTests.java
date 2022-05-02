@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 
 /** 
@@ -34,7 +34,7 @@ public class IDGeneratorTests {
 		createTest(IDGeneratorTest.MULTIPLE_STABLE_IDS_FOR_SINGLE_DB_ID);
 	}
 	
-	public void setCurrentDba(MySQLAdaptor currentDba) {		
+	public void setCurrentDba(Neo4JAdaptor currentDba) {		
 		IDGeneratorTest.setCurrentDba(currentDba);		
 	}
 	

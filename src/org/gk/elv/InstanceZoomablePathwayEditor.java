@@ -55,7 +55,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.qualityCheck.DiagramNodeAttachmentCheck;
@@ -976,7 +976,7 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         if (approve != JOptionPane.OK_OPTION)
             return false;
         PersistenceManager manager = PersistenceManager.getManager();
-        MySQLAdaptor dba = manager.getActiveMySQLAdaptor(pathwayEditor);
+        Neo4JAdaptor dba = manager.getActiveNeo4JAdaptor(pathwayEditor);
         if (dba == null)
             return false;
         try {

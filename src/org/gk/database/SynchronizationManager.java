@@ -30,7 +30,7 @@ import org.gk.model.AttributeClassNotAllowedException;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
@@ -46,6 +46,10 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 import org.jdom.xpath.XPath;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Methods for synchronizing the local and the db repositories. The functions of this class
@@ -287,7 +291,7 @@ public class SynchronizationManager {
 	 * @return Set of referring instances
 	 * @throws Exception
 	 */
-	private Set getLocalReferingInstances(List instances, MySQLAdaptor dbAdaptor,XMLFileAdaptor fileAdaptor) {
+	private Set getLocalReferingInstances(List instances, Neo4JAdaptor dbAdaptor,XMLFileAdaptor fileAdaptor) {
 	    Set referers = new HashSet();
 	    SchemaClass cls;
 	    GKInstance instance;
@@ -310,7 +314,7 @@ public class SynchronizationManager {
 	 * @return Set of referring instances
 	 * @throws Exception
 	 */
-	private Set getLocalReferingInstances(GKInstance instance, MySQLAdaptor dbAdaptor, XMLFileAdaptor fileAdaptor) {
+	private Set getLocalReferingInstances(GKInstance instance, Neo4JAdaptor dbAdaptor, XMLFileAdaptor fileAdaptor) {
 	    Set referers = new HashSet();
 		SchemaClass cls = instance.getSchemClass();
 		GKInstance localInstance;
@@ -347,7 +351,7 @@ public class SynchronizationManager {
 	 * @param fileAdaptor
 	 * @return
 	 */
-	private boolean isLocalReferingInstance(GKInstance instance, MySQLAdaptor dbAdaptor, XMLFileAdaptor fileAdaptor) {
+	private boolean isLocalReferingInstance(GKInstance instance, Neo4JAdaptor dbAdaptor, XMLFileAdaptor fileAdaptor) {
 		Long dbId = instance.getDBID();
 		GKInstance localInstance = fileAdaptor.fetchInstance(dbId);
         if (dbId.longValue() <= 0)
@@ -367,7 +371,7 @@ public class SynchronizationManager {
 		return false;
 	}
 	
-	public java.util.List deleteInstancesInDB(MySQLAdaptor dbAdaptor,
+	public java.util.List deleteInstancesInDB(Neo4JAdaptor dbAdaptor,
 											  XMLFileAdaptor fileAdaptor,
 	                                          java.util.List instances,
 	                                          Window parentComp) {
@@ -398,50 +402,27 @@ public class SynchronizationManager {
             	return new ArrayList();
         }
         java.util.List deleted = new ArrayList(instances.size());
-        boolean needTransaction = true;
-        try {
-            // The user is happy with going ahead with checking in,
-            // so here we go...
-            needTransaction = checkTransaction(dbAdaptor, parentComp);
-            // Wrap all deletion in one single transaction
-            if (needTransaction)
-                dbAdaptor.startTransaction();
-            for (Iterator it = instances.iterator(); it.hasNext();) {
-                GKInstance instance = (GKInstance)it.next();
-                // First delete the things that refer to this instance...
-                deleteInstanceFromReferers(instance, dbAdaptor, fileAdaptor, parentComp);
-                // ...then delete the instance itself.
-                //if (needTransaction) 
-                //	dbAdaptor.txDeleteByDBID(instance.getDBID());
-                //else
-                dbAdaptor.deleteByDBID(instance.getDBID());
-                deleted.add(instance);
-            }
-            if (needTransaction)
-                dbAdaptor.commit();
-        }
-        catch(Exception e) {
-            if (needTransaction) {
-                try {
-                    dbAdaptor.rollback();
-                }
-                catch(Exception e1) {
-                    e1.printStackTrace();
-                    JOptionPane.showMessageDialog(parentComp,
-                                                  "Cannot rollback. The database connection might be lost.",
-                                                  "Error in Database",
-                                                  JOptionPane.ERROR_MESSAGE);
-                }
-            }
-            System.err.println("SynchronizationManager.deleteInstancesInDB(): " + e);
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(parentComp,
-                                          "Cannot commit deletion to the database.",
-                                          "Error in Committing",
-                                          JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-		return deleted;
+		Driver driver = dbAdaptor.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dbAdaptor.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			for (Iterator it = instances.iterator(); it.hasNext(); ) {
+				GKInstance instance = (GKInstance) it.next();
+				// First delete the things that refer to this instance...
+				deleteInstanceFromReferers(instance, dbAdaptor, fileAdaptor, parentComp, tx);
+				dbAdaptor.deleteByDBID(instance.getDBID(), tx);
+				deleted.add(instance);
+			}
+			tx.commit();
+			return deleted;
+		} catch (Exception e) {
+			System.err.println("SynchronizationManager.deleteInstancesInDB(): " + e);
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(parentComp,
+					"Cannot commit deletion to the database.",
+					"Error in Committing",
+					JOptionPane.ERROR_MESSAGE);
+		}
+		return null;
 	}
 	
 	/**
@@ -455,9 +436,10 @@ public class SynchronizationManager {
 	 * @throws Exception
 	 */
 	private void deleteInstanceFromReferers(GKInstance instance,
-									      MySQLAdaptor dbAdaptor,
-									      XMLFileAdaptor fileAdaptor,
-									      Window parentDialog) throws Exception {
+											Neo4JAdaptor dbAdaptor,
+											XMLFileAdaptor fileAdaptor,
+											Window parentDialog,
+											Transaction tx) throws Exception {
         // Have to clear referrers to force reloading all referrers. A referrer might be changed
         // and not be a referrer any more. This happens when two newly checked out instances are
         // merged and both of these two instances are loaded in the referrers.
@@ -496,7 +478,7 @@ public class SynchronizationManager {
 	        List instanceEditList = new ArrayList();
 	        defaultInstanceEdit.setIsDirty(false);
 	        instanceEditList.add(defaultInstanceEdit);
-	        dbAdaptor.storeLocalInstances(instanceEditList);
+	        dbAdaptor.storeLocalInstances(instanceEditList, tx);
 	    }
 	    
         // DB version of IE is used for checking
@@ -545,9 +527,9 @@ public class SynchronizationManager {
                             localInstance.addAttributeValueNoCheck(ReactomeJavaConstants.modified, 
                                                                    defaultInstanceEdit);
                             fileAdaptor.updateInstanceAttribute(localInstance,
-                                                                ReactomeJavaConstants.modified);
+                                                                ReactomeJavaConstants.modified, null);
                         }
-	                    dbAdaptor.updateInstance(localInstance);
+	                    dbAdaptor.updateInstance(localInstance, tx);
 	                    referer = null; // acts as a flag
 	                }
 	            }
@@ -560,7 +542,7 @@ public class SynchronizationManager {
 	                referer.getAttributeValue(att.getName()); // Use attribute name. The attribute might be
 	                                                          // different between super and sub classes.
 	                referer.removeAttributeValueNoCheck(att.getName(), instance);
-	                dbAdaptor.updateInstanceAttribute(referer, att.getName());
+	                dbAdaptor.updateInstanceAttribute(referer, att.getName(), tx);
 	                
 	                // Add a new InstanceEdit to modified slot
 	                // Do a local refresh, so that if something gets
@@ -576,32 +558,11 @@ public class SynchronizationManager {
 	                                                     defaultInstanceEdit);
 	                    
 	                    // Make sure that the change gets added to the db.
-	                    dbAdaptor.updateInstanceAttribute(referer, ReactomeJavaConstants.modified);
+	                    dbAdaptor.updateInstanceAttribute(referer, ReactomeJavaConstants.modified, tx);
 	                }
 	            }
 	        }
 	    }
-	}
-	
-	private boolean checkTransaction(MySQLAdaptor adaptor, Component parentComp) throws SQLException {
-	    if (prop != null) {
-			String value = prop.getProperty("useTransaction");
-			if (value != null && value.equals("false"))
-				return false;
-			// Have to make sure that the db is transaction enabled
-			if (adaptor.supportsTransactions())
-				return true;
-			else {
-				JOptionPane.showMessageDialog(parentComp, 
-				                              "Transaction cannot be used for the specified database. " +
-				                              "The option \n\"Use Transaction for Updating\" will be set to false.",
-				                              "Error in Transaction",
-				                              JOptionPane.ERROR_MESSAGE);
-				//prop.setProperty("useTransaction", "false");
-				return false;
-			}
-		}
-		return false;
 	}
 	
 	/**
@@ -615,7 +576,7 @@ public class SynchronizationManager {
 	 * @throws Exception
 	 */
 	private List<GKInstance> checkinConflictsForList(List<GKInstance> instances,
-	                                                 MySQLAdaptor dbAdaptor) throws Exception {
+	                                                 Neo4JAdaptor dbAdaptor) throws Exception {
 	    List<GKInstance> rtn = new ArrayList<GKInstance>();
 		InstanceComparer comparer = new InstanceComparer();
 	    for (GKInstance instance : instances) {
@@ -646,7 +607,7 @@ public class SynchronizationManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean checkinConflict(GKInstance instance, MySQLAdaptor dbAdaptor) throws Exception {
+	private boolean checkinConflict(GKInstance instance, Neo4JAdaptor dbAdaptor) throws Exception {
 	    boolean rtn = false;
 	    if (instance.getDBID().longValue() >= 0) {
 		    dbAdaptor.setUseCache(false);
@@ -673,7 +634,7 @@ public class SynchronizationManager {
 	 * @throws Exception
 	 */
 	private List<GKInstance> checkReferencesStillInDbForList(List<GKInstance> instances, 
-	                                                        MySQLAdaptor dbAdaptor) throws Exception {
+	                                                        Neo4JAdaptor dbAdaptor) throws Exception {
 	    List<GKInstance> rtn = new ArrayList<GKInstance>(instances.size());
 	    for (GKInstance instance : instances) {
 	        if (!checkReferencesStillInDb(instance, dbAdaptor))
@@ -692,7 +653,7 @@ public class SynchronizationManager {
 	 * @param instance
 	 * @return true for all references exist
 	 */
-	private boolean checkReferencesStillInDb(GKInstance instance, MySQLAdaptor dbAdaptor) throws Exception {
+	private boolean checkReferencesStillInDb(GKInstance instance, Neo4JAdaptor dbAdaptor) throws Exception {
 		Long dbid = instance.getDBID();
 		if (dbid.longValue() >= 0 && !dbAdaptor.exist((dbid)))
 			return false;
@@ -745,7 +706,7 @@ public class SynchronizationManager {
 	 * @throws Exception
 	 */
 	private List<GKInstance> addReferrersWithChangedClasses(List<GKInstance> instances, 
-	                                                        MySQLAdaptor dbAdaptor) throws Exception {
+	                                                        Neo4JAdaptor dbAdaptor) throws Exception {
 		// Copy existing instance list
 		List<GKInstance> newInstances = new ArrayList<GKInstance>(instances);
 	    // Loop over instances in list and add any referrers with
@@ -773,7 +734,7 @@ public class SynchronizationManager {
 	 * @throws Exception
 	 */
 	private List findReferrersWithChangedClasses(GKInstance instance, 
-	                                             MySQLAdaptor dbAdaptor) throws Exception {
+	                                             Neo4JAdaptor dbAdaptor) throws Exception {
 		List referrersWithChangedClasses = new ArrayList();
 		
 	    GKSchemaClass cls = (GKSchemaClass) instance.getSchemClass();
@@ -817,7 +778,7 @@ public class SynchronizationManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean isInstanceClassSameInDb(GKInstance instance, MySQLAdaptor dbAdaptor) throws Exception {
+	private boolean isInstanceClassSameInDb(GKInstance instance, Neo4JAdaptor dbAdaptor) throws Exception {
 		// Assume everything is fine if instance hasn't been changed.
 		if (!instance.isDirty())
 			return true;
@@ -845,7 +806,7 @@ public class SynchronizationManager {
 	 * removed to keep the slot meaningful.
 	 * @param instances the list of GKInstance objects that are needed to be commit.
 	 * @param fileAdaptor the PersistenceAdaptor to the local repository.
-	 * @param dbAdaptor the MySQLAdaptor to the database repository.
+	 * @param dbAdaptor the Neo4JAdaptor to the database repository.
 	 * @param committedInstancesRtnOnly true for return only committed instances in returned list, while false
 	 * for return all instances handled in this method (include those handled in match checking with 
 	 * db_copy or merging action selected).
@@ -854,7 +815,7 @@ public class SynchronizationManager {
 	 */
 	public synchronized List<GKInstance> commitToDB(List<GKInstance> instances, 
 	                                                XMLFileAdaptor fileAdaptor, 
-	                                                MySQLAdaptor dbAdaptor,
+	                                                Neo4JAdaptor dbAdaptor,
 	                                                boolean committedInstancesRtnOnly,
 	                                                Window parentDialog) {
 	    if (instances == null || instances.size() == 0)
@@ -1056,49 +1017,54 @@ public class SynchronizationManager {
         // Save the old DB_ID for update the data structure in FileAdaptor.
         Map<GKInstance, Long> dbIDMap = new HashMap<GKInstance, Long>();
         GKInstance instanceEdit = null;
-        boolean needTransaction = true; // Basic requirement. No transaction is a special case.
-        try { 
-            // Attach default InstanceEdit: created for localSet and modified for dbList
-            instanceEdit = defaultIEHelper.attachDefaultInstanceEdit(localSet, 
-                                                                     dbList, 
-                                                                     defaultInstanceEdit);
-            for (GKInstance instance : localSet) {
-                dbIDMap.put(instance, instance.getDBID());
-                // Have to call here since old DB_IDs are used
-                // Probably the following call is not needed: W.G. May 27, 2009.
-                List<GKInstance> referers = fileAdaptor.getReferers(instance);
-                for (GKInstance referer: referers) {
-                    fileAdaptor.markAsDirty(referer);
-                }
-            }
-            // need to check into the database. Put it after the above checking since it
-            // is not necessary to check its referrers.
-            if (instanceEdit != null) // Should not add instanceEdit if it is null
-                localSet.add(instanceEdit);
-            needTransaction = checkTransaction(dbAdaptor, parentDialog);
-            // Start transaction
-            if (needTransaction)
-                dbAdaptor.startTransaction();
-            //TODO: check if it is possible: after a transaction has started, there is a db connection
-            // dropped out. After that, the connection is created. In this newly created connection,
-            // actually there is no transaction enabled.
-            // Check in local GKInstances
-            dbAdaptor.storeLocalInstances(new ArrayList(localSet));
-            // Update GKIntances already in the db.
-            for (Iterator it = dbList.iterator(); it.hasNext();) {
-                GKInstance instance = (GKInstance) it.next();
-                // Check if this GKInstance exists in the database
-                if (dbAdaptor.exist(instance.getDBID()))
-                    dbAdaptor.updateInstance(instance);
-                else
-                    dbAdaptor.storeInstance(instance, true);
-                // Have to mark as dirty because of instanceedit
-                fileAdaptor.markAsDirty(instance);
-            }
-            if (needTransaction)
-                dbAdaptor.commit();
-        }
-        catch (Exception e) {
+        try {
+			// Attach default InstanceEdit: created for localSet and modified for dbList
+			instanceEdit = defaultIEHelper.attachDefaultInstanceEdit(localSet,
+					dbList,
+					defaultInstanceEdit);
+			for (GKInstance instance : localSet) {
+				dbIDMap.put(instance, instance.getDBID());
+				// Have to call here since old DB_IDs are used
+				// Probably the following call is not needed: W.G. May 27, 2009.
+				List<GKInstance> referers = fileAdaptor.getReferers(instance);
+				for (GKInstance referer : referers) {
+					fileAdaptor.markAsDirty(referer);
+				}
+			}
+			// need to check into the database. Put it after the above checking since it
+			// is not necessary to check its referrers.
+			if (instanceEdit != null) // Should not add instanceEdit if it is null
+				localSet.add(instanceEdit);
+			Driver driver = dbAdaptor.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dbAdaptor.getDBName()))) {
+				Transaction tx = session.beginTransaction();
+				//TODO: check if it is possible: after a transaction has started, there is a db connection
+				// dropped out. After that, the connection is created. In this newly created connection,
+				// actually there is no transaction enabled.
+				// Check in local GKInstances
+				dbAdaptor.storeLocalInstances(new ArrayList(localSet), tx);
+				// Update GKIntances already in the db.
+				for (Iterator it = dbList.iterator(); it.hasNext(); ) {
+					GKInstance instance = (GKInstance) it.next();
+					// Check if this GKInstance exists in the database
+					if (dbAdaptor.exist(instance.getDBID()))
+						dbAdaptor.updateInstance(instance, tx);
+					else
+						dbAdaptor.storeInstance(instance, true, tx, true);
+					// Have to mark as dirty because of instanceedit
+					fileAdaptor.markAsDirty(instance);
+				}
+				tx.commit();
+			} catch (Exception e) {
+				System.err.println("SynchronizationManager.commitToDB(): " + e);
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(parentDialog,
+						"Cannot commit data to the database.",
+						"Error in Committing",
+						JOptionPane.ERROR_MESSAGE);
+				throw e;
+			}
+		} catch (Exception e) {
             // Have to detach default InstanceEdit since it is not checked
             defaultIEHelper.detachDefaultInstanceEdit(instanceEdit, localSet, dbList);
             // In case DB_ID changed
@@ -1107,23 +1073,6 @@ public class SynchronizationManager {
                 Long dbID = (Long) dbIDMap.get(instance);
                 instance.setDBID(dbID);
             }
-            if (needTransaction) {
-                try {
-                    dbAdaptor.rollback();
-                }
-                catch (Exception e2) {
-                    JOptionPane.showMessageDialog(parentDialog, 
-                                                  "Cannot rollback. The database connection might be lost.", 
-                                                  "Error in Database",
-                                                  JOptionPane.ERROR_MESSAGE);
-                }
-            }
-            System.err.println("SynchronizationManager.commitToDB(): " + e);
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(parentDialog,
-                                          "Cannot commit data to the database.",
-                                          "Error in Committing",
-                                          JOptionPane.ERROR_MESSAGE);
             return null;
         }
         // Have to mark as dirty for DB_ID change
@@ -1168,7 +1117,7 @@ public class SynchronizationManager {
 	 */
 	private List<GKInstance> generateStableIds(Set<GKInstance> localSet,
 	                                           GKInstance defaultIE,
-	                                           MySQLAdaptor dbAdaptor,
+	                                           Neo4JAdaptor dbAdaptor,
 	                                           XMLFileAdaptor fileAdaptor,
 	                                           Window parentDialog) {
 	    StableIdentifierGenerator stidGenerator = new StableIdentifierGenerator();
@@ -1210,21 +1159,18 @@ public class SynchronizationManager {
 	    if (instToStableId.size() == 0)
 	        return null; // Do nothing if no stable ids can be generated
 	    // Commit into the database
-	    boolean needTransaction = true;
-	    try {
-	        needTransaction = dbAdaptor.supportsTransactions();
-	        if (needTransaction)
-	            dbAdaptor.startTransaction();
+		Driver driver = dbAdaptor.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dbAdaptor.getDBName()))) {
+			Transaction tx = session.beginTransaction();
 	        // Perform a two-step update/store and hope to have a better
 	        // performance since the first storeLocalInstances is performed in a batch way.
             List<GKInstance> stableIds = new ArrayList<GKInstance>(stableIdToDBID.keySet());
-            dbAdaptor.storeLocalInstances(stableIds);
+            dbAdaptor.storeLocalInstances(stableIds, tx);
 	        for (GKInstance inst : instToStableId.keySet()) {
 	            dbAdaptor.updateInstanceAttribute(inst,
-	                                              ReactomeJavaConstants.stableIdentifier);
+	                                              ReactomeJavaConstants.stableIdentifier, tx);
 	        }
-	        if (needTransaction)
-	            dbAdaptor.commit();
+			tx.commit();
 	        for (GKInstance stableId : stableIdToDBID.keySet()) {
 	            Long oldDBId = stableIdToDBID.get(stableId);
 	            fileAdaptor.dbIDUpdated(oldDBId, stableId);
@@ -1233,17 +1179,6 @@ public class SynchronizationManager {
 	        return stableIds;
 	    }
 	    catch(Exception e) {
-	        if (needTransaction) {
-                try {
-                    dbAdaptor.rollback();
-                }
-                catch (Exception e2) {
-                    JOptionPane.showMessageDialog(parentDialog, 
-                                                  "Cannot rollback StableIdentifier instances. The database connection might be lost.", 
-                                                  "Error in Database",
-                                                  JOptionPane.ERROR_MESSAGE);
-                }
-            }
 	        // Delete all stable ids
 	        for (GKInstance inst : instToStableId.keySet()) {
 	            GKInstance stableId = instToStableId.get(inst);
@@ -1277,7 +1212,7 @@ public class SynchronizationManager {
 	 * @param parentDialog
 	 */
 	private boolean checkMatchedInstances(Set localSet, 
-									      MySQLAdaptor dbAdaptor,
+									      Neo4JAdaptor dbAdaptor,
 	                                      XMLFileAdaptor fileAdaptor,
 	                                      Window parentDialog) {
 	    return matchHelper.checkMatchedInstances(localSet, 
@@ -1521,7 +1456,7 @@ public class SynchronizationManager {
             e.printStackTrace();
         }
         
-        MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentFrame);
+        Neo4JAdaptor dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentFrame);
         if (dbAdaptor == null)
             return false;
         try {

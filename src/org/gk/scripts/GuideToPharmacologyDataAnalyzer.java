@@ -24,7 +24,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.FileUtilities;
@@ -62,8 +62,8 @@ public class GuideToPharmacologyDataAnalyzer {
     public GuideToPharmacologyDataAnalyzer() {
     }
 
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_042321",
                                             "",
                                             "");
@@ -75,8 +75,8 @@ public class GuideToPharmacologyDataAnalyzer {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        MySQLAdaptor dba = getDBA();
-        manager.setActiveMySQLAdaptor(dba);
+        Neo4JAdaptor dba = getDBA();
+        manager.setActiveNeo4JAdaptor(dba);
     }
     
     @Test
@@ -240,7 +240,7 @@ public class GuideToPharmacologyDataAnalyzer {
             if (c != null && c.size() > 0)
                 return c.stream().findAny().get();
             // Check if we have this reference in database
-            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+            Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
             c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.DrugActionType,
                                              ReactomeJavaConstants.name,
                                              "=",
@@ -508,7 +508,7 @@ public class GuideToPharmacologyDataAnalyzer {
         }
         
         // Check if this reaction is in the database already
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         Collection<GKInstance> matched = dba.fetchIdenticalInstances(reaction);
         if (matched != null && matched.size() > 0) {
             System.out.println(reaction + " is in gk_central.");
@@ -597,7 +597,7 @@ public class GuideToPharmacologyDataAnalyzer {
         if (c != null && c.size() > 0)
             return c.stream().findAny().get();
         // Check if we have this reference in database
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.LiteratureReference,
                                          ReactomeJavaConstants.pubMedIdentifier,
                                          "=",
@@ -700,7 +700,7 @@ public class GuideToPharmacologyDataAnalyzer {
     }
 
     private Map<String, GKInstance> createDrugsForLigands(Set<String> ligands) throws Exception {
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         Map<String, GKInstance> ligandToRefTher = new HashMap<>();
         for (String ligand : ligands) {
             Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceTherapeutic,
@@ -752,7 +752,7 @@ public class GuideToPharmacologyDataAnalyzer {
 
     private Map<String, GKInstance> createEWASesForProteins(Set<String> proteins) throws Exception {
         Set<GKInstance> refGeneProducts = new HashSet<>();
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         for (String protein : proteins) {
             Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
                                                                     ReactomeJavaConstants.identifier,
@@ -840,7 +840,7 @@ public class GuideToPharmacologyDataAnalyzer {
         if (localCopy != null)
             return localCopy;
         PersistenceManager manager = PersistenceManager.getManager();
-        GKInstance dbCopy = manager.getActiveMySQLAdaptor().fetchInstance(dbId);
+        GKInstance dbCopy = manager.getActiveNeo4JAdaptor().fetchInstance(dbId);
         localCopy = manager.getLocalReference(dbCopy);
         manager.updateLocalFromDB(localCopy, dbCopy);
         return localCopy;
@@ -912,7 +912,7 @@ public class GuideToPharmacologyDataAnalyzer {
     
     @Test
     public void generateUsedCompartmentsInDrugs() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> drugs = dba.fetchInstancesByClass(ReactomeJavaConstants.Drug);
         Set<GKInstance> compartments = new HashSet<>();
         for (GKInstance drug : drugs) {

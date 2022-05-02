@@ -27,7 +27,7 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.LineBorder;
 
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /** 
  *  Allows the user to select previous and current release from a
@@ -207,7 +207,7 @@ public class ReleasesPane extends JPanel {
 			// Release num display
 			releaseText = new JTextField(5);
 			if (releaseDatabaseManagerName!=null) {
-				MySQLAdaptor dba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(releaseDatabaseManagerName);
+				Neo4JAdaptor dba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(releaseDatabaseManagerName);
 				String releaseNum = null;
 				try {
 					if (identifierDatabase==null)

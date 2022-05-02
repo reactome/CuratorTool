@@ -33,7 +33,7 @@ public class AuthorToolToCuratorToolConverter {
     private void init() {
         // call this method to initialize HandlerFactory
         RenderableHandlerFactory factory = RenderableHandlerFactory.getFactory();
-        factory.setDBAdapptor(PersistenceManager.getManager().getActiveMySQLAdaptor());
+        factory.setDBAdaptor(PersistenceManager.getManager().getActiveNeo4JAdaptor());
         factory.setFileAdaptor(PersistenceManager.getManager().getActiveFileAdaptor());
     }
     

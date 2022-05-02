@@ -17,7 +17,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
@@ -65,7 +65,7 @@ public class ComplexAndEntitySetRename extends PhysicalEntityRename {
 //        String fileName = DIR_NAME + "ComplexRename_062713.txt";
         String fileName = DIR_NAME + "ComplexRename_MaxLength_071113.txt";
 //        String fileName = DIR_NAME + "ComplexRename_MaxLength_FirstLevel_071113.txt";
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // For human complexes only
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> complexes = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Complex,

@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 
@@ -73,7 +73,7 @@ public class CommandLineRunner {
         // Augment or override the auth file values.
         authProps.putAll(cmdLineProps);
 
-        MySQLAdaptor dba = new MySQLAdaptor(authProps.getProperty("dbHost"),
+        Neo4JAdaptor dba = new Neo4JAdaptor(authProps.getProperty("dbHost"),
                 authProps.getProperty("dbName"),
                 authProps.getProperty("dbUser"),
                 authProps.getProperty("dbPwd"));

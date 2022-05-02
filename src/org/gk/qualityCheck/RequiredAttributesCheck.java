@@ -35,7 +35,7 @@ import org.gk.database.SchemaDisplayPane;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaClass;
@@ -100,7 +100,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null; 
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource; // This should be enforced in the super method.
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource; // This should be enforced in the super method.
         // The following statements are basically modified from check() by removing
         // all GUIs related stuff.
         Schema schema = dba.getSchema();
@@ -158,8 +158,8 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
                         if (instances == null || instances.size() == 0)
                             continue;
                         progressPane.setText("Loading attributes ...");
-                        if (dataSource instanceof MySQLAdaptor) {
-                            loadAttributes(instances, (MySQLAdaptor)dataSource);
+                        if (dataSource instanceof Neo4JAdaptor) {
+                            loadAttributes(instances, (Neo4JAdaptor)dataSource);
                             if (progressPane.isCancelled())
                                 break;
                         }
@@ -228,7 +228,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         return escaped;
     }
 
-    private void loadAttributes(Collection instances, MySQLAdaptor dba) {
+    private void loadAttributes(Collection instances, Neo4JAdaptor dba) {
         // Sorting instances based on classes
         Map clsMap = new HashMap();
         GKInstance instance = null;
@@ -401,8 +401,8 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         progressPane.setMaximum(instances.size());
         progressPane.setValue(0);
         progressPane.setText("Loading attributes ...");
-        if (dataSource instanceof MySQLAdaptor) {
-            loadAttributes(instances, (MySQLAdaptor)dataSource);
+        if (dataSource instanceof Neo4JAdaptor) {
+            loadAttributes(instances, (Neo4JAdaptor)dataSource);
         }
         progressPane.setText("Checking instances...");
         int c = 0;

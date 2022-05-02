@@ -20,7 +20,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathwaylayout.PathwayDiagramGeneratorViaAT;
 import org.gk.pathwaylayout.PredictedPathwayDiagramGeneratorFromDB;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.NodeAttachment;
 import org.gk.render.Renderable;
@@ -70,7 +70,7 @@ public class NodeModificationUpdateTest {
         // Make sure if these static variable values are used
         Node.setWidthRatioOfBoundsToText(1.0d);
         Node.setHeightRatioOfBoundsToText(1.0d);
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // [PathwayDiagram:548647]: has 216 attachments (most)
 //        GKInstance inst = dba.fetchInstance(548647L);
 //        [PathwayDiagram:453263] Diagram of TCR signaling
@@ -95,7 +95,7 @@ public class NodeModificationUpdateTest {
     
     @Test
     public void checkModifications() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader reader = new DiagramGKBReader();
         final Map<GKInstance, Integer> pdToNumber = new HashMap<GKInstance, Integer>();
@@ -135,8 +135,8 @@ public class NodeModificationUpdateTest {
             System.out.println(pd + "\t" + pdToNumber.get(pd));
     }
 
-    protected MySQLAdaptor getDBA() throws SQLException {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+    protected Neo4JAdaptor getDBA() throws SQLException {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_012616",
                                             "root",
                                             "macmysql01");

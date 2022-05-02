@@ -1,9 +1,9 @@
 package org.gk.variant;
 
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
-import org.gk.persistence.MySQLAdaptor.AttributeQueryRequest;
+import org.gk.persistence.Neo4JAdaptor.AttributeQueryRequest;
 import org.gk.property.PMIDXMLInfoFetcher2;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
@@ -134,7 +134,7 @@ public abstract class VariantCuration {
 			return wtEwases;
 		
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();	
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();	
 		
 		GKInstance referenceEntity = getReferenceGeneProduct(gene);
 		
@@ -206,7 +206,7 @@ public abstract class VariantCuration {
 		}
 		
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
 		
 		Set<GKInstance> reactionSet = new HashSet<>();
 		
@@ -303,7 +303,7 @@ public abstract class VariantCuration {
 	@SuppressWarnings("unchecked")
 	protected Set<GKInstance> getContainingPhysicalEntities(GKInstance physicalEntity) throws Exception {
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
 		
 		Set<GKInstance> containingComplexAndEntitySets = new HashSet<>();
 		
@@ -353,7 +353,7 @@ public abstract class VariantCuration {
 	
 	protected List<GKInstance> getReferenceGeneProducts(String gene) throws Exception {		
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();		
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();		
 		
         GKInstance human = dba.fetchInstance(speciesId);
         AttributeQueryRequest request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
@@ -368,7 +368,7 @@ public abstract class VariantCuration {
                                                   human);
         queryList.add(request);
         @SuppressWarnings("unchecked")
-		Set<GKInstance> referenceEntities = dba.fetchInstance(queryList);
+		Set<GKInstance> referenceEntities = (Set<GKInstance>) dba.fetchInstance(queryList);
         
         List<GKInstance> referenceEntitiesList = new ArrayList<>(referenceEntities);
         
@@ -382,7 +382,7 @@ public abstract class VariantCuration {
 	@SuppressWarnings("unchecked")
 	protected GKInstance createEwas(int start, int end, String gene) throws Exception {  
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
 		XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
         
 		GKInstance ewas = fileAdaptor.createNewInstance(ReactomeJavaConstants.EntityWithAccessionedSequence);
@@ -471,7 +471,7 @@ public abstract class VariantCuration {
 			throw new Exception("Amino acid code is empty.");
 		
 		PersistenceManager mngr = PersistenceManager.getManager(); 
-		MySQLAdaptor dba = mngr.getActiveMySQLAdaptor();
+		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
 		
 		String aa = aaDict.get(aaCode);
 		

@@ -20,7 +20,7 @@ import javax.swing.JOptionPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.render.*;
@@ -96,7 +96,7 @@ public class PathwayDiagramHandler {
                                                     Component parentComp) throws Exception {
         Map<GKInstance, String> pathwayToXML = new HashMap<GKInstance, String>();
         // Need to get the database adaptor first. 
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
         if (dba == null) {
             // Show an error message
             JOptionPane.showMessageDialog(parentComp, 
@@ -140,7 +140,7 @@ public class PathwayDiagramHandler {
                                      Component parentComp) throws Exception {
         if (pathway.getDBID() <= 0)
             return null; // A local new pathway. Nothing should be stored for it.
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
         if (!dba.getSchema().isValidClass(ReactomeJavaConstants.PathwayDiagram))
             return null;
         // Load PathwayDiagram for this pathway

@@ -10,9 +10,13 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * During an ChEBI update, the script accidentally adjusted the order of manually
@@ -33,7 +37,7 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class SimpleEntityNameFixer {
-    private MySQLAdaptor targetDBA;
+    private Neo4JAdaptor targetDBA;
     private String targetDB = "gk_central_091218";
     private String sourceDB = "gk_central_before_chebi_update";
     private String user = "";
@@ -62,48 +66,40 @@ public class SimpleEntityNameFixer {
     
     @Test
     public void fixDrugNames() throws Exception {
-        MySQLAdaptor targetDBA = getTargetDBA();
-        
-        GKInstance defaultIE = ScriptUtilities.createDefaultIE(targetDBA, ScriptUtilities.GUANMING_WU_DB_ID, false);
-        defaultIE.setAttributeValue(ReactomeJavaConstants.note, "Fix drug _displayNames caused by a buggy Perl script");
-        
-        String fileName = "DrugDisplayName_Fix_" + targetDBA.getDBName() + "_" + ScriptUtilities.getDate() + ".txt";
-        FileUtilities fu = new FileUtilities();
-        fu.setOutput(fileName);
-        fu.printLine("DB_ID\tDisplayName\tClass");
-        
-        Collection<GKInstance> drugs = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.Drug);
-        System.out.println("Total drugs: " + drugs.size());
-        Set<GKInstance> toBeFixed = new HashSet<>();
-        for (GKInstance drug : drugs) {
-            String newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(drug);
-            if (newDisplayName.equals(drug.getDisplayName()))
-                continue;
-            drug.setDisplayName(newDisplayName);
-            drug.getAttributeValuesList(ReactomeJavaConstants.modified);
-            drug.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-            toBeFixed.add(drug);
-            fu.printLine(drug.getDBID() + "\t" + 
-                         drug.getDisplayName() + "\t" + 
-                         drug.getSchemClass().getName());
-        }
-        fu.close();
-        System.out.println("To be fixed: " + toBeFixed.size());
-        try {
-            if (targetDBA.supportsTransactions())
-                targetDBA.startTransaction();
-            targetDBA.storeInstance(defaultIE);
-            for (GKInstance drug : toBeFixed) {
-                targetDBA.updateInstanceAttribute(drug, ReactomeJavaConstants._displayName);
-                targetDBA.updateInstanceAttribute(drug, ReactomeJavaConstants.modified);
+        Driver driver = targetDBA.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(targetDBA, ScriptUtilities.GUANMING_WU_DB_ID, false, tx);
+            defaultIE.setAttributeValue(ReactomeJavaConstants.note, "Fix drug _displayNames caused by a buggy Perl script");
+
+            String fileName = "DrugDisplayName_Fix_" + targetDBA.getDBName() + "_" + ScriptUtilities.getDate() + ".txt";
+            FileUtilities fu = new FileUtilities();
+            fu.setOutput(fileName);
+            fu.printLine("DB_ID\tDisplayName\tClass");
+
+            Collection<GKInstance> drugs = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.Drug);
+            System.out.println("Total drugs: " + drugs.size());
+            Set<GKInstance> toBeFixed = new HashSet<>();
+            for (GKInstance drug : drugs) {
+                String newDisplayName = InstanceDisplayNameGenerator.generateDisplayName(drug);
+                if (newDisplayName.equals(drug.getDisplayName()))
+                    continue;
+                drug.setDisplayName(newDisplayName);
+                drug.getAttributeValuesList(ReactomeJavaConstants.modified);
+                drug.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                toBeFixed.add(drug);
+                fu.printLine(drug.getDBID() + "\t" +
+                        drug.getDisplayName() + "\t" +
+                        drug.getSchemClass().getName());
             }
-            if (targetDBA.supportsTransactions())
-                targetDBA.commit();
-        }
-        catch(Exception e) {
-            if (targetDBA.supportsTransactions())
-                targetDBA.rollback();
-            throw e;
+            fu.close();
+            System.out.println("To be fixed: " + toBeFixed.size());
+            targetDBA.storeInstance(defaultIE, tx);
+            for (GKInstance drug : toBeFixed) {
+                targetDBA.updateInstanceAttribute(drug, ReactomeJavaConstants._displayName, tx);
+                targetDBA.updateInstanceAttribute(drug, ReactomeJavaConstants.modified, tx);
+            }
+            tx.commit();
         }
     }
     
@@ -113,79 +109,73 @@ public class SimpleEntityNameFixer {
      */
     @Test
     public void fixNames() throws Exception {
-        MySQLAdaptor targeDBA = getTargetDBA();
-        // Instances to be used
-        GKInstance defaultIE = ScriptUtilities.createDefaultIE(targeDBA,
-                                                               ScriptUtilities.GUANMING_WU_DB_ID,
-                                                               false); // We will save it later on
-        Set<GKInstance> updateInstances = new HashSet<>();
-        Collection<GKInstance> touchedInstances = getTouchedInstances();
-        // We will work with PhysicalEntities only
-        MySQLAdaptor sourceDBA = getSourceDBA();
-        String fileName = "UpdateInstances_" + targeDBA.getDBName() + ".txt";
-        FileUtilities fu = new FileUtilities();
-        fu.setOutput(fileName);
-        fu.printLine("DB_ID\tDisplayName\tClass\tFixedAttributes");
-        for (GKInstance targetInst : touchedInstances) {
-            if (!targetInst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
-                continue;
-            }
-            GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
-            List<String> sourceNames = sourceInst.getAttributeValuesList(ReactomeJavaConstants.name);
-            String sourceDisplayName = sourceInst.getDisplayName();
-            List<String> targetNames = targetInst.getAttributeValuesList(ReactomeJavaConstants.name);
-            String targetDisplayName = targetInst.getDisplayName();
-            if (sourceNames.equals(targetNames)) {
-                if (!sourceDisplayName.equals(targetDisplayName)) {
-                    // May be caused by new curation
-                    String tmp = InstanceDisplayNameGenerator.generateDisplayName(targetInst);
-                    if (!tmp.equals(targetDisplayName))
-                        throw new IllegalStateException(targetInst + " has the same names but different _displayName!");
-                }
-                continue;
-            }
-            // Just copy all new names at the name
-            for (String targetName : targetNames) {
-                if (sourceNames.contains(targetName))
+        Driver driver = targetDBA.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Instances to be used
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(targetDBA,
+                    ScriptUtilities.GUANMING_WU_DB_ID,
+                    false, tx); // We will save it later on
+            Set<GKInstance> updateInstances = new HashSet<>();
+            Collection<GKInstance> touchedInstances = getTouchedInstances();
+            // We will work with PhysicalEntities only
+            Neo4JAdaptor sourceDBA = getSourceDBA();
+            String fileName = "UpdateInstances_" + targetDBA.getDBName() + ".txt";
+            FileUtilities fu = new FileUtilities();
+            fu.setOutput(fileName);
+            fu.printLine("DB_ID\tDisplayName\tClass\tFixedAttributes");
+            for (GKInstance targetInst : touchedInstances) {
+                if (!targetInst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
                     continue;
-                sourceNames.add(targetName);
+                }
+                GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
+                List<String> sourceNames = sourceInst.getAttributeValuesList(ReactomeJavaConstants.name);
+                String sourceDisplayName = sourceInst.getDisplayName();
+                List<String> targetNames = targetInst.getAttributeValuesList(ReactomeJavaConstants.name);
+                String targetDisplayName = targetInst.getDisplayName();
+                if (sourceNames.equals(targetNames)) {
+                    if (!sourceDisplayName.equals(targetDisplayName)) {
+                        // May be caused by new curation
+                        String tmp = InstanceDisplayNameGenerator.generateDisplayName(targetInst);
+                        if (!tmp.equals(targetDisplayName))
+                            throw new IllegalStateException(targetInst + " has the same names but different _displayName!");
+                    }
+                    continue;
+                }
+                // Just copy all new names at the name
+                for (String targetName : targetNames) {
+                    if (sourceNames.contains(targetName))
+                        continue;
+                    sourceNames.add(targetName);
+                }
+                // Starting fix
+                String fixedAtts = "name";
+                targetInst.setAttributeValue(ReactomeJavaConstants.name, sourceNames);
+                String displayName = InstanceDisplayNameGenerator.generateDisplayName(targetInst);
+                if (!displayName.equals(targetDisplayName)) {
+                    targetInst.setDisplayName(displayName);
+                    fixedAtts += ".displayName";
+                }
+                targetInst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                targetInst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+
+                updateInstances.add(targetInst);
+                fu.printLine(targetInst.getDBID() + "\t" +
+                        targetInst.getDisplayName() + "\t" +
+                        targetInst.getSchemClass().getName() + "\t" +
+                        fixedAtts + "\t");
             }
-            // Starting fix
-            String fixedAtts = "name";
-            targetInst.setAttributeValue(ReactomeJavaConstants.name, sourceNames);
-            String displayName = InstanceDisplayNameGenerator.generateDisplayName(targetInst);
-            if (!displayName.equals(targetDisplayName)) {
-                targetInst.setDisplayName(displayName);
-                fixedAtts += ".displayName";
-            }
-            targetInst.getAttributeValuesList(ReactomeJavaConstants.modified);
-            targetInst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-            
-            updateInstances.add(targetInst);
-            fu.printLine(targetInst.getDBID() + "\t" + 
-                               targetInst.getDisplayName() + "\t" + 
-                               targetInst.getSchemClass().getName() + "\t" +
-                               fixedAtts + "\t");
-        }
-        System.out.println("Total instances to be fixed: " + updateInstances.size());
-        fu.close();
-        try {
-            if (targetDBA.supportsTransactions())
-                targetDBA.startTransaction();
-            targetDBA.storeInstance(defaultIE);
+            System.out.println("Total instances to be fixed: " + updateInstances.size());
+            fu.close();
+            targetDBA.storeInstance(defaultIE, tx);
             for (GKInstance inst : updateInstances) {
                 // Some of instances may not need to update _displayName.
                 // However, this is fast. Just run it!
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants._displayName);
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.name);
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
+                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants._displayName, tx);
+                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.name, tx);
+                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
             }
-            if (targetDBA.supportsTransactions())
-                targetDBA.commit();
-        }
-        catch(Exception e) {
-            if (targetDBA.supportsTransactions())
-                targetDBA.rollback();
+            tx.commit();
         }
     }
     
@@ -198,7 +188,7 @@ public class SimpleEntityNameFixer {
     public void checkInstancesForFix() throws Exception {
         Collection<GKInstance> touchedInstances = getTouchedInstances();
         // We will work with PhysicalEntities only
-        MySQLAdaptor sourceDBA = getSourceDBA();
+        Neo4JAdaptor sourceDBA = getSourceDBA();
         int total = 0;
         for (GKInstance targetInst : touchedInstances) {
             if (!targetInst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
@@ -256,7 +246,7 @@ public class SimpleEntityNameFixer {
     
     private Collection<GKInstance> getTouchedInstances() throws Exception {
         Long dbId = 9616752L; // DB_ID for IEs inserted by chEBI update script
-        MySQLAdaptor targetDBA = getTargetDBA();
+        Neo4JAdaptor targetDBA = getTargetDBA();
         GKInstance ie = targetDBA.fetchInstance(dbId);
         Collection<GKInstance> modifiedInstances = ie.getReferers(ReactomeJavaConstants.modified);
         Collection<GKInstance> createdInstances = ie.getReferers(ReactomeJavaConstants.created);
@@ -267,10 +257,10 @@ public class SimpleEntityNameFixer {
         return modifiedInstances;
     }
     
-    private MySQLAdaptor getTargetDBA() throws Exception {
+    private Neo4JAdaptor getTargetDBA() throws Exception {
         if (targetDBA != null)
             return targetDBA;
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                 targetDB,
                 user,
                 pwd);
@@ -278,8 +268,8 @@ public class SimpleEntityNameFixer {
         return dba;
     }
     
-    private MySQLAdaptor getSourceDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+    private Neo4JAdaptor getSourceDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                 sourceDB,
                 user,
                 pwd);

@@ -4,7 +4,7 @@
 package org.gk.IDGeneration;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /** 
  * Determines if and how a previous instance should be found
@@ -13,7 +13,7 @@ import org.gk.persistence.MySQLAdaptor;
  *
  */
 class DbIdPreviousInstanceFinder extends PreviousInstanceFinder {
-	public DbIdPreviousInstanceFinder(String currentReleaseNum, MySQLAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
+	public DbIdPreviousInstanceFinder(String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
 		super(currentReleaseNum, previousDba, allowIDsFromUnspecifiedReleases, identifierDatabase);
 	}
 	

@@ -18,8 +18,12 @@ import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 import org.w3c.dom.Document;
 
 /**
@@ -29,7 +33,7 @@ import org.w3c.dom.Document;
 public class ScriptUtilities {
     public static final Long GUANMING_WU_DB_ID = 140537L; // For Guanming Wu at CSHL
     
-    public static GKInstance getHomoSapiens(MySQLAdaptor dba) throws Exception {
+    public static GKInstance getHomoSapiens(Neo4JAdaptor dba) throws Exception {
         Long dbId = 48887L;
         GKInstance inst = dba.fetchInstance(dbId);
         return inst;
@@ -58,29 +62,26 @@ public class ScriptUtilities {
      * @throws SQLException
      * @throws Exception
      */
-    public static void updateInstanceNames(MySQLAdaptor dba, List<GKInstance> toBeUpdated) throws SQLException, Exception {
+    public static void updateInstanceNames(Neo4JAdaptor dba, List<GKInstance> toBeUpdated) throws Exception {
         // Update instances to the database
-        try {
-            dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance newIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true);
+            GKInstance newIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
             int count = 0;
             for (GKInstance instance : toBeUpdated) {
                 System.out.println(count + ": " + instance);
                 // Have to call this first to get the list
                 instance.getAttributeValue(ReactomeJavaConstants.modified);
                 instance.addAttributeValue(ReactomeJavaConstants.modified, newIE);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.modified);
+                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.modified, tx);
                 if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.name))
-                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.name);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.name, tx);
+                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
                 count ++;
             }
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
-            throw e;
+            tx.commit();
         }
     }
     
@@ -91,17 +92,19 @@ public class ScriptUtilities {
     
     public static void addIEToModified(GKInstance inst,
                                        GKInstance ie,
-                                       MySQLAdaptor dba) throws Exception {
+                                       Neo4JAdaptor dba,
+                                       Transaction tx) throws Exception {
         inst.getAttributeValuesList(ReactomeJavaConstants.modified);
         inst.addAttributeValue(ReactomeJavaConstants.modified, 
                                      ie);
         dba.updateInstanceAttribute(inst,
-                                    ReactomeJavaConstants.modified);
+                                    ReactomeJavaConstants.modified, tx);
     }
     
-    public static GKInstance createDefaultIE(MySQLAdaptor dba,
+    public static GKInstance createDefaultIE(Neo4JAdaptor dba,
                                              Long defaultPersonId,
-                                             boolean needStore) throws Exception {
+                                             boolean needStore,
+                                             Transaction tx) throws Exception {
         GKInstance defaultPerson = dba.fetchInstance(defaultPersonId);
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
         GKInstance newIE = ieHelper.createDefaultInstanceEdit(defaultPerson);
@@ -109,7 +112,7 @@ public class ScriptUtilities {
                                 GKApplicationUtilities.getDateTime());
         InstanceDisplayNameGenerator.setDisplayName(newIE);
         if (needStore)
-            dba.storeInstance(newIE);
+            dba.storeInstance(newIE, tx);
         return newIE;
     }
     

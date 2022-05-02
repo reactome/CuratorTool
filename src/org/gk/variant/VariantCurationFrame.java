@@ -15,12 +15,12 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 @SuppressWarnings("serial")
 public class VariantCurationFrame extends JFrame {	
 	
-	private MySQLAdaptor dba;
+	private Neo4JAdaptor dba;
 	
 	private VariantCuration variantCuration;
 	
@@ -89,63 +89,57 @@ public class VariantCurationFrame extends JFrame {
         JLabel containingEntitiesLable = new JLabel("");
         containingEntitiesLable.setBounds(140, 270, 238, 25);
         panel.add(containingEntitiesLable);
-        
+
         geneNameField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	String geneName = geneNameField.getText();
-            	System.out.println(geneName);
-            	try {
-            		if (getDba() == null)
-					   setDba(new MySQLAdaptor("localhost", "gk_central_091120", "root", "lake3%7g", 3306));
-            		
-            		if (getVariantCuration() == null)
-//            			setVariantCuration(new VariantCuration());
-            		
-            		try {
-						List<GKInstance> eawsInstances = variantCuration.getWtEwases(geneName);
-						List<String> ewasDisplayNames = new ArrayList<>();
-						for (GKInstance ewas : eawsInstances) {
-							ewasDisplayNames.add(ewas.getDisplayName());
-						}
-						JComboBox ewasDropDown = new JComboBox(ewasDisplayNames.toArray());
-						ewasDropDown.setSelectedIndex(-1);
-						ewasDropDown.setBounds(400, 230, 180, 25);
-						ewasDropDown.addActionListener(new ActionListener() {
-				            @Override
-				            public void actionPerformed(ActionEvent e) {
-				            	String[] todo = {"todo1","todo2..."};
-				            	JComboBox entitiesDropDown = new JComboBox(todo);
-				            	entitiesDropDown.setSelectedIndex(-1);
-				            	entitiesDropDown.setBounds(400, 270, 180, 25);
-				            	panel.add(entitiesDropDown);
-				            	containingEntitiesLable.setText("Select a normal complex or EntitySet: ");
-				            }
-						});
-						panel.add(ewasDropDown);
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-            		
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-            	
-            	ewasLable.setText("Choose a wild-type EWAS: ");
-            }            
-        });
-        
-        this.add(panel);
-		
-	}
+                String geneName = geneNameField.getText();
+                System.out.println(geneName);
+                if (getDba() == null)
+                    setDba(new Neo4JAdaptor("localhost", "gk_central_091120", "root", "lake3%7g", 3306));
 
-	public MySQLAdaptor getDba() {
+                if (getVariantCuration() == null) {
+//            			setVariantCuration(new VariantCuration());
+                    try {
+                        List<GKInstance> eawsInstances = variantCuration.getWtEwases(geneName);
+                        List<String> ewasDisplayNames = new ArrayList<>();
+                        for (GKInstance ewas : eawsInstances) {
+                            ewasDisplayNames.add(ewas.getDisplayName());
+                        }
+                        JComboBox ewasDropDown = new JComboBox(ewasDisplayNames.toArray());
+                        ewasDropDown.setSelectedIndex(-1);
+                        ewasDropDown.setBounds(400, 230, 180, 25);
+                        ewasDropDown.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                String[] todo = {"todo1", "todo2..."};
+                                JComboBox entitiesDropDown = new JComboBox(todo);
+                                entitiesDropDown.setSelectedIndex(-1);
+                                entitiesDropDown.setBounds(400, 270, 180, 25);
+                                panel.add(entitiesDropDown);
+                                containingEntitiesLable.setText("Select a normal complex or EntitySet: ");
+                            }
+                        });
+                        panel.add(ewasDropDown);
+                    } catch (Exception e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    }
+                }
+
+                ewasLable.setText("Choose a wild-type EWAS: ");
+            }
+        });
+
+        this.add(panel);
+
+    }
+
+	public Neo4JAdaptor getDba() {
 		return dba;
 	}
 
-	public void setDba(MySQLAdaptor dba) {
+	public void setDba(Neo4JAdaptor dba) {
 		this.dba = dba;
 	}
 

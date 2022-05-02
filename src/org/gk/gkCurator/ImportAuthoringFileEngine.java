@@ -10,7 +10,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 import org.gk.gkCurator.authorTool.AuthorToolToCuratorToolConverter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.util.GKFileFilter;
 import org.gk.util.XMLFileFilter;
@@ -62,7 +62,7 @@ public class ImportAuthoringFileEngine {
 	}
     
     private boolean ensureDatabaseConnection(Component parentComp) {
-        MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+        Neo4JAdaptor dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
         if (dbAdaptor == null) {
             int reply = JOptionPane.showConfirmDialog(parentComp,
                                                       "Cannot connect to a valid database. Some of repository instances\n" +

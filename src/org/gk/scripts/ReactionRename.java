@@ -13,7 +13,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -30,7 +30,7 @@ public class ReactionRename {
     
     @Test
     public void processHumanReactions() throws Exception {
-    	MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+    	Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
                 "gk_current_ver77",
                 "root",
                 "macmysql01");
@@ -60,8 +60,8 @@ public class ReactionRename {
     	}
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
                                             "gk_central_102312",
                                             "root",
                                             "macmysql01");
@@ -70,7 +70,7 @@ public class ReactionRename {
     
     @Test
     public void renameReactions() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Want to check human reactions only
         GKInstance homosapiens = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,

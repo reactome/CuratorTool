@@ -23,10 +23,14 @@ import javax.swing.JScrollPane;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.Schema;
 import org.jgraph.graph.GraphConstants;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 public class PathwayByPathway extends ReactionCoordinatebasedLayout {
 
@@ -36,7 +40,7 @@ public class PathwayByPathway extends ReactionCoordinatebasedLayout {
 	public PathwayByPathway() throws Exception {
 	}
 	
-	public PathwayByPathway(MySQLAdaptor dba, GKInstance species, GKInstance pathway) throws Exception {
+	public PathwayByPathway(Neo4JAdaptor dba, GKInstance species, GKInstance pathway) throws Exception {
 		this.dba = dba;
 		this.focusSpecies = species;
 		this.focusPathway = pathway;
@@ -179,24 +183,25 @@ public class PathwayByPathway extends ReactionCoordinatebasedLayout {
 		}
 		System.out.println("Finished saveAsThumbnail()");
 	}
-	
-	public void storeGraphInDb () throws InvalidAttributeException, Exception {
+
+	public void storeGraphInDb() throws InvalidAttributeException, Exception {
 		System.out.println("Starting storeGraphInDb");
-		if (dba.supportsTransactions())
-			dba.startTransaction();
-		GKInstance view = createInstance();
-		dba.storeInstance(view);
-		for (Vertex v : verteces) {
-			GKInstance i = createInstance(v);
-			i.setAttributeValue("pathwayDiagram", view);
-			dba.storeInstance(i);
+		Driver driver = dba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			GKInstance view = createInstance();
+			dba.storeInstance(view, tx);
+			for (Vertex v : verteces) {
+				GKInstance i = createInstance(v);
+				i.setAttributeValue("pathwayDiagram", view);
+				dba.storeInstance(i, tx);
+			}
+			for (Edge e : edges) {
+				GKInstance i = createInstance(e);
+				dba.storeInstance(i, tx);
+			}
+			tx.commit();
 		}
-		for (Edge e : edges) {
-			GKInstance i = createInstance(e);
-			dba.storeInstance(i);
-		}
-		if (dba.supportsTransactions())
-			dba.commit();
 		System.out.println("Finished storeGraphInDb");
 	}
 	
@@ -253,7 +258,7 @@ public class PathwayByPathway extends ReactionCoordinatebasedLayout {
 			System.exit(0);
 		}
 		try {
-			MySQLAdaptor dba = new MySQLAdaptor(args[0],args[1],args[2],args[3],Integer.parseInt(args[4]));
+			Neo4JAdaptor dba = new Neo4JAdaptor(args[0],args[1],args[2],args[3],Integer.parseInt(args[4]));
 			String speciesName = "Homo sapiens";
 			GKInstance focusSpecies =  (GKInstance)dba.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=",speciesName).iterator().next();
 			Collection<GKInstance> topPathways = Utils.getTopLevelPathwaysForSpecies(dba, focusSpecies);

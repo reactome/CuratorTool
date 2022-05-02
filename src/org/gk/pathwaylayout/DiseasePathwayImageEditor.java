@@ -635,7 +635,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     
     /**
      * Similar to the method contains(), this helper method is used to tackle the cache
-     * issue with MySQLAdaptor. The checked collection is checked vs the target collection.
+     * issue with Neo4JAdaptor. The checked collection is checked vs the target collection.
      * @param checked
      * @param target
      */
@@ -650,7 +650,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     }
     
     /**
-     * In case where MySQLAdaptor cache is turned off, GKInstances having the same DB_IDs from the database
+     * In case where Neo4JAdaptor cache is turned off, GKInstances having the same DB_IDs from the database
      * are different during different queries. Using this helper method to check if a GKInstance is contained
      * in a Collection<GKInstance> created in different time point. 
      * @param inst

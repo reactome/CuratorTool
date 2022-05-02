@@ -32,7 +32,7 @@ import org.gk.model.Instance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Node;
@@ -418,7 +418,7 @@ public class EventCentricViewPane extends JPanel {
             eventPane.markAsDirty(instance);
     }
 	
-	public void setMySQLAdaptor(final MySQLAdaptor dba) {
+	public void setNeo4JAdaptor(final Neo4JAdaptor dba) {
 		if (dba == null)
 			return ;
 		Thread t = new Thread() {
@@ -469,7 +469,7 @@ public class EventCentricViewPane extends JPanel {
 					multSearchPanel.setSelectedClass(eventCls);
 				}
 				catch (Exception e) {
-					System.err.println("EventCentricViewFrame.setMySQLAdaptor(): " + e);
+					System.err.println("EventCentricViewFrame.setNeo4JAdaptor(): " + e);
 					e.printStackTrace();
 				}
 				eventPane.removePropertyChangeListener(l);

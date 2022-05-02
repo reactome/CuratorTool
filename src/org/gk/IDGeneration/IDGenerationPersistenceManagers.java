@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -72,24 +72,24 @@ public class IDGenerationPersistenceManagers {
 	 * 
 	 * @return
 	 */
-	public static MySQLAdaptor getDatabaseAdaptor(String dbName) {
+	public static Neo4JAdaptor getDatabaseAdaptor(String dbName) {
 		IDGenerationPersistenceManager pm = getManager(dbName);
 		
 		if (pm==null) {
 			System.err.println("getDatabaseAdaptor: WARNING - persistence manager is null for dbName=" + dbName);
 		}
 
-		MySQLAdaptor mySQLAdaptor = null;
+		Neo4JAdaptor neo4JAdaptor = null;
 //		if (pm.getDBConnectInfo()==null)
-//			mySQLAdaptor = null;
+//			neo4JAdaptor = null;
 //		else
 			try {
-				mySQLAdaptor = pm.getActiveMySQLAdaptor(null);
+				neo4JAdaptor = pm.getActiveNeo4JAdaptor(null);
 			} catch (Exception e) {
 				System.err.println("getDatabaseAdaptor: something went wrong when trying to get dba for " + dbName);
 				e.printStackTrace();
 			}
 		
-		return mySQLAdaptor;
+		return neo4JAdaptor;
 	}
 }

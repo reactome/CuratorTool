@@ -49,13 +49,17 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to check StableIdentifiers generated for newly created instances after last release.
@@ -308,8 +312,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
 
     private void loadCreatedAttribute(List<GKInstance> allInstances) throws Exception {
         // Load created slot
-        if (dataSource instanceof MySQLAdaptor) {
-            MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        if (dataSource instanceof Neo4JAdaptor) {
+            Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
             if (progressPane != null)
                 progressPane.setText("Loading the created attribute...");
             // Try to use attributes. It seems that there is a problem using String: the value
@@ -331,9 +335,9 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     
     private void loadStableIdAttributes(List<GKInstance> instances,
                                         StableIdentifierGenerator stIdGenerator) throws Exception {
-        if (!(dataSource instanceof MySQLAdaptor))
+        if (!(dataSource instanceof Neo4JAdaptor))
             return;
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         if (progressPane != null)
             progressPane.setText("Loading related attributes...");
         // Load Stable ids
@@ -390,7 +394,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
 
     private void loadStableIdAttribute(List<GKInstance> instances,
-                                       MySQLAdaptor dba, 
+                                       Neo4JAdaptor dba, 
                                        List<GKInstance> list,
                                        String clsName,
                                        String attName) throws Exception {
@@ -480,10 +484,10 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     private void fixStableIdsInDb() {
         if (resultFrame == null)
             return;
-        if (!(dataSource instanceof MySQLAdaptor)) {
+        if (!(dataSource instanceof Neo4JAdaptor)) {
             return; // Since this check works for the database only, this should not happen.
         }
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         Map<GKInstance, String> instToValidId = resultFrame.getSelectedInstanceToValidId();
         if (instToValidId.size() > 0) {
             int confirm = JOptionPane.showConfirmDialog(resultFrame,
@@ -531,43 +535,26 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                 }
             }
             boolean needTransaction = false;
-            try {
-                needTransaction = dba.supportsTransactions();
-                if (needTransaction)
-                    dba.startTransaction();
+            Driver driver = dba.getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
                 // Don't forget to commit this defaultIE
-                dba.storeInstance(defaultIE);
+                dba.storeInstance(defaultIE, tx);
                 for (GKInstance newStableId : newStableIds) {
-                    dba.storeInstance(newStableId);
+                    dba.storeInstance(newStableId, tx);
                 }
                 for (GKInstance updatedStableId : updatedStableIds) {
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier);
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified);
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName);
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier, tx);
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified, tx);
+                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName, tx);
                 }
                 for (GKInstance updatedInst : updatedInsts) {
-                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier);
-                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified);
+                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier, tx);
+                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified, tx);
                 }
-                if (needTransaction)
-                    dba.commit();
+                tx.commit();
                 cleanUpResultFrame(instToValidId.keySet());
                 displayFixedStableIds(instToValidId.keySet());
-            }
-            catch(Exception e) {
-                if (needTransaction) {
-                    try {
-                        dba.rollback();
-                    }
-                    catch (Exception e2) {
-                        JOptionPane.showMessageDialog(parentComp, 
-                                                      "Cannot rollback StableIdentifier instances. The database connection might be lost.", 
-                                                      "Error in Database",
-                                                      JOptionPane.ERROR_MESSAGE);
-                        e2.printStackTrace();
-                    }
-                }
-                e.printStackTrace();
             }
         }
         catch(Exception e) {
@@ -777,8 +764,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
         }
         
         /**
-         * Remove the passed StableIds from the table after they are fixed.
-         * @param stableIds
+         * Remove the passed instances from the table after they are fixed.
+         * @param instances
          */
         public void cleanUp(Set<GKInstance> instances) {
             StableIdCheckResultTableModel model = (StableIdCheckResultTableModel) resultTable.getModel();

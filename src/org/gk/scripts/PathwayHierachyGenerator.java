@@ -13,7 +13,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.jdom.Element;
 import org.jdom.output.Format;
@@ -36,7 +36,7 @@ public class PathwayHierachyGenerator {
             System.exit(1);
         }
         try {
-            MySQLAdaptor dba = new MySQLAdaptor(args[0], 
+            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
                                                 args[1],
                                                 args[2],
                                                 args[3],
@@ -58,7 +58,7 @@ public class PathwayHierachyGenerator {
      * 
      * @throws Exception
      */
-    public void generateHierarchies(MySQLAdaptor dba, 
+    public void generateHierarchies(Neo4JAdaptor dba, 
                                     String dir) throws Exception {
         Integer release = dba.getReleaseNumber();
         String releaseLabel = (release == null ? "" : "release_" + release.toString());
@@ -114,7 +114,7 @@ public class PathwayHierachyGenerator {
     
     @Test
     public void generateHierarchyInXML() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_current_ver39",
                                             "root",
                                             "macmysql01");

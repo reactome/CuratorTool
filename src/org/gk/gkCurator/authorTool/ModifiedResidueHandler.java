@@ -20,7 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.NodeAttachment;
 import org.gk.render.Renderable;
@@ -185,7 +185,7 @@ public class ModifiedResidueHandler {
         Document document = builder.parse(metaConfig);
         config.loadConfig(document);
         
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");

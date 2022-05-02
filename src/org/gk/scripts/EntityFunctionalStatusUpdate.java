@@ -14,12 +14,16 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to handle an update for class EntityFunctonalStatute by doing the following:
@@ -44,7 +48,7 @@ public class EntityFunctionalStatusUpdate {
      * @param dba
      * @throws Exception
      */
-    public void update(MySQLAdaptor dba) throws Exception {
+    public void update(Neo4JAdaptor dba) throws Exception {
         fu = new FileUtilities();
         fu.setOutput(fileName);
         fu.printLine("SchemaClass\tDB_ID\tDisplayName\tLastAuthor\tActionOrIssue");
@@ -71,12 +75,13 @@ public class EntityFunctionalStatusUpdate {
                         Set<GKInstance> newInstances,
                         Set<GKInstance> caUpdatedRLEs,
                         Set<GKInstance> regulationUpdatedRLEs,
-                        MySQLAdaptor dba) throws Exception {
-        try {
-            dba.startTransaction();
+                        Neo4JAdaptor dba) throws Exception {
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             GKInstance ie = ScriptUtilities.createDefaultIE(dba, 
                                                             ScriptUtilities.GUANMING_WU_DB_ID,
-                                                            true);
+                                                            true, tx);
             // Need to store all new instances first to get correct created
             // Make the following two steps so that all new instances can have created.
             // Otherwise, some of them may not because of the check in storeInstance()
@@ -84,28 +89,24 @@ public class EntityFunctionalStatusUpdate {
                 ca.setAttributeValue(ReactomeJavaConstants.created, ie);
             }
             for (GKInstance ca : newInstances) {
-                dba.storeInstance(ca);
+                dba.storeInstance(ca, tx);
             }
             for (GKInstance instance : efs) {
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.diseaseEntity);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.normalEntity);
+                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.diseaseEntity, tx);
+                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.normalEntity, tx);
                 // Just in case some of _displayName may be changed
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName);
-                ScriptUtilities.addIEToModified(instance, ie, dba);
+                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
+                ScriptUtilities.addIEToModified(instance, ie, dba, tx);
             }
             for (GKInstance rle : caUpdatedRLEs) {
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivity);
-                ScriptUtilities.addIEToModified(rle, ie, dba);
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivity, tx);
+                ScriptUtilities.addIEToModified(rle, ie, dba, tx);
             }
             for (GKInstance rle : regulationUpdatedRLEs) {
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulatedBy);
-                ScriptUtilities.addIEToModified(rle, ie, dba);
+                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulatedBy, tx);
+                ScriptUtilities.addIEToModified(rle, ie, dba, tx);
             }
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
-            throw e;
+            tx.commit();
         }
     }
     
@@ -193,7 +194,7 @@ public class EntityFunctionalStatusUpdate {
     }
     
     private void fillInNormalEntity(Collection<GKInstance> efses,
-                                    MySQLAdaptor dba) throws Exception {
+                                    Neo4JAdaptor dba) throws Exception {
         Map<Long, Long> hardcodedMap = getHardcodedMap();
         for (GKInstance efs : efses) {
             GKInstance pe = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.physicalEntity);
@@ -395,7 +396,7 @@ public class EntityFunctionalStatusUpdate {
     
     @Test
     public void checkEFSes() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
                                             "test_gk_central_efs_new",
                                             "root",
                                             "macmysql01");
@@ -709,8 +710,7 @@ public class EntityFunctionalStatusUpdate {
     /**
      * When a PE is not a diseaseReaction's participant. Try this method.
      * @param pe
-     * @param peRefs
-     * @param result
+     * @param normalRLE
      * @throws Exception
      */
     private NormalEntityMapResult guessNormalEntity(GKInstance pe,
@@ -917,7 +917,7 @@ public class EntityFunctionalStatusUpdate {
             System.err.println("java -Xmx8G EntityFunctionalStatusUpdate dbName user pass {drug|efs}");
             return;
         }
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
                                             args[0],
                                             args[1],
                                             args[2]);

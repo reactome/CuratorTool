@@ -32,7 +32,7 @@ import org.gk.model.Instance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.model.StoichiometryInstance;
 import org.gk.persistence.Bookmarks;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -1315,7 +1315,7 @@ public class AttributePane extends JPanel {
 			}
 			try {
                 // Try to load values first
-                if (instance.getDbAdaptor() instanceof MySQLAdaptor) {
+                if (instance.getDbAdaptor() instanceof Neo4JAdaptor) {
                     if (!instance.isInflated()) {
                         inflateInstance();
                     }
@@ -1379,8 +1379,8 @@ public class AttributePane extends JPanel {
 		}
 
         private void inflateInstance() throws Exception {
-            MySQLAdaptor dba = (MySQLAdaptor) instance.getDbAdaptor();
-            dba.fastLoadInstanceAttributeValues(instance);
+            Neo4JAdaptor dba = (Neo4JAdaptor) instance.getDbAdaptor();
+            dba.loadInstanceAttributeValues(instance);
             // Want to make sure all _displayNames have been loaded
             Set unloaded = new HashSet();
             for (Iterator it = instance.getSchemClass().getAttributes().iterator(); it.hasNext();) {

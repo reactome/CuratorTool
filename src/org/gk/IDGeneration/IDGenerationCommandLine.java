@@ -12,11 +12,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /** 
  *  This is the main class for the IDGeneration program,
@@ -265,7 +269,7 @@ public class IDGenerationCommandLine {
 	    	identifierDatabase.setPassword(currentSliceDbParams.password);
     	}
     	
-		MySQLAdaptor identifierDbParamsDba = identifierDbParams.getDba();
+		Neo4JAdaptor identifierDbParamsDba = identifierDbParams.getDba();
 		if (identifierDbParamsDba==null)
 			handleError("Could not create connection to identifier database - maybe you entered the wrong parameters?");
 		IdentifierDatabase.setDba(identifierDbParamsDba);
@@ -354,12 +358,12 @@ public class IDGenerationCommandLine {
 		
     	// Set up a database adaptor for the previous release,
     	// if one has been specified.
-		MySQLAdaptor previousDba = identifierDatabase.getReleaseDbaFromReleaseNum(previousReleaseNum, projectName);
+		Neo4JAdaptor previousDba = identifierDatabase.getReleaseDbaFromReleaseNum(previousReleaseNum, projectName);
 		if (previousDba==null && previousReleaseNum!=null)
 			handleError("Cannot find a previous release, with release number " + previousReleaseNum);
 		
 		// Check to see if the current release already exists (it shouldn't)
-		MySQLAdaptor currentDba = identifierDatabase.getReleaseDbaFromReleaseNum(currentReleaseNum, projectName);
+		Neo4JAdaptor currentDba = identifierDatabase.getReleaseDbaFromReleaseNum(currentReleaseNum, projectName);
 		if (!orthologyMode && currentDba!=null)
 			handleError("Release " + currentReleaseNum + " already exists, cannot overwrite!");
 		
@@ -373,7 +377,7 @@ public class IDGenerationCommandLine {
     		if (currentDba==null)
     			handleError("Could not create connection to current slice database - maybe you entered the wrong parameters?");
     	}
-		MySQLAdaptor gk_centraldba = null;			
+		Neo4JAdaptor gk_centraldba = null;			
 		if (gk_centralDbParams.dbName!=null && !(gk_centralDbParams.dbName.equals(""))) {
 			gk_centraldba = gk_centralDbParams.getDba();			
 			if (gk_centraldba==null)
@@ -448,37 +452,40 @@ public class IDGenerationCommandLine {
      * available.  WARNING: prexisting DB parameters will be overwritten.
      *
      */
-    private void setCurrentReleaseParams() {
-    	GKInstance release;
+	private void setCurrentReleaseParams() {
+		GKInstance release = null;
+		Neo4JAdaptor instanceDatabaseDba = IdentifierDatabase.getDba();
+		GKInstance sliceDbParams = null;
+		GKInstance releaseDbParams = null;
 
-    	try {
-			MySQLAdaptor instanceDatabaseDba = IdentifierDatabase.getDba();
-			
-			GKInstance sliceDbParams = null;
-			GKInstance releaseDbParams = null;
-
-			// TODO: There is a problem with orthology predicted stable IDs, probably because
-			// this code is not successfully finding previous references to the current
-			// release number in the release table.  I have inserted some diagnostics to
-			// help get a handle on the problem, and made the code insert slice db params
-			// when in orthology mode, to stop code elesewhere from breaking.
-			// It might be worth trying the "MATCH" operator, instead of "=".
-			Collection releases = instanceDatabaseDba.fetchInstanceByAttribute(IdentifierDatabase.getReleaseTable(), "num", "=", currentReleaseNum);
-
-    		System.err.println("IDGenerationCommandline.setCurrentReleaseParams: currentReleaseNum=" + currentReleaseNum);			
-    		System.err.println("IDGenerationCommandline.setCurrentReleaseParams: IdentifierDatabase.getReleaseTable()=" + IdentifierDatabase.getReleaseTable());			
-    		System.err.println("IDGenerationCommandline.setCurrentReleaseParams: releases.size()=" + releases.size());			
-			
-			if (releases.size()>0)
-				release = (GKInstance)releases.toArray()[0];
+		// TODO: There is a problem with orthology predicted stable IDs, probably because
+		// this code is not successfully finding previous references to the current
+		// release number in the release table.  I have inserted some diagnostics to
+		// help get a handle on the problem, and made the code insert slice db params
+		// when in orthology mode, to stop code elesewhere from breaking.
+		// It might be worth trying the "MATCH" operator, instead of "=".
+		Collection releases = null;
+		try {
+			releases = instanceDatabaseDba.fetchInstanceByAttribute(IdentifierDatabase.getReleaseTable(), "num", "=", currentReleaseNum);
+			System.err.println("IDGenerationCommandline.setCurrentReleaseParams: currentReleaseNum=" + currentReleaseNum);
+			System.err.println("IDGenerationCommandline.setCurrentReleaseParams: IdentifierDatabase.getReleaseTable()=" + IdentifierDatabase.getReleaseTable());
+			System.err.println("IDGenerationCommandline.setCurrentReleaseParams: releases.size()=" + releases.size());
+			if (releases.size() > 0)
+				release = (GKInstance) releases.toArray()[0];
 			else {
 				release = IdentifierDatabase.createBlankRelease();
 				release.setAttributeValue("num", currentReleaseNum);
 				release.setAttributeValue("project", project);
 				release.setAttributeValue("dateTime", currentReleaseDateTime);
 			}
-			
-			if (currentSliceDbParams.dbName!=null && !currentSliceDbParams.dbName.equals("")) {
+		} catch (Exception e) {
+			handleError("Problem setting database parameters for the current release");
+		}
+
+		Driver driver = instanceDatabaseDba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(instanceDatabaseDba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
+			if (currentSliceDbParams.dbName != null && !currentSliceDbParams.dbName.equals("")) {
 //			if (currentSliceDbParams.dbName!=null && !currentSliceDbParams.dbName.equals("") && !orthologyMode) {
 				sliceDbParams = new GKInstance();
 				sliceDbParams.setSchemaClass(instanceDatabaseDba.getSchema().getClassByName("DbParams"));
@@ -486,53 +493,54 @@ public class IDGenerationCommandLine {
 				sliceDbParams.setAttributeValue("host", currentSliceDbParams.hostname);
 				sliceDbParams.setAttributeValue("dbName", currentSliceDbParams.dbName);
 				sliceDbParams.setAttributeValue("port", currentSliceDbParams.port);
-		    	// Replace username and password with NULL in the identifier
-		    	// database, if requested.  This is for security reasons.
-		    	if (nullifyUserAndPassword) {
+				// Replace username and password with NULL in the identifier
+				// database, if requested.  This is for security reasons.
+				if (nullifyUserAndPassword) {
 					sliceDbParams.setAttributeValue("host", "localhost");
 					sliceDbParams.setAttributeValue("user", "NULL");
 					sliceDbParams.setAttributeValue("pwd", "NULL");
-		    	} else {
+				} else {
 					sliceDbParams.setAttributeValue("user", currentSliceDbParams.username);
 					sliceDbParams.setAttributeValue("pwd", currentSliceDbParams.password);
-		    	}
-		    	
-				instanceDatabaseDba.storeInstance(sliceDbParams);
+				}
+
+				instanceDatabaseDba.storeInstance(sliceDbParams, tx);
 				release.setAttributeValue("sliceDbParams", sliceDbParams);
 			}
-			if (currentReleaseDbParams.dbName!=null && !currentReleaseDbParams.dbName.equals("")) {
+			if (currentReleaseDbParams.dbName != null && !currentReleaseDbParams.dbName.equals("")) {
 				releaseDbParams = new GKInstance();
 				releaseDbParams.setSchemaClass(instanceDatabaseDba.getSchema().getClassByName("DbParams"));
 				releaseDbParams.setDbAdaptor(instanceDatabaseDba);
 				releaseDbParams.setAttributeValue("host", currentReleaseDbParams.hostname);
 				releaseDbParams.setAttributeValue("dbName", currentReleaseDbParams.dbName);
 				releaseDbParams.setAttributeValue("port", currentReleaseDbParams.port);
-		    	// Replace username and password with NULL in the identifier
-		    	// database, if requested.  This is for security reasons.
-		    	if (nullifyUserAndPassword) {
-		    		releaseDbParams.setAttributeValue("host", "localhost");
-		    		releaseDbParams.setAttributeValue("user", "NULL");
-		    		releaseDbParams.setAttributeValue("pwd", "NULL");
-		    	} else {
-		    		releaseDbParams.setAttributeValue("user", currentSliceDbParams.username);
-		    		releaseDbParams.setAttributeValue("pwd", currentSliceDbParams.password);
-		    	}
-				
-				instanceDatabaseDba.storeInstance(releaseDbParams);
+				// Replace username and password with NULL in the identifier
+				// database, if requested.  This is for security reasons.
+				if (nullifyUserAndPassword) {
+					releaseDbParams.setAttributeValue("host", "localhost");
+					releaseDbParams.setAttributeValue("user", "NULL");
+					releaseDbParams.setAttributeValue("pwd", "NULL");
+				} else {
+					releaseDbParams.setAttributeValue("user", currentSliceDbParams.username);
+					releaseDbParams.setAttributeValue("pwd", currentSliceDbParams.password);
+				}
+
+				instanceDatabaseDba.storeInstance(releaseDbParams, tx);
 				release.setAttributeValue("releaseDbParams", releaseDbParams);
 			}
-			
+
 			// This stuff has to be inserted into the identifier
 			// database, otherwise the rest of the code fails
 			// These are new instances, so store them.
-			if (releases.size()>0)
-				instanceDatabaseDba.updateInstance(release);
+			if (releases.size() > 0)
+				instanceDatabaseDba.updateInstance(release, tx);
 			else
-				instanceDatabaseDba.storeInstance(release);
+				instanceDatabaseDba.storeInstance(release, tx);
+			tx.commit();
 		} catch (Exception e) {
 			handleError("Problem setting database parameters for the current release");
 		}
-    }
+	}
     
     private void handleError(String text) {
     	System.err.println("IDGenerationCommandLine: " + text);

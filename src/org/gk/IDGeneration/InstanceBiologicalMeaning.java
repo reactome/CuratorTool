@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 

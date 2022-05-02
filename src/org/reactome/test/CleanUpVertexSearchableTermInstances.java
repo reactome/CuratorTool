@@ -12,7 +12,7 @@ import java.util.List;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 
 
@@ -23,8 +23,8 @@ import org.junit.Test;
  */
 public class CleanUpVertexSearchableTermInstances {
     
-    private MySQLAdaptor getMySQLAdaptor() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("brie8.cshl.edu",
+    private Neo4JAdaptor getNeo4JAdaptor() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("brie8.cshl.edu",
                                             "test_gk_central_121108",
                                             "authortool",
                                             "T001test",
@@ -34,7 +34,7 @@ public class CleanUpVertexSearchableTermInstances {
     
     @Test
     public void checkVSTInstances() throws Exception {
-        MySQLAdaptor dba = getMySQLAdaptor();
+        Neo4JAdaptor dba = getNeo4JAdaptor();
         Collection c = dba.fetchInstancesByClass(ReactomeJavaConstants.VertexSearchableTerm);
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         Collections.sort(list, new Comparator<GKInstance>() {

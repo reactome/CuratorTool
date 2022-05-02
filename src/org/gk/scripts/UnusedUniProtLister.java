@@ -20,7 +20,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
@@ -33,7 +33,7 @@ import org.junit.Test;
  *
  */
 public class UnusedUniProtLister {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
 	
     public UnusedUniProtLister() {
     }
@@ -354,10 +354,10 @@ public class UnusedUniProtLister {
     }
     
     private void setDBA() throws Exception {
-         dba = new MySQLAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
+         dba = new Neo4JAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
     }
     
     private void setDBA(String host, String db, String user, String pass) throws Exception {
-        dba = new MySQLAdaptor(host, db, user, pass);
+        dba = new Neo4JAdaptor(host, db, user, pass);
    }
 }

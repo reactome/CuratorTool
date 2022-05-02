@@ -25,7 +25,7 @@ import javax.swing.SwingUtilities;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.util.DialogControlPane;
 
@@ -82,7 +82,7 @@ public class StableIdentifierUpdater implements AttributeEditListener {
         if (stid == null)
             return; // Just in case
         if (stid.isShell()) {
-            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+            Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
             if (dba == null) {
                 JOptionPane.showMessageDialog(parentComp, 
                                               "Your edit may require an update to a released StableIdentifier object: \n" + 

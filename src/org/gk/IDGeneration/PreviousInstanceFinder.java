@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /** 
  * Determines if and how a previous instance should be found
@@ -20,14 +20,14 @@ abstract class PreviousInstanceFinder {
 	protected String currentReleaseNum;
 	protected String previousReleaseNum;
 	protected String projectName;
-	protected MySQLAdaptor previousDba = null;
+	protected Neo4JAdaptor previousDba = null;
 	protected boolean allowIDsFromUnspecifiedReleases;
 	protected IdentifierDatabase identifierDatabase;
 	protected boolean test = false;
 	
 	protected boolean iDsFromUnspecifiedReleases;
 	
-	public PreviousInstanceFinder (String currentReleaseNum, MySQLAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
+	public PreviousInstanceFinder (String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
 		this.currentReleaseNum = currentReleaseNum;
 		this.previousDba = previousDba;
 		this.allowIDsFromUnspecifiedReleases = allowIDsFromUnspecifiedReleases;
@@ -160,7 +160,7 @@ abstract class PreviousInstanceFinder {
 				String dbName = (String)sliceDbParams.getAttributeValue("dbName");
 				if (dbName==null)
 					continue;
-				MySQLAdaptor dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName);
+				Neo4JAdaptor dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName);
 				if (dba==null) {
 					System.err.println("PreviousInstanceFinder.generateIDsFromUnspecifiedReleases: was not able to get DBA for releaseNum=" + releaseNum);
 					continue;

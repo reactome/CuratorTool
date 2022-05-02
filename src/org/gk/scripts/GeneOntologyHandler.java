@@ -14,8 +14,12 @@ import java.util.stream.Stream;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Methods related to GO should be placed here.
@@ -33,16 +37,16 @@ public class GeneOntologyHandler {
             System.out.println("Usage java org.gk.scripts.GeneOntologyHandler dbHost dbName dbUser dbPwd");
             return;
         }
-        MySQLAdaptor dba = new MySQLAdaptor(args[0],
+        Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
                                             args[1],
                                             args[2], 
                                             args[3]);
         GeneOntologyHandler handler = new GeneOntologyHandler();
-//        MySQLAdaptor dba = handler.getDBA();
+//        Neo4JAdaptor dba = handler.getDBA();
         handler.fillSurroundedBySlots(dba);
     }
     
-    public void fillSurroundedBySlots(MySQLAdaptor dba) throws Exception {
+    public void fillSurroundedBySlots(Neo4JAdaptor dba) throws Exception {
         Map<String, Set<String>> idToSurrounedByIds = loadGOSurrounedBy();
         List<GKInstance> toBeUpdated = new ArrayList<>();
         for (String id : idToSurrounedByIds.keySet()) {
@@ -58,36 +62,31 @@ public class GeneOntologyHandler {
             }
             toBeUpdated.add(compartment);
         }
-        try {
-            if (dba.supportsTransactions())
-                dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-                                                                   ScriptUtilities.GUANMING_WU_DB_ID, 
-                                                                   true);
+                    ScriptUtilities.GUANMING_WU_DB_ID,
+                    true, tx);
             for (GKInstance comp : toBeUpdated) {
                 System.out.println("Updating " + comp + "...");
-                dba.updateInstanceAttribute(comp, ReactomeJavaConstants.surroundedBy);
-                ScriptUtilities.addIEToModified(comp, defaultIE, dba);
+                dba.updateInstanceAttribute(comp, ReactomeJavaConstants.surroundedBy, tx);
+                ScriptUtilities.addIEToModified(comp, defaultIE, dba, tx);
             }
-            if (dba.supportsTransactions())
-                dba.commit();
+            tx.commit();
             System.out.println("Total updated: " + toBeUpdated.size());
-        }
-        catch(Exception e) {
-            dba.rollback();
-            throw e;
         }
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_041919",
                                             "root",
                                             "macmysql01");
         return dba;
     }
     
-    private GKInstance fetchInstanceById(String id, MySQLAdaptor dba) throws Exception {
+    private GKInstance fetchInstanceById(String id, Neo4JAdaptor dba) throws Exception {
         if (id.startsWith("GO:")) {
             id = id.substring(3);
         }
@@ -121,7 +120,6 @@ public class GeneOntologyHandler {
     
     /**
      * Generate a network for the surroundedBy relationships that can be viewed in Cytoscape.
-     * @throws IOExeption
      */
     @Test
     public void outputGOSurrounedBy() throws IOException {

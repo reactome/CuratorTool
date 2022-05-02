@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.HyperEdge;
 import org.gk.render.ProcessNode;
 import org.gk.render.Renderable;
@@ -43,7 +43,7 @@ public abstract class DiagramReactionsCheck extends AbstractPathwayDiagramCheck 
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         super.loadAttributes(instances);
         // Need to load all Pathways and its contained Events
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         // To check pathways
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
         SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.representedPathway);

@@ -14,12 +14,16 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This script is to used to sort Regulation into GeneRegulation based on the following criteria:
@@ -30,7 +34,7 @@ import org.junit.Test;
  *
  */
 public class GeneRegulationSorter {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     private String fileName;
     
     /**
@@ -45,7 +49,7 @@ public class GeneRegulationSorter {
      */
     @Test
     public void countGeneRegulations() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_102319",
                                             "root",
                                             "macmysql01");
@@ -88,7 +92,7 @@ public class GeneRegulationSorter {
             System.err.println("Usage java org.gk.scripts.GeneRegulationSorter dbHost dbName dbUser dbPwd outputFileName");
             System.exit(0);
         }
-        MySQLAdaptor dba = new MySQLAdaptor(args[0], 
+        Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
                                             args[1],
                                             args[2],
                                             args[3]);
@@ -102,47 +106,41 @@ public class GeneRegulationSorter {
         this.fileName = fileName;
     }
     
-    public void setDBA(MySQLAdaptor dba) {
+    public void setDBA(Neo4JAdaptor dba) {
         this.dba = dba;
     }
     
-    public MySQLAdaptor getDBA() throws Exception {
+    public Neo4JAdaptor getDBA() throws Exception {
         if (dba != null)
             return dba;
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_063016_new_schema",
                                             "root",
                                             "macmysql01");
         return dba;
     }
-    
+
     public void updateRegulations() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Map<GKInstance, String> regulationToNewType = sort(dba);
         // Update the database
-        boolean needTransaction = dba.supportsTransactions();
-        try {
-            if (needTransaction)
-                dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
             GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-                                                                   defaultPersonId,
-                                                                   true);
+                    defaultPersonId,
+                    true, tx);
             for (GKInstance regulation : regulationToNewType.keySet()) {
-                dba.fastLoadInstanceAttributeValues(regulation);
+                dba.loadInstanceAttributeValues(regulation);
                 String newType = regulationToNewType.get(regulation);
                 SchemaClass newCls = dba.getSchema().getClassByName(newType);
                 regulation.setSchemaClass(newCls);
                 regulation.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                dba.updateInstance(regulation);
+                dba.updateInstance(regulation, tx);
             }
-            if (needTransaction)
-                dba.commit();
+            tx.commit();
             output(regulationToNewType, fileName);
-        }
-        catch(Exception e) {
-            dba.rollback();
-            throw e;
         }
     }
     
@@ -161,7 +159,7 @@ public class GeneRegulationSorter {
         fu.close();
     }
     
-    private Map<GKInstance, String> sort(MySQLAdaptor dba) throws Exception {
+    private Map<GKInstance, String> sort(Neo4JAdaptor dba) throws Exception {
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation).getAttribute(ReactomeJavaConstants.regulatedEntity);
         dba.loadInstanceAttributeValues(regulations, att);

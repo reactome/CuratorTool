@@ -10,7 +10,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 
 /**
@@ -76,7 +76,7 @@ public class EntitySetTypeCheck extends SingleAttributeClassBasedCheck {
     @Override
     protected void loadAttributes(Collection<GKInstance> instances)
             throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         loadEntitySetMembers(instances, dba);
     }
 

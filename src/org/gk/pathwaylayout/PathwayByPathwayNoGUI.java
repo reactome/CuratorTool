@@ -24,7 +24,7 @@ import javax.swing.JPanel;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.jgraph.graph.DefaultEdge;
 import org.jgraph.graph.DefaultGraphCell;
@@ -36,7 +36,7 @@ public class PathwayByPathwayNoGUI extends PathwayByPathway {
 		super();
 	}
 	
-	public PathwayByPathwayNoGUI(MySQLAdaptor dba, GKInstance species, GKInstance pathway) throws Exception {
+	public PathwayByPathwayNoGUI(Neo4JAdaptor dba, GKInstance species, GKInstance pathway) throws Exception {
 		super(dba, species, pathway);
 	}
 

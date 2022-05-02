@@ -21,6 +21,7 @@ import org.junit.Test;
  * @author gwu
  *
  */
+// TODO: To be removed when we move to Neo4J
 public class MySQLBinaryLogAnalyzer {
     
     public MySQLBinaryLogAnalyzer() {

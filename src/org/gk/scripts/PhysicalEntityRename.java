@@ -13,10 +13,14 @@ import java.util.regex.Pattern;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to rename PhysicalEntity instances.
@@ -28,7 +32,7 @@ public class PhysicalEntityRename {
     protected final String DIR_NAME = "resources/rename/";
 //    protected final String DIR_NAME = "";
     private List<String> positionablePrefixes;
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     
     public static void main(String[] args) {
         try {
@@ -37,7 +41,7 @@ public class PhysicalEntityRename {
                 System.err.println("Usage: java org.gk.scripts.PhysicalEntityRename dbHost dbName dbUser dbPwd");
                 System.exit(1);
             }
-            MySQLAdaptor dba = new MySQLAdaptor(args[0], 
+            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
                                                 args[1], 
                                                 args[2], 
                                                 args[3]);
@@ -59,7 +63,7 @@ public class PhysicalEntityRename {
      */
     @Test
     public void checkRenamedEWASesInDb() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Read the logging file to get the list of DB_IDs for renamed EWASes
         String fileName = DIR_NAME + "EWASRename_gk_central_.txt";
         Map<Long, String> dbIdToNewName = loadDbIdToName(fileName);
@@ -223,21 +227,21 @@ public class PhysicalEntityRename {
         positionablePrefixes.add("Me3K-");
     }
     
-    protected MySQLAdaptor getDBA() throws Exception {
+    protected Neo4JAdaptor getDBA() throws Exception {
         if (dba != null)
             return dba;
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
                                             "gk_central_062713",
                                             "root",
                                             "macmysql01");
-//        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca", 
+//        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
 //                                            "gk_central",
 //                                            "authortool",
 //                                            "T001test");
         return dba;
     }
     
-    public void setDBA(MySQLAdaptor dba) {
+    public void setDBA(Neo4JAdaptor dba) {
         this.dba = dba;
     }
     
@@ -275,7 +279,7 @@ public class PhysicalEntityRename {
         System.out.println("Total checked: " + checkingIds.size());
         missedIds.retainAll(checkingIds);
         System.out.println("Missed in checking: " + missedIds.size());
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         for (Long dbId : missedIds) {
             GKInstance inst = dba.fetchInstance(dbId);
             System.out.println(inst);
@@ -335,7 +339,7 @@ public class PhysicalEntityRename {
     /**
      * About 5,000 human EWASes are missed from the first time renaming effor.
      * This method is used to rename those missed EWASes.
-     * @throws Execption
+     * @throws Exception
      */
     @Test
     public void renameMissedEWASes() throws Exception {
@@ -359,7 +363,7 @@ public class PhysicalEntityRename {
 //        for (Long dbId : escapedIds)
 //            System.out.println(dbId);
         // Load all human EWASes in the database
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> ewases = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
                                                                      ReactomeJavaConstants.species,
@@ -457,7 +461,7 @@ public class PhysicalEntityRename {
         System.out.println("Total updated: " + toBeUpdated.size());
     }
 
-    private void preloadAttributes(MySQLAdaptor dba,
+    private void preloadAttributes(Neo4JAdaptor dba,
                                    Collection<GKInstance> ewases)
             throws Exception, InvalidAttributeException {
         // Load some attribtues to be used
@@ -516,7 +520,7 @@ public class PhysicalEntityRename {
     public void checkRenameEWASInstances() throws Exception {
         Set<Long> checkingDbIds = getEWASDBIDsForChecking();
         Map<String, MODMapper> modAccToMapper = loadModMapper();
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // A list of escapes
         List<Long> escapeIds = loadDBIds(DIR_NAME + "exceptions.txt", false);
         new AttributesChecker().extraUniprotToChain();
@@ -910,7 +914,7 @@ public class PhysicalEntityRename {
     @Test
     public void fixEWASNamesInDb() throws Exception {
         String fileName = DIR_NAME + "EWASRename_.txt";
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -946,7 +950,7 @@ public class PhysicalEntityRename {
     public void renameEWASesInDb() throws Exception {
 //        String fileName = DIR_NAME + "EWASRename_050313.txt";
         String fileName = DIR_NAME + "Missed_First_EWASes_.txt";
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -1017,14 +1021,15 @@ public class PhysicalEntityRename {
         fu.close();
         System.out.println("Total updated instances: " + dbIds.size());
         
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // My IE
 //        GKInstance newIE = dba.fetchInstance(2534102L);
         GKInstance newIE = dba.fetchInstance(2537470L);
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SimpleEntity);
         dba.loadInstanceAttributeValues(instances, new String[]{ReactomeJavaConstants.modified});
-        try {
-            dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             int index = 0;
             for (GKInstance inst : instances) {
                 if (dbIds.contains(inst.getDBID()))
@@ -1032,16 +1037,12 @@ public class PhysicalEntityRename {
                 List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
                 if (modified.contains(newIE)) {
                     modified.remove(newIE);
-                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
+                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
                     System.out.println(index + ": " + inst);
                     index ++;
                 }
             }
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
-            throw e;
+            tx.commit();
         }
     }
     
@@ -1070,7 +1071,7 @@ public class PhysicalEntityRename {
         }
         fu.close();
         System.out.println("Total name to short name mappings: " + nameToShort.size());
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SimpleEntity);
         dba.loadInstanceAttributeValues(instances, new String[]{ReactomeJavaConstants.name});
         int totalChanged = 0;

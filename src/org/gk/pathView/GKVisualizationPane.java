@@ -51,7 +51,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
@@ -107,7 +107,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	private GKInstance locationContext;
 	private JLabel contextLabel;
 	private ActionCollection actionCollection;
-	private MySQLAdaptor dba;
+	private Neo4JAdaptor dba;
 	private Schema schema;
 	private boolean ignoreTreeSelectionEvents = false;
 	public static int WIDTH_HEIGHT_RATIO = 6;
@@ -134,7 +134,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	protected boolean isDirty = false;
 	// For data overaly
 	protected JSlider slider = null;
-	// To control browser 
+	// To control browser
 	protected JSplitPane jsp;
 	// To control the selection
 	private TreeSelectionListener treeSelectionListener;
@@ -143,23 +143,23 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	private JToolBar toolbar;
     // To control if the user can save coordinates to the database
     private boolean isWritable = false;
-	
+
 	public GKVisualizationPane() {
 	}
 
-	public GKVisualizationPane(MySQLAdaptor dba) {
+	public GKVisualizationPane(Neo4JAdaptor dba) {
         setDba(dba);
         setSchema(dba.getSchema());
 		init();
 		try {
-            hierarchyPanel.setMySQLAdaptor(dba, true);
+            hierarchyPanel.setNeo4JAdaptor(dba, true);
 			loadEventLocations();
-		} 
+		}
         catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	// Add this method for curator tool
 	public JFrame getFrame() {
 		return frame;
@@ -208,7 +208,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		panel.add(slider, BorderLayout.NORTH);
 		// Default invisible
 		slider.setVisible(false);
-		
+
 		jsp = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panel, hierarchyPanel);
 		jsp.setPreferredSize(new Dimension(800,600));
 		jsp.setDividerLocation(300);
@@ -255,9 +255,9 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				String propName = e.getPropertyName();
 				if (propName.equals("isVisible")) {
 					Boolean newValue = (Boolean) e.getNewValue();
-					if (newValue.booleanValue()) 
+					if (newValue.booleanValue())
 						toolActions.getOverallViewAction().putValue(Action.NAME, "Hide Overall View");
-					else 
+					else
 						toolActions.getOverallViewAction().putValue(Action.NAME, "Show Overall View");
 				}
 				else if (propName.equals("visibleRect")) {
@@ -271,7 +271,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			}
 		});
 	}
-	
+
 	private void synchronizeZoom(final JSlider zoomSlider, final JMenu zoomMenu) {
 		zoomSlider.addChangeListener(new ChangeListener() {
 		    public void stateChanged(ChangeEvent e) {
@@ -302,28 +302,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	private void setInitialDimension() {
-		int max_x = 0;
-		int max_y = 0;
-		try {
-			ResultSet rs = dba.executeQuery("SELECT MAX(sourceX),MAX(sourceY),MAX(targetX),MAX(targetY) FROM " +				                            COORDINATE_CLASS_NAME, null);
-			if (rs != null) {
-				rs.next();
-				int sx = rs.getInt(1);
-				int sy = rs.getInt(2);
-				int tx = rs.getInt(3);
-				int ty = rs.getInt(4);
-				max_x = Math.max(sx, tx);
-				max_y = Math.max(sy, ty);
-				max_x = Math.max(max_x, max_y * WIDTH_HEIGHT_RATIO);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		if ((max_x > 0) && (max_y > 0)) {
-			dimension = new Dimension(max_x, max_y);
-		} else {
-			dimension = new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_WIDTH / WIDTH_HEIGHT_RATIO);
-		}
+		dimension = new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_WIDTH / WIDTH_HEIGHT_RATIO);
 		setPreferredSize(dimension);
 		//System.out.println(dimension);
 	}
@@ -516,7 +495,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 					} else {
 						System.err.println("No ReactionEdge for " + pe);
 					}
-				}	
+				}
 			}
 		}
 	}
@@ -531,18 +510,18 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		return connectionEdge;
 	}
-	
+
 	private void setSelected(GKInstance instance) {
-		
+
 	}
-	
+
 	abstract class AbstractEdge implements IEdge {
 		protected Vertex sourceVertex;
 		protected Vertex targetVertex;
 		protected int preferredLength;
 		public GKInstance instance;
 		protected Color color = null;
-		
+
 		public AbstractEdge() {
 		}
 
@@ -555,14 +534,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		public Vertex getSourceVertex() {
 			return sourceVertex;
 		}
-		
+
 		/**
 		 * @return Target Vertex
 		 */
 		public Vertex getTargetVertex() {
 			return targetVertex;
 		}
-		
+
 		/**
 		 * @param vertex Source Vertex to set
 		 */
@@ -590,16 +569,16 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		public void setPreferredLength(int i) {
 			preferredLength = i;
 		}
-		
+
 		public Dimension getDimension() {
 			return new Dimension(targetVertex.x - sourceVertex.x, targetVertex.y - sourceVertex.y);
 		}
-		
+
 		public double getLength() {
 			Dimension d = getDimension();
 			return Math.sqrt(d.getWidth() * d.getWidth() + d.getHeight() * d.getHeight());
 		}
-		
+
 		public String toString() {
 			StringBuffer buf = new StringBuffer();
 			buf.append(this.getClass().getName());
@@ -624,7 +603,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 
 		protected boolean isFixed = false;
-		
+
 		/**
 		* @return true if edge is fixed; false otherwise
 		*/
@@ -640,19 +619,19 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			getSourceVertex().isFixed = b;
 			getTargetVertex().isFixed = b;
 		}
-		
+
 		public void translate(int x, int y) {
 			sourceVertex.x += x;
 			sourceVertex.y += y;
 			targetVertex.x += x;
 			targetVertex.y += y;
 		}
-		
+
 		public void setTail(int x, int y) {
 			sourceVertex.x = x;
 			sourceVertex.y = y;
 		}
-		
+
 		public void setHead(int x, int y) {
 			targetVertex.x = x;
 			targetVertex.y = y;
@@ -661,28 +640,28 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		protected void finalize() {
 			if (debug) System.out.println("Finalized " + this);
 		}
-		
+
 		public int getTailX() {
 			return sourceVertex.x;
 		}
-		
+
 		public int getTailY() {
 			return sourceVertex.y;
 		}
-		
+
 		public int getHeadX() {
 			return targetVertex.x;
 		}
-		
+
 		public int getHeadY() {
 			return targetVertex.y;
 		}
-		
+
 		public int length() {
 			return (int) Point2D.distance(sourceVertex.x, sourceVertex.y,
 			                              targetVertex.x, targetVertex.y);
 		}
-		
+
 		public Object getUserObject() {
 			return null;
 		}
@@ -693,7 +672,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 
 		private boolean isLoaded = false;
 		private GKInstance coordinatesInstance;
-		
+
 		public ReactionEdge(GKInstance instance) {
 			int sx = 0;
 			int sy = 0;
@@ -705,7 +684,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 					sx = ((Integer) instance.getAttributeValue("sourceX")).intValue();
 					sy = ((Integer) instance.getAttributeValue("sourceY")).intValue();
 					tx = ((Integer) instance.getAttributeValue("targetX")).intValue();
-					ty = ((Integer) instance.getAttributeValue("targetY")).intValue();				
+					ty = ((Integer) instance.getAttributeValue("targetY")).intValue();
 				} else { // Assume it is a Reaction instance
 					setCoordinatesInstance(createCoordinatesInstance(instance));
 				}
@@ -715,16 +694,16 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			}
 			setPreferredLength(REACTION_LENGTH);
 			setSourceVertex(new Vertex(sx,sy,this));
-			setTargetVertex(new Vertex(tx,ty,this));	
+			setTargetVertex(new Vertex(tx,ty,this));
 			newEdges.add(this);
 		}
-		
+
 		public ReactionEdge(GKInstance reaction, int x, int y) {
 			this(reaction);
 			//System.err.println(reaction.toString() + " x=" + x + " y=" + y);
 			setPreferredLength(REACTION_LENGTH);
 			setSourceVertex(new Vertex(x,y,this));
-			setTargetVertex(new Vertex(x, y + REACTION_LENGTH,this));	
+			setTargetVertex(new Vertex(x, y + REACTION_LENGTH,this));
 			newEdges.add(this);
 		}
 
@@ -733,10 +712,10 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			//System.err.println(reaction.toString() + " x=" + x + " y=" + y);
 			setPreferredLength(REACTION_LENGTH);
 			setSourceVertex(new Vertex(sx,sy,this));
-			setTargetVertex(new Vertex(tx,ty,this));	
+			setTargetVertex(new Vertex(tx,ty,this));
 			newEdges.add(this);
 		}
-		
+
 		private GKInstance createCoordinatesInstance(GKInstance reaction) throws InvalidAttributeException, InvalidAttributeValueException {
 			SchemaClass cls = getSchema().getClassByName(COORDINATE_CLASS_NAME);
 			GKInstance el = new GKInstance(cls);
@@ -745,7 +724,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			el.setIsInflated(true);
 			return el;
 		}
-		
+
 		public void disconnect() {
 			getSourceVertex().removeAllConnectionEdges();
 			for (Iterator vi = newVerteces.iterator(); vi.hasNext();) {
@@ -753,7 +732,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				v.disconnectFromReactionEdge(this);
 			}
 		}
-		
+
 		/**
 		 * @return true if ReactionEdge is loaded; false otherwise
 		 */
@@ -796,7 +775,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		public void setCoordinatesInstance(GKInstance instance) {
 			coordinatesInstance = instance;
 		}
-		
+
 		public boolean isPicked(int x, int y) {
 			int distSqr = (int) Line2D.ptSegDistSq(sourceVertex.x, sourceVertex.y,
 			                                       targetVertex.x, targetVertex.y,
@@ -805,11 +784,11 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				return true;
 			return false;
 		}
-		
+
 		public int getType() {
 			return REACTION_EDGE;
 		}
-		
+
 		public Object getUserObject() {
 			return getReactionInstance();
 		}
@@ -828,14 +807,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			setTargetVertex(to.getSourceVertex());
 			newEdges.add(this);
 		}
-		
+
 		public int getType() {
 			return LINK_EDGE;
 		}
 	}
-    
+
 	class Vertex {
-    	
+
 		public double dx;
 		public double dy;
     	public int x;
@@ -844,18 +823,18 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		public boolean inFocus = false;
 		public ReactionEdge reactionEdge = null;
 		private Map connectionEdges = new HashMap();
-    	    	
+
 		public Vertex (int x, int y, ReactionEdge reactionEdge) {
 			this.x = x;
 			this.y = y;
 			this.reactionEdge = reactionEdge;
-			newVerteces.add(this); 
+			newVerteces.add(this);
 		}
-    	
+
 		public Vertex() {
 			this(100,100,null);
 		}
-    	
+
 		public Dimension getDistance(Vertex vertex) {
 			return new Dimension(this.x - vertex.x, this.y - vertex.y);
 		}
@@ -864,7 +843,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 //			this.x += x;
 //			this.y += y;
 //		}
-    	
+
 		public void translate(int x, int y) {
 			int new_x = this.x + x;
 			int new_y = this.y + y;
@@ -879,7 +858,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			this.x = new_x;
 			this.y = new_y;
 		}
-		
+
 		public boolean isPicked(int x, int y) {
 			double distSqr = Point2D.distanceSq(this.x, this.y, x, y);
 			if (distSqr < VERTEX_SENSING_DIST_SQR)
@@ -897,14 +876,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 //				this.y = new_y;
 //			}
 //		}
-		
+
 		public String toString() {
 			StringBuffer buf = new StringBuffer();
 			buf.append(this.getClass().getName());
 			buf.append(" [" + x + "," + y + "]");
 			return buf.toString();
 		}
-		
+
 		/**
 		 * @return Map of Connection Edges
 		 */
@@ -919,30 +898,30 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				connectionEdges.remove(re);
 			}
 		}
-		
+
 		public void removeAllConnectionEdges() {
 			newEdges.removeAll(connectionEdges.values());
 			connectionEdges.clear();
 		}
-		
+
 		public void setX(int x) {
 			this.x = x;
 		}
-		
+
 		public void setY(int y) {
 			this.y = y;
 		}
-		
+
 		public int getX() {
 			return x;
 		}
-		
+
 		public int getY() {
 			return y;
 		}
 
 	}
-    
+
 	class MouseHandler implements MouseMotionListener, MouseListener {
 
 		private Vertex focus;
@@ -951,7 +930,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		private Point prevPoint = new Point();
 		private double focusLength;
 		private boolean isDragging;
-				
+
 		public void mouseDragged(MouseEvent e) {
 			int x = screen2ModelCoordinate(e.getX());
 			int y = screen2ModelCoordinate(e.getY());
@@ -971,7 +950,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				scrollRectToVisible(scrollViewRect);
 				repaint(getVisibleRect());
 				isDirty = true;
-			} 
+			}
 			else {
 				if (isViewBoxDragged) {
 					dimension.width = x;
@@ -1016,7 +995,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 
 		public void mouseClicked(MouseEvent e) {
 		}
-		
+
 		private boolean isForDragging(int x, int y) {
 			if (selected.size() == 0)
 				return false;
@@ -1095,7 +1074,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 					//repaint();
 				}
 			}
-			else 
+			else
 				isDragging = true;
 			if (! e.isShiftDown()) {
 				selected.clear();
@@ -1172,7 +1151,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		public void mouseExited(MouseEvent arg0) {
 			ignoreTreeSelectionEvents = false;
 		}
-		
+
 		/**
 		 * @param edges
 		 * @return true if any coordinates changed.
@@ -1203,7 +1182,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			return true;
 		}
 	}
-    
+
     public Vertex findClosestVertexToPosition(int x, int y) {
     	Vertex closest = null;
 		//double closestDist = Double.MAX_VALUE;
@@ -1224,7 +1203,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
     	return closest;
     }
-    
+
     /**
      * Select a displayed ReactionEdge based on the specified coordinates.
      * @param x X-coordinate of ReactionEdge
@@ -1244,7 +1223,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
     	}
     	return null;
     }
-    
+
     /**
      * Use a Rectangle to select ReactionEdges.
      * @param rect Rectangle boundaries to select edges
@@ -1261,7 +1240,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
     		}
     	}
     }
-    
+
     public void selectAll() {
     	selected.clear();
     	for (Iterator it = edges.iterator(); it.hasNext();) {
@@ -1274,7 +1253,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
     	colorSelected();
     	repaint();
     }
-    
+
     public String getToolTipText(MouseEvent e) {
     	int x = screen2ModelCoordinate(e.getX());
     	int y = screen2ModelCoordinate(e.getY());
@@ -1286,7 +1265,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
     	return null;
     }
-    
+
 	public Vertex findAndColorClosestVertexToPosition(int x, int y, Color c) {
 		Vertex closest = null;
 		double closestDist = Double.MAX_VALUE;
@@ -1306,7 +1285,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	public void translateEdges(Collection edges, int x, int y) {
 		for (Iterator ei = edges.iterator(); ei.hasNext();) {
 			AbstractEdge e = (AbstractEdge) ei.next();
-			if ((e instanceof ReactionEdge) && ! (((ReactionEdge) e).isLoaded)) 
+			if ((e instanceof ReactionEdge) && ! (((ReactionEdge) e).isLoaded))
 				continue;
 			e.translate(x, y);
 		}
@@ -1373,7 +1352,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			showStatus();
 		}
 
-		for (Iterator vi = loadedVerteces.iterator(); vi.hasNext();) {	
+		for (Iterator vi = loadedVerteces.iterator(); vi.hasNext();) {
 			Vertex n1 = (Vertex) vi.next();
 			if (!(n1.inFocus || n1.isFixed)) {
 				n1.translate((int) Math.max(-2, Math.min(2, n1.dx)), (int) Math.max(-2, Math.min(2, n1.dy)));
@@ -1409,11 +1388,11 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		isDirty = true;
 	}
-	
+
 	private void showStatus() {
 		statusLabel.setText("Viewbox: " + dimension.width + " : " + dimension.height);
 	}
-    
+
 	public void viewStuff() {
 		JFrame frame = new JFrame();
 		JPanel panel = new JPanel(new BorderLayout());
@@ -1426,7 +1405,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		frame.pack();
 		frame.setVisible(true);
 	}
-	
+
 	public void zoom(double zoomFactor) {
 	    if (Math.abs(zoomFactor - MAGNIFICATION) < 0.001)
 	        return;
@@ -1434,7 +1413,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	    revalidate();
 	    repaint(getVisibleRect());
 	}
-	
+
 	public Dimension getPreferredSize() {
 		Dimension size = new Dimension(dimension);
 		// Have to make sure all edges are in the view
@@ -1454,7 +1433,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		// Need to use the maxX or maxY
 		if (maxX > size.width || maxY > size.height) {
-			if (maxY * WIDTH_HEIGHT_RATIO > maxX) { // Use maxY as the reference 
+			if (maxY * WIDTH_HEIGHT_RATIO > maxX) { // Use maxY as the reference
 				size.height = maxY;
 				size.width = maxY * WIDTH_HEIGHT_RATIO;
 			}
@@ -1597,7 +1576,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		path.lineTo(realStart.x, realStart.y);
 		return path;
 	}
-	
+
 	protected Shape reactionShape(AbstractEdge edge) {
 		int sx = edge.getSourceVertex().x;
 		int sy = edge.getSourceVertex().y;
@@ -1636,14 +1615,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		for (Iterator i = instance2ReactionEdgeMap.values().iterator(); i.hasNext();) {
 			ReactionEdge e = (ReactionEdge) i.next();
 			e.setFixed(false);
-		}		
+		}
 	}
 
 	protected void fixAll() {
 		for (Iterator i = instance2ReactionEdgeMap.values().iterator(); i.hasNext();) {
 			ReactionEdge e = (ReactionEdge) i.next();
 			e.setFixed(true);
-		}		
+		}
 	}
 
 	protected void releaseSelected() {
@@ -1653,7 +1632,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			if (re != null) {
 				re.setFixed(false);
 			}
-		}		
+		}
 	}
 
 	protected void loadSelected() {
@@ -1670,7 +1649,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			colorSelected();
 			toolActions.initUndoActions(false);
 			repaint();
-		}		
+		}
 	}
 
 	protected void loadSelectedAndConnected() {
@@ -1688,7 +1667,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			colorSelected();
 			toolActions.initUndoActions(false);
 			repaint();
-		}		
+		}
 	}
 
 	protected void unloadReactions() {
@@ -1726,7 +1705,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 					instance2ReactionEdgeMap.remove(e);
 					GKInstance le = re.getCoordinatesInstance();
 					if (le.getDBID() != null) {
-						try {getDba().deleteInstance(le);} catch (Exception e1) {e1.printStackTrace();}
+						try {getDba().txDeleteInstance(le);} catch (Exception e1) {e1.printStackTrace();}
 					}
 				}
 			}
@@ -1742,7 +1721,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			    }
 			}
 			repaint(getVisibleRect());
-		}		
+		}
 	}
 
 	protected void fixedSelected() {
@@ -1752,9 +1731,9 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			if (re != null) {
 				re.setFixed(true);
 			}
-		}		
+		}
 	}
-	
+
 	public void exit() {
 		if (isDirty) {
 			int reply = JOptionPane.showConfirmDialog(this,
@@ -1769,7 +1748,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		System.exit(0);
 	}
-	
+
 	protected void storeLocations() {
         if (!isWritable) {
             JOptionPane.showMessageDialog(this,
@@ -1805,8 +1784,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
             if (!toBeCommitted.isEmpty()) {
                 if (debug)
                     System.out.println("actionPerformed()\n" + toBeCommitted + "\n");
-                //dba.txStoreOrUpdate(toBeCommitted);
-                dba.storeOrUpdate(toBeCommitted);
+                dba.txStoreOrUpdate(toBeCommitted);
                 if (debug)
                     System.out.println("Storing done!");
             }
@@ -1843,8 +1821,8 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	        System.exit(0);
 	    }
 	    try {
-	        MySQLAdaptor dba =
-	            new MySQLAdaptor(prop.getProperty("dbHost"),
+	        Neo4JAdaptor dba =
+	            new Neo4JAdaptor(prop.getProperty("dbHost"),
 	                             prop.getProperty("dbName"),
 	                             prop.getProperty("dbUser"),
 	                             prop.getProperty("dbPwd"),
@@ -1890,16 +1868,16 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 			}
 		}
 	}
-	
+
 	class ActionCollection {
 		private Action setContextAction;
-		
+
 		private GKVisualizationPane app;
-		
+
 		public ActionCollection(GKVisualizationPane app) {
 			this.app = app;
 		}
-		
+
 		public Action getSetContextAction() {
 			if (setContextAction == null) {
 				setContextAction = new AbstractAction("Set as context") {
@@ -1937,76 +1915,26 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	/**
-	 * @return MySQLAdaptor instance
+	 * @return Neo4JAdaptor instance
 	 */
-	public MySQLAdaptor getDba() {
+	public Neo4JAdaptor getDba() {
 		return dba;
 	}
 
 	/**
-	 * @param adaptor MySQLAdaptor instance to set
+	 * @param adaptor Neo4JAdaptor instance to set
 	 */
-	public void setDba(MySQLAdaptor adaptor) {
+	public void setDba(Neo4JAdaptor adaptor) {
 		dba = adaptor;
 	}
 
 	public void loadEventLocations() throws Exception {
-		Collection elc = dba.fetchInstancesByClass(COORDINATE_CLASS_NAME);
-		if (elc != null) {
-//			for (Iterator elci = elc.iterator(); elci.hasNext();) {
-//				GKInstance el = (GKInstance) elci.next();
-//				ReactionEdge re = new ReactionEdge(el);
-//				instance2ReactionEdgeMap.put(re.getReactionInstance(), re);
-//			}
-			loadEventLocations(elc);
-		}
 		newEdges2Edges();
 		newVerteces2Verteces();
 		newEdges.clear();
 		newVerteces.clear();
 	}
-	
-	private void loadEventLocations(Collection elc) throws Exception {
-		// For speedy searching
-		Map nodeMap = new HashMap();
-		GKInstance location = null;
-		for (Iterator it = elc.iterator(); it.hasNext();) {
-			location = (GKInstance) it.next();
-			nodeMap.put(location.getDBID(), location);
-		}
-		Connection conn = dba.getConnection();
-		Statement stat = conn.createStatement();
-		String query = "SELECT DB_ID, locatedEvent, sourceX, sourceY, targetX, targetY FROM " +				       COORDINATE_CLASS_NAME;
-		ResultSet resultSet = stat.executeQuery(query);
-		while (resultSet.next()) {
-			long dbID = resultSet.getLong(1);
-			long reactionID = resultSet.getLong(2);
-			int sourceX = resultSet.getInt(3);
-			int sourceY = resultSet.getInt(4);
-			int targetX = resultSet.getInt(5);
-			int targetY = resultSet.getInt(6);
-			location = (GKInstance) nodeMap.get(new Long(dbID));
-			if (location != null) {
-				location.setAttributeValueNoCheck("sourceX", new Integer(sourceX));
-				location.setAttributeValueNoCheck("sourceY", new Integer(sourceY));
-				location.setAttributeValueNoCheck("targetX", new Integer(targetX));
-				location.setAttributeValueNoCheck("targetY", new Integer(targetY));
-				GKInstance reaction = dba.fetchInstance("Event", new Long(reactionID));
-				if (reaction != null)
-					location.setAttributeValueNoCheck("locatedEvent", reaction);
-                else {
-                    System.out.println("This is empty: " + location.getDBID() + " -> " + reactionID);
-                }
-				ReactionEdge re = new ReactionEdge(location);
-				instance2ReactionEdgeMap.put(re.getReactionInstance(), re);
-			}
-		}
-		resultSet.close();
-		stat.close();
-		// Make sure all loaded reactions are still valid
-		validateLoadedReactions();
-	}
-  
+
   /**
    * Make sure all loaded Reactions are still in the database. The reason why it is needed
    * is that ReactionCoordinate instances are independent on Reactions. This is a limit in
@@ -2095,14 +2023,14 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	public void handleTreeSelection(TreeSelectionEvent tse) {
 		handleTreeSelection(tse, false);
 	}
-	
+
 	/**
 	 * Synchronized the tree selection with graph pane selection.
 	 * @param tse TreeSelectionEvent instance
 	 * @param needValidate true to make sure the correct reaction instances are selected.
 	 */
 	public void handleTreeSelection(TreeSelectionEvent tse, boolean needValidate) {
-		if (ignoreTreeSelectionEvents) 
+		if (ignoreTreeSelectionEvents)
 			return;
 		TreeSelectionModel model = (TreeSelectionModel) tse.getSource();
 		TreePath[] tps = model.getSelectionPaths();
@@ -2124,7 +2052,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 				try {
 					instance2 = dba.fetchInstance(instance1.getSchemClass().getName(), instance1.getDBID());
 					if (instance2 != null)
-						selected.add(instance2); 
+						selected.add(instance2);
 				}
 				catch(Exception e) {
 					System.err.println("GKVisualizationPane.handleTreeSelection(): " + e);
@@ -2138,17 +2066,17 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		colorSelected();
 		repaint();
 	}
-	
+
 	public void clearSelection() {
 		selected.clear();
 		colorSelected();
 		repaint();
 	}
-	
+
 	public VisualizationToolActions getToolActions() {
 		return toolActions;
 	}
-	
+
 	public java.util.List getSelectedEdges() {
 		java.util.List selectedEdges = new ArrayList();
 		for (Iterator si = selected.iterator(); si.hasNext();) {
@@ -2160,7 +2088,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 		}
 		return selectedEdges;
 	}
-  
+
   /**
    * Check if reaction coordinates can be written to the database.
    * @return true if reaction coordinates can be written to the database; false otherwise
@@ -2168,7 +2096,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
   public boolean isCoordinatesWritable() {
     return this.isWritable;
   }
-  
+
   /**
    * Set if reaction coordinates can be written to the database.
    * @param isWritable

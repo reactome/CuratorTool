@@ -14,7 +14,7 @@ import javax.swing.JFileChooser;
 import org.gk.database.FrameManager;
 import org.gk.database.GKDatabaseBrowser;
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * 
@@ -36,7 +36,7 @@ public class EventToGoMapTool implements DBTool {
 		if (reply != JFileChooser.APPROVE_OPTION)
 			return;
 		File file = dialog.getSelectedFile();
-		MySQLAdaptor adaptor = browser.getMySQLAdaptor();
+		Neo4JAdaptor adaptor = browser.getNeo4JAdaptor();
 		try {
 			Collection events = adaptor.fetchInstancesByClass("Event");
 			processEvents(events, file);

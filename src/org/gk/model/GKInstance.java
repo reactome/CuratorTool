@@ -253,7 +253,7 @@ public class GKInstance implements Instance, Cloneable {
 		//System.err.println("public Object getAttributeValueNoCheck(SchemaAttribute attribute)");
 		if (! isAttributeValueLoaded(attribute) && ! isInflated) {
 			try {
-				loadAttributeValues((GKSchemaAttribute) attribute);
+				loadAttributeValues((GKSchemaAttribute) attribute, true);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -280,15 +280,21 @@ public class GKInstance implements Instance, Cloneable {
 	}
 
 
-	/*
-	 * returns attribute values as a List regardless of if 
-	 * it's a single value or a List already.
-	 */
-
 	public List getAttributeValuesList(SchemaAttribute attribute) throws Exception {
+		return getAttributeValuesList(attribute, true);
+	}
+
+	/**
+	 *
+	 * @param attribute
+	 * @param recursive - if false, it doesn't inflate instance attribute instances
+	 * @return returns attribute values as a List regardless or if it's a single value or a List already.
+	 * @throws Exception
+	 */
+	public List getAttributeValuesList(SchemaAttribute attribute, Boolean recursive) throws Exception {
 		((GKSchemaClass) schemaClass).isValidAttributeOrThrow(attribute);
 		if (! isAttributeValueLoaded(attribute) && ! isInflated) {
-			loadAttributeValues((GKSchemaAttribute) attribute);
+			loadAttributeValues((GKSchemaAttribute) attribute, recursive);
             // Mark it if the value is null
             if (!attributes.containsKey(attribute.getName()))
                 attributes.put(attribute.getName(), new ArrayList()); // To avoid returning null
@@ -476,16 +482,13 @@ public class GKInstance implements Instance, Cloneable {
 		setAttributeValueNoCheck("displayName", name);
 	}
 	
-	private void loadAttributeValues(GKSchemaAttribute attribute) throws Exception {
+	private void loadAttributeValues(GKSchemaAttribute attribute, boolean recursive) throws Exception {
 		//System.err.println("private void loadAttributeValues(GKSchemaAttribute attribute)");
 		if (dbAdaptor != null) {
-			dbAdaptor.loadInstanceAttributeValues(this, attribute);
-			// There is a bug in MySQLAdaptor: if null is returned from the database
-			// query. The loading is not marked. So database query will be performed
-			// multiple times!
-			// This is a workaround
+			dbAdaptor.loadInstanceAttributeValues(this, attribute, recursive);
+			// Prevent DB query from running multiple times if null was returned
 			if (!attributes.containsKey(attribute.getName()))
-			    attributes.put(attribute.getName(), new ArrayList()); // Avoid null return
+			    attributes.put(attribute.getName(), new ArrayList());
 		} else {
 			new Exception("No dbAdaptor").printStackTrace();
 		}

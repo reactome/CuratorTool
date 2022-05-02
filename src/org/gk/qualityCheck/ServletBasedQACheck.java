@@ -28,7 +28,7 @@ import javax.swing.table.TableRowSorter;
 import org.gk.database.AttributeEditConfig;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -265,9 +265,9 @@ public class ServletBasedQACheck extends AbstractQualityCheck {
         String key = connectInfo[1];
         if (qaUrl == null)
             qaUrl = AttributeEditConfig.getConfig().getPDUrl();
-        // dataSource should be MySQLAdaptor only
-        String dbName = ((MySQLAdaptor)dataSource).getDBName();
-        String dbHost = ((MySQLAdaptor)dataSource).getDBHost();
+        // dataSource should be Neo4JAdaptor only
+        String dbName = ((Neo4JAdaptor)dataSource).getDBName();
+        String dbHost = ((Neo4JAdaptor)dataSource).getDBHost();
         return qaUrl + "?action=" + actionName + 
                 "&dbHost=" + dbHost + 
                 "&dbName=" + dbName + 

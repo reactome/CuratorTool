@@ -24,7 +24,7 @@ import javax.swing.*;
 
 import org.gk.database.util.DBTool;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.GKApplicationUtilities;
@@ -35,7 +35,7 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class GKDatabaseBrowser extends JFrame {
 	// Connection to the database
-	private MySQLAdaptor dba;
+	private Neo4JAdaptor dba;
 	// GUIs
 	private SchemaViewPane schemaView;
 	// A flag
@@ -57,11 +57,11 @@ public class GKDatabaseBrowser extends JFrame {
 	
 	public GKDatabaseBrowser(String host, String dbName, String port, String user, String pwd) {
 		init();
-		MySQLAdaptor dba = (MySQLAdaptor)PersistenceManager.getManager().getMySQLAdaptor(
+		Neo4JAdaptor dba = (Neo4JAdaptor)PersistenceManager.getManager().getNeo4JAdaptor(
 		                         host, dbName, user, pwd, Integer.parseInt(port));
 		if (dba != null) {
 			try {
-				setMySQLAdaptor(dba);
+				setNeo4JAdaptor(dba);
 				if (dbName != null && host != null)
 					setTitle(dbName + "@" + host + " - Schema View");
 				else
@@ -79,16 +79,16 @@ public class GKDatabaseBrowser extends JFrame {
 		}		
 	}
 	
-	public GKDatabaseBrowser(MySQLAdaptor adaptor) {
+	public GKDatabaseBrowser(Neo4JAdaptor adaptor) {
 		this(adaptor, false, null);
 	}
 
-	public GKDatabaseBrowser(MySQLAdaptor adaptor, boolean useShortMenu, Action dbEventViewAction) {
+	public GKDatabaseBrowser(Neo4JAdaptor adaptor, boolean useShortMenu, Action dbEventViewAction) {
 		this.useShortMenu = useShortMenu;
 		this.dbEventViewAction = dbEventViewAction;
 		init();
 		try {
-			setMySQLAdaptor(adaptor);
+			setNeo4JAdaptor(adaptor);
 			setTitle(adaptor.getDBName() + "@" + adaptor.getDBHost() + " - Schema View");
 		}
 		catch (Exception e) {
@@ -101,16 +101,16 @@ public class GKDatabaseBrowser extends JFrame {
 		}
 	}
 	
-	private void setMySQLAdaptor(MySQLAdaptor adaptor) throws Exception {
+	private void setNeo4JAdaptor(Neo4JAdaptor adaptor) throws Exception {
 		dba = adaptor;
 		schemaView.setPersistenceAdaptor(dba);
 	}
 	
-	public MySQLAdaptor getMySQLAdaptor() {
+	public Neo4JAdaptor getNeo4JAdaptor() {
 		return this.dba;
 	}
 	
-	private void getClassCounters(GKSchemaClass schemaClass, Map counterMap, MySQLAdaptor dba)
+	private void getClassCounters(GKSchemaClass schemaClass, Map counterMap, Neo4JAdaptor dba)
 	             throws Exception {
 		long counter = dba.getClassInstanceCount(schemaClass);
 		counterMap.put(schemaClass, new Long(counter));
@@ -263,7 +263,7 @@ public class GKDatabaseBrowser extends JFrame {
 					FrameManager.getManager().arrangeAll();
 				}
 //				else if (command.equals("eventView")) {
-//					MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(GKDatabaseBrowser.this);
+//					Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(GKDatabaseBrowser.this);
 //					FrameManager.getManager().showEventView(adaptor, useShortMenu, popupType);
 //				}
 				else if (command.equals("refresh")) {
@@ -397,7 +397,7 @@ public class GKDatabaseBrowser extends JFrame {
 			return;
 		}
 		PersistenceManager.getManager().setDBConnectInfo(prop);
-		MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(new JFrame());
+		Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(new JFrame());
 		if (adaptor == null) {
 			JOptionPane.showMessageDialog(null, "Cannot connect to the database.",
 			                              "Error", JOptionPane.ERROR_MESSAGE);

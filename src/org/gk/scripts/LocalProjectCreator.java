@@ -18,12 +18,16 @@ import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Create a local project based on some specification.
@@ -42,31 +46,32 @@ public class LocalProjectCreator {
     @Test
     public void fixModifed() throws Exception {
         // Instances there to be fixed
-        MySQLAdaptor targetDBA = new MySQLAdaptor("",
-                                                  "gk_central",
-                                                  "",
-                                                  "");
+        Neo4JAdaptor targetDBA = new Neo4JAdaptor("",
+                "gk_central",
+                "",
+                "");
         // Instances having correct modified slot values.
-        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
-                                                  "before_cov_manual_updates",
-                                                  "",
-                                                  "");
+        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
+                "before_cov_manual_updates",
+                "",
+                "");
         // List of IEs with which instances should be checked
         Collection<GKInstance> ies = targetDBA.fetchInstanceByAttribute(ReactomeJavaConstants.InstanceEdit,
-                                                                        ReactomeJavaConstants._displayName,
-                                                                        "=",
+                ReactomeJavaConstants._displayName,
+                "=",
                 "Cook, Justin, 2020-08-27");
         System.out.println("Total IEs: " + ies.size());
         // Instances touched
         Collection<GKInstance> touchedInstances = targetDBA.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseObject,
-                                                                                     ReactomeJavaConstants.modified,
-                                                                                     "=", 
-                                                                                     ies);
+                ReactomeJavaConstants.modified,
+                "=",
+                ies);
         System.out.println("Total referred instances: " + touchedInstances.size());
         // Check one by one
-        try {
-            int totalChanged = 0;
-            targetDBA.startTransaction();
+        int totalChanged = 0;
+        Driver driver = targetDBA.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             for (GKInstance inst : touchedInstances) {
                 boolean isChanged = false;
                 System.out.println("Checking " + inst + "...");
@@ -105,15 +110,11 @@ public class LocalProjectCreator {
                 }
                 System.out.println("Update modified by adding: " + originalSize + " -> " + modified.size());
                 inst.setAttributeValue(ReactomeJavaConstants.modified, modified);
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified);
-                totalChanged ++;
+                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                totalChanged++;
             }
-            targetDBA.commit();
+            tx.commit();
             System.out.println("Total changed instance: " + totalChanged);
-        }
-        catch(Exception e) {
-            targetDBA.rollback();
-            e.printStackTrace();
         }
     }
     
@@ -132,7 +133,7 @@ public class LocalProjectCreator {
         Long dbId = 9610379L;
         GKInstance lateEvent = fileAdaptor.fetchInstance(dbId);
         
-        MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+        Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -202,7 +203,7 @@ public class LocalProjectCreator {
         String dirName = "/Users/wug/Documents/wgm/work/reactome/covid-19/";
         String srcFileName = dirName + "Ralf_Project_Fix.rtpj";
         String targetFileName = dirName + "Ralf_Project_Fix_1.rtpj";
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_2020_07_16",
                                             "root",
                                             "macmysql01");
@@ -212,7 +213,7 @@ public class LocalProjectCreator {
         int count = 0;
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveMySQLAdaptor(dba);
+        manager.setActiveNeo4JAdaptor(dba);
         for (Long dbId : ieDbIds) {
             GKInstance ie = fileAdaptor.fetchInstance(dbId);
             Collection<GKInstance> referrers = fileAdaptor.getReferers(ie);
@@ -278,14 +279,14 @@ public class LocalProjectCreator {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         fileAdaptor.setSource(srcFileName, true);
         // The original database used to generate the source project
-        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
                                                   "test_cov_inference",
                                                   "root",
                                                   "macmysql01");
         // Have to make sure all new instances have been fully downloaded.
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveMySQLAdaptor(sourceDBA);
+        manager.setActiveNeo4JAdaptor(sourceDBA);
         while (true) {
             Collection<GKInstance> instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DatabaseObject);
             boolean hasShell = false;
@@ -368,8 +369,8 @@ public class LocalProjectCreator {
         fileAdaptor.save(outFileName);
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -389,11 +390,11 @@ public class LocalProjectCreator {
                                .collect(Collectors.toSet());
         System.out.println("Total ids: " + ids.size());
         
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveMySQLAdaptor(dba);
+        manager.setActiveNeo4JAdaptor(dba);
         
         // We need this species for the filler
         Long dbId = 2671791L; // Human cytomegalovirus
@@ -455,10 +456,10 @@ public class LocalProjectCreator {
     private void createLocalProject(Collection<Long> dbIds,
                                     String fileName) throws Exception {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveMySQLAdaptor(dba);
+        manager.setActiveNeo4JAdaptor(dba);
         dbIds.forEach(dbId -> {
             try {
                 GKInstance dbInst = dba.fetchInstance(dbId);

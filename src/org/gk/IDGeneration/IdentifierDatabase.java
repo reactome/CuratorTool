@@ -4,23 +4,19 @@
 package org.gk.IDGeneration;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidClassException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /** 
  *  This provides an API to the identifier database, allowing
@@ -39,7 +35,7 @@ import org.gk.util.GKApplicationUtilities;
  * @author croft
  */
 public class IdentifierDatabase {
-	private static MySQLAdaptor dba = null; // DBA for identifier database
+	private static Neo4JAdaptor dba = null; // DBA for identifier database
 	private static String releaseTable = null;
 	private static String releaseColumn = null;
 	private Map releaseDbas = null;  // DBAs for release databases (cache)
@@ -82,7 +78,7 @@ public class IdentifierDatabase {
 	 * @return
 	 */
 	public static GKInstance createBlankRelease() {
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		Schema schema = dba.getSchema();
 		
 		// Create a new instance of type Release
@@ -112,7 +108,7 @@ public class IdentifierDatabase {
 	public static GKInstance getState() {
 		GKInstance state = null;
 		
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba==null)
 			return state;
 		
@@ -168,7 +164,7 @@ public class IdentifierDatabase {
 			System.err.println("IdentifierDatabase.getStableIdentifierInstance: no identifierString available!");
 			return null;
 		}
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba==null) {
 			System.err.println("IdentifierDatabase.getStableIdentifierInstance: no dba available!");
 			return null;
@@ -195,7 +191,7 @@ public class IdentifierDatabase {
 					// the State table.
 					updateStateIfNecessary(stableIdentifier);
 
-					dba.storeInstance(stableIdentifier);
+					dba.txStoreInstance(stableIdentifier);
 				}
 			} else {
 				// Assume that there is only a single pre-existing one -
@@ -267,52 +263,54 @@ public class IdentifierDatabase {
 	 */
 	public boolean incrementMostRecentStableIdentifier() {
 		GKInstance state = getState();
-		
-		MySQLAdaptor dba = getDba();
-		if (dba==null)
+
+		Neo4JAdaptor dba = getDba();
+		if (dba == null)
 			return false;
-		
+
 		GKInstance mostRecentStableIdentifier = null;
-		
+
 		// A null value most probably means that the identifier database
 		// has been freshly created, so create a very first
 		// State instance
 		boolean mostRecentStableIdentifierAlreadyExists = false;
-		if (state==null) {
+		if (state == null) {
 			state = new GKInstance();
 			state.setSchemaClass(dba.getSchema().getClassByName("State"));
 			state.setDbAdaptor(dba);
-			
+
 			mostRecentStableIdentifier = new GKInstance();
 			mostRecentStableIdentifier.setSchemaClass(dba.getSchema().getClassByName("StableIdentifier"));
 			mostRecentStableIdentifier.setDbAdaptor(dba);
-			
-			createIdentifierFromNumericalStub(mostRecentStableIdentifier,"0"); // The very first stable ID
-			
-			try {
+
+			createIdentifierFromNumericalStub(mostRecentStableIdentifier, "0"); // The very first stable ID
+
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 				state.setAttributeValue("mostRecentStableIdentifier", mostRecentStableIdentifier);
-				
-				dba.storeInstance(mostRecentStableIdentifier);
-				dba.storeInstance(state);
+				dba.storeInstance(mostRecentStableIdentifier, tx);
+				dba.storeInstance(state, tx);
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IdentifierDatabase.incrementMostRecentStableIdentifier: not able to create State");
 				e.printStackTrace();
 				return false;
 			}
-			
+
 			mostRecentStableIdentifierAlreadyExists = true;
 		}
-		
+
 		// Pull mostRecentStableIdentifier from State instance, increment its
 		// stable ID, insert a new mostRecentStableIdentifier containing the
 		// incrementedstable ID.
 		int stableIdentifierInt = (-1); // This value should never be used
 		try {
 			if (!mostRecentStableIdentifierAlreadyExists) {
-				mostRecentStableIdentifier = (GKInstance)state.getAttributeValue("mostRecentStableIdentifier");
+				mostRecentStableIdentifier = (GKInstance) state.getAttributeValue("mostRecentStableIdentifier");
 //				dba.loadInstanceAttributeValues(mostRecentStableIdentifier); // TODO: we really only need numericalStub
 			}
-			if (mostRecentStableIdentifier==null) {
+			if (mostRecentStableIdentifier == null) {
 				System.err.println("IdentifierDatabase.incrementMostRecentStableIdentifier: stableIdentifierInstanceis null!!");
 				return false;
 			} else {
@@ -325,13 +323,13 @@ public class IdentifierDatabase {
 						stableIdentifierInt = ((Integer) value).intValue();
 						stableIdentifierInt++;
 					} catch (NumberFormatException e) {
-						System.err.println("IdentifierDatabase.incrementMostRecentStableIdentifier: testStableIdentifier has a strange format, should be an integer but is: "+ value);
+						System.err.println("IdentifierDatabase.incrementMostRecentStableIdentifier: testStableIdentifier has a strange format, should be an integer but is: " + value);
 						e.printStackTrace();
 						return false;
 					}
 				}
 			}
-			
+
 			// Create a new StableIdentifier instance containing the
 			// updated stableIdentifier and stash it in the database.
 			mostRecentStableIdentifier = new GKInstance();
@@ -339,30 +337,29 @@ public class IdentifierDatabase {
 			mostRecentStableIdentifier.setDbAdaptor(dba);
 			createIdentifierFromNumericalStub(mostRecentStableIdentifier, (new Integer(stableIdentifierInt)).toString());
 			mostRecentStableIdentifier.setAttributeValue("dateTime", GKApplicationUtilities.getDateTime());
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
+				dba.storeInstance(mostRecentStableIdentifier, tx);
 
-			dba.storeInstance(mostRecentStableIdentifier);
-			
-			// Overwrite the existing StableIdentifier instance with
-			// the new one in the "most recent" instance.
-			state.setAttributeValue("mostRecentStableIdentifier", mostRecentStableIdentifier);
+				// Overwrite the existing StableIdentifier instance with
+				// the new one in the "most recent" instance.
+				state.setAttributeValue("mostRecentStableIdentifier", mostRecentStableIdentifier);
 
-			// Save the change to the DB
-			dba.updateInstanceAttribute(state, "mostRecentStableIdentifier");
+				// Save the change to the DB
+				dba.updateInstanceAttribute(state, "mostRecentStableIdentifier", tx);
+				tx.commit();
 //			dba.updateInstance(state);
-			
-			
-			
-			
-			
+			}
+
 			// This is here as a test only
 			state = getState();
-			mostRecentStableIdentifier = (GKInstance)state.getAttributeValue("mostRecentStableIdentifier");
+			mostRecentStableIdentifier = (GKInstance) state.getAttributeValue("mostRecentStableIdentifier");
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.incrementMostRecentStableIdentifier: problem getting mostRecentStableIdentifier");
 			e.printStackTrace();
 			return false;
 		}
-		
 		return true;
 	}
 	
@@ -384,7 +381,7 @@ public class IdentifierDatabase {
 	 *  Returns a list of instances of the given class from the given database.
 	 *  Wraps fetchInstancesByClass to fix a little bug.
 	 */
-	public static List<GKInstance> getInstances(String instanceClass, MySQLAdaptor dba) {
+	public static List<GKInstance> getInstances(String instanceClass, Neo4JAdaptor dba) {
 		List<GKInstance> instances = new ArrayList<GKInstance>();
 		
 		if (dba==null)
@@ -444,7 +441,7 @@ public class IdentifierDatabase {
 	 *  If a problem arises during this method, or no StableIdentifier
 	 *  instances were present, null will be returned.
 	 */
-	public static GKInstance getMaxReleaseStableIdentifier(MySQLAdaptor releaseDba) {
+	public static GKInstance getMaxReleaseStableIdentifier(Neo4JAdaptor releaseDba) {
 		List stableIdentifiers = getInstances("StableIdentifier", releaseDba);
 		GKInstance stableIdentifier;
 		GKInstance maxStableIdentifier = null;
@@ -502,7 +499,7 @@ public class IdentifierDatabase {
 	 * release.
 	 * @param releaseDba
 	 */
-	public static void sanitizeMostRecentStableIdentifierFromState(MySQLAdaptor releaseDba) {
+	public static void sanitizeMostRecentStableIdentifierFromState(Neo4JAdaptor releaseDba) {
 		sanitizeMostRecentStableIdentifierFromState();
 		
 		GKInstance maxStableIdentifier = getMaxReleaseStableIdentifier(releaseDba);
@@ -546,7 +543,7 @@ public class IdentifierDatabase {
 	 * hierarchy of instances under it to reflect the new version number.
 	 * 
 	 * @param stableIdentifier - a StableIdentifier instance from an identifier database
-	 * @param stableVersionString
+	 * @param stableIdentifierVersionString
 	 * @param currentReleaseNum
 	 * @param currentProjectName
 	 * @param testMode - if true, nothing will be inserted into database
@@ -576,7 +573,7 @@ public class IdentifierDatabase {
 	
 	/**
 	 * Inserts test result into the database, storing by release number.
-	 * @param releaseNum
+	 * @param release
 	 * @param test
 	 */
 	public void insertTest(GKInstance release, IDGeneratorTest test) {
@@ -586,7 +583,7 @@ public class IdentifierDatabase {
 		List dbIds = test.getDbIds();
 		
         try {
-    		MySQLAdaptor dba = getDba();
+    		Neo4JAdaptor dba = getDba();
 
         	List testResults = release.getAttributeValuesList("testResults");
         	GKInstance testResult = null;
@@ -621,12 +618,12 @@ public class IdentifierDatabase {
         	
         	// Now store the information
         	if (testAlreadyExists) {
-        		dba.updateInstanceAttribute(testResult, "testName");
-        		dba.updateInstanceAttribute(testResult, "instanceCount");
-        		dba.updateInstanceAttribute(testResult, "curatorCount");
-        		dba.updateInstanceAttribute(testResult, "instanceDB_IDs");
+        		dba.txUpdateInstanceAttribute(testResult, "testName");
+        		dba.txUpdateInstanceAttribute(testResult, "instanceCount");
+        		dba.txUpdateInstanceAttribute(testResult, "curatorCount");
+        		dba.txUpdateInstanceAttribute(testResult, "instanceDB_IDs");
         	} else
-        		dba.storeInstance(testResult);
+        		dba.txStoreInstance(testResult);
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.insertTest: WARNING - problem getting test results from release");
 			e.printStackTrace();
@@ -636,7 +633,8 @@ public class IdentifierDatabase {
 	/**
 	 * Inserts test results into the database, storing by release number.
 	 * @param releaseNum
-	 * @param tests
+	 * @param projectName
+	 * @param maxDbId
 	 */
 	public void insertMaxDbId(String releaseNum, String projectName, long maxDbId) {
 		if (releaseNum==null || releaseNum.equals("")) {
@@ -656,7 +654,7 @@ public class IdentifierDatabase {
 	
         try {
 			release.setAttributeValue("maxDB_ID", new Integer((new Long(maxDbId)).intValue()));
-			dba.updateInstanceAttribute(release, "maxDB_ID");
+			dba.txUpdateInstanceAttribute(release, "maxDB_ID");
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.insertMaxDbId: WARNING - problem inserting max DB_ID into release corresponding to releaseNum=" + releaseNum);
 			e.printStackTrace();
@@ -832,7 +830,7 @@ public class IdentifierDatabase {
 	 * hierarchy of instances under it to reflect the new version number.
 	 * 
 	 * @param stableIdentifier - a StableIdentifier instance from an identifier database
-	 * @param stableVersionString
+	 * @param stableIdentifierVersionString
 	 * @param currentReleaseNum
 	 * @param testMode - if true, nothing will be inserted into database
 	 * @param instanceBiologicalMeaning - contains info about changes in current instance
@@ -843,9 +841,11 @@ public class IdentifierDatabase {
         	return;
 		}
 		
-		try {
-			MySQLAdaptor dba = getDba();
-
+		//try {
+			Neo4JAdaptor dba = getDba();
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 			// We successfully inserted a new StableIdentifier instance,
 			// meaning that there was a corresponding instance in the
 			// release database, so the doNotRelease flag must have
@@ -853,7 +853,7 @@ public class IdentifierDatabase {
 			// identifier database too.
 			stableIdentifier.setAttributeValue("doNotRelease", null);
 			if (!testMode)
-				dba.updateInstanceAttribute(stableIdentifier, "doNotRelease");
+				dba.updateInstanceAttribute(stableIdentifier, "doNotRelease", tx);
 
 			GKInstance stableIdentifierVersion = getStableIdentifierVersion(stableIdentifier, stableIdentifierVersionString);
 			GKInstance release = getReleaseInstance(currentReleaseNum, currentProjectName);
@@ -868,7 +868,8 @@ public class IdentifierDatabase {
             List query = new ArrayList();
             query.add(dba.createAttributeQueryRequest("ReleaseId", getReleaseColumn(), "=", release));
             query.add(dba.createAttributeQueryRequest("ReleaseId", "instanceDB_ID", "=", DB_ID));
-            Set releaseIds = dba.fetchInstance(query);
+            Set releaseIds = new HashSet();
+			releaseIds.addAll(dba.fetchInstance(query));
             GKInstance releaseId;
             if (releaseIds==null || releaseIds.size()==0) {
             	releaseId = new GKInstance();
@@ -900,7 +901,7 @@ public class IdentifierDatabase {
 				// and update db
 				stableIdentifier.addAttributeValue("stableIdentifierVersion", stableIdentifierVersion);
 				if (!testMode)
-					dba.updateInstanceAttribute(stableIdentifier, "stableIdentifierVersion");
+					dba.updateInstanceAttribute(stableIdentifier, "stableIdentifierVersion", tx);
 			} else {
 				stableIdentifierVersion.getAttributeValue("releaseIds"); // make sure this is instantiated!
 				
@@ -927,7 +928,7 @@ public class IdentifierDatabase {
 					// adding it.
 					stableIdentifierVersion.addAttributeValue("releaseIds", releaseId);
 		        	if (!testMode)
-		        		dba.updateInstanceAttribute(stableIdentifierVersion, "releaseIds");
+		        		dba.updateInstanceAttribute(stableIdentifierVersion, "releaseIds", tx);
 				}
         	}
 			
@@ -939,27 +940,28 @@ public class IdentifierDatabase {
 				if (newSchemaClassName!=null) {
 					stableIdentifierVersion.setAttributeValue("newSchemaClassName", newSchemaClassName);
 		        	if (!testMode)
-		        		dba.updateInstanceAttribute(stableIdentifierVersion, "newSchemaClassName");
+		        		dba.updateInstanceAttribute(stableIdentifierVersion, "newSchemaClassName", tx);
 				}
 				List deletedAttributesWithContent = instanceBiologicalMeaning.getDeletedAttributesWithContent();
 				if (deletedAttributesWithContent!=null && deletedAttributesWithContent.size()>0) {
 					stableIdentifierVersion.setAttributeValue("deletedAttributesWithContent", deletedAttributesWithContent);
 		        	if (!testMode)
-		        		dba.updateInstanceAttribute(stableIdentifierVersion, "deletedAttributesWithContent");
+		        		dba.updateInstanceAttribute(stableIdentifierVersion, "deletedAttributesWithContent", tx);
 				}
 				List addedAttributesWithContent = instanceBiologicalMeaning.getAddedAttributesWithContent();
 				if (addedAttributesWithContent!=null && addedAttributesWithContent.size()>0) {
 					stableIdentifierVersion.setAttributeValue("addedAttributesWithContent", addedAttributesWithContent);
 		        	if (!testMode)
-		        		dba.updateInstanceAttribute(stableIdentifierVersion, "addedAttributesWithContent");
+		        		dba.updateInstanceAttribute(stableIdentifierVersion, "addedAttributesWithContent", tx);
 				}
 				List changedAttributes = instanceBiologicalMeaning.getChangedAttributes();
 				if (changedAttributes!=null && changedAttributes.size()>0) {
 					stableIdentifierVersion.setAttributeValue("changedAttributes", changedAttributes);
 		        	if (!testMode)
-		        		dba.updateInstanceAttribute(stableIdentifierVersion, "changedAttributes");
+		        		dba.updateInstanceAttribute(stableIdentifierVersion, "changedAttributes", tx);
 				}
 			}
+			tx.commit();
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.insertNewVersion: could not get stableIdentifierVersion");
 			e.printStackTrace();
@@ -978,17 +980,17 @@ public class IdentifierDatabase {
 	// TODO: this needs some attention - most of the command line args don't do anything.
 	public void deleteVersion(GKInstance stableIdentifier, String stableIdentifierVersionString, String currentReleaseNum, String currentProjectName, Long DB_ID) {
 		try {
-			MySQLAdaptor dba = getDba();
+			Neo4JAdaptor dba = getDba();
 			
 			// Retrieve the current release instance
             List query = new ArrayList();
 			List projectSubquery = new ArrayList();
 			projectSubquery.add(dba.createAttributeQueryRequest("Project","name","=",currentProjectName));
-			Set projects = dba.fetchInstance(projectSubquery);
+			Set projects = new HashSet(dba.fetchInstance(projectSubquery));
 //			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projectSubquery));
 			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projects));
             query.add(dba.createAttributeQueryRequest(getReleaseTable(), "num", "=", currentReleaseNum));
-            Set releases = dba.fetchInstance(query);
+			Set releases = new HashSet(dba.fetchInstance(query));
             GKInstance release = null;
             if (releases==null || releases.size()==0) {
             	System.err.println("IdentifierDatabase.deleteVersion: could not find a release instance for release num: " + currentReleaseNum);
@@ -1125,20 +1127,24 @@ public class IdentifierDatabase {
 	 *  instance does not yet exist.
 	 */
 	public void storeRelease(GKInstance release) {
-		MySQLAdaptor dba = getDba(); // instance database adaptor
-		if (dba!=null)
-			try {
+		Neo4JAdaptor dba = getDba(); // instance database adaptor
+		if (dba != null) {
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 				// Store the actual release
-				dba.storeInstance(release);
-				
+				dba.storeInstance(release, tx);
+
 				// Store the database access info too
-				GKInstance dbParams = (GKInstance)release.getAttributeValue(dbParamsAttribute);
-				if (dbParams!=null)
-					dba.storeInstance(dbParams);
+				GKInstance dbParams = (GKInstance) release.getAttributeValue(dbParamsAttribute);
+				if (dbParams != null)
+					dba.storeInstance(dbParams, tx);
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IdentifierDatabase.storeRelease: something went wrong when trying to get Release instances");
 				e.printStackTrace();
 			}
+		}
 	}
 	
 	/** 
@@ -1147,9 +1153,11 @@ public class IdentifierDatabase {
 	 *  instance already exists.
 	 */
 	public static void updateRelease(GKInstance release) {
-		MySQLAdaptor dba = getDba(); // instance database adaptor
-		if (dba!=null)
-			try {
+		Neo4JAdaptor dba = getDba(); // instance database adaptor
+		if (dba!=null) {
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 //				// Update the database access info too
 //				GKInstance dbParams = (GKInstance)release.getAttributeValue(dbParamsAttribute);
 //				if (dbParams!=null) {
@@ -1159,16 +1167,18 @@ public class IdentifierDatabase {
 //					else
 //						dba.updateInstance(dbParams); // TODO: could be dangerous, keep an eye on it!
 //				}
-				
+
 				// Explicitly update the attributes that may have changed
-				dba.updateInstanceAttribute(release, "num");
-				dba.updateInstanceAttribute(release, "dateTime");
-				dba.updateInstanceAttribute(release, "sliceDbParams");
-				dba.updateInstanceAttribute(release, "releaseDbParams");
+				dba.updateInstanceAttribute(release, "num", tx);
+				dba.updateInstanceAttribute(release, "dateTime", tx);
+				dba.updateInstanceAttribute(release, "sliceDbParams", tx);
+				dba.updateInstanceAttribute(release, "releaseDbParams", tx);
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IdentifierDatabase.updateRelease: something went wrong when trying to get Release instances");
 				e.printStackTrace();
 			}
+		}
 	}
 	
 	/** 
@@ -1190,7 +1200,7 @@ public class IdentifierDatabase {
 		if (release==null)
 			return;
 		
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba==null)
 			return;
 		
@@ -1213,7 +1223,7 @@ public class IdentifierDatabase {
 		if (releaseId==null)
 			return;
 		
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba==null)
 			return;
 		
@@ -1236,7 +1246,7 @@ public class IdentifierDatabase {
 		if (stableIdentifierVersion==null)
 			return;
 		
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba==null)
 			return;
 		
@@ -1271,19 +1281,19 @@ public class IdentifierDatabase {
 	 * should only be zero or one instance in the returned Set.
 	 */
 	public static Set getStableIdentifiersFromReleaseDB_ID(String releaseNum, String projectName, Long DB_ID) {
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 	    
 		Set stableIdentifiers = null;
 		String stableIdentifierClass = "StableIdentifier";
 		try {
 			// Build a nested query the Java way.
-			MySQLAdaptor.QueryRequestList projectSubquery = dba.new QueryRequestList();
-			MySQLAdaptor.QueryRequestList releaseSubquery = dba.new QueryRequestList();
-			MySQLAdaptor.QueryRequestList releaseIdsSubquery = dba.new QueryRequestList();
-			MySQLAdaptor.QueryRequestList stableIdentifierVersionSubquery = dba.new QueryRequestList();
+			Neo4JAdaptor.QueryRequestList projectSubquery = dba.new QueryRequestList();
+			Neo4JAdaptor.QueryRequestList releaseSubquery = dba.new QueryRequestList();
+			Neo4JAdaptor.QueryRequestList releaseIdsSubquery = dba.new QueryRequestList();
+			Neo4JAdaptor.QueryRequestList stableIdentifierVersionSubquery = dba.new QueryRequestList();
 
 			projectSubquery.add(dba.createAttributeQueryRequest("Project","name","=",projectName));
-			Set projects = dba.fetchInstance(projectSubquery);
+			Set projects = new HashSet(dba.fetchInstance(projectSubquery));
 			releaseSubquery.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projects));
 			releaseSubquery.add(dba.createAttributeQueryRequest(getReleaseTable(),"num","=",releaseNum));
 			releaseIdsSubquery.add(dba.createAttributeQueryRequest("ReleaseId",getReleaseColumn(),"=",releaseSubquery));
@@ -1293,7 +1303,8 @@ public class IdentifierDatabase {
 			List query = new ArrayList();
 			query.add(dba.createAttributeQueryRequest(stableIdentifierClass,"stableIdentifierVersion","=",stableIdentifierVersionSubquery));
 
-			stableIdentifiers = dba.fetchInstance(query);
+			stableIdentifiers = new HashSet();
+			stableIdentifiers.addAll(dba.fetchInstance(query));
 		} catch (InvalidClassException e) {
 			System.err.println("IdentifierDatabase.getStableIdentifierFromReleaseDB_ID: invalid class " + stableIdentifierClass + "!");
 			e.printStackTrace();
@@ -1317,7 +1328,7 @@ public class IdentifierDatabase {
 	 * @return
 	 */
 	public static GKInstance getReleaseInstance(String releaseNum, String projectName) {
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 
 		// Retrieve the current Release instance matching
 		// currentReleaseNum.
@@ -1326,11 +1337,11 @@ public class IdentifierDatabase {
 			List query = new ArrayList();
 			List projectSubquery = new ArrayList();
 			projectSubquery.add(dba.createAttributeQueryRequest("Project","name","=",projectName));
-			Set projects = dba.fetchInstance(projectSubquery);
+			Set projects = new HashSet(dba.fetchInstance(projectSubquery));
 //			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projectSubquery));
 			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projects));
 			query.add(dba.createAttributeQueryRequest(getReleaseTable(), "num", "=", releaseNum));
-			Set releases = dba.fetchInstance(query);
+			Set releases = new HashSet(dba.fetchInstance(query));
 			if (releases!=null && releases.size()>0)
 				release = (GKInstance)releases.toArray()[0];
 		} catch (Exception e) {
@@ -1345,7 +1356,7 @@ public class IdentifierDatabase {
 	 * Given a release database name, get the first matching release
 	 * instance from the database.
 	 * 
-	 * @param releaseNumber
+	 * @param dbName
 	 * @return
 	 */
 	public GKInstance getReleaseInstanceFromDbName(String dbName) {
@@ -1422,7 +1433,7 @@ public class IdentifierDatabase {
 	 * @param releaseNumber
 	 * @return
 	 */
-	public String getReleaseNumFromReleaseDba(MySQLAdaptor releaseDba) {
+	public String getReleaseNumFromReleaseDba(Neo4JAdaptor releaseDba) {
 		String releaseNum = null;
 		
 		if (releaseDba==null)
@@ -1443,7 +1454,7 @@ public class IdentifierDatabase {
 	 * @param releaseNumber
 	 * @return
 	 */
-	public String getProjectNameFromReleaseDba(MySQLAdaptor releaseDba) {
+	public String getProjectNameFromReleaseDba(Neo4JAdaptor releaseDba) {
 		String projectName = null;
 		
 		if (releaseDba==null)
@@ -1464,7 +1475,7 @@ public class IdentifierDatabase {
 	 * @param releaseNumber
 	 * @return
 	 */
-	public MySQLAdaptor getReleaseDbaFromDbParams(GKInstance dbParams) {
+	public Neo4JAdaptor getReleaseDbaFromDbParams(GKInstance dbParams) {
 		return(getReleaseDbaFromDbParams(dbParams, null, null));
 	}
 	
@@ -1475,8 +1486,8 @@ public class IdentifierDatabase {
 	 * @param releaseNumber
 	 * @return
 	 */
-	public MySQLAdaptor getReleaseDbaFromDbParams(GKInstance dbParams, String username, String password) {
-		MySQLAdaptor dba = null;
+	public Neo4JAdaptor getReleaseDbaFromDbParams(GKInstance dbParams, String username, String password) {
+		Neo4JAdaptor dba = null;
 		String hostname = null;
 		String dbName = null;
 		String port = null;
@@ -1518,14 +1529,14 @@ public class IdentifierDatabase {
 			releaseDbas = new HashMap();
 		
 		// Use cached DBA, if available
-		dba = (MySQLAdaptor)releaseDbas.get(key);
+		dba = (Neo4JAdaptor)releaseDbas.get(key);
 		if (dba==null) {
 			try {
 				Integer integerPort = null;
 				if (port == null || port.equals(""))
-					dba = new MySQLAdaptor(hostname, dbName, username, password);
+					dba = new Neo4JAdaptor(hostname, dbName, username, password);
 				else
-					dba = new MySQLAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
+					dba = new Neo4JAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
 				if (dba == null)
 					System.err.println("IdentifierDatabase.getReleaseDbaFromDbParams: dba == null for database name: " + dbName);
 				else
@@ -1533,9 +1544,6 @@ public class IdentifierDatabase {
 			} catch (NumberFormatException e) {
 				System.err.println("IdentifierDatabase.getReleaseDbaFromDbParams: port number " + port + "is strange for database name: " + dbName);
 				e.printStackTrace();
-			} catch (SQLException e1) {
-				System.err.println("IdentifierDatabase.getReleaseDbaFromDbParams: something went wrong with mysql for database name: " + dbName);
-				e1.printStackTrace();
 			} catch (Exception e2) {
 				System.err.println("IdentifierDatabase.getReleaseDbaFromDbParams: unknown problem with dbName=" + dbName + ", username=" + username + ", password=" + password + ", port=" + port);
 				e2.printStackTrace();
@@ -1554,8 +1562,8 @@ public class IdentifierDatabase {
 	 * @param releaseNumber
 	 * @return
 	 */
-	public MySQLAdaptor getReleaseDbaFromReleaseNum(String releaseNum, String projectName) {
-		MySQLAdaptor dba = null;
+	public Neo4JAdaptor getReleaseDbaFromReleaseNum(String releaseNum, String projectName) {
+		Neo4JAdaptor dba = null;
 		
 		if (releaseNum==null) {
 			System.err.println("IdentifierDatabase.getReleaseDbaFromReleaseNum: WARNING - releaseNum is null");
@@ -1575,7 +1583,7 @@ public class IdentifierDatabase {
 		if (o==IDERROR) {
 			return null;
 		} else if (o!=null)
-			return (MySQLAdaptor)o;
+			return (Neo4JAdaptor)o;
 		
 		GKInstance release = IdentifierDatabase.getReleaseInstance(releaseNum, projectName);
 		
@@ -1632,10 +1640,10 @@ public class IdentifierDatabase {
 		if (instance==null)
 			return;
 		
-		MySQLAdaptor dba = getDba();
+		Neo4JAdaptor dba = getDba();
 		if (dba!=null)
 			try {
-				dba.deleteInstance(instance);
+				dba.txDeleteInstance(instance);
 			} catch (Exception e) {
 				System.err.println("IdentifierDatabase.deleteInstance: something went wrong when trying to get Release instances");
 				e.printStackTrace();
@@ -1647,7 +1655,7 @@ public class IdentifierDatabase {
 	 * 
 	 * @return
 	 */
-	public static void setDba(MySQLAdaptor dba) {
+	public static void setDba(Neo4JAdaptor dba) {
 		if (dba != null) {
 			// 'Release' bacame a reserved word as of MySQL 5, so
 			// the name of this attribute got changed to 'ReactomeRelease'.
@@ -1700,7 +1708,7 @@ public class IdentifierDatabase {
 	 * 
 	 * @return
 	 */
-	public static MySQLAdaptor getDba() {
+	public static Neo4JAdaptor getDba() {
 		return dba;
 	}
 	
@@ -1735,10 +1743,11 @@ public class IdentifierDatabase {
 	public static void copySliceToReleaseDbParams(GKInstance release) {
 		if (release==null)
 			return;
-		
-        try {
-    		MySQLAdaptor dba = getDba();
 
+    		Neo4JAdaptor dba = getDba();
+			Driver driver = dba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
     		GKInstance sliceDbParams = (GKInstance)release.getAttributeValue("sliceDbParams");
     		// Nothing to copy
     		if (sliceDbParams==null)
@@ -1767,14 +1776,15 @@ public class IdentifierDatabase {
         	
         	// Now store the information
         	if (releaseDbParamsAlreadyExists) {
-        		dba.updateInstanceAttribute(releaseDbParams, "dbName");
-        		dba.updateInstanceAttribute(releaseDbParams, "host");
-        		dba.updateInstanceAttribute(releaseDbParams, "port");
-        		dba.updateInstanceAttribute(releaseDbParams, "user");
-        		dba.updateInstanceAttribute(releaseDbParams, "pwd");
+        		dba.updateInstanceAttribute(releaseDbParams, "dbName", tx);
+        		dba.updateInstanceAttribute(releaseDbParams, "host", tx);
+        		dba.updateInstanceAttribute(releaseDbParams, "port", tx);
+        		dba.updateInstanceAttribute(releaseDbParams, "user", tx);
+        		dba.updateInstanceAttribute(releaseDbParams, "pwd", tx);
         	} else
-        		dba.storeInstance(releaseDbParams);
-    		dba.updateInstanceAttribute(release, "releaseDbParams");
+        		dba.storeInstance(releaseDbParams, tx);
+    		dba.updateInstanceAttribute(release, "releaseDbParams", tx);
+			tx.commit();
 		} catch (Exception e) {
 			System.err.println("IdentifierDatabase.copySliceToReleaseDbParams: WARNING - problem getting test results from release");
 			e.printStackTrace();

@@ -18,7 +18,7 @@ import javax.swing.SwingUtilities;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.reach.model.fries.FriesObject;
 import org.gk.reach.model.graphql.GraphQLObject;
@@ -70,7 +70,7 @@ public class ReachGraphQLSearch {
 	 * @throws Exception
 	 */
 	private List<GKInstance> switchToDBInstance(List<GKInstance> localInsts, JComponent parentComponent) throws Exception {
-	    MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComponent);
+	    Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComponent);
 	    if (dba == null)
 	        return null; // Error in connecting or cancelled
 	    List<GKInstance> dbInsts = new ArrayList<>(localInsts.size());

@@ -25,7 +25,7 @@ import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
@@ -129,7 +129,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         escapeInstances(instances);
         if (instances.size() == 0) // Check instances after escape QAs
             return; // Nothing to be checked 
-        if (dataSource instanceof MySQLAdaptor && instances.size() > SIZE_TO_LOAD_ATTS) 
+        if (dataSource instanceof Neo4JAdaptor && instances.size() > SIZE_TO_LOAD_ATTS) 
             loadAttributes(instances);
         if (progressPane.isCancelled())
             return;
@@ -166,7 +166,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         QAReport report = super.checkInCommand();
         if (report == null)
             return report;
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         Collection<GKInstance> instances = dba.fetchInstancesByClass(checkClsName);
         // Do an escape
         escapeInstances(instances);
@@ -373,7 +373,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             return;
         }
         // Check if it is editable
-        boolean isEditable = dataSource instanceof MySQLAdaptor ? false : true;
+        boolean isEditable = dataSource instanceof Neo4JAdaptor ? false : true;
         // Construct a JFrame for results
         final JFrame frame = new JFrame(checkClsName + " " + checkAttribute + " Check Result");
         // Add another pane to display the checking result for the selected GKInstance
@@ -487,7 +487,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     @Override
     protected void checkOutSelectedInstances(JFrame parentFrame,
                                              List<GKInstance> selected) {
-        // Check out instances from the active MySQLAdaptor
+        // Check out instances from the active Neo4JAdaptor
         Window parentDialog = (Window) SwingUtilities.getRoot(parentFrame);
         try {
             GKInstance instance = (GKInstance) selected.iterator().next();
@@ -505,8 +505,8 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             }
             // load all values first before checking out
             for (GKInstance tmp : checkOutInstances) {
-                MySQLAdaptor dba = (MySQLAdaptor) tmp.getDbAdaptor();
-                dba.fastLoadInstanceAttributeValues(tmp);
+                Neo4JAdaptor dba = (Neo4JAdaptor) tmp.getDbAdaptor();
+                dba.loadInstanceAttributeValues(tmp);
             }
             // Want to do a full check out: get all participants for reactions
             checkOut(new ArrayList<GKInstance>(checkOutInstances), parentDialog);
@@ -522,7 +522,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     protected Set<GKInstance> loadComplexHasComponent(Collection<GKInstance> instances,
-                                                      MySQLAdaptor dba) throws Exception {
+                                                      Neo4JAdaptor dba) throws Exception {
         // Need to load all complexes in case some complexes are used by complexes for checking
         if (progressPane != null)
             progressPane.setText("Load Complex hasComponent...");
@@ -545,7 +545,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     protected Set<GKInstance> loadEntitySetMembers(Collection<GKInstance> instances,
-                                                   MySQLAdaptor dba) throws Exception {
+                                                   Neo4JAdaptor dba) throws Exception {
         // Need to load all constituent members and candidates in case
         // constituents are used for checking.
         if (progressPane != null)

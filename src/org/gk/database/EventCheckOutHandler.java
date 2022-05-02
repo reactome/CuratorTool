@@ -21,7 +21,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
@@ -108,7 +108,7 @@ public class EventCheckOutHandler {
      * is a bug in this method.
      */
 //    public void checkOutPathwayDiagram(Map<SchemaClass, Set<GKInstance>> clsMap) throws Exception {
-//        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+//        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
 //        SchemaClass pathwayCls = dba.getSchema().getClassByName(ReactomeJavaConstants.Pathway);
 //        Set<GKInstance> pathways = clsMap.get(pathwayCls);
 //        if (pathways == null || pathways.size() == 0)
@@ -182,7 +182,7 @@ public class EventCheckOutHandler {
                              clsMap);
         }
         // Fetch all attributes
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         loadAttributeValues(clsMap, dba);
         GKSchemaAttribute att = null;
         // Fetch attributes values
@@ -287,7 +287,7 @@ public class EventCheckOutHandler {
     }
     
     private void loadDisplayNamesForShells(Map<SchemaClass, Set<GKInstance>> clsToSet,
-                                           MySQLAdaptor dba) throws Exception {
+                                           Neo4JAdaptor dba) throws Exception {
         Set<GKInstance> insts = new HashSet<GKInstance>();
         for (Set<GKInstance> set : clsToSet.values()) {
             for (GKInstance inst : set)
@@ -396,7 +396,7 @@ public class EventCheckOutHandler {
     }
     
     private void loadAttributeValues(Map<SchemaClass, Set<GKInstance>> clsMap,
-                                     MySQLAdaptor dba) throws Exception {
+                                     Neo4JAdaptor dba) throws Exception {
         // Fetch all attributes
         GKSchemaAttribute att = null;
         List<GKSchemaAttribute> atts = new ArrayList<GKSchemaAttribute>();
@@ -571,15 +571,15 @@ public class EventCheckOutHandler {
     
     @Test
     public void testCheckOutEvents() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_112410",
                                             "root",
                                             "macmysql01");
-//        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+//        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
 //                                            "gk_central",
 //                                            "authortool",
 //                                            "T001test");
-        PersistenceManager.getManager().setActiveMySQLAdaptor(dba);
+        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
         GKInstance event = dba.fetchInstance(109581L);
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);

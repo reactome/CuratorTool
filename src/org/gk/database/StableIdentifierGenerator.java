@@ -11,7 +11,7 @@ import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
@@ -46,7 +46,7 @@ public class StableIdentifierGenerator {
 	private final String NUL_SPECIES = "NUL";
 	private final String ALL_SPECIES = "ALL";
 	private Set<String> stidClasses;
-	// Used to get active MySQLAdaptor
+	// Used to get active Neo4JAdaptor
 	private Component parentComponent;
 	
 	public StableIdentifierGenerator() {
@@ -143,7 +143,7 @@ public class StableIdentifierGenerator {
     
     @Test
     public void testGenerateIdentifier() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_052417",
                                             "root",
                                             "macmysql01");
@@ -294,7 +294,7 @@ public class StableIdentifierGenerator {
 		PersistenceManager persistenceManager = PersistenceManager.getManager();
 		// To avoid null exception
 		persistenceManager.setDBConnectInfo(new Properties());
-		MySQLAdaptor dbAdaptor = persistenceManager.getActiveMySQLAdaptor(null);
+		Neo4JAdaptor dbAdaptor = persistenceManager.getActiveNeo4JAdaptor(null);
 		Set<GKInstance> speciesInstances = (Set<GKInstance>) dbAdaptor.fetchInstancesByClass(ReactomeJavaConstants.Species);
 		System.out.println("Species\tAbbrevitaion");
 		for (GKInstance speciesInstance : speciesInstances) {
@@ -309,7 +309,7 @@ public class StableIdentifierGenerator {
 		}
 		if (species.isShell()) {
 		    // We need to query the database to get the abbreviation
-		    MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComponent);
+		    Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComponent);
 		    // Want to replace species with the db copy
 		    species = dba.fetchInstance(species.getDBID());
 		    if (species == null)

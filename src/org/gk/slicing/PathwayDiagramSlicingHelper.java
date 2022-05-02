@@ -17,7 +17,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.Project;
 import org.gk.render.EntitySetAndEntitySetLink;
 import org.gk.render.EntitySetAndMemberLink;
@@ -50,7 +50,7 @@ public class PathwayDiagramSlicingHelper {
     }
     
     public void removeDoNotReleaseEvents(GKInstance diagramInstance,
-                                         MySQLAdaptor dba) throws Exception {
+                                         Neo4JAdaptor dba) throws Exception {
         RenderablePathway diagram = diagramReader.openDiagram(diagramInstance);
         removeDoNotReleaseEvents(diagram, diagramInstance, dba);
     }
@@ -63,7 +63,7 @@ public class PathwayDiagramSlicingHelper {
      */
     public void removeDoNotReleaseEvents(RenderablePathway diagram,
                                           GKInstance diagramInstance,
-                                          MySQLAdaptor dba) throws Exception {
+                                          Neo4JAdaptor dba) throws Exception {
         List<Renderable> components = diagram.getComponents();
         if (components == null || components.size() == 0)
             return;
@@ -157,7 +157,7 @@ public class PathwayDiagramSlicingHelper {
      */
     private void processDoNotReleaseEvent(Renderable r,
                                           Set<Renderable> toBeRemoved,
-                                          MySQLAdaptor dba) throws Exception {
+                                          Neo4JAdaptor dba) throws Exception {
         toBeRemoved.add(r);
         if (r instanceof ProcessNode) {
             List<HyperEdge> edges = ((ProcessNode)r).getConnectedReactions();
@@ -209,7 +209,7 @@ public class PathwayDiagramSlicingHelper {
      * @throws Exception
      */
     public Set<GKInstance> loadContainedSubPathways(GKInstance diagram,
-                                                    MySQLAdaptor dba) throws Exception {
+                                                    Neo4JAdaptor dba) throws Exception {
         Set<GKInstance> subDiagrams = new HashSet<GKInstance>();
         // Read the diagram
         loadContainedSubPathways(diagram, 
@@ -219,7 +219,7 @@ public class PathwayDiagramSlicingHelper {
     }
 
     private void loadContainedSubPathways(GKInstance diagram, 
-                                          MySQLAdaptor dba,
+                                          Neo4JAdaptor dba,
                                           Set<GKInstance> subDiagrams) throws InvalidAttributeException, Exception {
         String xml = (String) diagram.getAttributeValue(ReactomeJavaConstants.storedATXML);
         RenderablePathway rDiagram = diagramReader.openDiagram(xml);
@@ -262,7 +262,7 @@ public class PathwayDiagramSlicingHelper {
     }
     
     protected GKInstance fetchDiagramForPathway(GKInstance pathway,
-                                                MySQLAdaptor dba) throws Exception {
+                                                Neo4JAdaptor dba) throws Exception {
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=",
@@ -278,11 +278,11 @@ public class PathwayDiagramSlicingHelper {
      */
     @Test
     public void testRemoveDoNotReleaseEvents() throws Exception {
-        MySQLAdaptor targetDBA = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor targetDBA = new Neo4JAdaptor("localhost", 
                                                   "gk_central_091112",
                                                   "root",
                                                   "macmysql01");
-        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
                                                   "gk_central_091112", 
                                                   "root", 
                                                   "macmysql01");

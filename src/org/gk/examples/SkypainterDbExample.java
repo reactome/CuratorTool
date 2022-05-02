@@ -1,15 +1,11 @@
  package org.gk.examples;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.gk.model.ClassAttributeFollowingInstruction;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 
 public class SkypainterDbExample {
@@ -21,8 +17,8 @@ public class SkypainterDbExample {
 		}
 		
 		// Connect to the "main" db
-		MySQLAdaptor dba =
-			new MySQLAdaptor(
+		Neo4JAdaptor dba =
+			new Neo4JAdaptor(
 				args[0],
 				args[1],
 				args[2],
@@ -33,8 +29,8 @@ public class SkypainterDbExample {
 		 * skypainter db should be named as <MAIN DB NAME>_dn, i.e. if your main db
 		 * is test_reactome_14, the skypainter db should be called have test_reactome_14_dn.
 		 */
-		MySQLAdaptor dba_dn =
-			new MySQLAdaptor(
+		Neo4JAdaptor dba_dn =
+			new Neo4JAdaptor(
 				args[0],
 				args[1] + "_dn",
 				args[2],
@@ -50,11 +46,11 @@ public class SkypainterDbExample {
 		// Construct the query
 		List query = new ArrayList();
 		query.add(dba.createAttributeQueryRequest("Pathway","name","=","Apoptosis"));
-		MySQLAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
+		Neo4JAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
 		subquery.add(dba.createAttributeQueryRequest("Species","name","=","Homo sapiens"));
 		query.add(dba.createAttributeQueryRequest("Pathway","taxon","=",subquery));
 		// Execute the query
-		Set pathways2 = dba.fetchInstance(query);
+		Set pathways2 = new HashSet(dba.fetchInstance(query));
 		// Loop over results
 		for (Iterator i = pathways2.iterator(); i.hasNext();) {
 			GKInstance pathway = (GKInstance) i.next();

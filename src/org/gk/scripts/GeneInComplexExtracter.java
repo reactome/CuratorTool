@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * @author wgm
@@ -34,7 +34,7 @@ public class GeneInComplexExtracter {
 	
 	public void extractComplexList() {
 		try {
-			MySQLAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
+			Neo4JAdaptor adaptor = new Neo4JAdaptor("brie8.cshl.org",
 					"gk_central", "authortool", "T001test");
 			Collection instances = adaptor.fetchInstanceByAttribute("Species",
 					"_displayName", "=", "homo sapiens");
@@ -85,7 +85,7 @@ public class GeneInComplexExtracter {
 
 	public void extract() {
 		try {
-			MySQLAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
+			Neo4JAdaptor adaptor = new Neo4JAdaptor("brie8.cshl.org",
 					"gk_central", "authortool", "T001test");
 			Collection instances = adaptor.fetchInstanceByAttribute("Species",
 					"_displayName", "=", "homo sapiens");

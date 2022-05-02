@@ -8,7 +8,7 @@ import java.util.Properties;
 
 import org.gk.model.GKInstance;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.InvalidAttributeException;
 
@@ -45,9 +45,9 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 	/**
 	 * Overwrite supclass method to allow null/empty password or port.
 	 * 
-	 * @return the initilized MySQLAdaptor.
+	 * @return the initilized Neo4JAdaptor.
 	 */
-	protected MySQLAdaptor initMySQLAdaptor(Component comp) {
+	protected Neo4JAdaptor initNeo4JAdaptor(Component comp) {
 		Properties dbConnectInfo = getDBConnectInfo();
 		
 		if (dbConnectInfo==null)
@@ -79,11 +79,11 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 		
 		// Establish innocuous defaults
 		if (dbPort==null || dbPort.equals(""))
-			dbPort = "3306";
+			dbPort = "7687";
 		if (dbPwd==null)
 			dbPwd = "";
 		
-		return getMySQLAdaptor(dbHost, xdbName, dbUser, dbPwd, Integer.parseInt(dbPort));
+		return getNeo4JAdaptor(dbHost, xdbName, dbUser, dbPwd, Integer.parseInt(dbPort));
 	}
 	
 	public void unsetDBConnectInfo() {
@@ -129,7 +129,7 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 			dbProp = null;
 		} else {
 			super.setDBConnectInfo(simpleProp);
-			initMySQLAdaptor(null);
+			initNeo4JAdaptor(null);
 			
 			dbProp = new Properties();
 			copySimplePropToDbProp(simpleProp, this.dbName, dbProp);
@@ -208,16 +208,16 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 	}
 	
     /**
-     * An overloaded method to get the active MySQLAdaptor.
+     * An overloaded method to get the active Neo4JAdaptor.
      * @param comp 
-     * @return the active MySQLAdaptor.
-     * @see getActiveMySQLAdaptor()
+     * @return the active Neo4JAdaptor.
+     * @see getActiveNeo4JAdaptor()
      */
-	public MySQLAdaptor getActiveMySQLAdaptor(Component comp) {
+	public Neo4JAdaptor getActiveNeo4JAdaptor(Component comp) {
 		if (dbProp==null)
 			return null;
 		
-		MySQLAdaptor dba = initMySQLAdaptor(comp);
+		Neo4JAdaptor dba = initNeo4JAdaptor(comp);
 		
 		return dba;
 	}

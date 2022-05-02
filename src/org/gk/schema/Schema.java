@@ -15,7 +15,8 @@ public interface Schema extends Serializable {
 	 * Some constants
 	 */
 	public static final String DB_ID_NAME = "DB_ID";
-	
+	public static final String NEO4J_DB_ID_NAME = "dbId";
+
 	/**
 	 * Get the whole list of all classes in the schema
 	 * 

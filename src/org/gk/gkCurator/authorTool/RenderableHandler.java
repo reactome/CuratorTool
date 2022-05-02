@@ -9,7 +9,7 @@ import java.util.Map;
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePropertyNames;
@@ -25,18 +25,18 @@ import org.gk.schema.SchemaClass;
  */
 public abstract class RenderableHandler {
     protected XMLFileAdaptor fileAdaptor;
-    protected MySQLAdaptor dbAdaptor;
+    protected Neo4JAdaptor dbAdaptor;
     private RenderableHandlerHelper helper;
     
     public RenderableHandler() {
         helper = new RenderableHandlerHelper();
     }
     
-    public MySQLAdaptor getDbAdaptor() {
+    public Neo4JAdaptor getDbAdaptor() {
         return dbAdaptor;
     }
 
-    public void setDbAdaptor(MySQLAdaptor dbAdaptor) {
+    public void setDbAdaptor(Neo4JAdaptor dbAdaptor) {
         this.dbAdaptor = dbAdaptor;
         helper.setDBAdaptor(dbAdaptor);
     }

@@ -20,7 +20,7 @@ import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.FlowLine;
@@ -327,7 +327,7 @@ public class AutoAssignmentHelper {
                                                              displayName);
         if (c == null || c.size() == 0) {
             // Get from the database
-            MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(pathwayEditor);
+            Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(pathwayEditor);
             if (dba != null) {
                 c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityCompartment,
                                                  ReactomeJavaConstants._displayName,

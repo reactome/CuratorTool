@@ -16,7 +16,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.util.ProgressPane;
@@ -41,7 +41,7 @@ public class ReactionQACheckHelper {
         return this.regulations;
     }
 
-    public void loadRegulations(MySQLAdaptor dba,
+    public void loadRegulations(Neo4JAdaptor dba,
                                 ProgressPane progressPane) throws Exception {
         String[] attNames = null;
         if (dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation).isValidAttribute(ReactomeJavaConstants.regulatedEntity) ) {
@@ -67,7 +67,7 @@ public class ReactionQACheckHelper {
     protected void loadAttributes(Collection instances,
                                   SchemaClass cls,
                                   String[] attNames,
-                                  MySQLAdaptor dba,
+                                  Neo4JAdaptor dba,
                                   ProgressPane progressPane) throws Exception {
         for (int i = 0; i < attNames.length; i++) {
             SchemaAttribute att = cls.getAttribute(attNames[i]);

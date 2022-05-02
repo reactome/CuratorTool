@@ -10,7 +10,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 public abstract class EntityFunctionalStatusCheck extends SingleAttributeClassBasedCheck {
     protected Map<GKInstance, String> instToIssue;
@@ -50,7 +50,7 @@ public abstract class EntityFunctionalStatusCheck extends SingleAttributeClassBa
     
     @Override
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         Collection<GKInstance> rles = loadReactions(dba);
         dba.loadInstanceAttributeValues(instances, followAttributes);
         // Referrers check is slow. Therefore, create a map for it.
@@ -68,9 +68,9 @@ public abstract class EntityFunctionalStatusCheck extends SingleAttributeClassBa
         }
     }
     
-    protected abstract Collection<GKInstance> loadReactions(MySQLAdaptor dba) throws Exception;
+    protected abstract Collection<GKInstance> loadReactions(Neo4JAdaptor dba) throws Exception;
 
-    protected void loadReactionParticipants(Collection<GKInstance> rles, MySQLAdaptor dba) throws Exception {
+    protected void loadReactionParticipants(Collection<GKInstance> rles, Neo4JAdaptor dba) throws Exception {
         dba.loadInstanceAttributeValues(rles, new String[] {
                 ReactomeJavaConstants.input,
                 ReactomeJavaConstants.regulatedBy,

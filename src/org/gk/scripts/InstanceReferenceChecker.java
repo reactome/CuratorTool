@@ -10,20 +10,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.junit.Test;
+import org.neo4j.driver.*;
 
 /**
  * A checker to see any instance reference has registered in DatabaseObject table
@@ -33,19 +30,19 @@ import org.junit.Test;
  */
 public class InstanceReferenceChecker {
     private StringBuffer errorMessage = new StringBuffer();
-    private MySQLAdaptor dba = null;
+    private Neo4JAdaptor dba = null;
     
     public InstanceReferenceChecker() {
         
     }
     
-//    public InstanceReferenceChecker(MySQLAdaptor dba) {
+//    public InstanceReferenceChecker(Neo4JAdaptor dba) {
 //        this.dba = dba;
 //    }
     
     @Test
     public void checkReferenceMoleculeAndClassUsage() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -81,118 +78,104 @@ public class InstanceReferenceChecker {
         }
         return builder.toString();
     }
-    
-    public void check() throws Exception {
-        if (dba == null)
-            throw new IllegalStateException("InstanceReferenceChecker.check(): No database specified.");
+
+    public void setDBA(PersistenceAdaptor dba) {
+        this.dba = (Neo4JAdaptor) dba;
+    }
+
+    public String check() throws Exception {
+        if (dba == null) throw new IllegalStateException("InstanceReferenceChecker.check(): No database specified.");
+        Driver driver = dba.getConnection();
         GKSchema schema = (GKSchema) dba.getSchema();
         Set instanceAtts = new HashSet();
         GKSchemaAttribute att = null;
-        for (Iterator it = schema.getOriginalAttributes().iterator(); it.hasNext();) {
+        for (Iterator it = schema.getOriginalAttributes().iterator(); it.hasNext(); ) {
             att = (GKSchemaAttribute) it.next();
             if (att.isInstanceTypeAttribute()) {
                 instanceAtts.add(att);
             }
         }
-        System.out.println("Instance Atts: " + instanceAtts.size());
-        Connection conn = dba.getConnection();
-        Statement stat = conn.createStatement();
-        ResultSet resultSet = null;
-        GKSchemaClass cls = null;
-        Map attMap = new HashMap();
-        Map tableNameMap = new HashMap();
-        String query = null;
-        for (Iterator it = instanceAtts.iterator(); it.hasNext();) {
-            att = (GKSchemaAttribute) it.next();
-            cls = (GKSchemaClass) att.getOrigin();
-            System.out.println("Checking " + att.getName() + " in " + cls.getName() + "...");
-            String tableName = null;
-            if (!att.isMultiple()) {
-                tableName = cls.getName();
-            }
-            else {
-                tableName = cls.getName() + "_2_" + att.getName();
-            }
-            query = "SELECT distinct " + att.getName() + ", " + att.getName() + "_class FROM " + tableName;
-            resultSet = stat.executeQuery(query);
-            while (resultSet.next()) {
-                long dbID = resultSet.getLong(1);
-                String clsName = resultSet.getString(2);
-                if (dbID == 0 && clsName == null) {
-                    //errorMessage.append("0, null occur for " + att.getName() + " in " + tableName);
-                    //errorMessage.append("\n");
-                    continue;
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            GKSchemaClass cls = null;
+            StringBuilder query;
+            Map attMap = new HashMap();
+            Map tableNameMap = new HashMap();
+            for (Iterator it = instanceAtts.iterator(); it.hasNext(); ) {
+                att = (GKSchemaAttribute) it.next();
+                cls = (GKSchemaClass) att.getOrigin();
+                System.out.println("Checking " + att.getName() + " in " + cls.getName() + "...");
+                query = new StringBuilder("MATCH (n:").append(cls.getName());
+                if (!att.isInstanceTypeAttribute()) {
+                    query.append(") RETURN n.dbId, n.schemaClass");
+                } else {
+                    query.append(")-[:" + att.getName() + "]->(f) RETURN f.dbId, f.schemaClass");
                 }
-                Long dbIDLong = new Long(dbID);
-                String tmpCls = (String) attMap.get(dbIDLong);
-                if (tmpCls != null && !tmpCls.equals(clsName)) {
-                    errorMessage.append(dbID + ", " + tmpCls + " in ");
-                    errorMessage.append(tableNameMap.get(dbIDLong) + " is different from ");
-                    errorMessage.append(tableName);
+
+                Result result = session.run(query.toString());
+                while (result.hasNext()) {
+                    Record record = result.next();
+                    long dbID = record.get(0).asLong();
+                    String clsName = record.get(1).asString();
+                    String tmpCls = (String) attMap.get(dbID);
+                    if (tmpCls != null && !tmpCls.equals(clsName)) {
+                        errorMessage.append(dbID + ", " + tmpCls + " in ");
+                        errorMessage.append(tableNameMap.get(dbID) + " is different from ");
+                        errorMessage.append(cls.getName());
+                        errorMessage.append("\n");
+                    } else {
+                        attMap.put(dbID, clsName);
+                        tableNameMap.put(dbID, cls.getName());
+                    }
+                }
+            }
+            System.out.println("The size of the map: " + attMap.size());
+            // Check DB_ID in the database
+            for (Iterator it1 = attMap.keySet().iterator(); it1.hasNext(); ) {
+                Long dbID = (Long) it1.next();
+                query = new StringBuilder("MATCH (n{dbId:").append(dbID).append("}) RETURN n.schemaClass");
+                Result result = session.run(query.toString());
+                int c = 0;
+                while (result.hasNext()) {
+                    c++;
+                    String clsName = result.next().get(0).asString();
+                    String tmpClsName = (String) attMap.get(dbID);
+                    if (!tmpClsName.equals(clsName)) {
+                        errorMessage.append(dbID + ", " + tmpClsName);
+                        errorMessage.append(" in " + tableNameMap.get(dbID));
+                        errorMessage.append(" is different in DatabaseObject (");
+                        errorMessage.append(clsName);
+                        errorMessage.append(")\n");
+                    }
+                }
+                if (c == 0) {
+                    errorMessage.append(dbID + ", " + attMap.get(dbID));
+                    errorMessage.append(" in " + tableNameMap.get(dbID));
+                    errorMessage.append(" is not in the DatabaseObject");
+                    errorMessage.append("\n");
+                } else if (c > 1) {
+                    errorMessage.append(dbID + " occurs in more than once in DatabaseObject");
                     errorMessage.append("\n");
                 }
-                else {
-                    attMap.put(dbIDLong, clsName);
-                    tableNameMap.put(dbIDLong, tableName);
-                }
             }
-            resultSet.close();
-        }
-        stat.close();
-        System.out.println("The size of the map: " + attMap.size());
-        // Check DB_ID in the database
-        query = "SELECT _class FROM DatabaseObject WHERE DB_ID = ?";
-        PreparedStatement prepStat = conn.prepareStatement(query);
-        int c = 0;
-        //Set notInSet = new HashSet();
-        for (Iterator it = attMap.keySet().iterator(); it.hasNext();) {
-            Long dbID = (Long) it.next();
-            prepStat.setLong(1, dbID.longValue());
-            resultSet = prepStat.executeQuery();
-            c = 0;
-            while (resultSet.next()) {
-                c++;
-                String clsName = resultSet.getString(1);
-                String tmpClsName = (String) attMap.get(dbID);
-                if (!tmpClsName.equals(clsName)) {
-                    errorMessage.append(dbID + ", " + tmpClsName);
-                    errorMessage.append(" in " + tableNameMap.get(dbID));
-                    errorMessage.append(" is different in DatabaseObject (");
-                    errorMessage.append(clsName);
-                    errorMessage.append(")\n");
-                }
+            // Print out an empty line
+            System.out.println();
+            if (errorMessage.length() == 0) {
+                System.out.println("Nothing Wrong!");
+            } else {
+                FileWriter fileWriter = new FileWriter("error.txt");
+                BufferedWriter writer = new BufferedWriter(fileWriter);
+                writer.write(errorMessage.toString());
+                writer.close();
+                fileWriter.close();
+                System.out.println("Done. See errors in error.txt.");
             }
-            if (c == 0) {
-                errorMessage.append(dbID + ", " + attMap.get(dbID));
-                errorMessage.append(" in " + tableNameMap.get(dbID));
-                errorMessage.append(" is not in the DatabaseObject");
-                errorMessage.append("\n");
-            }
-            else if (c > 1) {
-                errorMessage.append(dbID + " occurs in more than once in DatabaseObject");
-                errorMessage.append("\n");
-            }
-            resultSet.close();
-        }
-        prepStat.close();
-        // Print out an empty line
-        System.out.println();
-        if (errorMessage.length() == 0) {
-            System.out.println("Nothing Wrong!");
-        }
-        else {
-            FileWriter fileWriter = new FileWriter("error.txt");
-            BufferedWriter writer = new BufferedWriter(fileWriter);
-            writer.write(errorMessage.toString());
-            writer.close();
-            fileWriter.close();
-            System.out.println("Done. See errors in error.txt.");
+            return errorMessage.toString();
         }
     }
     
     public static void main(String[] args) {
         try {
-            MySQLAdaptor dba = new MySQLAdaptor("localhost",
+            Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                                  "gk_central_050208",
                                                  "wgm",
                                                  "wgm",

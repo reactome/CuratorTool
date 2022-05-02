@@ -30,7 +30,7 @@ import javax.swing.tree.TreePath;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 import org.gk.util.BrowserLauncher;
 import org.gk.util.GKApplicationUtilities;
@@ -45,7 +45,7 @@ public class GOBPTreeView extends JPanel {
 	
 	private JTree tree;
 	private JLabel titleLabel;
-	private MySQLAdaptor dbAdaptor;
+	private Neo4JAdaptor dbAdaptor;
 	// Node type map
 	private Icon isAIcon;
 	private Icon isPartOfIcon;
@@ -55,17 +55,17 @@ public class GOBPTreeView extends JPanel {
 		init();
 	}
 	
-	public GOBPTreeView(MySQLAdaptor dbAdaptor) {
+	public GOBPTreeView(Neo4JAdaptor dbAdaptor) {
 		init();
-		setMySQLAdaptor(dbAdaptor);
+		setNeo4JAdaptor(dbAdaptor);
 	}
 	
-	public void setMySQLAdaptor(MySQLAdaptor adaptor) {
+	public void setNeo4JAdaptor(Neo4JAdaptor adaptor) {
 		this.dbAdaptor = adaptor;
 		fetchGOProcesses();
 	}
 	
-	public MySQLAdaptor getMySQLAdaptor() {
+	public Neo4JAdaptor getNeo4JAdaptor() {
 		return this.dbAdaptor;
 	}
 	

@@ -37,7 +37,7 @@ import org.gk.graphEditor.ArrayListTransferable;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.StoichiometryInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -917,7 +917,8 @@ public class AttributePaneController {
 					if (inverseInstance.isShell()) {
 						int reply = JOptionPane.showConfirmDialog(attributePane,
 													  "\"" + inverseInstance.getDisplayName() + "\" is a shell instance. " +
-													  "It should be downloaded first to be used for this type of slots. " +													  "\nDo you want to download it now? Selecting NO will not add this instance to the slot.",
+													  "It should be downloaded first to be used for this type of slots. " +
+													  "\nDo you want to download it now? Selecting NO will not add this instance to the slot.",
 													  "Downloading Shell Instance",
 													  JOptionPane.YES_NO_OPTION);
 						if (reply == JOptionPane.NO_OPTION) {
@@ -925,7 +926,7 @@ public class AttributePaneController {
 							continue;
 						}
 						else {
-							MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(attributePane);
+							Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(attributePane);
 							if (dba == null) {
 								JOptionPane.showMessageDialog(attributePane,
 															  "Cannot connect to the database. \"" + inverseInstance.getDisplayName() + "\"" +
@@ -1204,8 +1205,8 @@ public class AttributePaneController {
 	}	
 	
 	public void downloadShellInstance(GKInstance shellInstance) {
-		// Get the mysqlAdaptor
-		MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(attributePane);
+		// Get the Neo4JAdaptor
+		Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(attributePane);
 		if (adaptor == null) {
 			JOptionPane.showMessageDialog(
 				attributePane,
@@ -1219,7 +1220,8 @@ public class AttributePaneController {
 			                                              shellInstance.getDBID());
 			if (dbInstance == null) {
 				JOptionPane.showMessageDialog(attributePane,
-				                              "Cannot find the instance in the database. " +				                              "The instance \nmight be deleted in the database.",
+				                              "Cannot find the instance in the database. " +
+				                              "The instance \nmight be deleted in the database.",
 				                              "Error in Downloading",
 				                              JOptionPane.ERROR_MESSAGE);
 				return;

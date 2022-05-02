@@ -55,7 +55,7 @@ import org.gk.graphEditor.ProcessTree;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.Project;
 import org.gk.render.FlowLine;
 import org.gk.render.ReactionNode;
@@ -319,11 +319,8 @@ public class GKDBBrowserPopupManager {
 		for (Iterator it = selection.iterator(); it.hasNext();) {
 			GKInstance instance = (GKInstance) it.next();
 			try {
-				MySQLAdaptor dba = browser.getMySQLAdaptor();
-				if (dba.supportsTransactions())
-					dba.txDeleteInstance(instance);
-				else
-					dba.deleteInstance(instance);
+				Neo4JAdaptor dba = browser.getNeo4JAdaptor();
+				dba.txDeleteInstance(instance);
 				browser.getSchemaView().deleteInstance(instance);
 			}
 			catch(Exception e1) {

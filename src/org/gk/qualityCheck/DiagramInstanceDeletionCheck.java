@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 
 /**
@@ -52,9 +52,9 @@ public class DiagramInstanceDeletionCheck extends AbstractPathwayDiagramCheck {
         if (dbIds == null || dbIds.size() == 0)
             return Collections.emptyList();
         Collection<Long> existing;
-        if (dataSource instanceof MySQLAdaptor) {
-            MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-            existing = dba.existing(dbIds);
+        if (dataSource instanceof Neo4JAdaptor) {
+            Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+            existing = dba.existing(dbIds, true, false);
         } 
         else {
             @SuppressWarnings("unchecked")
@@ -86,7 +86,7 @@ public class DiagramInstanceDeletionCheck extends AbstractPathwayDiagramCheck {
     
     @Test
     public void testCheckInCommand() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");

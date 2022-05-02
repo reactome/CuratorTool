@@ -38,7 +38,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -663,8 +663,8 @@ public class EntitySetDeepCloneDialog extends NewInstanceDialog {
     }
     
     private boolean downloadShellInstance(GKInstance shellInstance) {
-        // Get the mysqlAdaptor
-        MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(getOwner());
+        // Get the Neo4JAdaptor
+        Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(getOwner());
         if (adaptor == null) {
             JOptionPane.showMessageDialog(getOwner(),
                                           "Cannot connect to the database",

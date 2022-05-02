@@ -21,7 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
@@ -276,7 +276,7 @@ public class ReleasesController {
 	 * database schema.
 	 **/
 	public void updateSchemaDisplayPane() {
-		MySQLAdaptor dba = null;
+		Neo4JAdaptor dba = null;
 		try {
 			dba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
 		} catch (Exception e) {

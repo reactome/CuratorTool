@@ -18,7 +18,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -672,7 +672,7 @@ public class GraphvizDotGenerator {
         }
         try {
             GraphvizDotGenerator generator = new GraphvizDotGenerator();
-            MySQLAdaptor adaptor = new MySQLAdaptor(args[0],
+            Neo4JAdaptor adaptor = new Neo4JAdaptor(args[0],
                     args[1],
                     args[2],
                     args[3],

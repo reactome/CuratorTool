@@ -15,7 +15,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 
@@ -35,7 +35,7 @@ public class EventSlicingHelper {
         return this.referrersMap;
     }
  
-    public Map extractEvents(List pathwayIDs, MySQLAdaptor sourceDBA) throws Exception {
+    public Map extractEvents(List pathwayIDs, Neo4JAdaptor sourceDBA) throws Exception {
         Map eventMap = new HashMap();
         // To speed up the performance, get all events and their "hasComponent"
         // and "hasInstance" values first
@@ -135,7 +135,7 @@ public class EventSlicingHelper {
      * reactions are from floating pathways whose DNR are false. 
      * @throws Exception
      */
-    public Map extractFloatingEvents(List topLevelIDs, MySQLAdaptor sourceDBA) throws Exception {
+    public Map extractFloatingEvents(List topLevelIDs, Neo4JAdaptor sourceDBA) throws Exception {
         Map floatingEventMap = new HashMap();
         Set events = new HashSet();
 		extractFloatingReactions(events, sourceDBA);
@@ -158,7 +158,7 @@ public class EventSlicingHelper {
      * Extract reactions that are contained by floating pathways whose DNRs are false. 
      * @param events
      */
-    private void extractFloatingPathwaysAndReactions(Set events, MySQLAdaptor sourceDBA, List topLevelIDs) throws Exception {
+    private void extractFloatingPathwaysAndReactions(Set events, Neo4JAdaptor sourceDBA, List topLevelIDs) throws Exception {
 		ArrayList qr = new ArrayList(3);
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
 		SchemaAttribute hasCompAtt = pathwayCls.getAttribute(ReactomeJavaConstants.hasEvent);
@@ -218,7 +218,7 @@ public class EventSlicingHelper {
         }
     }
     
-    private void extractFloatingReactions(Set reactions, MySQLAdaptor sourceDBA) throws Exception {
+    private void extractFloatingReactions(Set reactions, Neo4JAdaptor sourceDBA) throws Exception {
 		ArrayList qr = new ArrayList(1);
 		SchemaClass reactionCls = sourceDBA.getSchema().getClassByName("Reaction");
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
@@ -275,7 +275,7 @@ public class EventSlicingHelper {
      * @return map key: Longs values: GKInstances
      * @throws Exception
      */
-    public Map extractAllEvents(List topLevelEvents, MySQLAdaptor sourceDBA) throws Exception {
+    public Map extractAllEvents(List topLevelEvents, Neo4JAdaptor sourceDBA) throws Exception {
         Map eventMap = extractEvents(topLevelEvents, sourceDBA);
         Map floatingEventMap = extractFloatingEvents(topLevelEvents, sourceDBA);
         Map allEventsMap = new HashMap();

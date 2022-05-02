@@ -13,8 +13,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /** 
  *  Generates a list of stable IDs, given a list of
@@ -36,9 +40,9 @@ import org.gk.schema.SchemaClass;
 public class IDGenerator {
 	private IDGeneratorTests tests; // list of tests performed
 	private IdentifierDatabase identifierDatabase;
-	private MySQLAdaptor previousDba = null;
-	private MySQLAdaptor currentDba = null;
-	private MySQLAdaptor gk_centraldba = null;
+	private Neo4JAdaptor previousDba = null;
+	private Neo4JAdaptor currentDba = null;
+	private Neo4JAdaptor gk_centraldba = null;
 	private PreviousInstanceFinder previousInstanceFinder;
 	private String currentReleaseNum;
 	private String currentProjectName;
@@ -61,7 +65,7 @@ public class IDGenerator {
 	 * @param currentDba - must be defined
 	 * @param gk_centraldba - can be null
 	 */
-	public IDGenerator(MySQLAdaptor previousDba, MySQLAdaptor currentDba, MySQLAdaptor gk_centraldba, IdentifierDatabase identifierDatabase) {
+	public IDGenerator(Neo4JAdaptor previousDba, Neo4JAdaptor currentDba, Neo4JAdaptor gk_centraldba, IdentifierDatabase identifierDatabase) {
 		this.previousDba = previousDba;
 		this.currentDba = currentDba;
 		this.gk_centraldba = gk_centraldba;
@@ -70,7 +74,7 @@ public class IDGenerator {
 		previousInstanceFinder = new DbIdPreviousInstanceFinder(currentReleaseNum, previousDba, true, identifierDatabase);
 	}
 	
-	public IDGenerator(MySQLAdaptor previousDba, MySQLAdaptor currentDba, MySQLAdaptor gk_centraldba, IdentifierDatabase identifierDatabase, PreviousInstanceFinder previousInstanceFinder) {
+	public IDGenerator(Neo4JAdaptor previousDba, Neo4JAdaptor currentDba, Neo4JAdaptor gk_centraldba, IdentifierDatabase identifierDatabase, PreviousInstanceFinder previousInstanceFinder) {
 		this.previousDba = previousDba;
 		this.currentDba = currentDba;
 		this.gk_centraldba = gk_centraldba;
@@ -79,7 +83,7 @@ public class IDGenerator {
 		this.previousInstanceFinder = previousInstanceFinder;
 	}
 	
-	public IDGenerator(MySQLAdaptor previousDba, MySQLAdaptor currentDba, MySQLAdaptor gk_centraldba, IdentifierDatabase identifierDatabase, PreviousInstanceFinder previousInstanceFinder, List<Long> limitingCurrentDbIds) {
+	public IDGenerator(Neo4JAdaptor previousDba, Neo4JAdaptor currentDba, Neo4JAdaptor gk_centraldba, IdentifierDatabase identifierDatabase, PreviousInstanceFinder previousInstanceFinder, List<Long> limitingCurrentDbIds) {
 		this.previousDba = previousDba;
 		this.currentDba = currentDba;
 		this.gk_centraldba = gk_centraldba;
@@ -350,8 +354,8 @@ public class IDGenerator {
 			stableIdentifier.setAttributeValue("doNotRelease", currentReleaseNum);
 			
 			if (!testMode) {
-				MySQLAdaptor identifierDatabaseDba = IdentifierDatabase.getDba();
-				identifierDatabaseDba.updateInstanceAttribute(stableIdentifier, "doNotRelease");
+				Neo4JAdaptor identifierDatabaseDba = IdentifierDatabase.getDba();
+				identifierDatabaseDba.txUpdateInstanceAttribute(stableIdentifier, "doNotRelease");
 			}
 		} catch (Exception e) {
 			System.err.println("IDGenerator.generateDoNotReleaseIDs: problem fetching instances");
@@ -432,8 +436,8 @@ public class IDGenerator {
 			stableIdentifier.setAttributeValue("deleted", idbDeleted);
 			
 			if (!testMode) {
-				MySQLAdaptor identifierDatabaseDba = IdentifierDatabase.getDba();
-				identifierDatabaseDba.updateInstanceAttribute(stableIdentifier, "deleted");
+				Neo4JAdaptor identifierDatabaseDba = IdentifierDatabase.getDba();
+				identifierDatabaseDba.txUpdateInstanceAttribute(stableIdentifier, "deleted");
 			}
 		} catch (Exception e) {
 			System.err.println("IDGenerator.generateDoNotReleaseIDs: problem fetching instances");
@@ -441,13 +445,13 @@ public class IDGenerator {
 		}
 		
 	}
-	
+
 	/**
-	 * Takes an instance and generates a stable IDs for
-	 * it.
-	 * 
-	 * @param schemaClass
-	 * @param testMode - if true, nothing will be inserted into database
+	 * akes an instance and generates a stable IDs for it
+	 * @param instanceBiologicalMeaning
+	 * @param currentInstance
+	 * @param testMode if true, nothing will be inserted into database
+	 * @param schemaChangeIgnoredAttributes
 	 */
 	public void generateIDs(InstanceBiologicalMeaning instanceBiologicalMeaning, GKInstance currentInstance, boolean testMode, List schemaChangeIgnoredAttributes) {
 			try {
@@ -645,7 +649,9 @@ public class IDGenerator {
 
 			String displayNameString = stableIdentifierString + "." + stableVersionString;
 
-			try {
+			Driver driver = currentDba.getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(currentDba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 				// Take a look into the current release to see if a StableIdentifier
 				// instance for identifier/identifierVersion already exists; if
 				// so, set it to be "currentStableID".  Otherwise,
@@ -662,7 +668,7 @@ public class IDGenerator {
 					
 					currentStableID.setAttributeValue("identifierVersion", stableVersionString);
 					if (!testMode)
-						currentDba.storeInstance(currentStableID);
+						currentDba.storeInstance(currentStableID, tx);
 				} else {
 					// Since gk_central now contains stable IDs, they will often
 					// already be present in the slice.  In this case, recycle
@@ -671,13 +677,14 @@ public class IDGenerator {
 					
 					currentStableID.setAttributeValue("identifierVersion", stableVersionString);
 					if (!testMode)
-						currentDba.updateInstanceAttribute(currentStableID, "identifierVersion");
+						currentDba.updateInstanceAttribute(currentStableID, "identifierVersion", tx);
 				}
 				
 				// Update the display name, just in case the automatic update is not working
 				currentStableID.setAttributeValue("_displayName", displayNameString);
 
 				currentInstance.setAttributeValue("stableIdentifier", currentStableID);
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IDGenerator.generateIDs: WARNING - problem setting up current instance stable ID");
 				e.printStackTrace(System.err);
@@ -685,7 +692,8 @@ public class IDGenerator {
 
 			// Set up DOI
 			String doi = null;
-			try {
+			try (Session session = driver.session(SessionConfig.forDatabase(currentDba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 				if (currentInstance.getSchemClass().isValidAttribute("doi")) {
 					doi = (String)currentInstance.getAttributeValue("doi");
 					if (doi!=null && !(doi.equals(""))) {
@@ -700,20 +708,22 @@ public class IDGenerator {
 				if (!testMode) {
 					// Update the instance in the current release so that it
 					// contains the appropriate stable ID info.
-					currentDba.updateInstanceAttribute(currentInstance, "stableIdentifier");
+					currentDba.updateInstanceAttribute(currentInstance, "stableIdentifier", tx);
 					
 					// Update the instance in the current release so that it
 					// contains the appropriate DOI info.
 					if (doi!=null)
-						currentDba.updateInstanceAttribute(currentInstance, "doi");
+						currentDba.updateInstanceAttribute(currentInstance, "doi", tx);
 				}
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IDGenerator.generateIDs: WARNING - problem setting up DOI");
 				e.printStackTrace(System.err);
 			}
-			
-			
-			try {
+
+
+			try (Session session = driver.session(SessionConfig.forDatabase(currentDba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
 				// Also put the stable ID into gk_central, if we have the appropriate
 				// dba.
 				if (gk_centraldba!=null) {
@@ -744,7 +754,7 @@ public class IDGenerator {
 								gkcentralStableID.setDbAdaptor(gk_centraldba);
 								gkcentralStableID.setAttributeValue("identifier", stableIdentifierString);
 								if (!testMode) {
-									gk_centraldba.storeInstance(gkcentralStableID);
+									gk_centraldba.storeInstance(gkcentralStableID, tx);
 								}
 							} else {
 								gkcentralStableID = (GKInstance)gkcentralStableIDs.toArray()[0];
@@ -762,20 +772,21 @@ public class IDGenerator {
 							
 							if (!testMode) {
 								// Make sure the version gets updated.
-								gk_centraldba.updateInstanceAttribute(gkcentralStableID, "identifierVersion");
+								gk_centraldba.updateInstanceAttribute(gkcentralStableID, "identifierVersion", tx);
 								// Update the instance in the current release so that it
 								// contains the appropriate stable ID info.
-								gk_centraldba.updateInstanceAttribute(gk_centralInstance, "stableIdentifier");
+								gk_centraldba.updateInstanceAttribute(gk_centralInstance, "stableIdentifier", tx);
 								// Update the instance in the current release so that it
 								// contains the appropriate DOI info.
 								if (doi!=null)
-									gk_centraldba.updateInstanceAttribute(gk_centralInstance, "doi");
+									gk_centraldba.updateInstanceAttribute(gk_centralInstance, "doi", tx);
 							}
 						} else {
 							System.err.println("IDGenerator.generateIDs: WARNING - gk_central has no valid instance corresponding to DB_ID=" + currentInstance.getDBID());
 						}
 					}
 				}
+				tx.commit();
 			} catch (Exception e) {
 				System.err.println("IDGenerator.generateIDs: WARNING - problem inserting stuff into gk_central");
 				e.printStackTrace(System.err);
@@ -895,13 +906,15 @@ public class IDGenerator {
 	 * @param schemaClass
 	 */
 	public void rollbackIDs(GKInstance currentInstance) {
-		try {
+		Driver driver = currentDba.getConnection();
+		try (Session session = driver.session(SessionConfig.forDatabase(currentDba.getDBName()))) {
+			Transaction tx = session.beginTransaction();
 			GKInstance currentStableID = (GKInstance)currentInstance.getAttributeValue("stableIdentifier");
 			
 			// Nothing to roll back
 			if (currentStableID==null)
 				return;
-				
+
 			String identifier = (String)currentStableID.getAttributeValue("identifier");
 			String identifierVersion = (String)currentStableID.getAttributeValue("identifierVersion");
 
@@ -918,12 +931,13 @@ public class IDGenerator {
 			identifierDatabase.deleteVersion(identifierDbStableIdentifier, identifierVersion, projectName, currentReleaseNum, dbId);
 
 			// Delete the StableIdentifier instance from the Reactome database
-			currentDba.deleteInstance(currentStableID);
+			currentDba.deleteInstance(currentStableID, tx);
 			
 			// Update the instance in the current release so that it
 			// contains the appropriate stable ID info.
 			currentInstance.emptyAttributeValues("stableIdentifier");
-			currentDba.updateInstanceAttribute(currentInstance, "stableIdentifier");
+			currentDba.updateInstanceAttribute(currentInstance, "stableIdentifier", tx);
+			tx.commit();
 		} catch (Exception e) {
 			System.err.println("IDGenerator.rollbackIDs: problem fetching instances");
 			e.printStackTrace(System.err);

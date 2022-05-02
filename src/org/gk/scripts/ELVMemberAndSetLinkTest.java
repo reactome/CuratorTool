@@ -20,7 +20,7 @@ import org.gk.pathwaylayout.PathwayDiagramGeneratorViaAT;
 import org.gk.pathwaylayout.PredictedPathwayDiagramGeneratorFromDB;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.EntitySetAndEntitySetLink;
 import org.gk.render.EntitySetAndMemberLink;
@@ -33,6 +33,10 @@ import org.gk.schema.InvalidAttributeValueException;
 import org.gk.util.FileUtilities;
 import org.gk.util.SwingImageCreator;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to test drawing between EntitySet and its members.
@@ -40,14 +44,14 @@ import org.junit.Test;
  *
  */
 public class ELVMemberAndSetLinkTest {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     
     public ELVMemberAndSetLinkTest() {
     }
     
-    public MySQLAdaptor getDBA() throws Exception {
+    public Neo4JAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new MySQLAdaptor("localhost",
+            dba = new Neo4JAdaptor("localhost",
                                    "gk_central_071712",
                                    "root",
                                    "macmysql01");
@@ -55,7 +59,7 @@ public class ELVMemberAndSetLinkTest {
         return dba;
     }
     
-    public void setDBA(MySQLAdaptor dba) {
+    public void setDBA(Neo4JAdaptor dba) {
         this.dba = dba;
     }
     
@@ -66,7 +70,7 @@ public class ELVMemberAndSetLinkTest {
         }
         ELVMemberAndSetLinkTest runner = new ELVMemberAndSetLinkTest();
         try {
-            MySQLAdaptor dba = new MySQLAdaptor(args[0], 
+            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
                                                 args[1], 
                                                 args[2],
                                                 args[3]);
@@ -99,18 +103,19 @@ public class ELVMemberAndSetLinkTest {
         }
         System.out.println("Total PDs: " + dbIds.size());
         // Original database
-        MySQLAdaptor srcDBA = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor srcDBA = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                                "test_gk_central_041112",
                                                "authortool", 
                                                "T001test");
         // Current database
-        MySQLAdaptor targetDBA = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor targetDBA = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                                   "gk_central",
                                                   "authortool", 
                                                   "T001test");
         int count = 0;
-        try {
-            targetDBA.startTransaction();
+        Driver driver = targetDBA.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             for (Long dbId : dbIds) {
                 GKInstance srcPd = srcDBA.fetchInstance(dbId);
                 List<?> srcModified = srcPd.getAttributeValuesList(ReactomeJavaConstants.modified);
@@ -141,15 +146,11 @@ public class ELVMemberAndSetLinkTest {
                     targetPd.setAttributeValue(ReactomeJavaConstants.modified,
                                                targetModified);
                     targetDBA.updateInstanceAttribute(targetPd,
-                                                      ReactomeJavaConstants.modified);
+                                                      ReactomeJavaConstants.modified, tx);
                     System.out.println("Total target modified slots: " + targetModified.size());
                 }
             }
-            targetDBA.commit();
-        }
-        catch(Exception e) {
-            targetDBA.rollback();
-            throw e;
+            tx.commit();
         }
         System.out.println("Total fixes: " + count);
     }
@@ -179,7 +180,7 @@ public class ELVMemberAndSetLinkTest {
      */
     public void updateDiagramsForSetSetLinksInDb() throws Exception {
         // Get the database
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         InstanceUtilities.sortInstances(list);
@@ -190,11 +191,12 @@ public class ELVMemberAndSetLinkTest {
         Set<GKInstance> entitySets = new HashSet<GKInstance>();
         int count = 0;
         // The following is used for updating
-        try {
-            dba.startTransaction();
-            GKInstance newIE = createDefaultIE(dba);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance newIE = createDefaultIE(dba, tx);
             System.out.println("Default IE: " + newIE);
-            
+
             for (GKInstance pd : list) {
 //                System.out.println("Working on " + pd);
                 // Just a quick check
@@ -204,48 +206,47 @@ public class ELVMemberAndSetLinkTest {
                 //            System.out.println("Checking " + pd + "...");
                 RenderablePathway diagram = diagramReader.openDiagram(pd);
                 RenderableRegistry.getRegistry().open(diagram);
-                checkInstancesInDiagram(dba, 
-                                        diagram,
-                                        dbIdToObject,
-                                        entitySets);
+                checkInstancesInDiagram(dba,
+                        diagram,
+                        dbIdToObject,
+                        entitySets);
                 int addedLinks = addSetSetLinks(dbIdToObject,
-                                           entitySets,
-                                           diagram);
+                        entitySets,
+                        diagram);
                 if (addedLinks > 0) {
                     // Need to reset the XML
-                    updateDbDiagram(dba, 
-                                    diagramWriter,
-                                    newIE,
-                                    pd,
-                                    diagram);
-                    count ++;
+                    updateDbDiagram(dba,
+                            diagramWriter,
+                            newIE,
+                            pd,
+                            diagram, tx);
+                    count++;
                     System.out.println(count + ": " + pd + " (" + addedLinks + " lines).\n");
                 }
                 dbIdToObject.clear();
                 entitySets.clear();
             }
             System.out.println("Total Pathway Diagram changed: " + count);
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
+            tx.commit();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void updateDbDiagram(MySQLAdaptor dba,
+    private void updateDbDiagram(Neo4JAdaptor dba,
                                  DiagramGKBWriter diagramWriter,
                                  GKInstance newIE, 
                                  GKInstance pd,
-                                 RenderablePathway diagram) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+                                 RenderablePathway diagram,
+                                 Transaction tx) throws Exception {
         String xml = diagramWriter.generateXMLString(diagram);
         pd.setAttributeValue(ReactomeJavaConstants.storedATXML, xml);
         // have to get all modified attributes first. Otherwise, the original
         // values will be lost
         pd.getAttributeValue(ReactomeJavaConstants.modified);
         pd.addAttributeValue(ReactomeJavaConstants.modified, newIE);
-        dba.updateInstanceAttribute(pd, ReactomeJavaConstants.storedATXML);
-        dba.updateInstanceAttribute(pd, ReactomeJavaConstants.modified);
+        dba.updateInstanceAttribute(pd, ReactomeJavaConstants.storedATXML, tx);
+        dba.updateInstanceAttribute(pd, ReactomeJavaConstants.modified, tx);
     }
     
     /**
@@ -268,7 +269,7 @@ public class ELVMemberAndSetLinkTest {
         Long dbIds[] = new Long[]{};
         List<Long> escapeList = Arrays.asList(dbIds);
         // Get the database
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         DiagramGKBWriter diagramWriter = new DiagramGKBWriter();
@@ -276,10 +277,11 @@ public class ELVMemberAndSetLinkTest {
         Set<GKInstance> entitySets = new HashSet<GKInstance>();
         int count = 1;
         // The following is used for updating
-        try {
-            dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             // Set up default IE
-            GKInstance newIE = createDefaultIE(dba);
+            GKInstance newIE = createDefaultIE(dba, tx);
             System.out.println("Default IE: " + newIE);
             
             for (Iterator<?> it = c.iterator(); it.hasNext();) {
@@ -330,24 +332,23 @@ public class ELVMemberAndSetLinkTest {
                 }
                 if (isChanged) {
                     updateDbDiagram(dba, diagramWriter, newIE, pd,
-                                    diagram);
+                                    diagram, tx);
                 }
                 dbIdToObject.clear();
                 entitySets.clear();
             }
             System.out.println("Total Pathway Diagram changed: " + (count - 1));
-            dba.commit();
+            tx.commit();
         }
         catch(Exception e) {
-            dba.rollback();
             e.printStackTrace();
         }
     }
 
-    private GKInstance createDefaultIE(MySQLAdaptor dba) throws Exception,
+    private GKInstance createDefaultIE(Neo4JAdaptor dba, Transaction tx) throws Exception,
             InvalidAttributeException, InvalidAttributeValueException {
         Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-        return ScriptUtilities.createDefaultIE(dba, defaultPersonId, true);
+        return ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
     }
     
     @Test
@@ -472,7 +473,7 @@ public class ELVMemberAndSetLinkTest {
     private void addLinksForEntitySets(AddLinks addLinks,
                                        boolean needExportDiagram) throws Exception{
         // Get the database
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         Map<Long, List<Renderable>> dbIdToObject = new HashMap<Long, List<Renderable>>();
@@ -649,7 +650,7 @@ public class ELVMemberAndSetLinkTest {
      */
     @Test
     public void checkWrongSetAndSetLinks() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader reader = new DiagramGKBReader();
         List<Long> dbIds = new ArrayList<Long>();
@@ -684,7 +685,7 @@ public class ELVMemberAndSetLinkTest {
     
     @Test
     public void fixWrongSetAndSetLinks() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                             "db_name",
                                             "db_user",
                                             "db_pwd");
@@ -704,9 +705,10 @@ public class ELVMemberAndSetLinkTest {
         
         DiagramGKBReader reader = new DiagramGKBReader();
         DiagramGKBWriter writer = new DiagramGKBWriter();
-        try {
-            dba.startTransaction();
-            GKInstance defaultIE = createDefaultIE(dba);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = createDefaultIE(dba, tx);
             for (Long dbId : dbIds) {
                 GKInstance pd = dba.fetchInstance(dbId);
                 System.out.println("Processing " + pd);
@@ -726,12 +728,12 @@ public class ELVMemberAndSetLinkTest {
                     }
                 }
                 if (changed) 
-                    updateDbDiagram(dba, writer, defaultIE, pd, pathway);
+                    updateDbDiagram(dba, writer, defaultIE, pd, pathway, tx);
             }
-            dba.commit();
+            tx.commit();
         }
         catch(Exception e) {
-            dba.rollback();
+            e.printStackTrace();;
         }
     }
     

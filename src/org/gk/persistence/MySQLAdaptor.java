@@ -30,6 +30,7 @@ import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.gk.schema.SchemaParser;
 import org.gk.util.StringUtils;
+import org.neo4j.driver.Transaction;
 
 /**
  *
@@ -427,6 +428,11 @@ public class MySQLAdaptor implements PersistenceAdaptor {
         resultSet.close();
         stat.close();
     }
+
+	public void loadInstanceAttributeValues(GKInstance instance,
+											SchemaAttribute attribute, Boolean recursive) throws Exception {
+		// unused
+	}
 
 	/**
 	 * Should throws DBIDNotSetException if the instance the attributes of which are being loaded does
@@ -1817,7 +1823,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store 
 	 * the instance
 	 */
-	public Long storeInstance(GKInstance instance) throws Exception {
+	public Long storeInstance(GKInstance instance, Transaction tx) throws Exception {
 		return storeInstance(instance, false);
 	}
 
@@ -1871,7 +1877,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 						} else {
 							GKInstance val = (GKInstance) attVals.get(0);
 							statement.append("," + att.getName() + "=?");
-							values.add(storeInstance(val));
+							values.add(storeInstance(val, null));
 							statement.append("," + att.getName() + "_class=?");
 							values.add(val.getSchemClass().getName());
 						}
@@ -1925,7 +1931,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 					ps2.setInt(3, i);
 					if (att.isInstanceTypeAttribute()) {
 						GKInstance attVal = (GKInstance) attVals.get(i);
-						ps2.setObject(2, storeInstance(attVal));
+						ps2.setObject(2, storeInstance(attVal, null));
 						ps2.setString(4, attVal.getSchemClass().getName());
 					} else {
 						ps2.setObject(2, attVals.get(i));
@@ -1942,7 +1948,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				statement.append(att.getName() + "=?, " + att.getName() + "_class=?");
 				if (li.hasNext()) statement.append(",");
 				GKInstance value = (GKInstance) instance.getAttributeValue(att.getName());
-				values.add(storeInstance(value));
+				values.add(storeInstance(value, null));
 				values.add(value.getSchemClass().getName());
 			}
 			statement.append(" WHERE DB_ID=?");
@@ -1967,7 +1973,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
 	 */
 	public void updateInstanceAttribute (GKInstance instance, SchemaAttribute attribute) throws Exception {
-		updateInstanceAttribute(instance, attribute.getName());
+		updateInstanceAttribute(instance, attribute.getName(), null);
 	}
 
 	/**
@@ -1978,7 +1984,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * @param attributeName Name of the attribute to update for the corresponding instance in the database
 	 * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
 	 */
-	public void updateInstanceAttribute (GKInstance instance, String attributeName) throws Exception {
+	public void updateInstanceAttribute (GKInstance instance, String attributeName, Transaction tx) throws Exception {
 		if (instance.getDBID() == null) {
 			throw(new DBIDNotSetException(instance));
 		}
@@ -2017,7 +2023,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 			statement.append("," + attribute.getName() + "_class=?");
 			GKInstance attVal;
 			if ((attVal = (GKInstance) instance.getAttributeValue(attribute)) != null) {
-				values.add(storeInstance(attVal));
+				values.add(storeInstance(attVal, null));
 				values.add(attVal.getSchemClass().getName());
 			} else {
 				values.add(null);
@@ -2068,7 +2074,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				ps.setInt(2, i);
 				if (attribute.isInstanceTypeAttribute()) {
 					GKInstance valInstance = (GKInstance) attVals.get(i);
-					ps.setObject(3, storeInstance(valInstance));
+					ps.setObject(3, storeInstance(valInstance, null));
 					ps.setString(4, valInstance.getSchemClass().getName());
 				} else {
 					ps.setObject(3, attVals.get(i));
@@ -2483,7 +2489,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	public void txUpdateInstanceAttribute (GKInstance instance, String attributeName) throws Exception {
 		startTransaction();
 		try {
-			updateInstanceAttribute(instance, attributeName);
+			updateInstanceAttribute(instance, attributeName, null);
 			commit();
 		} catch (Exception e) {
 			rollback();
@@ -2560,7 +2566,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 			for (Iterator ii = instances.iterator(); ii.hasNext();) {
 				GKInstance i = (GKInstance) ii.next();
 				if (i.getDBID() == null) {
-					storeInstance(i);
+					storeInstance(i, null);
 				} else {
 					updateInstance(i);
 				}
@@ -2587,7 +2593,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 			for (Iterator ii = instances.iterator(); ii.hasNext();) {
 				GKInstance i = (GKInstance) ii.next();
 				if (i.getDBID() == null) {
-					storeInstance(i);
+					storeInstance(i, null);
 				} else {
 					updateInstance(i);
 				}

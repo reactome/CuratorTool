@@ -14,10 +14,14 @@ import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Create a new _UpdateTracker instance for every updated/revised Event between a current slice and a previous slice.
@@ -34,10 +38,11 @@ public class RevisionDetector {
         this.sliceEngine = engine;
     }
 
-    public void handleRevisions(MySQLAdaptor sourceDBA, // This is usually gk_central
-                                MySQLAdaptor currentSliceDBA,
-                                MySQLAdaptor previousSliceDBA,
-                                boolean uploadUpdateTrackersToSource) throws Exception {
+    public void handleRevisions(Neo4JAdaptor sourceDBA, // This is usually gk_central
+                                Neo4JAdaptor currentSliceDBA,
+                                Neo4JAdaptor previousSliceDBA,
+                                boolean uploadUpdateTrackersToSource,
+                                Transaction tx) throws Exception {
         // Make sure we have _UpdateTracker class in the currentSliceDBA
         if (currentSliceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker) == null) {
             logger.info("No _UpdateTracker class in the current slice database. Nothing to do for handleRevision!");
@@ -49,20 +54,22 @@ public class RevisionDetector {
             logger.info("No _UpdateTracker is created!");
             return;
         }
-        dumpUpdateTrackers(currentSliceDBA, updateTrackers);
+        dumpUpdateTrackers(currentSliceDBA, updateTrackers, tx);
         if (uploadUpdateTrackersToSource)
-            uploadUpdateTrackers(sourceDBA, currentSliceDBA, updateTrackers);
+            uploadUpdateTrackers(sourceDBA, currentSliceDBA, updateTrackers, tx);
     }
 
     /**
      * Upload newly created _UpdateTracker instances into the source database, which is gk_central usually.
      * @param sourceDBA
      * @param updateTrackers
+     * @param tx
      * @throws Exception
      */
-    private void uploadUpdateTrackers(MySQLAdaptor sourceDBA,
-                                      MySQLAdaptor currentSliceDBA,
-                                      List<GKInstance> updateTrackers) throws Exception {
+    private void uploadUpdateTrackers(Neo4JAdaptor sourceDBA,
+                                      Neo4JAdaptor currentSliceDBA,
+                                      List<GKInstance> updateTrackers,
+                                      Transaction tx) throws Exception {
         logger.info("Uploading UpdateTracker to the source database...");
         SchemaClass updateTrackerCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants._UpdateTracker);
         if (updateTrackerCls == null) {
@@ -79,46 +86,33 @@ public class RevisionDetector {
         // To copy that, we need to fully load the release instances
         // so that all values should be in the instance. Otherwise, some value may
         // not be there since the instance is loaded directly by DBA.
-        currentSliceDBA.fastLoadInstanceAttributeValues(release);
+        currentSliceDBA.loadInstanceAttributeValues(release);
         release.setSchemaClass(releaseCls);
         release.setDbAdaptor(sourceDBA);
         release.setDBID(null);
         GKInstance defaultIE = sliceEngine.createDefaultIE(sourceDBA);
         // Need to revise these instances to use the information from sourceDBA and also reset DB_IDs for better control
-        boolean needTrasanction = sourceDBA.supportsTransactions();
-        try {
-            if (needTrasanction)
-                sourceDBA.startTransaction();
-            // Commit these two instances first
-            sourceDBA.storeInstance(defaultIE);
-            release.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
-            sourceDBA.storeInstance(release);
-            // Note: DB_IDs used by those instances are different from the current slice database.
-            // This probably is fine.
-            long time1 = System.currentTimeMillis();
-            for (GKInstance updateTracker : updateTrackers) {
-                // Move to the sourceDBA version
-                updateTracker.setDBID(null);
-                updateTracker.setSchemaClass(updateTrackerCls);
-                updateTracker.setAttributeValue(ReactomeJavaConstants._release, release);
-                GKInstance updateEvent = (GKInstance) updateTracker.getAttributeValue(ReactomeJavaConstants.updatedEvent);
-                updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent,
-                                                sourceDBA.fetchInstance(updateEvent.getDBID()));
-                updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
-                updateTracker.setDbAdaptor(sourceDBA);
-                sourceDBA.storeInstance(updateTracker);
-            }
-            if (needTrasanction)
-                sourceDBA.commit();
-            long time2 = System.currentTimeMillis();
-            logger.info("Done uploading _UpdateTracker instances: " + (time2 - time1) / 1000.0d + " seconds.");
+        // Commit these two instances first
+        sourceDBA.storeInstance(defaultIE, tx);
+        release.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+        sourceDBA.storeInstance(release, tx);
+        // Note: DB_IDs used by those instances are different from the current slice database.
+        // This probably is fine.
+        long time1 = System.currentTimeMillis();
+        for (GKInstance updateTracker : updateTrackers) {
+            // Move to the sourceDBA version
+            updateTracker.setDBID(null);
+            updateTracker.setSchemaClass(updateTrackerCls);
+            updateTracker.setAttributeValue(ReactomeJavaConstants._release, release);
+            GKInstance updateEvent = (GKInstance) updateTracker.getAttributeValue(ReactomeJavaConstants.updatedEvent);
+            updateTracker.setAttributeValue(ReactomeJavaConstants.updatedEvent,
+                    sourceDBA.fetchInstance(updateEvent.getDBID()));
+            updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
+            updateTracker.setDbAdaptor(sourceDBA);
+            sourceDBA.storeInstance(updateTracker, tx);
         }
-        catch(Exception e) {
-            if (needTrasanction)
-                sourceDBA.rollback();
-            logger.error("Error in uploadUpdateTrackers: " + e.getMessage(), e);
-            throw e;
-        }
+        long time2 = System.currentTimeMillis();
+        logger.info("Done uploading _UpdateTracker instances: " + (time2 - time1) / 1000.0d + " seconds.");
     }
 
     /**
@@ -130,15 +124,15 @@ public class RevisionDetector {
         PropertyConfigurator.configure("SliceLog4j.properties");
         this.sliceEngine = new SlicingEngine();
         sliceEngine.setDefaultPersonId(140537L);
-        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
+        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
                                                   "gk_central_02_05_20_update_tracker",
                                                   "root",
                 "macmysql01");
-        MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
+        Neo4JAdaptor currentSliceDBA = new Neo4JAdaptor("localhost",
                                                         "test_ver73_slice_update_tracker",
                                                         "root",
                 "macmysql01");
-        MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor previousSliceDBA = new Neo4JAdaptor("localhost", 
                                                          "test_slice_ver71",
                                                          "root",
                                                          "macmysql01");
@@ -164,12 +158,12 @@ public class RevisionDetector {
     @Test
     public void testGetEventActions() throws Exception {
         Long dbId = 4608870L;
-        MySQLAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
+        Neo4JAdaptor currentSliceDBA = new Neo4JAdaptor("localhost",
                                                         "test_ver73_slice_update_tracker",
                                                         "root",
                 "macmysql01");
         GKInstance event = currentSliceDBA.fetchInstance(dbId);
-        MySQLAdaptor previousSliceDBA = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor previousSliceDBA = new Neo4JAdaptor("localhost", 
                                                          "test_slice_ver71",
                                                          "root",
                 "macmysql01");
@@ -184,25 +178,27 @@ public class RevisionDetector {
      * A helper method to dump all UpdateTracker instances into the current slice database.
      * @param currentSliceDBA
      * @param updateTrackers
+     * @param tx
      * @throws Exception
      */
-    private void dumpUpdateTrackers(MySQLAdaptor currentSliceDBA, List<GKInstance> updateTrackers) throws Exception {
+    private void dumpUpdateTrackers(Neo4JAdaptor currentSliceDBA, List<GKInstance> updateTrackers, Transaction tx) throws Exception {
         logger.info("Dumping UpdateTrackers into the slice database...");
         // This is not committed
         GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
-        currentSliceDBA.storeInstance(defaultIE);
+        currentSliceDBA.storeInstance(defaultIE, tx);
         logger.info("Attaching default InstanceEdit and then committing...");
         long time1 = System.currentTimeMillis();
         for (GKInstance updateTracker : updateTrackers) {
             updateTracker.setAttributeValue(ReactomeJavaConstants.created, defaultIE);
-            currentSliceDBA.storeInstance(updateTracker);
+            currentSliceDBA.storeInstance(updateTracker, tx);
         }
+        tx.commit();
         // Commit new instances to source database.
         long time2 = System.currentTimeMillis();
         logger.info("Dumping UpdateTrackers done: " + (time2 - time1) / 1000.0d + " seconds.");
     }
 
-    private GKInstance getReleaseInstance(MySQLAdaptor targetDBA) throws Exception {
+    private GKInstance getReleaseInstance(Neo4JAdaptor targetDBA) throws Exception {
         Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants._Release);
         if (c == null | c.size() == 0)
             throw new IllegalStateException("Cannot find any _Release instance in the slice database!");
@@ -244,10 +240,10 @@ public class RevisionDetector {
      * @return List
      * @throws InvalidAttributeException
      * @throws Exception
-     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, MySQLAdapter)}
+     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, Neo4JAdapter)}
      */
-    private List<GKInstance> createAllUpdateTrackers(MySQLAdaptor currentSliceDBA,
-                                                     MySQLAdaptor previousSliceDBA) throws Exception {
+    private List<GKInstance> createAllUpdateTrackers(Neo4JAdaptor currentSliceDBA,
+                                                     Neo4JAdaptor previousSliceDBA) throws Exception {
         if (previousSliceDBA == null)
             return null;
         logger.info("Create _UpdateTracker instances...");
@@ -278,7 +274,7 @@ public class RevisionDetector {
     }
 
     private void getEventActions(GKInstance event,  // The event in the current slice database
-                                 MySQLAdaptor preSliceDBA, // DBA for the previous slice database
+                                 Neo4JAdaptor preSliceDBA, // DBA for the previous slice database
                                  Map<GKInstance, Set<String>> eventToActions) throws Exception {
         if (eventToActions.containsKey(event))
             return;
@@ -339,7 +335,7 @@ public class RevisionDetector {
      * @return GKInstance
      * @throws Exception
      */
-    private GKInstance createUpdateTracker(MySQLAdaptor dba,
+    private GKInstance createUpdateTracker(Neo4JAdaptor dba,
                                            GKInstance updatedEvent,
                                            Set<String> actions,
                                            GKInstance release,

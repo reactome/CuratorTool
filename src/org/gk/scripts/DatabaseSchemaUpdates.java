@@ -8,9 +8,13 @@ import java.util.Collection;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * Methods related to database schema update should be placed here.
@@ -44,40 +48,39 @@ public class DatabaseSchemaUpdates {
     public void changeEntityCompartmentToCompartment(String dbName,
                                                      String dbUser,
                                                      String dbPwd) throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", dbName, dbUser, dbPwd);
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", dbName, dbUser, dbPwd);
         Collection<GKInstance> ecInstances = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityCompartment);
         System.out.println("Total EntityCompartment: " + ecInstances.size());
         SchemaClass compartment = dba.getSchema().getClassByName(ReactomeJavaConstants.Compartment);
-        dba.startTransaction();
-        for (GKInstance inst : ecInstances) {
-            System.out.println("Handling " + inst);
-            dba.fastLoadInstanceAttributeValues(inst); // Load all attribute values
-            inst.setSchemaClass(compartment);
-            dba.updateInstance(inst);
-        }
-        try {
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            for (GKInstance inst : ecInstances) {
+                System.out.println("Handling " + inst);
+                dba.loadInstanceAttributeValues(inst); // Load all attribute values
+                inst.setSchemaClass(compartment);
+                dba.updateInstance(inst, tx);
+            }
+            tx.commit();
         }
     }
     
     
     @Test
     public void copyAccessionToIdentifierForSO() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca", 
                                             "gk_central", 
                                             "authortool", 
                                             "T001test");
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SequenceOntology);
         System.out.println("Total SequenceOntology instances: " + instances.size());
-        try {
-            dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
             GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
                                                                    defaultPersonId,
-                                                                   true);
+                                                                   true, tx);
             for (GKInstance inst : instances) {
                 String accession = (String) inst.getAttributeValue(ReactomeJavaConstants.accession);
                 if (accession == null)
@@ -85,18 +88,15 @@ public class DatabaseSchemaUpdates {
                 inst.setAttributeValue(ReactomeJavaConstants.identifier,
                                        accession);
                 dba.updateInstanceAttribute(inst,
-                                            ReactomeJavaConstants.identifier);
+                                            ReactomeJavaConstants.identifier, tx);
                 // Have to load attribute value first
                 inst.getAttributeValuesList(ReactomeJavaConstants.modified);
                 inst.addAttributeValue(ReactomeJavaConstants.modified, 
                                        defaultIE);
                 dba.updateInstanceAttribute(inst,
-                                            ReactomeJavaConstants.modified);
+                                            ReactomeJavaConstants.modified, tx);
             }
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
+            tx.commit();
         }
     }
     

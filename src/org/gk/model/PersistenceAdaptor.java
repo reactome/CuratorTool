@@ -8,6 +8,7 @@ import java.util.Collection;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
+import org.neo4j.driver.Transaction;
 
 /**
  * An interface to connect to a persistence layer to load the necessary 
@@ -26,14 +27,17 @@ public interface PersistenceAdaptor {
 							                   Object value) throws Exception;
 	
 	public Collection fetchInstancesByClass(SchemaClass class1) throws Exception;
-	
-	public void loadInstanceAttributeValues(GKInstance instace, 
+
+	public void loadInstanceAttributeValues(GKInstance instance,
+											SchemaAttribute attribute, Boolean recursive) throws Exception;
+
+	public void loadInstanceAttributeValues(GKInstance instance,
 	                                        SchemaAttribute attribute) throws Exception;
-	                                        
-	public void updateInstanceAttribute(GKInstance instance, String attributeName) throws Exception;	 
-	       
-	public Long storeInstance(GKInstance instance) throws Exception;
-	       
+
+	public void updateInstanceAttribute(GKInstance instance, String attributeName, Transaction tx) throws Exception;
+
+	public Long storeInstance(GKInstance instance, Transaction tx) throws Exception;
+
 	public Schema getSchema();	   
 	
 	public Schema fetchSchema() throws Exception;    

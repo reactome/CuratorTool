@@ -14,7 +14,7 @@ import java.util.Map;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -30,7 +30,7 @@ public class ComplexCompartmentChecker {
     
     @Test
     public void checkComplexes() throws Exception {
-        MySQLAdaptor srcDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca", 
+        Neo4JAdaptor srcDBA = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
                                                "gk_central",
                                                "authortool",
                                                "T001test");
@@ -59,11 +59,11 @@ public class ComplexCompartmentChecker {
     @Test
     @SuppressWarnings("unchecked")
     public void compareComplexes() throws Exception {
-        MySQLAdaptor srcDBA = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor srcDBA = new Neo4JAdaptor("localhost", 
                                                "gk_current_ver43",
                                                "root",
                                                "macmysql01");
-        MySQLAdaptor targetDBA = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor targetDBA = new Neo4JAdaptor("localhost", 
                                                   "gk_central_021213",
                                                   "root",
                                                   "macmysql01");
@@ -121,8 +121,8 @@ public class ComplexCompartmentChecker {
         return builder.toString();
     }
     
-    private MySQLAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+    private Neo4JAdaptor getDBA() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -132,7 +132,7 @@ public class ComplexCompartmentChecker {
     
     @Test
     public void checkComplexCompartments() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Map<Long, Boolean> complexIdToFix = loadCompartmentList();
         int total = 0;
         int toBeFixed = 0;

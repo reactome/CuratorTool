@@ -18,7 +18,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.Project;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
@@ -215,7 +215,7 @@ public class PathwayDiagramXMLGenerator {
     
     @Test
     public void testGenerateXMLForPathwayDigram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_110818",
                                             "",
                                             "");

@@ -17,9 +17,13 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to handle disease related pathways updates.
@@ -27,14 +31,14 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class DiseasePathwayUpdates {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     
     public static void main(String[] args) throws Exception {
         if (args.length < 4) {
             System.err.println("java -Xmx4G org.gk.scripts.DiseasePathwayUpdates dbHost dbName dbUser dbPwd");
             System.exit(0);
         }
-        MySQLAdaptor dba = new MySQLAdaptor(args[0],
+        Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
                                             args[1],
                                             args[2],
                                             args[3]);
@@ -55,16 +59,16 @@ public class DiseasePathwayUpdates {
      */
     @Test
     public void reOrganizeDiseaseEventsV3() throws Exception {
-        MySQLAdaptor dba = getDBA();
-        
+        Neo4JAdaptor dba = getDBA();
+
         GKInstance disease = getDiseasePathway(dba);
-        
+
         Set<GKInstance> allDiseaseEvents = grepAllDiseaseEvents(disease);
-        
+
         // Map disease reactions to normal reactions using the new diseaseReaction attribute.
         Map<GKInstance, Set<GKInstance>> normalReactionToDisease = new HashMap<>();
         createNormalReactionToDiseaseMap(allDiseaseEvents,
-                                         normalReactionToDisease);
+                normalReactionToDisease);
         // Assign disease reactions to normal reactions
         Set<GKInstance> modifiedNormalReactions = new HashSet<>();
         Set<GKInstance> toBeMovedAll = new HashSet<>();
@@ -77,83 +81,83 @@ public class DiseasePathwayUpdates {
         System.out.println("\nToBeModifiedNormalReactions after assigning disease to normal reactions: " + modifiedNormalReactions.size());
         // Remove assigned disease reactions from pathways
         Set<GKInstance> modifiedDiseasePathways = new HashSet<>();
-        modifyHasEventAttribute(allDiseaseEvents, 
-                                toBeMovedAll,
-                                modifiedDiseasePathways);
+        modifyHasEventAttribute(allDiseaseEvents,
+                toBeMovedAll,
+                modifiedDiseasePathways);
 
         // Start handling GoF pathways
-        
+
         // Map GOF pathways to normal pathways so that disease pathways can be 
         // moved to new places.
         Map<GKInstance, GKInstance> diseaseToNormal = new HashMap<>();
         List<GKInstance> unmappedEvents = new ArrayList<>();
-        createDiseasePathwayToNormalMapV3(dba, 
-        		allDiseaseEvents, 
-        		diseaseToNormal, 
-        		unmappedEvents);
-        
+        createDiseasePathwayToNormalMapV3(dba,
+                allDiseaseEvents,
+                diseaseToNormal,
+                unmappedEvents);
+
         // Get the set of disease pathways to be re-mapped: pathways have ReactionlikeEvents should be remapped
         Set<GKInstance> toBeRemappedPathways = getPathwaysToBeMoved(allDiseaseEvents);
         System.out.println("\nToBeRemappedPathways: " + toBeRemappedPathways.size());
         // This map is used to do actual mapping
         Map<GKInstance, GKInstance> diseasePathwayToNormal = new HashMap<>();
         for (GKInstance diseaseEvent : diseaseToNormal.keySet()) {
-        	if (!diseaseEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
-        		continue;
-        	if (toBeRemappedPathways.contains(diseaseEvent)) {
-        		diseasePathwayToNormal.put(diseaseEvent, diseaseToNormal.get(diseaseEvent));
-        		continue;
-        	}
-        	// Or higher level
-        	Set<GKInstance> contained = InstanceUtilities.getContainedEvents(diseaseEvent);
-        	contained.retainAll(toBeRemappedPathways);
-        	if (contained.size() > 0) {
-        		diseasePathwayToNormal.put(diseaseEvent, diseaseToNormal.get(diseaseEvent));
-        	}
+            if (!diseaseEvent.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                continue;
+            if (toBeRemappedPathways.contains(diseaseEvent)) {
+                diseasePathwayToNormal.put(diseaseEvent, diseaseToNormal.get(diseaseEvent));
+                continue;
+            }
+            // Or higher level
+            Set<GKInstance> contained = InstanceUtilities.getContainedEvents(diseaseEvent);
+            contained.retainAll(toBeRemappedPathways);
+            if (contained.size() > 0) {
+                diseasePathwayToNormal.put(diseaseEvent, diseaseToNormal.get(diseaseEvent));
+            }
         }
         // However, we should remove all lower-level pathways
         while (true) {
-        	int preSize = diseasePathwayToNormal.size();
-        	Set<GKInstance> toBeRemoved = new HashSet<>();
-        	for (GKInstance diseasePathway : diseasePathwayToNormal.keySet()) {
-        		toBeRemoved.addAll(InstanceUtilities.getContainedEvents(diseasePathway));
-        	}
-        	diseasePathwayToNormal.keySet().removeAll(toBeRemoved);
-        	if (preSize == diseasePathwayToNormal.size())
-        		break; // Stop here since nothing has changed.
+            int preSize = diseasePathwayToNormal.size();
+            Set<GKInstance> toBeRemoved = new HashSet<>();
+            for (GKInstance diseasePathway : diseasePathwayToNormal.keySet()) {
+                toBeRemoved.addAll(InstanceUtilities.getContainedEvents(diseasePathway));
+            }
+            diseasePathwayToNormal.keySet().removeAll(toBeRemoved);
+            if (preSize == diseasePathwayToNormal.size())
+                break; // Stop here since nothing has changed.
         }
         for (GKInstance diseasePathway : diseasePathwayToNormal.keySet()) {
-        	toBeMovedAll.addAll(InstanceUtilities.getContainedEvents(diseasePathway));
-        	toBeMovedAll.add(diseasePathway);
+            toBeMovedAll.addAll(InstanceUtilities.getContainedEvents(diseasePathway));
+            toBeMovedAll.add(diseasePathway);
         }
         allDiseaseEvents.removeAll(toBeMovedAll);
-        modifyHasEventAttribute(allDiseaseEvents, 
-                                toBeMovedAll,
-                                modifiedDiseasePathways);
+        modifyHasEventAttribute(allDiseaseEvents,
+                toBeMovedAll,
+                modifiedDiseasePathways);
         System.out.println("\nTo be remapped disease pathways: " + diseasePathwayToNormal.size());
         for (GKInstance diseasePathway : diseasePathwayToNormal.keySet()) {
-        	GKInstance normalPathway = diseasePathwayToNormal.get(diseasePathway);
-        	System.out.println(diseasePathway + " -> " + 
-					   normalPathway + ": " + 
-					   diseasePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent));
+            GKInstance normalPathway = diseasePathwayToNormal.get(diseasePathway);
+            System.out.println(diseasePathway + " -> " +
+                    normalPathway + ": " +
+                    diseasePathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent));
         }
-        
+
         // Check disease events that should be kept in the disease hierarchy for manual checking
         Set<GKInstance> keptPathways = new HashSet<>();
         grepKeptPathways(allDiseaseEvents,
-                         unmappedEvents, 
-                         toBeMovedAll, 
-                         keptPathways);
+                unmappedEvents,
+                toBeMovedAll,
+                keptPathways);
         // Modify the original disease hierarchy
         keptPathways.addAll(unmappedEvents); // Unmapped pathways should be kept
-		modifyKeptPathwaysHasEvents(modifiedDiseasePathways, 
-								    keptPathways);
-        
+        modifyKeptPathwaysHasEvents(modifiedDiseasePathways,
+                keptPathways);
+
         // Get pathways to be deleted
         allDiseaseEvents.removeAll(toBeMovedAll);
         allDiseaseEvents.removeAll(keptPathways);
         // Reactions should never be deleted
-        for (Iterator<GKInstance> it = allDiseaseEvents.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = allDiseaseEvents.iterator(); it.hasNext(); ) {
             GKInstance inst = it.next();
             if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
                 it.remove();
@@ -164,47 +168,46 @@ public class DiseasePathwayUpdates {
 //        if (true)
 //            return;
         // Start re-organization
-        boolean isTransactionSupported = dba.supportsTransactions();
-        try {
-            if (isTransactionSupported)
-                dba.startTransaction();
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, 
-                                                                   ScriptUtilities.GUANMING_WU_DB_ID,
-                                                                   true);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                    ScriptUtilities.GUANMING_WU_DB_ID,
+                    true, tx);
             // Perform deletion first
             System.out.println("\nThe following pathways have been deleted: ");
             for (GKInstance inst : allDiseaseEvents) {
-                dba.deleteInstance(inst);
+                dba.deleteInstance(inst, tx);
                 System.out.println(inst);
             }
             System.out.println("Total: " + allDiseaseEvents.size());
-            
+
             System.out.println("\nThe following reactions have added disease reactions to their diseaseReaction slot:");
             for (GKInstance normalReaction : modifiedNormalReactions) {
-                dba.updateInstanceAttribute(normalReaction, 
-                                            "diseaseReaction");
+                dba.updateInstanceAttribute(normalReaction,
+                        "diseaseReaction", tx);
                 ScriptUtilities.addIEToModified(normalReaction,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(normalReaction);
             }
             System.out.println("Total: " + modifiedNormalReactions.size());
-            
+
             System.out.println("\nThe following disease pathways have been attached to normal pathways:");
             for (GKInstance diseaseInst : diseasePathwayToNormal.keySet()) {
                 GKInstance normalInst = diseasePathwayToNormal.get(diseaseInst);
                 List<GKInstance> normalInstHasEvent = normalInst.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
                 normalInst.addAttributeValue(ReactomeJavaConstants.hasEvent,
-                                             diseaseInst);
+                        diseaseInst);
                 dba.updateInstanceAttribute(normalInst,
-                                            ReactomeJavaConstants.hasEvent);
+                        ReactomeJavaConstants.hasEvent, tx);
                 ScriptUtilities.addIEToModified(normalInst,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(diseaseInst + " -> " + normalInst);
             }
             System.out.println("Total: " + diseasePathwayToNormal.size());
-            
+
             System.out.println("\nThe following diease pathways have their hasEvent slots changed:");
             int count = 0;
             // Don't forget the top-level pathway
@@ -215,12 +218,12 @@ public class DiseasePathwayUpdates {
             for (GKInstance diseaseInst : modifiedDiseasePathways) {
                 if (allDiseaseEvents.contains(diseaseInst))
                     continue;
-                dba.updateInstanceAttribute(diseaseInst, ReactomeJavaConstants.hasEvent);
+                dba.updateInstanceAttribute(diseaseInst, ReactomeJavaConstants.hasEvent, tx);
                 ScriptUtilities.addIEToModified(diseaseInst,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(diseaseInst);
-                count ++;
+                count++;
             }
             System.out.println("Total: " + count);
             // Just a sanity check
@@ -235,12 +238,8 @@ public class DiseasePathwayUpdates {
             pathway = dba.fetchInstance(3701007L);
             hasEvent = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
             System.out.println(pathway + ": " + hasEvent);
-            if (isTransactionSupported)
-                dba.commit();
-        }
-        catch(Exception e) {
-            if (isTransactionSupported)
-                dba.rollback();
+            tx.commit();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -254,23 +253,23 @@ public class DiseasePathwayUpdates {
      */
     @Test
     public void reOrganizeDiseaseEventsV2() throws Exception {
-        MySQLAdaptor dba = getDBA();
-        
+        Neo4JAdaptor dba = getDBA();
+
         GKInstance disease = getDiseasePathway(dba);
-        
+
         Set<GKInstance> allDiseaseEvents = grepAllDiseaseEvents(disease);
-        
+
         Map<GKInstance, GKInstance> diseaseToNormal = new HashMap<>();
         List<GKInstance> unmappedEvents = new ArrayList<>();
-        createDiseasePathwayToNormalMap(dba, 
-                                        allDiseaseEvents, 
-                                        diseaseToNormal, 
-                                        unmappedEvents);
-        
+        createDiseasePathwayToNormalMap(dba,
+                allDiseaseEvents,
+                diseaseToNormal,
+                unmappedEvents);
+
         Map<GKInstance, Set<GKInstance>> normalReactionToDisease = new HashMap<>();
         createNormalReactionToDiseaseMap(allDiseaseEvents,
-                                         normalReactionToDisease);
-        
+                normalReactionToDisease);
+
         // Assign disease reactions to normal reactions
         Set<GKInstance> modifiedNormalReactions = new HashSet<>();
         Set<GKInstance> toBeMovedAll = new HashSet<>();
@@ -283,10 +282,10 @@ public class DiseasePathwayUpdates {
         System.out.println("\nToBeModifiedNormalReactions after assigning disease to normal reactions: " + modifiedNormalReactions.size());
         // Remove assigned disease reactions from pathways
         Set<GKInstance> modifiedDiseasePathways = new HashSet<>();
-        modifyHasEventAttribute(allDiseaseEvents, 
-                                toBeMovedAll,
-                                modifiedDiseasePathways);
-        
+        modifyHasEventAttribute(allDiseaseEvents,
+                toBeMovedAll,
+                modifiedDiseasePathways);
+
         // Get the set of disease pathways to be re-mapped: pathways have ReactionlikeEvents should be remapped
         Set<GKInstance> toBeRemappedPathways = getPathwaysToBeMoved(allDiseaseEvents);
         System.out.println("\nToBeRemappedPathways: " + toBeRemappedPathways.size());
@@ -303,26 +302,26 @@ public class DiseasePathwayUpdates {
                 }
             }
         }
-        modifyHasEventAttribute(allDiseaseEvents, 
-                                diseasePathwayToNormal.keySet(),
-                                modifiedDiseasePathways);
-        
+        modifyHasEventAttribute(allDiseaseEvents,
+                diseasePathwayToNormal.keySet(),
+                modifiedDiseasePathways);
+
         // Check disease events that should be kept in the disease hierarchy for manual checking
         Set<GKInstance> keptPathways = new HashSet<>();
         grepKeptPathways(allDiseaseEvents,
-                         unmappedEvents, 
-                         toBeMovedAll, 
-                         keptPathways);
+                unmappedEvents,
+                toBeMovedAll,
+                keptPathways);
         // Modify the original disease hierarchy
         keptPathways.addAll(unmappedEvents); // Unmapped pathways should be kept
-		modifyKeptPathwaysHasEvents(modifiedDiseasePathways, 
-								    keptPathways);
-        
+        modifyKeptPathwaysHasEvents(modifiedDiseasePathways,
+                keptPathways);
+
         // Get pathways to be deleted
         allDiseaseEvents.removeAll(toBeMovedAll);
         allDiseaseEvents.removeAll(keptPathways);
         // Reactions should never be deleted
-        for (Iterator<GKInstance> it = allDiseaseEvents.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = allDiseaseEvents.iterator(); it.hasNext(); ) {
             GKInstance inst = it.next();
             if (inst.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
                 it.remove();
@@ -333,47 +332,46 @@ public class DiseasePathwayUpdates {
         if (true)
             return;
         // Start re-organization
-        boolean isTransactionSupported = dba.supportsTransactions();
-        try {
-            if (isTransactionSupported)
-                dba.startTransaction();
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, 
-                                                                   ScriptUtilities.GUANMING_WU_DB_ID,
-                                                                   true);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                    ScriptUtilities.GUANMING_WU_DB_ID,
+                    true, tx);
             // Perform deletion first
             System.out.println("\nThe following pathways have been deleted: ");
             for (GKInstance inst : allDiseaseEvents) {
-                dba.deleteInstance(inst);
+                dba.deleteInstance(inst, tx);
                 System.out.println(inst);
             }
             System.out.println("Total: " + allDiseaseEvents.size());
-            
+
             System.out.println("\nThe following reactions have added disease reactions to their diseaseReaction slot:");
             for (GKInstance normalReaction : modifiedNormalReactions) {
-                dba.updateInstanceAttribute(normalReaction, 
-                                            "diseaseReaction");
+                dba.updateInstanceAttribute(normalReaction,
+                        "diseaseReaction", tx);
                 ScriptUtilities.addIEToModified(normalReaction,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(normalReaction);
             }
             System.out.println("Total: " + modifiedNormalReactions.size());
-            
+
             System.out.println("\nThe following disease pathways have been attached to normal pathways:");
             for (GKInstance diseaseInst : diseasePathwayToNormal.keySet()) {
                 GKInstance normalInst = diseasePathwayToNormal.get(diseaseInst);
                 List<GKInstance> normalInstHasEvent = normalInst.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
                 normalInst.addAttributeValue(ReactomeJavaConstants.hasEvent,
-                                             diseaseInst);
+                        diseaseInst);
                 dba.updateInstanceAttribute(normalInst,
-                                            ReactomeJavaConstants.hasEvent);
+                        ReactomeJavaConstants.hasEvent, tx);
                 ScriptUtilities.addIEToModified(normalInst,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(diseaseInst + " -> " + normalInst);
             }
             System.out.println("Total: " + diseasePathwayToNormal.size());
-            
+
             System.out.println("\nThe following diease pathways have their hasEvent slots changed:");
             int count = 0;
             // Don't forget the top-level pathway
@@ -384,12 +382,12 @@ public class DiseasePathwayUpdates {
             for (GKInstance diseaseInst : modifiedDiseasePathways) {
                 if (allDiseaseEvents.contains(diseaseInst))
                     continue;
-                dba.updateInstanceAttribute(diseaseInst, ReactomeJavaConstants.hasEvent);
+                dba.updateInstanceAttribute(diseaseInst, ReactomeJavaConstants.hasEvent, tx);
                 ScriptUtilities.addIEToModified(diseaseInst,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
                 System.out.println(diseaseInst);
-                count ++;
+                count++;
             }
             System.out.println("Total: " + count);
             // Just a sanity check
@@ -404,12 +402,8 @@ public class DiseasePathwayUpdates {
             pathway = dba.fetchInstance(3701007L);
             hasEvent = pathway.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
             System.out.println(pathway + ": " + hasEvent);
-            if (isTransactionSupported)
-                dba.commit();
-        }
-        catch(Exception e) {
-            if (isTransactionSupported)
-                dba.rollback();
+            tx.commit();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -434,7 +428,7 @@ public class DiseasePathwayUpdates {
 		return allDiseaseEvents;
 	}
 
-	private GKInstance getDiseasePathway(MySQLAdaptor dba) throws Exception {
+	private GKInstance getDiseasePathway(Neo4JAdaptor dba) throws Exception {
 		// Remove disease pathways from disease
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Pathway,
                                                                 ReactomeJavaConstants._displayName,
@@ -588,7 +582,7 @@ public class DiseasePathwayUpdates {
         System.out.println("Total number: " + count);
     }
     
-    private void createDiseasePathwayToNormalMapV3(MySQLAdaptor dba, 
+    private void createDiseasePathwayToNormalMapV3(Neo4JAdaptor dba, 
     							                   Set<GKInstance> allDiseaseEvents,
     							                   	Map<GKInstance, GKInstance> diseaseToNormal,
     							                   	List<GKInstance> unmappedEvents) throws Exception {
@@ -673,7 +667,7 @@ public class DiseasePathwayUpdates {
     	}
     }
 
-    private void createDiseasePathwayToNormalMap(MySQLAdaptor dba, 
+    private void createDiseasePathwayToNormalMap(Neo4JAdaptor dba, 
     									         Set<GKInstance> allDiseaseEvents,
     									         Map<GKInstance, GKInstance> diseaseToNormal,
     									         List<GKInstance> unmappedEvents) throws Exception {
@@ -745,10 +739,10 @@ public class DiseasePathwayUpdates {
      */
     @Test
     public void reOrganizeDiseasePathwaysToNormals() throws Exception {
-        MySQLAdaptor dba = getDBA();
-        
+        Neo4JAdaptor dba = getDBA();
+
         GKInstance disease = getDiseasePathway(dba);
-        
+
         Map<GKInstance, GKInstance> diseaseToNormal = generateDiseasePathwaysToNormalMappping(dba);
         // Check all mappings
         System.out.println("\nFinal mappings:");
@@ -762,42 +756,37 @@ public class DiseasePathwayUpdates {
 //        if (true)
 //            return;
         // Start re-organization
-        boolean isTransactionSupported = dba.supportsTransactions();
-        try {
-            if (isTransactionSupported)
-                dba.startTransaction();
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, 
-                                                                   ScriptUtilities.GUANMING_WU_DB_ID,
-                                                                   true);
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                    ScriptUtilities.GUANMING_WU_DB_ID,
+                    true, tx);
             for (GKInstance diseaseInst : diseaseList) {
                 GKInstance normalInst = diseaseToNormal.get(diseaseInst);
                 List<GKInstance> normalInstHasEvent = normalInst.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
                 normalInst.addAttributeValue(ReactomeJavaConstants.hasEvent,
-                                             diseaseInst);
+                        diseaseInst);
                 dba.updateInstanceAttribute(normalInst,
-                                            ReactomeJavaConstants.hasEvent);
+                        ReactomeJavaConstants.hasEvent, tx);
                 ScriptUtilities.addIEToModified(normalInst,
-                                                defaultIE,
-                                                dba);
+                        defaultIE,
+                        dba, tx);
             }
 
             // Delete re-organized disease pathways from top-most disease pathway.
             List<GKInstance> hasEvent = disease.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-            for (Iterator<GKInstance> it = hasEvent.iterator(); it.hasNext();) {
+            for (Iterator<GKInstance> it = hasEvent.iterator(); it.hasNext(); ) {
                 GKInstance inst = it.next();
                 String displayName = inst.getDisplayName();
                 if (displayName.equals("Infectious disease"))
                     continue;
                 it.remove();
             }
-            dba.updateInstanceAttribute(disease, ReactomeJavaConstants.hasEvent);
-            ScriptUtilities.addIEToModified(disease, defaultIE, dba);
-            if (isTransactionSupported)
-                dba.commit();
-        }
-        catch(Exception e) {
-            if (isTransactionSupported)
-                dba.rollback();
+            dba.updateInstanceAttribute(disease, ReactomeJavaConstants.hasEvent, tx);
+            ScriptUtilities.addIEToModified(disease, defaultIE, dba, tx);
+            tx.commit();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -806,7 +795,7 @@ public class DiseasePathwayUpdates {
      * This class is used to generate a mapping from disease pathways to normal pathways.
      * @throws Exception
      */
-    private Map<GKInstance, GKInstance> generateDiseasePathwaysToNormalMappping(MySQLAdaptor dba) throws Exception {
+    private Map<GKInstance, GKInstance> generateDiseasePathwaysToNormalMappping(Neo4JAdaptor dba) throws Exception {
         Map<GKInstance, GKInstance> diseaseToNormal = new HashMap<GKInstance, GKInstance>();
         Map<String, Long> diseaseNameToNormalDBID = getManualMapping();
         GKInstance disease = getDiseasePathway(dba);
@@ -1040,7 +1029,7 @@ public class DiseasePathwayUpdates {
     
     @Test
     public void checkLinksFromDiseasePathway() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
         GKInstance frontPage = c.iterator().next();
         // Get pathways contained by non-disease top-level pathways
@@ -1103,7 +1092,7 @@ public class DiseasePathwayUpdates {
      */
     @Test
     public void useNewNormatlPathwaySlotForUnfinishedPathways() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_120114_fireworks",
                                             "root",
                                             "macmysql01");
@@ -1158,21 +1147,19 @@ public class DiseasePathwayUpdates {
 //        if (true)
 //            return;
         // Now we want to update
-        try {
-            dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true);
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
             for (GKInstance diseasePathway : diseaseToNormal.keySet()) {
                 GKInstance normalPathway = diseaseToNormal.get(diseasePathway);
                 useNormalPathwaySlot(diseasePathway, 
                                      normalPathway, 
                                      ie, 
-                                     dba);
+                                     dba, tx);
             }
-            dba.commit();
-        }
-        catch(Exception e) {
-            dba.rollback();
+            tx.commit();
         }
     }
     
@@ -1182,7 +1169,7 @@ public class DiseasePathwayUpdates {
      */
     @Test
     public void useNewNormalPathwaySlot() throws Exception {
-        MySQLAdaptor dba = getDBA();
+        Neo4JAdaptor dba = getDBA();
         // Get the disease pathway
         GKInstance disease = dba.fetchInstance(1643685L);
         List<GKInstance> otherDiseaes = disease.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
@@ -1194,7 +1181,7 @@ public class DiseasePathwayUpdates {
         }
     }
 
-    private void useNewNormalPathwaySlot(GKInstance disease, MySQLAdaptor dba) throws Exception {
+    private void useNewNormalPathwaySlot(GKInstance disease, Neo4JAdaptor dba) throws Exception {
         GKInstance species = (GKInstance) disease.getAttributeValue(ReactomeJavaConstants.species);
         System.out.println("\nSpecies: " + species.getDisplayName());
 //        if (!species.getDisplayName().equals("Mus musculus"))
@@ -1217,73 +1204,69 @@ public class DiseasePathwayUpdates {
 //        if (true)
 //            return;
         // Now for the update
-        boolean isTransactionSupported = dba.supportsTransactions();
-        try {
-            if (isTransactionSupported)
-                dba.startTransaction();
+        Driver driver = dba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
             Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true);
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
             for (GKInstance pathway : toBeChanged) {
-                useNewNormalPathwaySlot(pathway, ie, dba);
+                useNewNormalPathwaySlot(pathway, ie, dba, tx);
             }
-            if (isTransactionSupported)
-                dba.commit();
-        }
-        catch(Exception e) {
-            if (isTransactionSupported)
-                dba.rollback();
+            tx.commit();
         }
     }
 
-    private MySQLAdaptor getDBA() throws SQLException {
+    private Neo4JAdaptor getDBA() throws SQLException {
         if (this.dba != null)
             return this.dba;
-//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+//        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
 //                                            "gk_current_ver51_new_schema",
 //                                            "root",
 //                                            "macmysql01");
-//        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+//        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
 //                                            "test_gk_central_020915_wgm",
 //                                            "authortool",
 //                                            "T001test");
-//        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+//        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
 //                                            "test_gk_central_031317_new_disease",
 //                                            "root",
 //                                            "macmysql01");
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
         									"test_gk_central_063017_new_disease",
         									"root",
         									"macmysql01");
         return dba;
     }
     
-    public void setDBA(MySQLAdaptor dba) {
+    public void setDBA(Neo4JAdaptor dba) {
         this.dba = dba;
     }
     
     private void useNewNormalPathwaySlot(GKInstance pathway,
                                          GKInstance ie,
-                                         MySQLAdaptor dba) throws Exception {
+                                         Neo4JAdaptor dba,
+                                         Transaction tx) throws Exception {
         GKInstance normalPathway = getNormalPathwayForDisease(pathway);
         useNormalPathwaySlot(pathway, 
                              normalPathway,
                              ie, 
-                             dba);
+                             dba, tx);
     }
 
     private void useNormalPathwaySlot(GKInstance diseasePathway,
                                       GKInstance normalPathway, 
                                       GKInstance ie,
-                                      MySQLAdaptor dba) throws Exception {
+                                      Neo4JAdaptor dba,
+                                      Transaction tx) throws Exception {
         if (normalPathway == null)
             throw new IllegalArgumentException(diseasePathway + " has no normal pathway!");
         diseasePathway.setAttributeValue(ReactomeJavaConstants.normalPathway, normalPathway);
         diseasePathway.removeAttributeValueNoCheck(ReactomeJavaConstants.hasEvent, normalPathway);
         diseasePathway.getAttributeValue(ReactomeJavaConstants.modified);
         diseasePathway.addAttributeValue(ReactomeJavaConstants.modified, ie);
-        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.modified);
-        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.hasEvent);
-        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.normalPathway);
+        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.modified, tx);
+        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.hasEvent, tx);
+        dba.updateInstanceAttribute(diseasePathway, ReactomeJavaConstants.normalPathway, tx);
 //        System.out.println(diseasePathway + " udpated!");
     }
     

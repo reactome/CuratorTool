@@ -25,7 +25,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.persistence.XMLFileAdaptor;
@@ -257,7 +257,7 @@ public class ElvDiagramHandler {
                                       message,
                                       "Check Diagram",
                                       JOptionPane.INFORMATION_MESSAGE);
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
         if (dba == null) {
             // Show error message
             JOptionPane.showMessageDialog(parentComp,

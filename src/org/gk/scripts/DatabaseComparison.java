@@ -6,12 +6,11 @@ package org.gk.scripts;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
-
+import org.gk.persistence.Neo4JAdaptor;
+import org.gk.util.StringUtils;
 
 
 /**
@@ -19,10 +18,10 @@ import org.gk.persistence.MySQLAdaptor;
  * @author wgm
  */
 public class DatabaseComparison {
-    private MySQLAdaptor localDBA;
-    private MySQLAdaptor remoteDBA;
+    private Neo4JAdaptor localDBA;
+    private Neo4JAdaptor remoteDBA;
     
-    public DatabaseComparison(MySQLAdaptor localDBA, MySQLAdaptor remoteDBA) {
+    public DatabaseComparison(Neo4JAdaptor localDBA, Neo4JAdaptor remoteDBA) {
         this.localDBA = localDBA;
         this.remoteDBA = remoteDBA;
     }
@@ -32,43 +31,30 @@ public class DatabaseComparison {
         compare(className, remoteDBA, localDBA);
     }
     
-    private void compare(String className, MySQLAdaptor sourceDBA, MySQLAdaptor targetDBA) throws Exception {
+    private void compare(String className, Neo4JAdaptor sourceDBA, Neo4JAdaptor targetDBA) throws Exception {
         Collection sourceInstances = sourceDBA.fetchInstancesByClass(className);
-        StringBuffer dbIDs = new StringBuffer();
+        List<Long> dbIDs = new ArrayList();
         GKInstance reaction = null;
         for (Iterator it = sourceInstances.iterator(); it.hasNext();) {
             reaction = (GKInstance) it.next();
-            dbIDs.append(reaction.getDBID());
-            if (it.hasNext())
-                dbIDs.append(",");
+            dbIDs.add(reaction.getDBID());
         }
-        Connection targetConn = targetDBA.getConnection();
-        Statement stat = targetConn.createStatement();
-        String query = "SELECT DB_ID FROM " + className + " WHERE DB_ID NOT IN (" +
-                       dbIDs + ")";
-        ResultSet result = stat.executeQuery(query);
-        System.out.println(className + " in " + targetDBA.toString() + " but not in " + sourceDBA + ":");
-        int c = 0;
-        dbIDs.setLength(0);
-        while (result.next()) {
-            long dbID = result.getLong(1);
-            dbIDs.append(dbID);
-            dbIDs.append(", ");
-            c ++;
+        Set<Long> missingDBIds = targetDBA.existing(dbIDs, false, true);
+        for (Iterator it = missingDBIds.iterator(); it.hasNext();) {
+            System.out.println(StringUtils.join(", ", List.copyOf(missingDBIds)));
+            System.out.println("Total: " + missingDBIds.size());
         }
-        System.out.println(dbIDs);
-        System.out.println("Total: " + c);        
     }
     
 
     public static void main(String[] args) {
         try {
-            MySQLAdaptor localDBA = new MySQLAdaptor("localhost",
+            Neo4JAdaptor localDBA = new Neo4JAdaptor("localhost",
                                                      "test_slicing",
                                                      "wgm",
                                                      "wgm",
                                                      3306);
-            MySQLAdaptor remoteDBA = new MySQLAdaptor("brie8",
+            Neo4JAdaptor remoteDBA = new Neo4JAdaptor("brie8",
                                                       "test_slicing",
                                                       "authortool",
                                                       "T001test",
@@ -81,5 +67,4 @@ public class DatabaseComparison {
             e.printStackTrace();
         }
     }
-    
 }

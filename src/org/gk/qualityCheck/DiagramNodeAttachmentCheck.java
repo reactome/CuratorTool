@@ -19,7 +19,7 @@ import org.gk.gkCurator.authorTool.ModifiedResidueHandler;
 import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.NodeAttachment;
 import org.gk.render.Renderable;
@@ -287,8 +287,8 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
                 .collect(Collectors.toList());
         PersistenceAdaptor dataSource = getDatasource();
         Collection<GKInstance> instances;
-        if (dataSource instanceof MySQLAdaptor) {
-            MySQLAdaptor dba = (MySQLAdaptor)dataSource;
+        if (dataSource instanceof Neo4JAdaptor) {
+            Neo4JAdaptor dba = (Neo4JAdaptor)dataSource;
             instances = dba.fetchInstances(
                     ReactomeJavaConstants.EntityWithAccessionedSequence, dbIds);
             dba.loadInstanceAttributeValues(instances, LOAD_ATTS);
@@ -307,7 +307,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
     
     @Test
     public void testCheckInCommand() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_040519",
                                             "root",
                                             "macmysql01");
@@ -316,7 +316,7 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
 
     @Test
     public void testCheckOneDiagram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_040519",
                                             "root",
                                             "macmysql01");

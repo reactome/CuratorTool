@@ -21,7 +21,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
@@ -67,7 +67,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     }
 
     /**
-     * This method overrides {@link ReactionELVCheck#checkEventUsageInELV(MySQLAdaptor)}
+     * This method overrides {@link ReactionELVCheck#checkEventUsageInELV(Neo4JAdaptor)}
      * to build the database instance {diagram: unmatched reactions} map.
      * 
      * @param dba
@@ -76,7 +76,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(MySQLAdaptor dba) throws Exception {
+    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(Neo4JAdaptor dba) throws Exception {
         dbIdsToIssue = new HashMap<>();
         // Build the map.
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
@@ -276,7 +276,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     
     @Test
     public void testReactionSynCheck() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_010914", 
                                             "root",
                                             "macmysql01");
@@ -287,7 +287,7 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
     
     @Test
     public void testCheckInCommand() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "test_slice",
                                             "root",
                                             "macmysql01");

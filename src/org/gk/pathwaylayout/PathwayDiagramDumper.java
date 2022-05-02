@@ -17,7 +17,7 @@ import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.RenderablePathway;
 import org.gk.util.GKApplicationUtilities;
@@ -36,12 +36,12 @@ public class PathwayDiagramDumper {
  
     /**
      * The entry point to output diagrams.
-     * @param dba MySQLAdaptor to use for retrieving PathwayDiagram instances
+     * @param dba Neo4JAdaptor to use for retrieving PathwayDiagram instances
      * @param outputDir Directory to which to write diagram files
      * @throws Exception Thrown if unable to retrieve PathwayDiagram instances, retrieving values from the 
      * PathwayDiagram instances, or an error occurs during file IO.
      */
-    public void dumpDiagrams(MySQLAdaptor dba, 
+    public void dumpDiagrams(Neo4JAdaptor dba, 
                              File outputDir) throws Exception {
         // Make sure if these static variable values are used
         Node.setWidthRatioOfBoundsToText(1.0d);
@@ -96,7 +96,7 @@ public class PathwayDiagramDumper {
     
     @Test
     public void testDumpDiagrams() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_current_ver43", 
                                             "root",
                                             "macmysql01");
@@ -172,7 +172,7 @@ public class PathwayDiagramDumper {
             return;
         }
         try {
-            MySQLAdaptor dba = new MySQLAdaptor(args[0],
+            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
                                                 args[1],
                                                 args[2],
                                                 args[3],

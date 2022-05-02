@@ -10,7 +10,7 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JOptionPane;
 
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /** 
  *  Provides the actions for the buttons and menus of the IDGenerationFrame.
@@ -60,9 +60,9 @@ public class IDGenerationController {
 		List schemaClasses = getSchemaClassesIfOk();
 		if (schemaClasses!=null) {
 	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-			MySQLAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-			MySQLAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-			MySQLAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+			Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+			Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+			Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
 			idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
 			idGenerator.testIDs(schemaClasses);
 			idGenerationFrame.getIdGenerationPane().getTestResultsPane().setTitleLabelTest();
@@ -92,9 +92,9 @@ public class IDGenerationController {
 		List schemaClasses = getSchemaClassesIfOk();
 		if (schemaClasses!=null) {
 	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-			MySQLAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-			MySQLAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-			MySQLAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+			Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+			Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+			Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
 			idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
 			idGenerator.generateIDs(schemaClasses);
 			idGenerationFrame.getIdGenerationPane().getTestResultsPane().setTitleLabelRun();
@@ -123,9 +123,9 @@ public class IDGenerationController {
 		
 		List schemaClasses = getSchemaClassesIfOk();
     	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-		MySQLAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-		MySQLAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-		MySQLAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+		Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+		Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+		Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
 		idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
 		idGenerator.rollbackIDs(schemaClasses);
 	}
@@ -238,9 +238,9 @@ public class IDGenerationController {
 		}
 		
 		String releaseCountString = idGenerationFrame.getIdGenerationPane().getReleasesPane().getController().getModel().getLastNonNullReleaseNum();
-		MySQLAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+		Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
 		String previousReleaseNumString = identifierDatabase.getReleaseNumFromReleaseDba(previousDba);
-		MySQLAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+		Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
 		String currentReleaseNumString = identifierDatabase.getReleaseNumFromReleaseDba(currentDba);
 		int previousReleaseNum = Integer.MIN_VALUE;
 		if (previousReleaseNumString!=null && !previousReleaseNumString.equals(""))

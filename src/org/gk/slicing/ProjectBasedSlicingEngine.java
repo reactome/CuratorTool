@@ -17,7 +17,7 @@ import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
@@ -77,12 +77,12 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
      */
     @Test
     public void compareTwoSlicings() throws Exception {
-        MySQLAdaptor oldDba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor oldDba = new Neo4JAdaptor("localhost",
                                                "test_slicing_ver25",
                                                "root",
                                                "macmysql01",
                                                3306);
-        MySQLAdaptor newDba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor newDba = new Neo4JAdaptor("localhost",
                                                "test_slicing_ver25_new",
                                                "root",
                                                "macmysql01",
@@ -116,7 +116,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
      */
     @Test
     public void testExtractEvents() throws Exception {
-        sourceDBA = new MySQLAdaptor("localhost",
+        sourceDBA = new Neo4JAdaptor("localhost",
                                      "gk_central_051208",
                                      "root",
                                      "macmysql01",
@@ -145,7 +145,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
             System.out.println(clsName + ": " + list.size());
         }
         // Want to check what the differences between these two methods
-        MySQLAdaptor oldSlice = new MySQLAdaptor("localhost",
+        Neo4JAdaptor oldSlice = new Neo4JAdaptor("localhost",
                                                  "test_slicing_ver25",
                                                  "root",
                                                  "macmysql01",
@@ -477,7 +477,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
     
     
     public void testTopics() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                             "test_gk_central",
                                             "authortool",
                                             "T001test",

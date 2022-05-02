@@ -40,6 +40,7 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
+import org.neo4j.driver.Transaction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -1296,6 +1297,11 @@ public class FileAdaptor implements PersistenceAdaptor {
 		}
 		return schema;
 	}
+
+	public void loadInstanceAttributeValues(GKInstance instance,
+											SchemaAttribute attribute, Boolean recursive) throws Exception {
+		// unused
+	}
 	
 	/* 
 	 * @see org.gk.model.PersistenceAdaptor#loadInstanceAttributeValues(org.gk.model.GKInstance, org.gk.schema.SchemaAttribute)
@@ -1496,7 +1502,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/* 
 	 * @see org.gk.model.PersistenceAdaptor#storeInstance(org.gk.model.GKInstance)
 	 */
-	public Long storeInstance(GKInstance instance) throws Exception {
+	public Long storeInstance(GKInstance instance, Transaction tx) throws Exception {
 		throw new UnsupportedOperationException("FileAdaptor.storeInstance(GKInstane) is not supported");
 	}
 	
@@ -1929,7 +1935,7 @@ public class FileAdaptor implements PersistenceAdaptor {
 	/* 
 	 * @see org.gk.model.PersistenceAdaptor#updateInstanceAttribute(org.gk.model.GKInstance, java.lang.String)
 	 */
-	public void updateInstanceAttribute(GKInstance instance, String attributeName) throws Exception {
+	public void updateInstanceAttribute(GKInstance instance, String attributeName, Transaction tx) throws Exception {
 	}
 	
 	public Collection fetchInstancesByClass(SchemaClass class1) throws Exception {

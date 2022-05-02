@@ -42,7 +42,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
@@ -51,7 +51,10 @@ import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
-
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 
 /**
@@ -72,6 +75,7 @@ import org.gk.util.GKApplicationUtilities;
  * @author wgm
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
+// TODO: Convert to dump Neo4J of the slice instead of MySQL?
 public class SlicingEngine {
     // For logging
     private static final Logger logger = Logger.getLogger(SlicingEngine.class);
@@ -81,15 +85,15 @@ public class SlicingEngine {
     private final String ONTOLOGY_FILE_NAME = "slicingOntology.sql";
     protected final static String REFERRER_ATTRIBUTE_KEY = "referrers";
     // Source
-    protected MySQLAdaptor sourceDBA;
+    protected Neo4JAdaptor sourceDBA;
     // target
     private String targetDbHost;
     private String targetDbName;
     private String targetDbUser;
     private String targetDbPwd;
     private int targetDbPort = 3306;
-    private MySQLAdaptor targetDBA;
-    private MySQLAdaptor previousSliceDBA;
+    private Neo4JAdaptor targetDBA;
+    private Neo4JAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     protected Map eventMap;
     protected Map<Long, GKInstance> sliceMap;
@@ -135,7 +139,7 @@ public class SlicingEngine {
      * Set the data source for slicing. Usually this should be gk_central.
      * @param dba
      */
-    public void setSource(MySQLAdaptor dba) {
+    public void setSource(Neo4JAdaptor dba) {
         this.sourceDBA = dba;
     }
     
@@ -200,7 +204,7 @@ public class SlicingEngine {
         return this.lastReleaseDate;
     }
 
-    public void setPreviousSlice(MySQLAdaptor previousSliceDBA) {
+    public void setPreviousSlice(Neo4JAdaptor previousSliceDBA) {
         this.previousSliceDBA = previousSliceDBA;
     }
 
@@ -245,11 +249,18 @@ public class SlicingEngine {
         fillIncludedLocationForComplex();
         fillAttributeValuesForEntitySets();
         cleanUpPathwayFigures();
-        dumpInstances();
-        addFrontPage();
-        addReleaseNumber();
-        setStableIdReleased();
-        handleRevisions();
+        Driver driver = targetDBA.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            dumpInstances(tx);
+            addFrontPage(tx);
+            addReleaseNumber(tx);
+            setStableIdReleased(tx);
+            handleRevisions(tx);
+            tx.commit();
+        } catch (Exception e) {
+            logger.error("slice() error: " + e, e);
+        }
     }
 
     /**
@@ -264,7 +275,7 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    private void handleRevisions() throws Exception {
+    private void handleRevisions(Transaction tx) throws Exception {
         if (!needUpdateTrackers)
             return; // Do nothing
         logger.info("Revision checking...");
@@ -274,7 +285,7 @@ public class SlicingEngine {
         revisonHandler.handleRevisions(sourceDBA,
                                        getTargetDBA(),
                                        previousSliceDBA,
-                                       uploadUpdateTrackersToSource);
+                                       uploadUpdateTrackersToSource, tx);
     }
 
     /**
@@ -370,63 +381,43 @@ public class SlicingEngine {
         instance.setAttributeValue(attributeName, memberList);
     }
 
-    private void setStableIdReleased() throws Exception {
+    private void setStableIdReleased(Transaction tx) throws Exception {
         if (!setReleasedInStableIdentifier)
             return; // There is no need to do this.
         // Make sure released attribute in StableIdentifiers are true in
         // the target database
         logger.info("set released = true for target database...");
-        try {
-            MySQLAdaptor targetDBA = getTargetDBA();
-            Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
-            for (GKInstance inst : c) {
-                Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
-                if (released == null || !released) {
-                    inst.setAttributeValue(ReactomeJavaConstants.released,
-                                           Boolean.TRUE);
-                    targetDBA.updateInstanceAttribute(inst,
-                                                      ReactomeJavaConstants.released);
-                }
+        Neo4JAdaptor targetDBA = getTargetDBA();
+        Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
+        for (GKInstance inst : c) {
+            Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
+            if (released == null || !released) {
+                inst.setAttributeValue(ReactomeJavaConstants.released,
+                        Boolean.TRUE);
+                targetDBA.updateInstanceAttribute(inst,
+                        ReactomeJavaConstants.released, tx);
             }
-        }
-        catch(Exception e) {
-            logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
-            return; // Don't need to continue
         }
         logger.info("set released = true for source database...");
         // We have to reset stable identifiers in the source database
-        boolean needTransaction = sourceDBA.supportsTransactions();
-        try {
-            if (needTransaction)
-                sourceDBA.startTransaction();
-            
-            GKInstance defaultIE = createDefaultIE(sourceDBA);
-            sourceDBA.storeInstance(defaultIE);
-            
-            for (Long dbId : sliceMap.keySet()) {
-                GKInstance inst = sliceMap.get(dbId);
-                if (inst.getSchemClass().isa(ReactomeJavaConstants.StableIdentifier)) {
-                    Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
-                    if (released == null || !released) {
-                        inst.setAttributeValue(ReactomeJavaConstants.released,
-                                               Boolean.TRUE);
-                        sourceDBA.updateInstanceAttribute(inst,
-                                                          ReactomeJavaConstants.released);
-                        inst.getAttributeValue(ReactomeJavaConstants.modified);
-                        inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                        sourceDBA.updateInstanceAttribute(inst, 
-                                                          ReactomeJavaConstants.modified);
-                    }
+        GKInstance defaultIE = createDefaultIE(sourceDBA);
+        sourceDBA.storeInstance(defaultIE, tx);
+
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance inst = sliceMap.get(dbId);
+            if (inst.getSchemClass().isa(ReactomeJavaConstants.StableIdentifier)) {
+                Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
+                if (released == null || !released) {
+                    inst.setAttributeValue(ReactomeJavaConstants.released,
+                            Boolean.TRUE);
+                    sourceDBA.updateInstanceAttribute(inst,
+                            ReactomeJavaConstants.released, tx);
+                    inst.getAttributeValue(ReactomeJavaConstants.modified);
+                    inst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                    sourceDBA.updateInstanceAttribute(inst,
+                            ReactomeJavaConstants.modified, tx);
                 }
             }
-            if (needTransaction)
-                sourceDBA.commit();
-        }
-        catch(Exception e) {
-            if (needTransaction)
-                sourceDBA.rollback();
-            logger.error("SlicingEngine.setStableIdReleased(): " + e, e);
-            throw e;
         }
     }
 
@@ -434,13 +425,12 @@ public class SlicingEngine {
      * Create a default instance edit for a given database adaptor.
      *
      * @param dba
-     * @param personId
      * @return GKInstance
      * @throws Exception
      * @throws InvalidAttributeException
      * @throws InvalidAttributeValueException
      */
-    GKInstance createDefaultIE(MySQLAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+    GKInstance createDefaultIE(Neo4JAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
         GKInstance person = dba.fetchInstance(defaultPersonId);
         GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
@@ -553,9 +543,9 @@ public class SlicingEngine {
     /**
      * A new FrontPage instance should be created and saved into the database.
      */
-    private void addFrontPage() {
+    private void addFrontPage(Transaction tx) {
         try {
-            MySQLAdaptor targetDBA = getTargetDBA();
+            Neo4JAdaptor targetDBA = getTargetDBA();
             Schema schema = targetDBA.getSchema();
             SchemaClass cls = schema.getClassByName("FrontPage");
             GKInstance frontPage = new GKInstance(cls);
@@ -570,7 +560,7 @@ public class SlicingEngine {
                 else
                     logger.error("Specified top-level event is not in the slice: " + dbID);
             }
-            targetDBA.storeInstance(frontPage);
+            targetDBA.storeInstance(frontPage, tx);
         }
         catch(Exception e) {
             logger.error("SlicingEngine.addFrontPage(): " + e, e);
@@ -581,14 +571,14 @@ public class SlicingEngine {
      * Add release number into the database: a new table will be created to store the release number
      * information.
      */
-    private void addReleaseNumber() {
+    private void addReleaseNumber(Transaction tx) {
         try {
-            MySQLAdaptor targetDBA = getTargetDBA();
+            Neo4JAdaptor targetDBA = getTargetDBA();
             SchemaClass releaseCls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
             if (releaseCls == null)
                 return; // This is an old schema
             GKInstance release = createReleaseInstance(targetDBA, Integer.valueOf(releaseNumber), releaseDate);
-            targetDBA.storeInstance(release);
+            targetDBA.storeInstance(release, tx);
         }
         catch(Exception e) {
             logger.error("SlicingEngine.addReleaseNumber(): " + e, e);
@@ -605,7 +595,7 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws InvalidAttributeValueException
      */
-    private GKInstance createReleaseInstance(MySQLAdaptor dba, 
+    private GKInstance createReleaseInstance(Neo4JAdaptor dba, 
                                      Integer releaseNumber, 
                                      String releaseDate) throws InvalidAttributeException, InvalidAttributeValueException {
         SchemaClass releaseCls = dba.getSchema().getClassByName(ReactomeJavaConstants._Release);
@@ -722,164 +712,16 @@ public class SlicingEngine {
      * 
      * @throws Exception
      */
-    private void dumpInstances() throws Exception {
+    private void dumpInstances(Transaction tx) throws Exception {
         logger.info("dumpInstances()...");
         long time1 = System.currentTimeMillis();
-        MySQLAdaptor targetDBA = getTargetDBA();
-        // Try to use transaction
-        boolean isTnSupported = targetDBA.supportsTransactions();
-        if (isTnSupported)
-            targetDBA.startTransaction();
-        try {
-            for (Long dbId : sliceMap.keySet()) {
-                GKInstance instance = (GKInstance) sliceMap.get(dbId);
-                storeInstance(instance, targetDBA);
-            }
-            if (isTnSupported)
-                targetDBA.commit();
-        }
-        catch (Exception e) {
-            if (isTnSupported)
-                targetDBA.rollback();
-            logger.error("SlicingEngine.dumpInstances(): " + e, e);
+        Neo4JAdaptor targetDBA = getTargetDBA();
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = (GKInstance) sliceMap.get(dbId);
+            targetDBA.storeInstance(instance, false, tx, false);
         }
         long time2 = System.currentTimeMillis();
         logger.info("Time for dumpInstances(): " + (time2 - time1));
-    }
-
-    /**
-     * This method is copied from MySQLAdaptor.storeInstance(GKInstance, boolean). However, storing is done
-     * without recursiveness here.
-     * @param instance
-     * @throws Exception
-     */
-	public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
-        Long dbID = instance.getDBID();
-        SchemaClass cls = instance.getSchemClass();
-        GKSchema schema = (GKSchema) targetDBA.getSchema();
-        // Change class to the target
-        cls = schema.getClassByName(cls.getName());
-        SchemaClass rootCls = schema.getRootClass();
-        List classHierarchy = new ArrayList();
-        classHierarchy.addAll(cls.getOrderedAncestors());
-        classHierarchy.add(cls);
-        Collection later = new ArrayList();
-        for (Iterator ancI = classHierarchy.iterator(); ancI.hasNext();) {
-            GKSchemaClass ancestor = (GKSchemaClass) ancI.next();
-            StringBuffer statement = new StringBuffer("INSERT INTO " + ancestor.getName()
-                            + " SET DB_ID=?");
-            List values = new ArrayList();
-            values.add(dbID);
-            if (ancestor == rootCls) {
-                statement.append(",_class=?");
-                values.add(cls.getName());
-            }
-            Collection multiAtts = new ArrayList();
-            for (Iterator attI = ancestor.getOwnAttributes().iterator(); attI.hasNext();) {
-                GKSchemaAttribute att = (GKSchemaAttribute) attI.next();
-                if (att.getName().equals("DB_ID"))
-                    continue;
-                List attVals = instance.getAttributeValuesList(att.getName());
-                if ((attVals == null) || (attVals.isEmpty()))
-                    continue;
-                if (att.isMultiple()) {
-                    multiAtts.add(att);
-                }
-                else {
-                    if (att.isInstanceTypeAttribute()) {
-                        if (ancestor == rootCls) {
-                            later.add(att);
-                        }
-                        else {
-                            GKInstance val = (GKInstance) attVals.get(0);
-                            statement.append("," + att.getName() + "=?");
-                            values.add(val.getDBID());
-                            statement.append("," + att.getName() + "_class=?");
-                            values.add(val.getSchemClass().getName());
-                        }
-                    }
-                    else {
-                        statement.append("," + att.getName() + "=?");
-                        values.add(instance.getAttributeValue(att.getName()));
-                    }
-                }
-            }
-            //System.out.println(instance + ": " + statement.toString() + "\n");
-            PreparedStatement ps = targetDBA.getConnection().prepareStatement(statement.toString());
-            for (int i = 0; i < values.size(); i++) {
-                Object value = values.get(i);
-                // Boolean is a special case.  It maps on to enum('TRUE','FALSE')
-                // in the database, but MYSQL doesn't make a very good job of
-                // generating these values.  Boolean.TRUE maps on to 'TRUE' in
-                // the database, which is fine, but Boolean.FALSE maps onto
-                // an empty cell, which is not nice.  This behaviour has been
-                // observed in both MYSQL 4.0.24 and MYSQL 4.1.9.  The fix here
-                // is to supply the strings "TRUE" or "FALSE" instead of a
-                // Boolean value.  This has been tested and works for both of
-                // the abovementioned MYSQL versions.
-                if (value instanceof Boolean)
-                    value = ((Boolean)value).booleanValue()?"TRUE":"FALSE";
-                ps.setObject(i + 1, value);
-            }
-            ps.executeUpdate();
-            if (dbID == null) {
-                ResultSet rs = ps.getGeneratedKeys();
-                if (rs.next()) {
-                    dbID = new Long(rs.getLong(1));
-                    instance.setDBID(dbID);
-                }
-                else {
-                    throw (new Exception("Unable to get autoincremented value."));
-                }
-            }
-            for (Iterator attI = multiAtts.iterator(); attI.hasNext();) {
-                GKSchemaAttribute att = (GKSchemaAttribute) attI.next();
-                List attVals = instance.getAttributeValuesList(att.getName());
-                StringBuffer statement2 = new StringBuffer("INSERT INTO " + ancestor.getName()
-                                + "_2_" + att.getName() + " SET DB_ID=?," + att.getName() + "=?,"
-                                + att.getName() + "_rank=?");
-                if (att.isInstanceTypeAttribute()) {
-                    statement2.append("," + att.getName() + "_class=?");
-                }
-                //System.out.println(statement2.toString() + "\n");
-                PreparedStatement ps2 = targetDBA.getConnection().prepareStatement(
-                                statement2.toString());
-                for (int i = 0; i < attVals.size(); i++) {
-                    ps2.setObject(1, dbID);
-                    ps2.setInt(3, i);
-                    if (att.isInstanceTypeAttribute()) {
-                        GKInstance attVal = (GKInstance) attVals.get(i);
-                        ps2.setObject(2, attVal.getDBID());
-                        ps2.setString(4, attVal.getSchemClass().getName());
-                    }
-                    else {
-                        ps2.setObject(2, attVals.get(i));
-                    }
-                    ps2.executeUpdate();
-                }
-            }
-        }
-        if (!later.isEmpty()) {
-            StringBuffer statement = new StringBuffer("UPDATE " + rootCls.getName() + " SET ");
-            List values = new ArrayList();
-            for (Iterator li = later.iterator(); li.hasNext();) {
-                GKSchemaAttribute att = (GKSchemaAttribute) li.next();
-                statement.append(att.getName() + "=?, " + att.getName() + "_class=?");
-                if (li.hasNext())
-                    statement.append(",");
-                GKInstance value = (GKInstance) instance.getAttributeValue(att.getName());
-                values.add(value.getDBID());
-                values.add(value.getSchemClass().getName());
-            }
-            statement.append(" WHERE DB_ID=?");
-            values.add(dbID);
-            //System.out.println(statement.toString() + "\n");
-            PreparedStatement ps = targetDBA.getConnection().prepareStatement(statement.toString());
-            for (int i = 0; i < values.size(); i++) {
-                ps.setObject(i + 1, values.get(i));
-            }
-            ps.executeUpdate();
-        }
     }
 
     public List getSpeciesIDs() throws IOException {
@@ -972,10 +814,8 @@ public class SlicingEngine {
                         continue;
                 pushToMap(tmp, sliceMap);
                 // Load all instances
-//                sourceDBA.loadInstanceAttributeValues(tmp);
+                sourceDBA.loadInstanceAttributeValues(tmp);
 
-                // Use this version to increase the performance hopefully
-                sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
                 for (Iterator it1 = tmp.getSchemaAttributes().iterator(); it1.hasNext();) {
                     att = (GKSchemaAttribute) it1.next();
@@ -1056,8 +896,6 @@ public class SlicingEngine {
             return false;
         if (!runImport(ONTOLOGY_FILE_NAME))
             return false;
-        if (!runAlterTables())
-            return false;
         return true;
     }
     
@@ -1082,10 +920,10 @@ public class SlicingEngine {
         return checkErrorMessage(errorMessage);
     }
     
-    private MySQLAdaptor getTargetDBA() throws Exception {
+    private Neo4JAdaptor getTargetDBA() throws Exception {
         if (targetDBA != null)
             return targetDBA;
-        targetDBA = new MySQLAdaptor(targetDbHost,
+        targetDBA = new Neo4JAdaptor(targetDbHost,
                                      targetDbName, 
                                      targetDbUser, 
                                      targetDbPwd, 
@@ -1121,7 +959,7 @@ public class SlicingEngine {
     }
     
     private void attachConnectInfo(StringBuilder buffer,
-                                   MySQLAdaptor dba) {
+                                   Neo4JAdaptor dba) {
         attachConnectInfo(buffer, 
                           dba.getDBHost(),
                           dba.getDBUser(),
@@ -1177,44 +1015,6 @@ public class SlicingEngine {
         source.close();
         input.close();
     }
-    
-    
-    private boolean runAlterTables() throws Exception {
-        MySQLAdaptor targetDBA = getTargetDBA();
-        Connection targetDBAConnection = targetDBA.getConnection();
-
-        java.util.List tables = getTables(targetDBAConnection);
-        changeToMyISAM(tables,targetDBAConnection);
-        return true;
-    }
-    
-	private static java.util.List getTables(Connection conn) {
-		java.util.List tables = new ArrayList();
-		try {
-			Statement statement = conn.createStatement();
-			ResultSet resultset = statement.executeQuery("Show Tables");
-			while (resultset.next()) {
-				String name = resultset.getString(1);
-				tables.add(name);
-			}
-			resultset.close();
-			statement.close();
-		}
-		catch(SQLException e) {
-			e.printStackTrace();
-		}
-		return tables;
-	}
-	
-	private void changeToMyISAM(java.util.List tables,
-	                            Connection conn) throws SQLException {
-	    Statement statement = conn.createStatement();
-	    for (Iterator it = tables.iterator(); it.hasNext();) {
-	        String table = it.next().toString();
-	        statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
-	    }
-	    statement.close();
-	}
      
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
@@ -1351,12 +1151,12 @@ public class SlicingEngine {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
             // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
-            MySQLAdaptor previousSliceDBA = null;
+            Neo4JAdaptor previousSliceDBA = null;
             boolean needUpdateTrackers = false;
             if (properties.getProperty("needUpdateTrackers").toLowerCase().equals("true")) {
                 needUpdateTrackers = true;
                 logger.info("Revision detection requested.");
-                previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
+                previousSliceDBA = new Neo4JAdaptor(properties.getProperty("previousSliceDbHost"),
                                                     properties.getProperty("previousSliceDbName"),
                                                     properties.getProperty("previousSliceDbUser"),
                                                     properties.getProperty("previousSliceDbPwd"),
@@ -1365,13 +1165,11 @@ public class SlicingEngine {
                 if (text != null && text.equals("true"))
                     engine.uploadUpdateTrackersToSource = true;
             }
-            MySQLAdaptor sourceDBA = new MySQLAdaptor(dbHost,
+            Neo4JAdaptor sourceDBA = new Neo4JAdaptor(dbHost,
                                                       dbName,
                                                       user,
                                                       pwd,
                                                       Integer.parseInt(dbPort));
-            // To keep this connection consistent to avoid time out
-            sourceDBA.initDumbThreadForConnection(1 * 60 * 1000); // 1 minute
             engine.setSource(sourceDBA);
             engine.setTargetDbName(targetDbName);
             engine.setTargetDbHost(targetDbHost);

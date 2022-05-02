@@ -19,7 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -87,16 +87,17 @@ public class ReactomeGOComparisonApplet extends JApplet {
 					    tmpDBHost = getParameter("dbHost");
 					if (tmpDBHost == null)
 					    throw new IllegalStateException("No database host is defined!");
-					MySQLAdaptor dba = new MySQLAdaptor(tmpDBHost, dbName, userName, pwd, 3306);
+					Neo4JAdaptor dba = new Neo4JAdaptor(tmpDBHost, dbName, userName, pwd, 3306);
 					centerPane = new ReactomeGOComparisonPane();
-					centerPane.setMySQLAdaptor(dba);
+					centerPane.setNeo4JAdaptor(dba);
 					getContentPane().remove(messagePane);
 					getContentPane().add(centerPane, BorderLayout.CENTER);
 					getContentPane().validate();
 					getContentPane().repaint();
 				}
 				catch (Exception e) {
-					messagePane.setMessage("<html>Exception during connecting to the database:<br>" +						                    e.getMessage() + "</html>");
+					messagePane.setMessage("<html>Exception during connecting to the database:<br>" +
+						                    e.getMessage() + "</html>");
 					System.err.println("ReactomeGOComparisonApplet.init(): " + e);
 					e.printStackTrace();
 				}

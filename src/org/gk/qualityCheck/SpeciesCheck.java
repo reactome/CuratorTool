@@ -13,7 +13,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This class is used to check species setting. Subclasses supply the
@@ -123,9 +123,9 @@ public abstract class SpeciesCheck extends SingleAttributeClassBasedCheck {
     }
     
     protected void loadSpeciesAttributeVAlues(Collection<GKInstance> instances,
-                                              MySQLAdaptor dba) throws Exception {
+                                              Neo4JAdaptor dba) throws Exception {
         // Have to check all kinds of PEs. Otherwise, null will be assigned
-        // to the species attribute because of a bug in MySQLAdaptor.
+        // to the species attribute because of a bug in Neo4JAdaptor.
         loadAttributes(instances,
                        ReactomeJavaConstants.GenomeEncodedEntity, 
                        ReactomeJavaConstants.species, 

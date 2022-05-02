@@ -27,10 +27,14 @@ import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.BrowserLauncher;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to replace PathwayDiagrams from one database to another database.
@@ -38,35 +42,40 @@ import org.junit.Test;
  *
  */
 public class PathwayDiagramReplacement {
-    private MySQLAdaptor sourceDba;
-    private MySQLAdaptor targetDba;
+    private Neo4JAdaptor sourceDba;
+    private Neo4JAdaptor targetDba;
     
     public PathwayDiagramReplacement() {
     }
     
-    public void setSourceDBA(MySQLAdaptor dba) {
+    public void setSourceDBA(Neo4JAdaptor dba) {
         this.sourceDba = dba;
     }
     
-    public void setTargetDBA(MySQLAdaptor dba) {
+    public void setTargetDBA(Neo4JAdaptor dba) {
         this.targetDba = dba;
     }
     
     public void replace() throws Exception {
-        cleanUpDiagramsInTarget();
-        List<GKInstance> diagrams = loadDiagramsFromSource();
-        cleanUpDiagramsFromSource(diagrams);
-        saveDiagramsToTarget(diagrams);
+        Driver driver = targetDba.getConnection();
+        try (Session session = driver.session(SessionConfig.forDatabase(targetDba.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            cleanUpDiagramsInTarget(tx);
+            List<GKInstance> diagrams = loadDiagramsFromSource();
+            cleanUpDiagramsFromSource(diagrams);
+            saveDiagramsToTarget(diagrams, tx);
+            tx.commit();
+        }
     }
     
-    private void cleanUpDiagramsInTarget() throws Exception {
+    private void cleanUpDiagramsInTarget(Transaction tx) throws Exception {
         // Delete all Pathway diagrams in the target database
         Collection instances = targetDba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         if (instances == null || instances.size() == 0)
             return;
         for (Iterator it = instances.iterator(); it.hasNext();) {
             GKInstance inst = (GKInstance) it.next();
-            targetDba.deleteInstance(inst);
+            targetDba.deleteInstance(inst, tx);
         }
     }
     
@@ -85,7 +94,7 @@ public class PathwayDiagramReplacement {
     private void cleanUpDiagramsFromSource(List<GKInstance> diagrams) throws Exception {
         // Just want to make things simpler: remove both modified and created IEs
         for (GKInstance inst : diagrams) {
-            sourceDba.fastLoadInstanceAttributeValues(inst);
+            sourceDba.loadInstanceAttributeValues(inst);
             inst.setAttributeValue(ReactomeJavaConstants.created, null);
             inst.setAttributeValue(ReactomeJavaConstants.modified, null);
             // Flip the DB_Ids to avoid DB_Ids are used in other instances
@@ -93,17 +102,17 @@ public class PathwayDiagramReplacement {
         }
     }
     
-    private void saveDiagramsToTarget(List<GKInstance> diagrams) throws Exception {
-        targetDba.storeLocalInstances(diagrams);
+    private void saveDiagramsToTarget(List<GKInstance> diagrams, Transaction tx) throws Exception {
+        targetDba.storeLocalInstances(diagrams, tx);
     }
     
     @Test
     public void runReplace() throws Exception {
-        MySQLAdaptor source = new MySQLAdaptor("localhost",
+        Neo4JAdaptor source = new Neo4JAdaptor("localhost",
                                                "test_slice_1000",
                                                "root",
                                                "macmysql01");
-        MySQLAdaptor target = new MySQLAdaptor("localhost",
+        Neo4JAdaptor target = new Neo4JAdaptor("localhost",
                                                "test_reactome_1000",
                                                "root",
                                                "macmysql01");
@@ -151,7 +160,7 @@ public class PathwayDiagramReplacement {
     
     @Test
     public void batchDeployELVs() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortoor",
                                             "T001test");

@@ -15,7 +15,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
@@ -29,12 +29,12 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class EventTreeBuildHelper {
 
-	private MySQLAdaptor dba;
+	private Neo4JAdaptor dba;
 	
 	public EventTreeBuildHelper() {
 	}
 	
-	public EventTreeBuildHelper(MySQLAdaptor dba) {
+	public EventTreeBuildHelper(Neo4JAdaptor dba) {
 		this.dba = dba;
 	}
 	

@@ -20,7 +20,7 @@ import javax.swing.JOptionPane;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.ContainerNode;
 import org.gk.render.Node;
 import org.gk.render.ProcessNode;
@@ -228,7 +228,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
 
     @Override
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         // Need to load all complexes in case some complexes are used by complexes for checking
         if (progressPane != null)
             progressPane.setText("Load PathwayDiagram attributes ...");

@@ -34,7 +34,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -74,7 +74,7 @@ public class PantherPathwayImporter {
     
     public void doImport(Component parentComp) {
         try {
-            MySQLAdaptor dbAdaptor = getDbAdaptorForImportedPathway(parentComp);
+            Neo4JAdaptor dbAdaptor = getDbAdaptorForImportedPathway(parentComp);
             if (dbAdaptor == null)
                 return;
             Collection pathways = getPathwayList(dbAdaptor);
@@ -127,12 +127,12 @@ public class PantherPathwayImporter {
         // No shell instances will be used. Instances from panther will be
         // assigned negative DB_IDs, and instances labeled with proxy will be
         // reset as shell instances.
-        MySQLAdaptor dba = null;
+        Neo4JAdaptor dba = null;
         Map clsMap = new HashMap();
         for (Iterator it = pathways.iterator(); it.hasNext();) {
             GKInstance pathway = (GKInstance) it.next();
             if (dba == null)
-                dba = (MySQLAdaptor) pathway.getDbAdaptor();
+                dba = (Neo4JAdaptor) pathway.getDbAdaptor();
             addToClsMap(pathway, clsMap);
         }
         Map touchedMap = new HashMap();
@@ -191,7 +191,7 @@ public class PantherPathwayImporter {
         progressDialog.setIsDone();
     }
     
-    private void convertInteractionToReaction(MySQLAdaptor dba,
+    private void convertInteractionToReaction(Neo4JAdaptor dba,
                                               Map instanceMap) throws Exception {
         SchemaClass interactionCls = dba.getSchema().getClassByName(ReactomeJavaConstants.Interaction);
         if (interactionCls == null)
@@ -216,7 +216,7 @@ public class PantherPathwayImporter {
         instanceMap.remove(interactionCls);
     }
     
-    private void pullOutInstances(MySQLAdaptor dba, 
+    private void pullOutInstances(Neo4JAdaptor dba, 
                                   Map clsMap, 
                                   Map touchedMap) throws Exception {
         GKSchemaAttribute att = null;
@@ -315,7 +315,7 @@ public class PantherPathwayImporter {
         return null;
     }
     
-    private Collection getPathwayList(MySQLAdaptor dbAdaptor) throws Exception {
+    private Collection getPathwayList(Neo4JAdaptor dbAdaptor) throws Exception {
         // There are no hierarchy in the panther pathways. Just list all pathways
         // Get the data source
         if (dataSourceId == null)
@@ -357,7 +357,7 @@ public class PantherPathwayImporter {
         return false;
     }
     
-    private MySQLAdaptor getDbAdaptorForImportedPathway(Component comp) throws Exception {
+    private Neo4JAdaptor getDbAdaptorForImportedPathway(Component comp) throws Exception {
         InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
         if (metaConfig == null)
             throw new IllegalStateException("PantherPathwayImporter." +
@@ -374,8 +374,8 @@ public class PantherPathwayImporter {
         if (dbPort == null || dbPort.length() == 0)
             dbPort = "3306";
         if (dbUser == null || dbPwd == null) {
-            // Try to get these information from the active MySQLAdaptor
-            MySQLAdaptor mainDBA = PersistenceManager.getManager().getActiveMySQLAdaptor(comp);
+            // Try to get these information from the active Neo4JAdaptor
+            Neo4JAdaptor mainDBA = PersistenceManager.getManager().getActiveNeo4JAdaptor(comp);
             if (mainDBA == null)
                 return null;
             // User input might be only the machine name.
@@ -404,7 +404,7 @@ public class PantherPathwayImporter {
             }
         }
         if (dbUser != null && dbPwd != null) {
-            MySQLAdaptor dbAdaptor = new MySQLAdaptor(dbHost,
+            Neo4JAdaptor dbAdaptor = new Neo4JAdaptor(dbHost,
                                                       dbName,
                                                       dbUser,
                                                       dbPwd,

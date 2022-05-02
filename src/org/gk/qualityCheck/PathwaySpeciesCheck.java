@@ -11,7 +11,7 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This class is used to do species check on Pathway instances.
@@ -51,7 +51,7 @@ public class PathwaySpeciesCheck extends SpeciesCheck {
     @Override
     protected void loadAttributes(Collection<GKInstance> instances)
             throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         // Need to load all complexes in case some complexes are used by complexes for checking
         if (progressPane != null)
             progressPane.setText("Load Pathway attribute...");

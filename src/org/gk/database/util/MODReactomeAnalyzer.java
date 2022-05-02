@@ -14,7 +14,7 @@ import java.util.Set;
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 
@@ -27,7 +27,7 @@ import org.gk.persistence.XMLFileAdaptor;
 @SuppressWarnings("unchecked")
 public class MODReactomeAnalyzer {
     // External MOD Reactome database
-    protected MySQLAdaptor modDba;
+    protected Neo4JAdaptor modDba;
     // These lists are used to hold instances
     protected Set newMODInstances;
     protected Set changedMODInstances;
@@ -38,7 +38,7 @@ public class MODReactomeAnalyzer {
         changedMODInstances = new HashSet();
     }
     
-    public void setModReactome(MySQLAdaptor dba) {
+    public void setModReactome(Neo4JAdaptor dba) {
         this.modDba = dba;
     }
     

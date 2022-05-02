@@ -19,7 +19,7 @@ import org.gk.database.HierarchicalEventPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.w3c.dom.Document;
 
@@ -43,7 +43,7 @@ public class EventTreeXMLOutput {
         speciesEventMap = new HashMap();
     }
     
-//    public void outputTree(MySQLAdaptor dba, String fileName) throws Exception {
+//    public void outputTree(Neo4JAdaptor dba, String fileName) throws Exception {
 //		EventTreeBuildHelper treeHelper = new EventTreeBuildHelper(dba);
 //		Collection topLevelPathways = treeHelper.getTopLevelEvents();
 //		Collection c = treeHelper.getAllEvents();
@@ -60,7 +60,7 @@ public class EventTreeXMLOutput {
 //		transformer.transform(source, result);
 //    }
     
-    public void outputTree(MySQLAdaptor dba, String fileName) throws Exception {
+    public void outputTree(Neo4JAdaptor dba, String fileName) throws Exception {
         // Get the front page first
         GKInstance frontPage = (GKInstance) dba.fetchInstancesByClass("FrontPage").iterator().next();
         List topLevelPathways = frontPage.getAttributeValuesList("frontPageItem");
@@ -79,7 +79,7 @@ public class EventTreeXMLOutput {
         }
     }
     
-    public void outputTreeForAllEvents(MySQLAdaptor dba, String fileName, String speciesName) throws Exception {
+    public void outputTreeForAllEvents(Neo4JAdaptor dba, String fileName, String speciesName) throws Exception {
         EventTreeBuildHelper treeHelper = new EventTreeBuildHelper(dba);
         Collection topEvents = treeHelper.getTopLevelEvents();
         Collection allEvents = treeHelper.getAllEvents();
@@ -92,7 +92,7 @@ public class EventTreeXMLOutput {
         GKApplicationUtilities.outputXML(doc, file);
     }
     
-    public void outputTreeForAllPathwaysToSimpleText(MySQLAdaptor dba, String fileName, String speciesName) throws Exception {
+    public void outputTreeForAllPathwaysToSimpleText(Neo4JAdaptor dba, String fileName, String speciesName) throws Exception {
         EventTreeBuildHelper treeHelper = new EventTreeBuildHelper(dba);
         Collection topEvents = treeHelper.getTopLevelEvents();
         Collection allEvents = treeHelper.getAllEvents();
@@ -163,7 +163,7 @@ public class EventTreeXMLOutput {
             System.exit(1);
         }
         try {
-            MySQLAdaptor dba = new MySQLAdaptor(args[0],
+            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
                             		            args[1],
                                                 args[2],
                                                 args[3],

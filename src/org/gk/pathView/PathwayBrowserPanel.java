@@ -35,7 +35,7 @@ import org.gk.database.FrameManager;
 import org.gk.database.SingleEventTreeView;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.TreeUtilities;
@@ -51,7 +51,7 @@ public class PathwayBrowserPanel extends JPanel {
 	private JLabel dbLabel;
 	private Map node2icon = new HashMap();
 	private TreeSelectionListener treeSelectionListener;
-	private MySQLAdaptor dba;
+	private Neo4JAdaptor dba;
 	// For display selected instance
 	private SingleEventTreeView treeView;
 	private JSplitPane jsp;
@@ -60,15 +60,15 @@ public class PathwayBrowserPanel extends JPanel {
 		init();
 	}
 	
-	public MySQLAdaptor getMySQLAdaptor() {
+	public Neo4JAdaptor getNeo4JAdaptor() {
 		return this.dba;
 	}
 	
-	public void setMySQLAdaptor(MySQLAdaptor dba) {
-		setMySQLAdaptor(dba, false);
+	public void setNeo4JAdaptor(Neo4JAdaptor dba) {
+		setNeo4JAdaptor(dba, false);
 	}
 	
-	public void setMySQLAdaptor(MySQLAdaptor adaptor, boolean updateTree) {
+	public void setNeo4JAdaptor(Neo4JAdaptor adaptor, boolean updateTree) {
 		this.dba = adaptor;
 		dbLabel.setText(dba.toString());
 		if (!updateTree)
@@ -109,7 +109,7 @@ public class PathwayBrowserPanel extends JPanel {
 			//buildTree(humanTopEvents);
 		}
 		catch (Exception e) {
-			System.err.println("PathwayBrowserPanel.setMySQLAdaptor(): " + e);
+			System.err.println("PathwayBrowserPanel.setNeo4JAdaptor(): " + e);
 			e.printStackTrace();
 		}
 	}

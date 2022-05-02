@@ -73,7 +73,7 @@ import org.gk.pathView.GKVisualizationPane;
 import org.gk.persistence.DBConnectionPane;
 import org.gk.persistence.FileAdaptor;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.persistence.XMLFileAdaptor;
@@ -417,7 +417,7 @@ public class CuratorActionCollection {
 	
 	private void checkOutProject(final List<Long> dbIds,
 	                             final Long defaultPerson) throws Exception {
-	    final MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(curatorFrame);
+	    final Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(curatorFrame);
 	    if (dba == null)
 	        return;
 	    // Need a progress dialog
@@ -537,7 +537,7 @@ public class CuratorActionCollection {
         if(!curatorFrame.createNewProject())
             return; // New Project creation is cancelled
         try {
-            // Need to create a new MySQLAdaptor
+            // Need to create a new Neo4JAdaptor
             DBConnectionPane dbPane = new DBConnectionPane();
             Properties info = new Properties();
             dbPane.setValues(info);
@@ -547,7 +547,7 @@ public class CuratorActionCollection {
                 String dbUser = info.getProperty("dbUser");
                 String dbPwd = info.getProperty("dbPwd");
                 String dbPort = info.getProperty("dbPort");
-                MySQLAdaptor dba = PersistenceManager.getManager().getMySQLAdaptor(dbHost, 
+                Neo4JAdaptor dba = PersistenceManager.getManager().getNeo4JAdaptor(dbHost, 
                                                                                    dbName,
                                                                                    dbUser, 
                                                                                    dbPwd, 
@@ -564,7 +564,7 @@ public class CuratorActionCollection {
         }
     }
     
-    private void createNewProjectFromMOD(final MySQLAdaptor modDba) throws Exception {
+    private void createNewProjectFromMOD(final Neo4JAdaptor modDba) throws Exception {
         final CheckOutProgressDialog progressDialog = new CheckOutProgressDialog(curatorFrame,
                                                                                 "Creating new project from MOD...");
         progressDialog.disableCancel();
@@ -1012,7 +1012,8 @@ public class CuratorActionCollection {
 				GKSchemaClass cls = schemaPane.getSelectedClass();
 				if (cls.isAbstract()) {
 					JOptionPane.showMessageDialog(dialog,
-					                              "\"" + cls.getName() + "\" is an abstract class. An abstract class cannot " +					                              "have instances.\nPlease select a non-abstract class.",
+					                              "\"" + cls.getName() + "\" is an abstract class. An abstract class cannot " +
+					                              "have instances.\nPlease select a non-abstract class.",
 					                              "Error",
 					                              JOptionPane.ERROR_MESSAGE);
 					return;
@@ -1268,7 +1269,7 @@ public class CuratorActionCollection {
         parentFrame.setState(JFrame.NORMAL);
         parentFrame.toFront();
         // Check the connection information
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
         String dbHost = dba.getDBHost();
         // Check if there is a service available
         String url = AttributeEditConfig.getConfig().getPDUrl();
@@ -1449,7 +1450,7 @@ public class CuratorActionCollection {
                         next.clear();
                     }
                     // Load inputs
-                    MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
+                    Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
                     progressPane.setText("Loading Reaction attributes...");
                     dba.loadInstanceAttributeValues(reactions);
                     // Load PhysicaleEntities
@@ -1575,7 +1576,7 @@ public class CuratorActionCollection {
 						vFrame.toFront();
 						return;
 					}
-					final MySQLAdaptor dba = getMySQLAdaptor();
+					final Neo4JAdaptor dba = getNeo4JAdaptor();
 					if (dba == null) {
 						JOptionPane.showMessageDialog(curatorFrame, 
 											          "Cannot connect to the database.",
@@ -1792,7 +1793,7 @@ public class CuratorActionCollection {
 		// Make sure everything is changed
 		if (!saveChanges(fileAdaptor))
 			return;
-		MySQLAdaptor dbAdaptor = getMySQLAdaptor();
+		Neo4JAdaptor dbAdaptor = getNeo4JAdaptor();
 		if (dbAdaptor == null) {
 			JOptionPane.showMessageDialog(curatorFrame,
 			                              "Cannot connect to the database.",
@@ -1803,7 +1804,7 @@ public class CuratorActionCollection {
 		synchronizeWithDB(fileAdaptor, dbAdaptor, null, null);
 	}
 	
-	private void synchronizeWithDB(XMLFileAdaptor fileAdaptor, MySQLAdaptor dbAdaptor, List uncheckableList, String title) {
+	private void synchronizeWithDB(XMLFileAdaptor fileAdaptor, Neo4JAdaptor dbAdaptor, List uncheckableList, String title) {
 		SynchronizationDialog syncPane = new SynchronizationDialog(curatorFrame);
 		GKSchemaClass selectedCls = curatorFrame.getSchemaView().getSelectedClass();
 		syncPane.setSelectedClass(selectedCls);
@@ -1838,7 +1839,7 @@ public class CuratorActionCollection {
 	private void checkIn() {
 		java.util.List selection = getSelection();
 		XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-		MySQLAdaptor dbAdaptor = getMySQLAdaptor();
+		Neo4JAdaptor dbAdaptor = getNeo4JAdaptor();
 		
 		checkIn(selection, fileAdaptor, dbAdaptor, true);
 	}
@@ -1846,7 +1847,7 @@ public class CuratorActionCollection {
 	public java.util.List checkIn(
 			java.util.List selection,
 			XMLFileAdaptor fileAdaptor,
-			MySQLAdaptor dbAdaptor,
+			Neo4JAdaptor dbAdaptor,
 			boolean committedInstancesRtnOnly) {
 		if (selection == null || selection.size() == 0)
 			return null;
@@ -2013,8 +2014,8 @@ public class CuratorActionCollection {
 		java.util.List selection = getSelection();
 		if (selection.size() == 0)
 			return;
-		// Get the MySQLAdaptor
-		MySQLAdaptor dbAdaptor = getMySQLAdaptor();
+		// Get the Neo4JAdaptor
+		Neo4JAdaptor dbAdaptor = getNeo4JAdaptor();
 		if (dbAdaptor == null) {
 			JOptionPane.showMessageDialog(curatorFrame,
 										  "Cannot connect to the database",
@@ -2120,8 +2121,8 @@ public class CuratorActionCollection {
 		}
 	}
 	
-	private MySQLAdaptor getMySQLAdaptor() {
-		MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(curatorFrame);
+	private Neo4JAdaptor getNeo4JAdaptor() {
+		Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(curatorFrame);
 		// Just a case: Most likely pwd is wrong. Remove it so that the user can retry.
 		if (adaptor == null) {
 		    Properties dbConnectInfo = PersistenceManager.getManager().getDBConnectInfo();
@@ -2139,7 +2140,7 @@ public class CuratorActionCollection {
 					if (selection.size() != 1)
 						return;
 					GKInstance instance = (GKInstance) selection.get(0);
-					MySQLAdaptor adaptor = getMySQLAdaptor();
+					Neo4JAdaptor adaptor = getNeo4JAdaptor();
 					if (adaptor == null) {
 						JOptionPane.showMessageDialog(curatorFrame,
 						                              "Cannot connect to the database",
@@ -2408,7 +2409,7 @@ public class CuratorActionCollection {
 		if (dbEventViewAction == null) {
 			dbEventViewAction = new AbstractAction("Event View") {
 				public void actionPerformed(ActionEvent e) {
-					MySQLAdaptor adaptor = getMySQLAdaptor();
+					Neo4JAdaptor adaptor = getNeo4JAdaptor();
                     if (adaptor == null) {
                         JOptionPane.showMessageDialog(curatorFrame,
                                                       "Cannot connect to the database. Please check the connecting information.",
@@ -2427,7 +2428,7 @@ public class CuratorActionCollection {
 					// Add a QA menu
 					QAMenuHelper helper = new QAMenuHelper();
 					JMenu qaMenu = helper.createQAMenu(FrameManager.getManager().getEventViewPane(),
-                                                       PersistenceManager.getManager().getActiveMySQLAdaptor());
+                                                       PersistenceManager.getManager().getActiveNeo4JAdaptor());
                     if (qaMenu != null) {
                         menubar.add(qaMenu);
                         menubar.validate();
@@ -2445,7 +2446,7 @@ public class CuratorActionCollection {
 		if (dbSchemaViewAction == null) {
 			dbSchemaViewAction = new AbstractAction("Schema View") {
 				public void actionPerformed(ActionEvent e) {
-					MySQLAdaptor adaptor = getMySQLAdaptor();
+					Neo4JAdaptor adaptor = getNeo4JAdaptor();
                     if (adaptor == null) {
                         JOptionPane.showMessageDialog(curatorFrame,
                                                       "Cannot connect to the database. Please check the connecting information.",
@@ -2459,7 +2460,7 @@ public class CuratorActionCollection {
 					if (menubar.getMenuCount() == 1) {
 					    QAMenuHelper helper = new QAMenuHelper();
 					    JMenu qaMenu = helper.createQAMenu(browser.getSchemaView(),
-					                                       PersistenceManager.getManager().getActiveMySQLAdaptor());
+					                                       PersistenceManager.getManager().getActiveNeo4JAdaptor());
 					    if (qaMenu != null) {
 					        menubar.add(qaMenu);
 					        menubar.validate();

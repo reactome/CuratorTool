@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.ReactionType;
 import org.gk.render.RenderablePathway;
 import org.gk.render.RenderableReaction;
@@ -226,7 +226,7 @@ public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
     
     @Test
     public void testCheckInCommand() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");

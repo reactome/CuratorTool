@@ -15,7 +15,7 @@ import org.gk.database.EventCellRenderer;
 import org.gk.database.EventTreeBuildHelper;
 import org.gk.database.HierarchicalEventPane;
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.BrowserLauncher;
 import org.gk.util.GKApplicationUtilities;
@@ -82,7 +82,7 @@ public class ReactomeEventView extends HierarchicalEventPane {
 		}
 	}
 	
-	public void setMySQLAdaptor(MySQLAdaptor dba) {
+	public void setNeo4JAdaptor(Neo4JAdaptor dba) {
 		try {
 			//dba.debug = true;
 			// Refresh dba in case the tree is loaded before
@@ -116,7 +116,7 @@ public class ReactomeEventView extends HierarchicalEventPane {
 			GKSchemaClass eventCls = (GKSchemaClass) dba.getSchema().getClassByName("Event");
 		}
 		catch (Exception e) {
-			System.err.println("ReactomeEventView.setMySQLAdaptor(): " + e);
+			System.err.println("ReactomeEventView.setNeo4JAdaptor(): " + e);
 			e.printStackTrace();
 		}
 	}

@@ -9,7 +9,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This QA check reports Complexes whose species does not exactly
@@ -51,7 +51,7 @@ public class ComplexSpeciesCheck extends SpeciesCheck {
     }
     
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         Set<GKInstance> toBeLoaded = loadComplexHasComponent(instances, dba);
         if (toBeLoaded == null)
             return; 

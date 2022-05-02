@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 
 /** 
@@ -37,14 +37,14 @@ public class IDGeneratorTest {
 	 */
 	private List dbIds;
 	
-	private static MySQLAdaptor currentDba;
+	private static Neo4JAdaptor currentDba;
 	
 	public IDGeneratorTest(String name) {
 		this.name = name;
 		dbIds = new ArrayList();
 	}
 	
-	public static void setCurrentDba(MySQLAdaptor currentDba) {
+	public static void setCurrentDba(Neo4JAdaptor currentDba) {
 		IDGeneratorTest.currentDba = currentDba;
 	}
 

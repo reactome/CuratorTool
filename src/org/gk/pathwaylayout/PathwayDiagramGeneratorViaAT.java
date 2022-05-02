@@ -31,7 +31,7 @@ import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.persistence.XMLFileAdaptor;
@@ -49,7 +49,7 @@ import org.junit.Test;
  *
  */
 public class PathwayDiagramGeneratorViaAT {
-    private MySQLAdaptor dba;
+    private Neo4JAdaptor dba;
     private Long defaultPersonId;
     private static Logger logger = Logger.getLogger(PathwayDiagramGeneratorViaAT.class);
     
@@ -60,9 +60,9 @@ public class PathwayDiagramGeneratorViaAT {
         this.defaultPersonId = id;
     }
     
-    public MySQLAdaptor getDBA() throws Exception {
+    public Neo4JAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new MySQLAdaptor("localhost",
+            dba = new Neo4JAdaptor("localhost",
                                    "pathway_diagram_072908_2", //"reactome_25_pathway_diagram",
                                    "root",
                                    "macmysql01",
@@ -71,7 +71,7 @@ public class PathwayDiagramGeneratorViaAT {
         return dba;
     }
     
-    public void setMySQLAdaptor(MySQLAdaptor dba) {
+    public void setNeo4JAdaptor(Neo4JAdaptor dba) {
         this.dba = dba;
     }
     
@@ -225,7 +225,7 @@ public class PathwayDiagramGeneratorViaAT {
     	editor.setScale(1.0d, 1.0d);
         Dimension size = editor.getPreferredSize();
         // Initialize some requirements
-        PersistenceManager.getManager().setActiveMySQLAdaptor(getDBA());
+        PersistenceManager.getManager().setActiveNeo4JAdaptor(getDBA());
         // Reset the XMLFileAdaptor in case to overwrite the instances for other pathways
         XMLFileAdaptor fileAdpator = PersistenceManager.getManager().getActiveFileAdaptor();
         if (fileAdpator == null) {
@@ -357,8 +357,8 @@ public class PathwayDiagramGeneratorViaAT {
     }
 
     private GKInstance getTestPathway() throws Exception {
-        MySQLAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveMySQLAdaptor(dba);
+        Neo4JAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;
         GKInstance pathway = dba.fetchInstance(dbId);
@@ -366,7 +366,7 @@ public class PathwayDiagramGeneratorViaAT {
     }
 
     public void exportIntoATProjectViaKnownCoordinates(GKInstance pathway) throws Exception {
-        MySQLAdaptor dba = (MySQLAdaptor) pathway.getDbAdaptor();
+        Neo4JAdaptor dba = (Neo4JAdaptor) pathway.getDbAdaptor();
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=", 
@@ -453,7 +453,7 @@ public class PathwayDiagramGeneratorViaAT {
     }
     
     private Map<Long, GKInstance> loadVertex(GKInstance pathwayDiagram,
-                                             MySQLAdaptor dba) throws Exception {
+                                             Neo4JAdaptor dba) throws Exception {
         // This is used to test human apoptosis
         // Need to get vertex
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, 
@@ -474,8 +474,8 @@ public class PathwayDiagramGeneratorViaAT {
     }
     
     public void regenerateDiagram (GKInstance pathway) throws Exception {
-        MySQLAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveMySQLAdaptor(dba);
+        Neo4JAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=", 

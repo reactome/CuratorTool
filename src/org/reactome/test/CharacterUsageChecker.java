@@ -12,7 +12,7 @@ import java.util.List;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class CharacterUsageChecker {
     
     @Test
     public void checkPersonSurname() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca", 
+        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca", 
                                             "gk_central",
                                             "authortool", 
                                             "T001test");

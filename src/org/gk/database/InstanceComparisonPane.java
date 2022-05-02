@@ -23,7 +23,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -329,7 +329,7 @@ public class InstanceComparisonPane extends JPanel {
 	
 	private boolean checkOutShellInstances(Set shellInstances) {
         // Get the list of DB instances
-        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(this);
+        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(this);
         String msg = null;
         if (dba == null) {
             msg = "Shell instances are used in inversible slots. They might need to be modified and\n" +
@@ -584,8 +584,8 @@ public class InstanceComparisonPane extends JPanel {
 		// save as new Instance
 		JDialog parentDialog = (JDialog) SwingUtilities.getAncestorOfClass(JDialog.class, this);
 		ComparisonTableModel model = (ComparisonTableModel) table.getModel();
-		boolean firstFromDB = model.instance1.getDbAdaptor() instanceof MySQLAdaptor ? true : false;
-		boolean secondFromDB = model.instance2.getDbAdaptor() instanceof MySQLAdaptor ? true : false;
+		boolean firstFromDB = model.instance1.getDbAdaptor() instanceof Neo4JAdaptor ? true : false;
+		boolean secondFromDB = model.instance2.getDbAdaptor() instanceof Neo4JAdaptor ? true : false;
 		SaveOptionDialog saveDialog = new SaveOptionDialog(parentDialog, 
                                                            "Saving Option", 
                                                            firstFromDB, 
@@ -907,11 +907,11 @@ public class InstanceComparisonPane extends JPanel {
 			else {
 				if (instance1.getDbAdaptor() instanceof XMLFileAdaptor)
 					headers[1] = "Local Copy";
-				else if (instance1.getDbAdaptor() instanceof MySQLAdaptor)
+				else if (instance1.getDbAdaptor() instanceof Neo4JAdaptor)
 					headers[1] = "DB Copy";
 				if (instance2.getDbAdaptor() instanceof XMLFileAdaptor)
 					headers[2] = "Local Copy";
-				else if (instance2.getDbAdaptor() instanceof MySQLAdaptor)	
+				else if (instance2.getDbAdaptor() instanceof Neo4JAdaptor)	
 					headers[2] = "DB Copy";
 			}
 			refresh();

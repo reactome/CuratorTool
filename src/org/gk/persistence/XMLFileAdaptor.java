@@ -53,6 +53,7 @@ import org.jdom.input.DOMBuilder;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
+import org.neo4j.driver.Transaction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -1173,6 +1174,11 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         }
         return schema;
     }
+
+    public void loadInstanceAttributeValues(GKInstance instance,
+                                            SchemaAttribute attribute, Boolean recursive) throws Exception {
+        // unused
+    }
     
     /* 
      * @see org.gk.model.PersistenceAdaptor#loadInstanceAttributeValues(org.gk.model.GKInstance, org.gk.schema.SchemaAttribute)
@@ -1340,9 +1346,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /* 
-     * @see org.gk.model.PersistenceAdaptor#storeInstance(org.gk.model.GKInstance)
+     * @see org.gk.model.PersistenceAdaptor#storeInstance(org.gk.model.GKInstance, org.neo4j.driver.Transaction)
      */
-    public Long storeInstance(GKInstance instance) throws Exception {
+    public Long storeInstance(GKInstance instance, Transaction tx) throws Exception {
         throw new UnsupportedOperationException("XMLFileAdaptor.storeInstance(GKInstane) is not supported");
     }
     
@@ -1812,9 +1818,9 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     /* 
-     * @see org.gk.model.PersistenceAdaptor#updateInstanceAttribute(org.gk.model.GKInstance, java.lang.String)
+     * @see org.gk.model.PersistenceAdaptor#updateInstanceAttribute(org.gk.model.GKInstance, java.lang.String, org.neo4j.driver.Transaction)
      */
-    public void updateInstanceAttribute(GKInstance instance, String attributeName) throws Exception {
+    public void updateInstanceAttribute(GKInstance instance, String attributeName, Transaction tx) throws Exception {
     }
     
     /**

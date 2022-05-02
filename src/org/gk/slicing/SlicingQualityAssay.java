@@ -20,7 +20,7 @@ import org.gk.database.StableIdentifierGenerator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.SchemaAttribute;
@@ -35,7 +35,7 @@ import org.gk.util.StringUtils;
 public class SlicingQualityAssay {
     private final static Logger logger = Logger.getLogger(SlicingQualityAssay.class);
     private Map<Long, GKInstance> sliceMap;
-    private MySQLAdaptor sourceDBA;
+    private Neo4JAdaptor sourceDBA;
     
     /**
      * Default constructor.
@@ -47,7 +47,7 @@ public class SlicingQualityAssay {
         this.sliceMap = sliceMap;
     }
     
-    public void setSourceDBA(MySQLAdaptor dba) {
+    public void setSourceDBA(Neo4JAdaptor dba) {
         this.sourceDBA = dba;
     }
     
@@ -174,33 +174,21 @@ public class SlicingQualityAssay {
      * This check is to prevent some database errors: an Instance is used
      * in attribute table but this instance is not registered in DatabaseObject
      * table. Such instances should not be in the slice.
-     * @throws SQLException
+     * @throws Exception
      */
-    public void validateExistence(PrintStream output) throws SQLException {
-        SchemaClass root = ((GKSchema)sourceDBA.getSchema()).getRootClass();
+    public void validateExistence(PrintStream output) throws Exception {
         List dbIDs = new ArrayList(sliceMap.keySet());
-        String query = "SELECT DB_ID FROM " + root.getName() + " WHERE DB_ID IN (" + 
-                        StringUtils.join(",", dbIDs) + ")";
-        Set idsInDB = new HashSet();
-        Statement stat = sourceDBA.getConnection().createStatement();
-        ResultSet resultSet = stat.executeQuery(query);
-        while (resultSet.next()) {
-            long id = resultSet.getLong(1);
-            idsInDB.add(new Long(id));
-        }
-        resultSet.close();
-        stat.close();
+        Set<Long> idsInDB = sourceDBA.existing(dbIDs, false, false);
         dbIDs.removeAll(idsInDB);
-        Long dbID = null;
+        Long dbID;
         output.println("Instance existence checking:");
         for (Iterator it = dbIDs.iterator(); it.hasNext();) {
             dbID = (Long) it.next();
             sliceMap.remove(dbID);
             output.println("Instance with DB_ID \"" + dbID + "\" " +
-                               "is used but not in table DatabaseObject!");
+                    "is used but not in table DatabaseObject!");
         }
         output.println();
         logger.info("validateExistence(): " + sliceMap.size() + " instances.");
     }
-    
 }

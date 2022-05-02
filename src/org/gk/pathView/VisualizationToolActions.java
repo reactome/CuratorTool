@@ -46,7 +46,7 @@ import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.AuthorToolAppletUtilities;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
@@ -319,7 +319,7 @@ public class VisualizationToolActions {
     });
     // To avoid duplicate a set is used
     ComparingReactionsInSkyModel model = new ComparingReactionsInSkyModel();
-    model.setMySQLAdapter(tool.getDba());
+    model.setNeo4JAdaptor(tool.getDba());
     List newReactions = getNewReactions(model);
     InstanceUtilities.sortInstances(newReactions);
     listPane.setDisplayedInstances(newReactions);
@@ -357,11 +357,11 @@ public class VisualizationToolActions {
         }
         return rtn;
     }
-  
+
 	private void compareToAnotherDB() {
 		// Popup another connection window
 		Properties prop = new Properties();
-		MySQLAdaptor dba = tool.getDba();
+		Neo4JAdaptor dba = tool.getDba();
 		prop.setProperty("dbHost", dba.getDBHost());
 		//prop.setProperty("dbName", dba.getDBName());
 		prop.setProperty("dbUser", dba.getDBUser());
@@ -374,50 +374,44 @@ public class VisualizationToolActions {
 			String dbUser = prop.getProperty("dbUser");
 			String dbPwd = prop.getProperty("dbPwd");
 			String dbPort = prop.getProperty("dbPort");
-			try {
-				MySQLAdaptor oldAdaptor = new MySQLAdaptor(dbHost,
-				                                           dbName,
-				                                           dbUser,
-				                                           dbPwd, 
-				                                           Integer.parseInt(dbPort));
-				if (compareBrowserPane != null)
-					closeDBComparison();
-				compareBrowserPane = new ComparableBrowserPane();
-				compareBrowserPane.setMySQLAdaptors(oldAdaptor, tool.getDba());
-				// Have to make tree building explicitly
-				compareBrowserPane.oldPane.setMySQLAdaptor(oldAdaptor, true);
-				buildTree(compareBrowserPane.newPane);
-				int pos = tool.jsp.getDividerLocation();
-				tool.jsp.setBottomComponent(compareBrowserPane);
-				tool.jsp.setDividerLocation(pos);
-				// To synchronize the selections
-				selectionListener = new PropertyChangeListener() {
-					public void propertyChange(PropertyChangeEvent e) {
-						String propName = e.getPropertyName();
-						if (propName.equals("selection") && tool.synchronizingEdgeSelection) {
-							compareBrowserPane.removeSelectionListener(compTreeSelectionL);
-							Collection selected = (Collection) e.getNewValue();
-							compareBrowserPane.select(selected);
-							compareBrowserPane.addSelectionListener(compTreeSelectionL);
-						}
+			Neo4JAdaptor oldAdaptor = new Neo4JAdaptor(dbHost,
+					dbName,
+					dbUser,
+					dbPwd,
+					Integer.parseInt(dbPort));
+			if (compareBrowserPane != null)
+				closeDBComparison();
+			compareBrowserPane = new ComparableBrowserPane();
+			compareBrowserPane.setNeo4JAdaptors(oldAdaptor, tool.getDba());
+			// Have to make tree building explicitly
+			compareBrowserPane.oldPane.setNeo4JAdaptor(oldAdaptor, true);
+			buildTree(compareBrowserPane.newPane);
+			int pos = tool.jsp.getDividerLocation();
+			tool.jsp.setBottomComponent(compareBrowserPane);
+			tool.jsp.setDividerLocation(pos);
+			// To synchronize the selections
+			selectionListener = new PropertyChangeListener() {
+				public void propertyChange(PropertyChangeEvent e) {
+					String propName = e.getPropertyName();
+					if (propName.equals("selection") && tool.synchronizingEdgeSelection) {
+						compareBrowserPane.removeSelectionListener(compTreeSelectionL);
+						Collection selected = (Collection) e.getNewValue();
+						compareBrowserPane.select(selected);
+						compareBrowserPane.addSelectionListener(compTreeSelectionL);
+					}
+				}
+			};
+			tool.addPropertyChangeListener(selectionListener);
+			// From tree to pane
+			if (compTreeSelectionL == null) {
+				compTreeSelectionL = new TreeSelectionListener() {
+					public void valueChanged(TreeSelectionEvent e) {
+						tool.handleTreeSelection(e, true);
 					}
 				};
-				tool.addPropertyChangeListener(selectionListener);
-				// From tree to pane
-				if (compTreeSelectionL == null) {
-					compTreeSelectionL = new TreeSelectionListener() {
-						public void valueChanged(TreeSelectionEvent e) {
-							tool.handleTreeSelection(e, true);
-						}
-					};
-				}
-				compareBrowserPane.addSelectionListener(compTreeSelectionL);
-				tool.clearSelection();
 			}
-			catch (SQLException e) {
-				System.err.println("visualization.compareToAnotherDB(): " + e);
-				e.printStackTrace();
-			}
+			compareBrowserPane.addSelectionListener(compTreeSelectionL);
+			tool.clearSelection();
 		}
 	}
 	

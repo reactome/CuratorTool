@@ -9,7 +9,7 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 
 /**
@@ -54,7 +54,7 @@ public class ReactionSpeciesCheck extends SpeciesCheck {
     @Override
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
         // Only MySQLAdator should be used to load attributes
-        MySQLAdaptor dba = (MySQLAdaptor) dataSource;
+        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
         String[] attNames = new String[] {
                 ReactomeJavaConstants.input,
                 ReactomeJavaConstants.output,

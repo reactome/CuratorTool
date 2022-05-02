@@ -13,7 +13,7 @@ import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
@@ -35,8 +35,8 @@ import org.junit.Test;
  *
  */
 public class AthDatabaseMerger {
-    private MySQLAdaptor curatedDBA;
-    private MySQLAdaptor importedDBA;
+    private Neo4JAdaptor curatedDBA;
+    private Neo4JAdaptor importedDBA;
     // Three types of instances
     private List<GKInstance> identificalInstances;
     private List<GKInstance> changedInstances;
@@ -65,12 +65,12 @@ public class AthDatabaseMerger {
      * @throws Exception
      */
     private void init() throws Exception {
-        curatedDBA = new MySQLAdaptor("localhost",
+        curatedDBA = new Neo4JAdaptor("localhost",
                                       "test_ath_curated2",
                                       "root",
                                       "macmysql01",
                                       3306);
-        importedDBA = new MySQLAdaptor("localhost",
+        importedDBA = new Neo4JAdaptor("localhost",
                                        "test_ath_imported_original",
                                        "root",
                                        "macmysql01",

@@ -30,7 +30,7 @@ import javax.swing.border.Border;
 
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.GKApplicationUtilities;
@@ -97,7 +97,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	    this.dbEventViewAction = action;
 	}
 	
-	public void showEventView(final MySQLAdaptor adaptor, 
+	public void showEventView(final Neo4JAdaptor adaptor, 
 	                          final boolean useShortMenu, 
 	                          final int popupType) {
 	    if (eventViewFrame != null) {
@@ -123,7 +123,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 		else if (popupType == GKDBBrowserPopupManager.CURATOR_TOOL_TYPE)
 			eventViewPane.getEventPane().setPopupType(EventPanePopupManager.DB_CURATOR_TOOL_TYPE);
 		// Place this call after GUI set up to display the progress pane
-		eventViewPane.setMySQLAdaptor(adaptor);
+		eventViewPane.setNeo4JAdaptor(adaptor);
 		if (iconImage != null)
 			eventViewFrame.setIconImage(iconImage);
 		eventViewFrame.addWindowListener(new WindowAdapter() {
@@ -148,7 +148,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 		refreshItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// A way to refresh the dispalyed events.
-				eventViewPane.setMySQLAdaptor(adaptor);
+				eventViewPane.setNeo4JAdaptor(adaptor);
 			}
 		});
 		JMenuItem closeItem = new JMenuItem("Close");
@@ -177,11 +177,11 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 		eventViewFrame.setVisible(true);
 	}
 	
-	public GKDatabaseBrowser openBrowser(MySQLAdaptor adaptor, int popupType) {
+	public GKDatabaseBrowser openBrowser(Neo4JAdaptor adaptor, int popupType) {
 		return openBrowser(adaptor, false, popupType);
 	}
 	
-	public GKDatabaseBrowser openBrowser(MySQLAdaptor adaptor, 
+	public GKDatabaseBrowser openBrowser(Neo4JAdaptor adaptor, 
 	                                     final boolean useShortMenu,
 	                                     int popupType) {
 		if (browser != null) {
@@ -386,7 +386,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 	public void showShellInstanceInDB(GKInstance instance, JComponent comp, JDialog parentDialog) {
 		// Get the database copy
 		try {
-			MySQLAdaptor adaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(comp);
+			Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(comp);
             if (adaptor == null) {
 				JOptionPane.showMessageDialog(comp,
 				                              "Cannot connect to the database.",
@@ -457,7 +457,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 		if (instance.getDbAdaptor() instanceof XMLFileAdaptor) {
 			locationLabel = new JLabel("@Local Repository");
 		}
-		else if (instance.getDbAdaptor() instanceof MySQLAdaptor) {
+		else if (instance.getDbAdaptor() instanceof Neo4JAdaptor) {
 			locationLabel = new JLabel("@Database Repository");
 		}
 		Border border1 = BorderFactory.createLoweredBevelBorder();
@@ -652,7 +652,7 @@ public class FrameManager implements AttributeEditListener, PropertyChangeListen
 					java.util.List titleList = new ArrayList(frames.size());
 					for (Iterator it = frames.keySet().iterator(); it.hasNext();) {
 						GKInstance instance = (GKInstance) it.next();
-						if (instance.getDbAdaptor() instanceof MySQLAdaptor)
+						if (instance.getDbAdaptor() instanceof Neo4JAdaptor)
 							titleList.add(instance.toString() + " @database");
 						else if (instance.getDbAdaptor() instanceof XMLFileAdaptor)
 							titleList.add(instance.toString() + " @localhost");
