@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.gk.schema.Schema;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
@@ -56,7 +57,7 @@ public class XMLFileQueryReader {
         path = "//defaultPerson";
         Element elm = (Element) XPath.selectSingleNode(root, path);
         if (elm != null) {
-            String value = elm.getAttributeValue("dbId");
+            String value = elm.getAttributeValue(Schema.DB_ID_NAME);
             if (value != null && value.length() > 0) {
                 defaultPerson = new Long(value);
             }

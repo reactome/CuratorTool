@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.driver.*;
 
+import java.sql.Timestamp;
 import java.util.*;
 
 import static org.junit.Assume.*;
@@ -58,7 +59,7 @@ public class Neo4JAdaptorTest {
         boolean foundDbId = false;
         boolean foundSpecies = false;
         for (SchemaAttribute attribute : attributes) {
-            if (attribute.getName().equals("dbId")) {
+            if (attribute.getName().equals(Schema.DB_ID_NAME)) {
                 foundDbId = true;
             } else if (attribute.getName().equals("species")) {
                 foundSpecies = true;
@@ -99,7 +100,7 @@ public class Neo4JAdaptorTest {
         assumeTrue(sIds.size() > 0);
         assumeTrue(sIds.get(0).get("identifier") != null);
         assumeTrue(sIds.get(0).get("oldIdentifier") != null);
-        assumeTrue(sIds.get(0).get("dbId") != null);
+        assumeTrue(sIds.get(0).get(Schema.DB_ID_NAME) != null);
     }
 
     @Test
@@ -115,11 +116,11 @@ public class Neo4JAdaptorTest {
                 neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L));
         GKInstance gkIns = (GKInstance) instances.iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(gkIns);
-        assumeTrue(gkIns.getAttributeValuesList("displayName").size() > 0);
+        assumeTrue(gkIns.getAttributeValuesList(ReactomeJavaConstants._displayName).size() > 0);
         assumeTrue(gkIns.getAttributeValuesList("hasEvent").size() > 1);
         boolean foundEvent = false;
         for (GKInstance instance : (List<GKInstance>) gkIns.getAttributeValuesList("hasEvent")) {
-            if (instance.getAttributeValue("displayName").equals("Chaperone Mediated Autophagy")) {
+            if (instance.getAttributeValue(ReactomeJavaConstants._displayName).equals("Chaperone Mediated Autophagy")) {
                 foundEvent = true;
             }
         }
@@ -134,7 +135,7 @@ public class Neo4JAdaptorTest {
                         Collections.singletonList(48889l));
         GKInstance gkIns = (GKInstance) instances.iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(gkIns);
-        assumeTrue(gkIns.getAttributeValuesList("chainChangeLog").size() > 0);
+        assumeTrue(gkIns.getAttributeValuesList("_chainChangeLog").size() > 0);
     }
 
     @Test
@@ -145,8 +146,8 @@ public class Neo4JAdaptorTest {
                         Collections.singletonList(15869l));
         GKInstance gkIns = (GKInstance) instances.iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(gkIns);
-        assumeTrue(gkIns.getAttributeValuesList("doRelease").size() > 0);
-        assumeTrue((Boolean) gkIns.getAttributeValuesList("doRelease").get(0));
+        assumeTrue(gkIns.getAttributeValuesList(ReactomeJavaConstants._doRelease).size() > 0);
+        assumeTrue((Boolean) gkIns.getAttributeValuesList(ReactomeJavaConstants._doRelease).get(0));
     }
 
     @Test
@@ -264,11 +265,11 @@ public class Neo4JAdaptorTest {
             // Store instance
             long dbID = neo4jAdaptor.storeInstance(instance, tx);
             long compartmentDBID = ((GKInstance) instance.getAttributeValue("compartment")).getDBID();
-            // Update "displayName" and "compartment" attributes in instance (in memory and not in Neo4j yet)
-            instance.setAttributeValue("displayName", "TestName 2");
-            instance1.setAttributeValue("displayName", "TestCompartment 2");
+            // Update ReactomeJavaConstants._displayName and "compartment" attributes in instance (in memory and not in Neo4j yet)
+            instance.setAttributeValue(ReactomeJavaConstants._displayName, "TestName 2");
+            instance1.setAttributeValue(ReactomeJavaConstants._displayName, "TestCompartment 2");
             instance1.setDBID(null);
-            neo4jAdaptor.updateInstanceAttribute(instance, "displayName", tx);
+            neo4jAdaptor.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
             neo4jAdaptor.updateInstanceAttribute(instance, "compartment", tx);
             tx.commit();
             // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
@@ -276,8 +277,8 @@ public class Neo4JAdaptorTest {
             fetchedInstance.setSchemaClass(sc);
             GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
             // Test that the attribute changes made in memory were committed to the DB
-            assumeTrue(compartmentValueInstance.getAttributeValue("displayName").equals("TestCompartment 2"));
-            assumeTrue(fetchedInstance.getAttributeValue("displayName").equals("TestName 2"));
+            assumeTrue(compartmentValueInstance.getAttributeValue(ReactomeJavaConstants._displayName).equals("TestCompartment 2"));
+            assumeTrue(fetchedInstance.getAttributeValue(ReactomeJavaConstants._displayName).equals("TestName 2"));
             // Clean up after test
             tx = session.beginTransaction();
             neo4jAdaptor.deleteInstance(instance, tx);
@@ -355,8 +356,8 @@ public class Neo4JAdaptorTest {
             tx.commit();
             tx = session.beginTransaction();
             long compartmentDBID = ((GKInstance) instance.getAttributeValue("compartment")).getDBID();
-            // Update "displayName" and "compartment" attributes in instance (in memory and not in Neo4j yet)
-            instance1.setAttributeValue("displayName", "TestCompartment 2");
+            // Update displayName and "compartment" attributes in instance (in memory and not in Neo4j yet)
+            instance1.setAttributeValue(ReactomeJavaConstants._displayName, "TestCompartment 2");
             neo4jAdaptor.updateInstance(instance1, tx);
             tx.commit();
             // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
@@ -365,7 +366,7 @@ public class Neo4JAdaptorTest {
             neo4jAdaptor.loadInstanceAttributeValues(fetchedInstance);
             GKInstance compartmentValueInstance = (GKInstance) fetchedInstance.getAttributeValuesList("compartment").get(0);
             // Test that the attribute changes made in memory were committed to the DB
-            assumeTrue(compartmentValueInstance.getAttributeValue("displayName").equals("TestCompartment 2"));
+            assumeTrue(compartmentValueInstance.getAttributeValue(ReactomeJavaConstants._displayName).equals("TestCompartment 2"));
             // Clean up after test
             tx = session.beginTransaction();
             neo4jAdaptor.deleteInstance(instance, tx);
@@ -386,7 +387,7 @@ public class Neo4JAdaptorTest {
                 .contains("Merged the events"));
         GKInstance deletedInstance =
                 (GKInstance) instance.getAttributeValuesList("deletedInstance").iterator().next();
-        assumeTrue(deletedInstance.getAttributeValue("className").equals(ReactomeJavaConstants.Reaction));
+        assumeTrue(Long.parseLong(deletedInstance.getAttributeValue("deletedInstanceDB_ID").toString()) == 69696l);
     }
 
     @Test
@@ -401,6 +402,7 @@ public class Neo4JAdaptorTest {
                 (GKInstance) instance.getAttributeValuesList("deletedStableIdentifier").iterator().next();
         neo4jAdaptor.loadInstanceAttributeValues(stableIdentifierInst);
         assumeTrue(stableIdentifierInst.getAttributeValue("identifier").equals("REACT_270"));
+        assumeTrue(instance.getAttributeValue("className").equals("Reaction"));
     }
 
     @Test
@@ -510,13 +512,15 @@ public class Neo4JAdaptorTest {
         }
     }
 
+    /*
     @Test
-    // Not this test takes a long time to run
+    // Note this test takes a long time to run
     public void testInstanceReferenceCheckerCheck() throws Exception {
         InstanceReferenceChecker checker = new InstanceReferenceChecker();
         checker.setDBA(neo4jAdaptor);
         assumeTrue(checker.check().length() > 0);
     }
+    */
 
     private boolean fitForService() {
         try (Session session = driver.session(SessionConfig.forDatabase("graph.db"))) {

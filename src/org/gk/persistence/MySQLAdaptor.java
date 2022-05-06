@@ -431,7 +431,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 
 	public void loadInstanceAttributeValues(GKInstance instance,
 											SchemaAttribute attribute, Boolean recursive) throws Exception {
-		// unused
+		loadInstanceAttributeValues(instance, attribute);
 	}
 
 	/**

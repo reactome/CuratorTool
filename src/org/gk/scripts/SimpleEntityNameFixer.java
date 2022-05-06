@@ -154,7 +154,7 @@ public class SimpleEntityNameFixer {
                 String displayName = InstanceDisplayNameGenerator.generateDisplayName(targetInst);
                 if (!displayName.equals(targetDisplayName)) {
                     targetInst.setDisplayName(displayName);
-                    fixedAtts += ".displayName";
+                    fixedAtts += "."+ReactomeJavaConstants._displayName;
                 }
                 targetInst.getAttributeValuesList(ReactomeJavaConstants.modified);
                 targetInst.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);

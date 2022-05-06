@@ -458,7 +458,7 @@ public class GKInstance implements Instance, Cloneable {
 	 */
 	public String getDisplayName() {
 		 try {
-			return (String) getAttributeValue("displayName");
+			return (String) getAttributeValue(ReactomeJavaConstants._displayName);
 		} catch (InvalidAttributeException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -479,7 +479,7 @@ public class GKInstance implements Instance, Cloneable {
 	 * @see org.gk.model.Instance#setDisplayName(java.lang.String)
 	 */
 	public void setDisplayName(String name) {
-		setAttributeValueNoCheck("displayName", name);
+		setAttributeValueNoCheck(ReactomeJavaConstants._displayName, name);
 	}
 	
 	private void loadAttributeValues(GKSchemaAttribute attribute, boolean recursive) throws Exception {

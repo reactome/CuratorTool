@@ -24,6 +24,7 @@ import javax.swing.filechooser.FileFilter;
 
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
+import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchema;
@@ -88,7 +89,7 @@ public class ProtegeExporter {
 				Boolean isApplyToAll;
 				for (Iterator it = c.iterator(); it.hasNext();) {
 					instanceEidt = (GKInstance) it.next();
-					isApplyToAll = (Boolean)instanceEidt.getAttributeValue("_applyToAllEditedInstances");
+					isApplyToAll = (Boolean)instanceEidt.getAttributeValue(ReactomeJavaConstants._applyToAllEditedInstances);
 					if ((isApplyToAll != null) && (isApplyToAll.booleanValue())) {
 						isDefaultInstanceNeeded = false;
 						break;
@@ -138,9 +139,9 @@ public class ProtegeExporter {
 			// Assign value temporarily
 			Long tmpDBID = adaptor.getNextLocalID();
 			defaultIE.setDBID(tmpDBID);
-			defaultIE.setAttributeValue("_applyToAllEditedInstances", Boolean.TRUE);
+			defaultIE.setAttributeValue(ReactomeJavaConstants._applyToAllEditedInstances, Boolean.TRUE);
 			exportInstance(defaultIE, (GKSchemaClass)defaultIE.getSchemClass(), writer, buffer);
-			defaultIE.removeAttributeValueNoCheck("_applyToAllEditedInstances", Boolean.TRUE);
+			defaultIE.removeAttributeValueNoCheck(ReactomeJavaConstants._applyToAllEditedInstances, Boolean.TRUE);
 			defaultIE.removeAttributeValueNoCheck("DB_ID", tmpDBID);
 			writer.println();
 		}

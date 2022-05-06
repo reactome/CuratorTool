@@ -11,6 +11,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
+import org.gk.schema.Schema;
 import org.gk.util.GKApplicationUtilities;
 import org.neo4j.driver.*;
 
@@ -65,7 +66,7 @@ public class ClearDuplicatedOldIdentifiers {
             adapter.txStoreInstance(instanceEdit);
 
             for (Map<String, Object> stableId : adapter.fetchStableIdentifiersWithDuplicateDBIds()) {
-                Long dbId = Long.parseLong(stableId.get("dbId").toString());
+                Long dbId = Long.parseLong(stableId.get(Schema.DB_ID_NAME).toString());
                 String identifier = stableId.get("identifier").toString();
                 String oldIdentifier = stableId.get(OLD_IDENTIFIER).toString();
                 try {

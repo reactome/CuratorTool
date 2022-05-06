@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.variant.FragmentReplacedModificationVariantCuration;
@@ -18,7 +18,7 @@ public class VariantCurationTest {
 	
 	@Test
 	public void testCreateReplacedResidueEwas() throws Exception {
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
                 "T001test",
@@ -42,7 +42,7 @@ public class VariantCurationTest {
         variantCuration.setDiseaseIds("1500689");        
         
         PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
         GKInstance ewas = variantCuration.createReplacedResidueEwas();
@@ -54,7 +54,7 @@ public class VariantCurationTest {
 	
 	@Test
 	public void testCreateNonsenseMutationEwas() throws Exception {
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
                 "T001test",
@@ -73,7 +73,7 @@ public class VariantCurationTest {
         //variantCuration.setDiseaseIds("1500689");        
         
         PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
         GKInstance ewas = variantCuration.createNonsenseMutationEwas();
@@ -85,7 +85,7 @@ public class VariantCurationTest {
 	
 	@Test
 	public void testCreateFrameShiftMutationEwas() throws Exception {
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
                 "T001test",
@@ -105,7 +105,7 @@ public class VariantCurationTest {
         variantCuration.setAlteredAminoAcid("RKRFSYTEYLASIIRFIFSVNRRKEIQNLSSCNFKI");      
         
         PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
         GKInstance ewas = variantCuration.createFrameShiftMutationEwas();
@@ -117,7 +117,7 @@ public class VariantCurationTest {
 	
 	@Test
 	public void testCreateFusioneMutationEwas() throws Exception {
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
                 "T001test",
@@ -137,7 +137,7 @@ public class VariantCurationTest {
         variantCuration.setPmids("21656749|24475247");
         
         PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
         GKInstance ewas = variantCuration.createFusioneMutationEwas();
@@ -150,7 +150,7 @@ public class VariantCurationTest {
 	
 	@Test
 	public void testCreateFragmentInsertionEwas() throws Exception {
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                 "gk_central",
                 "authortool",
                 "T001test",
@@ -171,7 +171,7 @@ public class VariantCurationTest {
         variantCuration.setPmids("24518094");
         
         PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
         GKInstance ewas = variantCuration.createFusioneMutationEwas();
@@ -194,14 +194,14 @@ public class VariantCurationTest {
     	String src = dir + "TP53_frameshift_mutations.tsv";
     	String dest = dir + "TP53_frameshift_mutations_" + dtf.format(now) + ".rtpj";
     	
-		MySQLAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+		Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
                                             "gk_central",
                                             "authortool",
                                             "T001test",
                                             3306);	
 		
 		PersistenceManager mngr = PersistenceManager.getManager();
-		mngr.setActiveMySQLAdaptor(dba);
+		mngr.setActiveNeo4JAdaptor(dba);
 		XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
 		mngr.setActiveFileAdaptor(fileAdaptor);
 		

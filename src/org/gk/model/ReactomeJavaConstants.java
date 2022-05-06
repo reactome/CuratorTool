@@ -168,6 +168,7 @@ public class ReactomeJavaConstants {
     public static final String variantIdentifier = "variantIdentifier";
     public static final String edited = "edited";
     public static final String _displayName = "_displayName";
+    public static final String _timestamp = "_timestamp";
     public static final String secondaryIdentifier = "secondaryIdentifier";
     public static final String maxCount = "maxCount";
     public static final String endCoordinate = "endCoordinate";

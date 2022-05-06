@@ -168,13 +168,13 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 if (ins.getSchemClass().isValidAttribute(att)) {
                     // Retrieve attribute value only if it's valid for that instance
                     try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-                        StringBuilder query = new StringBuilder("MATCH (n:").append(ins.getSchemClass().getName()).append("{dbId:").append(ins.getDBID()).append("})");
+                        StringBuilder query = new StringBuilder("MATCH (n:").append(ins.getSchemClass().getName()).append("{DB_ID:").append(ins.getDBID()).append("})");
                         Integer typeAsInt;
                         if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
                             query.append(" RETURN DISTINCT n.").append(att.getName());
                         } else {
                             String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
-                            query.append("-[:").append(att.getName()).append("]->(s:").append(allowedClassName).append(") RETURN DISTINCT s.dbId");
+                            query.append("-[:").append(att.getName()).append("]->(s:").append(allowedClassName).append(") RETURN DISTINCT s.DB_ID");
                         }
                         typeAsInt = att.getTypeAsInt();
                         // DEBUG: System.out.println(query);
@@ -370,7 +370,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param instance      GKInstance containing the updated attribute
      * @param attributeName Name of the attribute to update for the corresponding instance in the database
-     * @throws Exception Thrown if the instance has no dbId or if unable to update the specified attribute name
+     * @throws Exception Thrown if the instance has no DB_ID or if unable to update the specified attribute name
      */
     public void updateInstanceAttribute(GKInstance instance, String attributeName, Transaction tx) throws Exception {
         if (instance.getDBID() == null) {
@@ -387,7 +387,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param instance      GKInstance containing the updated attribute
      * @param attributeName Name of the attribute to update for the corresponding instance in the database
-     * @throws Exception Thrown if the instance has no dbId, if unable to update the specified attribute name, or if
+     * @throws Exception Thrown if the instance has no DB_ID, if unable to update the specified attribute name, or if
      *                   there is problem with the transaction
      */
     public void txUpdateInstanceAttribute(GKInstance instance, String attributeName) throws Exception {
@@ -400,7 +400,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     /**
      * @param instance GKInstance to update in the database
-     * @throws Exception Thrown if the instance has no dbId, there is a problem updating the instance or its
+     * @throws Exception Thrown if the instance has no DB_ID, there is a problem updating the instance or its
      *                   referrers in the database, or there is a problem loading attribute values if the instance is in the instance
      *                   cache
      */
@@ -438,7 +438,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * by the instance being updated are stored in the same transaction.
      *
      * @param instance GKInstance to update in the database
-     * @throws Exception Thrown if the instance has no dbId, there is a problem updating the instance or its
+     * @throws Exception Thrown if the instance has no DB_ID, there is a problem updating the instance or its
      *                   referrers in the database, there is a problem loading attribute values if the instance is in the instance
      *                   cache, or if there is a problem with the transaction
      */
@@ -463,8 +463,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 StringBuilder stmt = new StringBuilder("MATCH (n:")
                         .append(origin.getName())
                         .append(")-[:").append(attName).append("]->(s:").append(schemaClass.getName())
-                        .append("{").append("dbId:").append(instance.getDBID()).append("}) ")
-                        .append("RETURN n.dbId");
+                        .append("{").append("DB_ID:").append(instance.getDBID()).append("}) ")
+                        .append("RETURN n.DB_ID");
                 Result result = session.run(stmt.toString());
                 if (result.hasNext()) {
                     Long dbID = result.next().get(0).asLong();
@@ -494,7 +494,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * database.
      *
      * @param instance GKInstance to store (it might be from the local file system)
-     * @return dbId of the stored instance
+     * @return DB_ID of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
      *                   the instance
      */
@@ -514,7 +514,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param instance GKInstance to store (it might be from the local file system)
      * @param tx       transaction
-     * @return dbId of the stored instance
+     * @return DB_ID of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
      *                   the instance
      */
@@ -530,7 +530,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @param instance   GKInstance to store (it might be from the local file system)
      * @param forceStore when true, store the instance even if already in the database
      * @param tx         transaction
-     * @return dbId of the stored instance
+     * @return DB_ID of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
      *                   the instance
      */
@@ -547,7 +547,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         List<String> classHierarchy = ((List<GKSchemaClass>) cls.getOrderedAncestors()).stream().map((x) -> (x.getName())).collect(Collectors.toList());
         StringBuilder stmt = new StringBuilder();
         if (dbID == null) {
-            // Mint new dbId
+            // Mint new DB_ID
             stmt.append("MATCH (s:Seq {key:\"dbIdSeq\"}) CALL apoc.atomic.add(s,'value',1,10) YIELD newValue as seq RETURN seq");
             Value result = executeTransaction(stmt.toString(), tx);
             if (result != null) {
@@ -564,7 +564,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             labels.append(":").append(String.join(":", classHierarchy));
         }
         stmt.setLength(0);
-        stmt.append("create (n:").append(labels).append("{").append("dbId: ").append(dbID).append(", displayName: \"").append(instance.getDisplayName()).append("\"").append(", schemaClass: \"").append(cls.getName()).append("\"").append("}) RETURN n.dbId");
+        stmt.append("create (n:").append(labels).append("{").append("DB_ID: ").append(dbID).append(", displayName: \"").append(instance.getDisplayName()).append("\"").append(", schemaClass: \"").append(cls.getName()).append("\"").append("}) RETURN n.DB_ID");
         Value result = executeTransaction(stmt.toString(), tx);
         dbID = result.asLong();
 
@@ -602,7 +602,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @param instances Collection of instances to store or update
      * @throws Exception Thrown if:
      *                   -storing and unable to retrieve attribute values from the instance or if unable to store the instance.
-     *                   -updating and the instance has no dbId, if there is a problem updating the instance or its referrers in the
+     *                   -updating and the instance has no DB_ID, if there is a problem updating the instance or its referrers in the
      *                   database, or there is a problem loading attribute values if the instance is in the instance cache
      *                   -there is a problem with the transaction
      */
@@ -628,7 +628,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @param instances Collection of instances to store or update
      * @throws Exception Thrown if:
      *                   -storing and unable to retrieve attribute values from the instance or if unable to store the instance.
-     *                   -updating and the instance has no dbId, if there is a problem updating the instance or its referrers in the
+     *                   -updating and the instance has no DB_ID, if there is a problem updating the instance or its referrers in the
      *                   database, or there is a problem loading attribute values if the instance is in the instance cache
      */
     public void storeOrUpdate(Collection instances, Transaction tx) throws Exception {
@@ -648,7 +648,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     private void storeAttribute(SchemaAttribute att, GKInstance instance, Transaction tx, boolean recursive) throws Exception {
         SchemaClass cls = instance.getSchemClass();
-        if (att.getName().equals("dbId")) return;
+        if (att.getName().equals(Schema.DB_ID_NAME)) return;
         List attVals = instance.getAttributeValuesList(att.getName());
         if ((attVals == null) || (attVals.isEmpty())) return;
         List<String> stmts = new ArrayList();
@@ -659,18 +659,18 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     valDbID = storeInstance(attrValInstance, tx);
                 else
                     valDbID = attrValInstance.getDBID();
-                StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("dbId:").append(instance.getDBID()).append("}) ").append("MATCH (p:").append(attrValInstance.getSchemClass().getName()).append("{").append("dbId:").append(valDbID).append("})").append(" CREATE (n)-[:").append(att.getName()).append("]->(p)");
+                StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("DB_ID:").append(instance.getDBID()).append("}) ").append("MATCH (p:").append(attrValInstance.getSchemClass().getName()).append("{").append("DB_ID:").append(valDbID).append("})").append(" CREATE (n)-[:").append(att.getName()).append("]->(p)");
                 stmts.add(stmt.toString());
             }
         } else {
             Object value = instance.getAttributeValue(att.getName());
-            StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("dbId:").append(instance.getDBID()).append("}) SET n.").append(att.getName()).append(" = ");
+            StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("DB_ID:").append(instance.getDBID()).append("}) SET n.").append(att.getName()).append(" = ");
             if (att.getTypeAsInt() == SchemaAttribute.STRING_TYPE) {
                 stmt.append("\"").append(value).append("\"");
             } else {
                 stmt.append(value);
             }
-            stmt.append(" RETURN n.dbId");
+            stmt.append(" RETURN n.DB_ID");
             stmts.add(stmt.toString());
         }
         for (String stmt : stmts) {
@@ -680,12 +680,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     private void deleteFromDBInstanceAttributeValue(SchemaAttribute att, GKInstance instance, Transaction tx) throws Exception {
         SchemaClass cls = instance.getSchemClass();
-        if (att.getName().equals("dbId")) return;
+        if (att.getName().equals(Schema.DB_ID_NAME)) return;
         List attVals = instance.getAttributeValuesList(att.getName());
         if ((attVals == null) || (attVals.isEmpty())) return;
         if (att.isInstanceTypeAttribute()) {
             StringBuilder stmt = new StringBuilder("MATCH (n:");
-            stmt.append(cls.getName()).append("{").append("dbId:").append(instance.getDBID()).append("}) ").append("-[r:").append(att.getName()).append("]->() DELETE r");
+            stmt.append(cls.getName()).append("{").append("DB_ID:").append(instance.getDBID()).append("}) ").append("-[r:").append(att.getName()).append("]->() DELETE r");
             executeTransaction(stmt.toString(), tx);
         }
     }
@@ -748,7 +748,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      */
     public Set fetchIdenticalInstances(GKInstance instance) throws Exception {
         Set identicals = null;
-        if (((GKSchemaClass) instance.getSchemClass()).getDefiningAttributes() == null) {
+        if (((GKSchemaClass) instance.getSchemClass()).getDefiningAttributes().size() == 0) {
             if (debug) System.out.println(instance + "\tno defining attributes.");
             return null;
         }
@@ -883,7 +883,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
                 //This is only relevant if, say, the extracted instances keep their
                 //DB_ID as the value of respectively named attribute.
-                else if ((tmp = valIns.getAttributeValueNoCheck(Schema.NEO4J_DB_ID_NAME)) != null) {
+                else if ((tmp = valIns.getAttributeValueNoCheck(Schema.DB_ID_NAME)) != null) {
                     if (!seen.contains(tmp)) {
                         seen.add(tmp);
                         aqrList.add(new AttributeQueryRequest(instance.getSchemClass(), att, "=", tmp));
@@ -948,7 +948,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
                 //This is only relevant if, say, the extracted instances keep their
                 //DB_ID as the value of respectively named attribute.
-                else if ((valInsDBID = (Long) valIns.getAttributeValueNoCheck(Schema.NEO4J_DB_ID_NAME)) != null) {
+                else if ((valInsDBID = (Long) valIns.getAttributeValueNoCheck(Schema.DB_ID_NAME)) != null) {
                     dbIDs.add(valInsDBID);
                 } else if ((tmp = fetchIdenticalInstances(valIns)) != null) {
                     for (Iterator ti = ((Set) tmp).iterator(); ti.hasNext(); ) {
@@ -963,7 +963,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 if (matchingDBIDs == null) {
                     return null;
                 } else {
-                    aqrList.add(new AttributeQueryRequest(rootClassName, Schema.NEO4J_DB_ID_NAME, "=", matchingDBIDs));
+                    aqrList.add(new AttributeQueryRequest(rootClassName, Schema.DB_ID_NAME, "=", matchingDBIDs));
                 }
             }
         } else {
@@ -975,7 +975,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 if (matchingDBIDs == null) {
                     return null;
                 } else {
-                    aqrList.add(new AttributeQueryRequest(rootClassName, Schema.NEO4J_DB_ID_NAME, "=", matchingDBIDs));
+                    aqrList.add(new AttributeQueryRequest(rootClassName, Schema.DB_ID_NAME, "=", matchingDBIDs));
                 }
             }
         }
@@ -1008,7 +1008,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
                 //This is only relevant if, say, the extracted instances keep their
                 //DB_ID as the value of respectively named attribute.
-                else if ((tmp = valIns.getAttributeValueNoCheck(Schema.NEO4J_DB_ID_NAME)) != null) {
+                else if ((tmp = valIns.getAttributeValueNoCheck(Schema.DB_ID_NAME)) != null) {
                     if (!seen.contains(tmp)) {
                         seen.add(tmp);
                     }
@@ -1073,20 +1073,20 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         StringBuilder query = new StringBuilder("MATCH (n:").append(origin.getName()).append(")");
         if (att.isInstanceTypeAttribute()) {
             query.append("-[:").append(attName).append("]->(a)")
-                    .append("WITH a.dbId as attrDBID, n.dbId as dbId, count(*) as cnt WHERE attrDBID IN ")
+                    .append("WITH a.DB_ID as attrDBID, n.DB_ID as DB_ID, count(*) as cnt WHERE attrDBID IN ")
                     .append("[")
                     .append(StringUtils.join(",", strValues))
                     .append("] ")
-                    .append("AND cnt = ").append(count).append(" RETURN dbId");
+                    .append("AND cnt = ").append(count).append(" RETURN DB_ID");
         } else {
-            query.append(" WITH n.").append(attName).append(" as attrName, n.dbId as dbId, count(*) as cnt WHERE (");
+            query.append(" WITH n.").append(attName).append(" as attrName, n.DB_ID as DB_ID, count(*) as cnt WHERE (");
             boolean first = true;
             for (Object value : strValues) {
                 if (first) first = false;
                 else query.append(" OR ");
                 query.append("\"").append(value).append("\"").append(" IN attrName");
             }
-            query.append(")").append(" AND cnt = ").append(count).append(" RETURN dbId");
+            query.append(")").append(" AND cnt = ").append(count).append(" RETURN DB_ID");
         }
         Collection<Long> ret = new ArrayList<Long>();
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
@@ -1105,7 +1105,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     /**
-     * Deletes the instance with the supplied dbId from the database.  Also deletes the instance
+     * Deletes the instance with the supplied DB_ID from the database.  Also deletes the instance
      * from all referrers, in the sense that if the instance is referred to in
      * an attribute of a referrer, it will be removed from that attribute.
      *
@@ -1122,8 +1122,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * Check if a list of DB_IDs exist in the database.
      *
      * @param dbIds DbIds to check if they exist in the database
-     * @return true if all dbIds in the passed list exist in the database; false otherwise
-     * @throws SQLException Thrown if there is a problem querying the database for the dbIds
+     * @return true if all DB_IDs in the passed list exist in the database; false otherwise
+     * @throws SQLException Thrown if there is a problem querying the database for the DB_IDs
      */
     public boolean exist(List dbIds) throws Exception {
         @SuppressWarnings("unchecked") Set<Long> idsInDB = existing(dbIds, true, false);
@@ -1166,12 +1166,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         StringBuilder query = new StringBuilder("MATCH (n:").append(root.getName()).append(")");
         if (dbIds != null) {
             if (inverse)
-                query.append(" WHERE NOT n.dbId IN");
+                query.append(" WHERE NOT n.DB_ID IN");
             else
-                query.append(" WHERE n.dbId IN");
+                query.append(" WHERE n.DB_ID IN");
             query.append(dbIds);
         }
-        query.append(" RETURN n.dbId");
+        query.append(" RETURN n.DB_ID");
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
             while (result.hasNext()) {
@@ -1220,7 +1220,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     public String fetchSchemaClassnameByDBID(Long dbID) {
-        StringBuilder query = new StringBuilder("MATCH (n) WHERE n.dbId=").append(dbID).append(" RETURN n.schemaClass");
+        StringBuilder query = new StringBuilder("MATCH (n) WHERE n.DB_ID=").append(dbID).append(" RETURN n.schemaClass");
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
             if (result.hasNext()) {
@@ -1259,7 +1259,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     private void deleteInstanceFromNeo4J(SchemaClass cls, Long dbID, Transaction tx) {
         // NB. DETACH DELETE removes the node and all its relationships
         // (but not nodes at the other end of those relationships)
-        StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("dbId:").append(dbID).append("}) DETACH DELETE n");
+        StringBuilder stmt = new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("DB_ID:").append(dbID).append("}) DETACH DELETE n");
         executeTransaction(stmt.toString(), tx);
     }
 
@@ -1310,9 +1310,9 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         ((GKSchema) schema).isValidClassOrThrow(className);
         StringBuilder query = new StringBuilder("MATCH (n:").append(className).append(")");
         if (dbIds != null) {
-            query.append(" WHERE n.dbId IN").append(dbIds);
+            query.append(" WHERE n.DB_ID IN").append(dbIds);
         }
-        query.append(" RETURN n.dbId, n.displayName, n.schemaClass");
+        query.append(" RETURN n.DB_ID, n._displayName, n.schemaClass");
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
             while (result.hasNext()) {
@@ -1353,7 +1353,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      */
     public long fetchMaxDbId() {
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-            Result result = session.run("MATCH(n) RETURN MAX(n.dbId)");
+            Result result = session.run("MATCH(n) RETURN MAX(n.DB_ID)");
             Record record = result.next();
             return record.get(0).asLong();
         }
@@ -1371,7 +1371,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     public Map getAllInstanceCounts() throws Exception {
         Map<String, Long> map = new HashMap();
-        String query = "MATCH (n) WHERE n.schemaClass is not null RETURN n.schemaClass, count(n.dbId)";
+        String query = "MATCH (n) WHERE n.schemaClass is not null RETURN n.schemaClass, count(n.DB_ID)";
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query);
             while (result.hasNext()) {
@@ -1411,7 +1411,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @return true if existing; false otherwise
      */
     public boolean exist(Long dbID) {
-        StringBuilder query = new StringBuilder("MATCH (n) WHERE n.dbId = ").append(dbID).append(" RETURN n.dbId");
+        StringBuilder query = new StringBuilder("MATCH (n) WHERE n.DB_ID = ").append(dbID).append(" RETURN n.DB_ID");
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
             if (result.hasNext()) {
@@ -1464,7 +1464,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     public List<Map<String, Object>> fetchStableIdentifiersWithDuplicateDBIds() {
         List<Map<String, Object>> ret = new ArrayList();
-        StringBuilder query = new StringBuilder("CALL { MATCH (s1: StableIdentifier) with s1.oldIdentifier as oldId, count(s1.dbId) as dbIdCnt ")
+        StringBuilder query = new StringBuilder("CALL { MATCH (s1: StableIdentifier) with s1.oldIdentifier as oldId, count(s1.DB_ID) as dbIdCnt ")
                 .append("where oldId is not null and dbIdCnt > 1 RETURN oldId } ")
                 .append("WITH collect(oldId) as dups ")
                 .append("CALL { MATCH (s:StableIdentifier) RETURN s } ")
@@ -1480,7 +1480,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 Record record = result.next();
                 Map<String, Object> map = new HashMap();
                 map.put("identifier", record.get(0).get("identifier"));
-                map.put("dbId", record.get(0).get("dbId"));
+                map.put(Schema.DB_ID_NAME, record.get(0).get(Schema.DB_ID_NAME));
                 map.put("oldIdentifier", record.get(0).get("oldIdentifier"));
                 ret.add(map);
             }
@@ -1490,7 +1490,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     public List<List<Long>> fetchEWASModifications() {
         List<List<Long>> ret = new ArrayList();
-        String query = "MATCH (e:EntityWithAccessionedSequence)-[:hasModifiedResidue]->(r) RETURN e.dbId,r.dbId";
+        String query = "MATCH (e:EntityWithAccessionedSequence)-[:hasModifiedResidue]->(r) RETURN e.DB_ID,r.DB_ID";
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
             while (result.hasNext()) {
@@ -1526,9 +1526,9 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     /**
      * Method for fetching instances with given DB_IDs
      *
-     * @param dbIDs Collection of dbId values for which to retrieve corresponding instances
+     * @param dbIDs Collection of DB_ID values for which to retrieve corresponding instances
      * @return Collection of instances
-     * @throws Exception Thrown if unable to retrieve instances by dbId values from the database
+     * @throws Exception Thrown if unable to retrieve instances by DB_ID values from the database
      */
     public Collection fetchInstance(Collection dbIDs) throws Exception {
         return fetchInstanceByAttribute(((GKSchema) schema).getRootClass().getName(), "DB_ID", "=", dbIDs);

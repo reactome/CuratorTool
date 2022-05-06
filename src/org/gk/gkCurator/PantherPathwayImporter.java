@@ -39,6 +39,7 @@ import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
+import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.DialogControlPane;
 import org.gk.util.GKApplicationUtilities;
@@ -337,7 +338,7 @@ public class PantherPathwayImporter {
         Map nameToId = new HashMap();
         for (Iterator it = dataSourceElmList.iterator(); it.hasNext();) {
             Element tmp = (Element) it.next();
-            String dbId = tmp.getAttributeValue("dbId");
+            String dbId = tmp.getAttributeValue(Schema.DB_ID_NAME);
             String name = tmp.getAttributeValue("name");
             nameToId.put(name, dbId);
             names.add(name);
