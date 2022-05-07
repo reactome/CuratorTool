@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.driver.*;
 
-import java.sql.Timestamp;
 import java.util.*;
 
 import static org.junit.Assume.*;

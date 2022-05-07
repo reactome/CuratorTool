@@ -1,6 +1,7 @@
 package org.gk.schema;
 
 import org.reactome.server.graph.curator.domain.annotations.ReactomeConstraint;
+import org.reactome.server.graph.curator.domain.annotations.ReactomeInstanceDefiningValue;
 import org.reactome.server.graph.curator.domain.annotations.ReactomeTransient;
 import org.reactome.server.graph.curator.domain.model.DatabaseObject;
 import org.reactome.server.graph.curator.service.helper.AttributeClass;
@@ -43,9 +44,10 @@ public class Neo4JSchemaParser {
                 for (String skaId : skaIds) {
                     GKSchemaAttribute ska = schemaAttributeFromCacheOrNew(skaId);
                     ska.setName(ap.getName());
-                    if (skaId.contains(":"))
+                    if (skaId.contains(":")) {
                         ska.addSchemaClass(parentSC);
-                        setCategory(parentName, ska, ap);
+                        setCategoryAndDefiningType(parentName, ska, ap);
+                    }
 
                     String cardinality = ap.getCardinality();
                     if (cardinality == "1") {
@@ -100,13 +102,13 @@ public class Neo4JSchemaParser {
     }
 
     /**
-     * Sets SchemaAttribute category for ap in ska
+     * Sets SchemaAttribute category and instance defining value for ap in ska
      *
      * @param className
      * @param ska
      * @param ap
      */
-    private void setCategory(String className, GKSchemaAttribute ska, AttributeProperties ap)
+    private void setCategoryAndDefiningType(String className, GKSchemaAttribute ska, AttributeProperties ap)
             throws ClassNotFoundException {
         if (!classNameToFields.containsKey(className)) {
             String parentClazzName = DatabaseObject.class.getPackage().getName() + "." + className;
@@ -120,10 +122,20 @@ public class Neo4JSchemaParser {
         }
         Field field = classNameToFields.get(className).get(ap.getName());
         if (field != null) {
+            // Set Constraint Category
             Annotation annotation = field.getAnnotation(ReactomeConstraint.class);
             if (annotation != null) {
                 String category = ((ReactomeConstraint) annotation).constraint().toString();
                 ska.setCategory(category);
+            }
+            // Set instance defining value
+            annotation = field.getAnnotation(ReactomeInstanceDefiningValue.class);
+            if (annotation != null) {
+                String category = ((ReactomeInstanceDefiningValue) annotation).category().toString();
+                if (category.equals("none")) {
+                    category = null;
+                }
+                ska.setDefiningType(category);
             }
         }
     }
