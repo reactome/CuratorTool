@@ -20,8 +20,6 @@
 	<classpathentry kind="lib" path="lib/batik/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/batik/js.jar"/>
 	<classpathentry kind="lib" path="lib/batik/pdf-transcoder.jar"/>
-	<classpathentry kind="lib" path="lib/batik/xerces_2_5_0.jar"/>
-	<classpathentry kind="lib" path="lib/batik/xml-apis.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-core.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-jdom.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/saxpath.jar"/>
@@ -84,5 +82,7 @@
 	<classpathentry kind="lib" path="lib/aspectjrt-1.9.7.jar"/>
 	<classpathentry kind="lib" path="lib/commons/commons-lang3-3.12.0.jar"/>
 	<classpathentry kind="lib" path="lib/graph-core-curator-1.0.0-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="lib/xercesImpl-2.12.2.jar"/>
+	<classpathentry kind="lib" path="lib/xml-apis-1.4.01.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
