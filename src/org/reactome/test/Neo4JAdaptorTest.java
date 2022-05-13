@@ -8,7 +8,6 @@ import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.*;
-import org.gk.scripts.InstanceReferenceChecker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +83,21 @@ public class Neo4JAdaptorTest {
             if (attribute.getName().equals("summation")) {
                 assumeTrue(attribute.getCategory() == SchemaAttribute.MANDATORY);
                 break;
+            }
+        }
+    }
+
+    @Test
+    public void testInverseSlots(){
+        for (String attName : Arrays.asList("orthologousEvent", "reverseReaction")){
+            SchemaClass sc = schema.getClassByName("Pathway");
+            Collection<SchemaAttribute> attributes = sc.getAttributes();
+            assumeTrue(attributes.size() > 0);
+            for (SchemaAttribute attribute : attributes) {
+                if (attribute.getName().equals(attName)) {
+                    assumeTrue(attribute.getInverseSchemaAttribute().getName().equals(attName));
+                    break;
+                }
             }
         }
     }
@@ -452,7 +466,7 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void testExisting() throws Exception {
-        List<Long> dbIds = Arrays.asList(new Long[] { 5263598l, 0l });
+        List<Long> dbIds = Arrays.asList(new Long[]{5263598l, 0l});
         Set<Long> existingDBIds = neo4jAdaptor.existing(dbIds, false, false);
         assumeTrue(existingDBIds.size() == 1);
         assumeTrue(existingDBIds.iterator().next() == 5263598l);
@@ -466,7 +480,7 @@ public class Neo4JAdaptorTest {
         SchemaClass sc = schema.getClassByName("Reaction");
         GKSchemaAttribute att = (GKSchemaAttribute) sc.getAttribute("name");
         Collection<Long> dbIds = neo4jAdaptor.fetchDBIDsByAttributeValueCount(
-                att, Arrays.asList("Homoserine dehydrogenase","blah"), 1);
+                att, Arrays.asList("Homoserine dehydrogenase", "blah"), 1);
         assumeTrue(dbIds.size() > 0);
         // Instance-type attribute
         sc = schema.getClassByName("FrontPage");
@@ -498,7 +512,7 @@ public class Neo4JAdaptorTest {
         SchemaAttribute attribute = sc.getAttribute("hasEvent");
         neo4jAdaptor.loadInstanceReverseAttributeValues(instances, attribute);
         boolean allReferrersPresent = true;
-        for (Iterator ii = instances.iterator(); ii.hasNext();) {
+        for (Iterator ii = instances.iterator(); ii.hasNext(); ) {
             GKInstance ins = (GKInstance) ii.next();
             List<GKInstance> attInstances = (List<GKInstance>) ins.getAttributeValuesList(attribute.getName());
             for (GKInstance attInstance : attInstances) {
@@ -509,6 +523,132 @@ public class Neo4JAdaptorTest {
             }
             assumeTrue(allReferrersPresent);
         }
+    }
+
+    @Test
+    public void testFetchInstanceByQueryRequest() throws Exception {
+        // Test AttributeQueryRequest for an Instance attribute with a single value
+        SchemaClass sc = schema.getClassByName("Pathway");
+        SchemaAttribute attribute = sc.getAttribute("hasEvent");
+        Collection<Instance> instances = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 9612973L);
+        assumeTrue(instances.iterator().next().getDBID().equals(9664770L));
+        // Test AttributeQueryRequest for a primitive attribute with a single value
+        SchemaAttribute attribute1 = sc.getAttribute("_displayName");
+        instances = neo4jAdaptor.fetchInstanceByAttribute(attribute1, "=", "Deregulating Cellular Energetics");
+        assumeTrue(instances.iterator().next().getDBID().equals(9664770L));
+        // Test AttributeQueryRequest for an Instance attribute with operator = IS NULL and = IS NOT NULL
+        Neo4JAdaptor.AttributeQueryRequest aqr =
+                neo4jAdaptor.createAttributeQueryRequest(attribute, "IS NOT NULL", null);
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute, "IS NULL", null);
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        // Test AttributeQueryRequest for a primitive attribute with operator = IS NULL and = IS NOT NULL
+        aqr =
+                neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NOT NULL", null);
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NULL", null);
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        // Test AttributeQueryRequest for an Instance attribute with multiple values
+        Collection<Instance> insts1 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 5693579L);
+        Collection<Instance> insts2 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 5693616L);
+        aqr = neo4jAdaptor.createAttributeQueryRequest(
+                attribute, "=", Arrays.asList(insts1.iterator().next(), insts2.iterator().next()));
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() == 2);
+        // Test AttributeQueryRequest for a primitive attribute with multiple values
+        aqr = neo4jAdaptor.createAttributeQueryRequest(
+                attribute1, "=",
+                Arrays.asList("Deregulating Cellular Energetics", "Homologous DNA Pairing and Strand Exchange"));
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() == 2);
+    }
+
+    @Test
+    public void testFetchInstanceByQueryRequest1() throws Exception {
+        SchemaClass sc = schema.getClassByName("Pathway");
+        SchemaAttribute attribute = sc.getAttribute("hasEvent");
+        SchemaAttribute attribute1 = sc.getAttribute("_displayName");
+        SchemaAttribute attribute2 = sc.getAttribute("crossReference");
+        SchemaAttribute attribute3 = sc.getAttribute("DB_ID");
+        // Test AttributeQueryRequest for a List of aqr's - a mixture of Instance and primitive attributes
+        Instance inst1 = neo4jAdaptor.fetchInstance(9604294L);
+        Instance inst2 = neo4jAdaptor.fetchInstance(5685319L);
+        Neo4JAdaptor.AttributeQueryRequest aqr = neo4jAdaptor.createAttributeQueryRequest(
+                attribute, "=", Arrays.asList(inst1, inst2));
+        Neo4JAdaptor.AttributeQueryRequest aqr1 = neo4jAdaptor.createAttributeQueryRequest(
+                attribute1, "=", "Homologous DNA Pairing and Strand Exchange");
+        Collection<Instance> instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1));
+        assumeTrue(instances.size() == 1);
+        // Test AttributeQueryRequest for a List of aqr's - a mixture of IS NULL and IS NOT NULL clauses
+        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "=", 9604294L);
+        aqr1 = neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NOT NULL", null);
+        Neo4JAdaptor.AttributeQueryRequest aqr2 = neo4jAdaptor.createAttributeQueryRequest(attribute2, "IS NULL", null);
+        instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
+        assumeTrue(instances.size() == 1);
+        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "IN", Arrays.asList(9604294L,9604295L));
+        instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
+        assumeTrue(instances.size() == 1);
+    }
+
+    @Test
+    public void testFetchInstanceByQueryRequest2() throws Exception {
+        SchemaClass refererSc = schema.getClassByName("Reaction");
+        SchemaAttribute attribute = refererSc.getAttribute("species");
+        SchemaClass sc = schema.getClassByName(ReactomeJavaConstants.Species);
+        // Test ReverseAttributeQueryRequest (necessarily for an Instance attribute) with operator = IS NOT NULL
+        Neo4JAdaptor.ReverseAttributeQueryRequest aqr =
+                neo4jAdaptor.createReverseAttributeQueryRequest(sc, attribute, "IS NOT NULL", null);
+        Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        // Test ReverseAttributeQueryRequest with operator = IS NULL
+        // Note that in "IS NULL" ReverseAttributeQueryRequest's sc has to be ignored, because a query such as
+        // MATCH (n) WHERE NOT (n)-[:species]->(s:<Class>) RETURN n.DB_ID, n._displayName, n.schemaClass
+        // is incorrect - it has to be:
+        // MATCH (n) WHERE NOT (n)-[:species]->() RETURN n.DB_ID, n._displayName, n.schemaClass
+        aqr = neo4jAdaptor.createReverseAttributeQueryRequest(sc, attribute, "IS NULL", null);
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "="
+        GKInstance species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=","Homo sapiens").iterator().next();
+        Neo4JAdaptor.AttributeQueryRequest aqr1 =
+                neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent",ReactomeJavaConstants.species,"=",species);
+        Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 =
+                neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType",ReactomeJavaConstants.reactionType,"IS NOT NULL",null);
+        instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
+        assumeTrue(instances.size() > 0);
+        // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "IN"
+        species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=",Arrays.asList("Homo sapiens", "H. sapiens")).iterator().next();
+        aqr1 = neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent",ReactomeJavaConstants.species,"=",species);
+        aqr2 = neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType",ReactomeJavaConstants.reactionType,"IS NOT NULL",null);
+        instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
+        assumeTrue(instances.size() > 0);
+    }
+
+    @Test
+    public void testFetchInstanceByQueryRequest3() throws Exception {
+        SchemaClass refererSc = schema.getClassByName("Pathway");
+        SchemaAttribute attribute = refererSc.getAttribute("hasEvent");
+        // Test AttributeQueryRequest with a "IS NOT NULL" ReverseAttributeQueryRequest sub-query
+        // Below: Find all Pathway instances in which the value of hasEvent attribute is one or more of instances (of some class)
+        // have a hasEvent attribute
+        Neo4JAdaptor.ReverseAttributeQueryRequest subQuery =
+                neo4jAdaptor.createReverseAttributeQueryRequest("Pathway","hasEvent","IS NOT NULL",null);
+        Neo4JAdaptor.AttributeQueryRequest aqr =
+                neo4jAdaptor.createAttributeQueryRequest("Pathway","hasEvent","=",subQuery);
+        Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        // Test AttributeQueryRequest with a list of "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest sub-queries
+        // Below: Find all Pathway instances in which hasEvent attribute is one or more of instances (of some class)
+        // have _both_ an hasEvent attribute and a precedingEvent attribute
+        Neo4JAdaptor.ReverseAttributeQueryRequest subQuery1 =
+                neo4jAdaptor.createReverseAttributeQueryRequest("StableIdentifier","stableIdentifier","IS NOT NULL",null);
+        aqr = neo4jAdaptor.createAttributeQueryRequest("Pathway","hasEvent","=",Arrays.asList(subQuery, subQuery1));
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
     }
 
     /*

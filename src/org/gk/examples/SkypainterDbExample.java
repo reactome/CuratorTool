@@ -44,7 +44,7 @@ public class SkypainterDbExample {
 		 */
 		System.out.println("\nHuman pathway(s) with name 'Apoptosis':");
 		// Construct the query
-		List query = new ArrayList();
+		List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
 		query.add(dba.createAttributeQueryRequest("Pathway","name","=","Apoptosis"));
 		Neo4JAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
 		subquery.add(dba.createAttributeQueryRequest("Species","name","=","Homo sapiens"));

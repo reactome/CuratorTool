@@ -2,7 +2,6 @@ package org.gk.schema;
 
 import org.reactome.server.graph.curator.domain.annotations.ReactomeConstraint;
 import org.reactome.server.graph.curator.domain.annotations.ReactomeInstanceDefiningValue;
-import org.reactome.server.graph.curator.domain.annotations.ReactomeTransient;
 import org.reactome.server.graph.curator.domain.model.DatabaseObject;
 import org.reactome.server.graph.curator.service.helper.AttributeClass;
 import org.reactome.server.graph.curator.service.helper.AttributeProperties;
@@ -57,6 +56,11 @@ public class Neo4JSchemaParser {
                     } else if (cardinality == "+") {
                         ska.setMinCardinality(1);
                         ska.setMultiple(true);
+                    }
+
+                    // Equivalent of inverse_slots in MySQL Schema
+                    if (Arrays.asList("reverseReaction", "orthologousEvent").contains(ap.getName())) {
+                        ska.setInverseSchemaAttribute(schemaAttributeFromCacheOrNew(ap.getName()));
                     }
 
                     //System.out.println("  " + ap.getName() + " : " + ap.getCardinality() + " : " +

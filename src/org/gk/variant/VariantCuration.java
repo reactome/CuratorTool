@@ -368,7 +368,7 @@ public abstract class VariantCuration {
                                                   human);
         queryList.add(request);
         @SuppressWarnings("unchecked")
-		Set<GKInstance> referenceEntities = (Set<GKInstance>) dba.fetchInstance(queryList);
+		Set<GKInstance> referenceEntities = (Set<GKInstance>) dba.fetchInstance((Neo4JAdaptor.QueryRequest) queryList);
         
         List<GKInstance> referenceEntitiesList = new ArrayList<>(referenceEntities);
         

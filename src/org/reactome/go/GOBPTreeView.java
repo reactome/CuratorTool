@@ -137,7 +137,7 @@ public class GOBPTreeView extends JPanel {
 			return;
 		try {
 			//dbAdaptor.refresh();
-			ArrayList qr = new ArrayList();
+			ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList();
 			String clsName = "GO_BiologicalProcess";
 			qr.add(dbAdaptor.createAttributeQueryRequest(clsName, "instanceOf", "IS NULL", null));
 			qr.add(dbAdaptor.createAttributeQueryRequest(clsName, "componentOf", "IS NULL", null));

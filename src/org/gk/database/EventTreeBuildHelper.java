@@ -223,7 +223,7 @@ public class EventTreeBuildHelper {
     }
 	
 	public Collection getTopLevelEvents() throws Exception {
-		ArrayList qr = new ArrayList();
+		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList();
 		Schema schema = dba.getSchema();
 		SchemaClass eventCls = schema.getClassByName("Event");
 		SchemaClass pathwayCls = schema.getClassByName("Pathway");

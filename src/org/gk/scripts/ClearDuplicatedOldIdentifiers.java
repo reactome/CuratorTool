@@ -47,7 +47,7 @@ public class ClearDuplicatedOldIdentifiers {
         GKInstance person = null;
 
         try {
-            List query = new ArrayList();
+            List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
             query.add(adapter.createAttributeQueryRequest("Person", "firstname", "=", firstName));
             query.add(adapter.createAttributeQueryRequest("Person", "surname", "=", lastName));
             Collection instances = adapter.fetchInstance(query);

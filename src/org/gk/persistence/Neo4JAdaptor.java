@@ -9,6 +9,8 @@ import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -164,7 +166,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     // Don't inflate att if it has already been loaded
                     continue;
                 }
-
                 if (ins.getSchemClass().isValidAttribute(att)) {
                     // Retrieve attribute value only if it's valid for that instance
                     try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
@@ -337,11 +338,202 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     public Collection fetchInstance(QueryRequest aqr) throws Exception {
-        List aqrList = new ArrayList();
+        List<QueryRequest> aqrList = new ArrayList();
         aqrList.add(aqr);
         return fetchInstance(aqrList);
     }
 
+    // Throw Exception if o is an instance of a class that is inconsistent with a previously set value of collectionOfInstancesOnly
+    // e.g. if o is of type Instance, but the previous value of collectionOfInstancesOnly corresponds to a QueryRequest
+    private Boolean setCollectionOfInstancesOnlyFlag(Object o, Boolean collectionOfInstancesOnly) throws Exception {
+        String errMsg = "Illegal Collection - a mix of Instances and QueryRequests in a single Collection is not implemented";
+        if (o instanceof org.gk.model.Instance) {
+            if (collectionOfInstancesOnly == null) {
+                return true;
+            } else if (collectionOfInstancesOnly == false) {
+                throw new Exception(errMsg);
+            }
+        } else if (o instanceof AttributeQueryRequest || o instanceof ReverseAttributeQueryRequest) {
+            if (collectionOfInstancesOnly == null) {
+                return false;
+            } else if (collectionOfInstancesOnly == true) {
+                throw new Exception(errMsg);
+            }
+        }
+        return collectionOfInstancesOnly;
+    }
+
+    // Throw Exception unless qr's operator is "IS NOT NULL"
+    private Boolean isNotNullQuery(QueryRequest qr) throws Exception {
+        if (!qr.getOperator().equals("IS NOT NULL")) {
+            throw new Exception("Illegal sub-query - only 'IS NOT NULL' sub-queries are implemented");
+        }
+        return true;
+    }
+
+    // TODO: This method cannot handle the level of sub-nesting in e.g. IdentifierDatabase.getStableIdentifiersFromReleaseDB_ID()
+    public Set fetchInstance(List<QueryRequest> aqrList) throws Exception {
+        SchemaAttribute _displayName = ((GKSchema) schema).getRootClass().getAttribute("_displayName");
+        StringBuilder query = new StringBuilder();
+        StringBuilder whereClause = new StringBuilder();
+        String whereClauseKeyWord = " WHERE";
+        Integer pos = 1;
+        for (Iterator i = aqrList.iterator(); i.hasNext(); ) {
+            Neo4JAdaptor.QueryRequest aqr = (Neo4JAdaptor.QueryRequest) i.next();
+            if (aqr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) {
+                query.append(" MATCH (n)");
+            } else {
+                query.append(" MATCH (n:").append(aqr.getCls().getName()).append(")");
+            }
+            SchemaAttribute att = aqr.getAttribute();
+            String attName = att.getName();
+            Object value = aqr.getValue();
+            if (att.isInstanceTypeAttribute()) {
+                // Instance attribute
+                if (!aqr.getOperator().equals("IS NULL")) {
+                    query.append("-[:").append(attName).append("]->(s").append(pos);
+                    if (aqr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) {
+                        query.append(":").append(aqr.getCls().getName());
+                    }
+                    query.append(") ");
+                }
+                if (value instanceof Collection) {
+                    // Value is a collection
+                    // The assumption: The Collection consists of either of 1. Instances only, or of
+                    // 2. (potentially a mixture of) 'IS NOT NULL' AttributeQueryRequests/ReverseAttributeQueryRequests only.
+                    List<Long> dbIds = new ArrayList();
+                    Boolean collectionOfInstancesOnly = null;
+                    for (Iterator ci = ((Collection) value).iterator(); ci.hasNext(); ) {
+                        Object o = ci.next();
+                        if (o instanceof org.gk.model.Instance) {
+                            dbIds.add(((Instance) o).getDBID().longValue());
+                            collectionOfInstancesOnly = setCollectionOfInstancesOnlyFlag(o, collectionOfInstancesOnly);
+                        } else if (o instanceof AttributeQueryRequest) {
+                            collectionOfInstancesOnly = setCollectionOfInstancesOnlyFlag(o, collectionOfInstancesOnly);
+                            AttributeQueryRequest subAqr = (AttributeQueryRequest) o;
+                            if (isNotNullQuery(subAqr)) {
+                                query.append(" MATCH (s").append(pos).append(":")
+                                        .append(subAqr.getCls().getName()).append(")")
+                                        .append("-[:").append(attName).append("]->()");
+                            }
+                        } else if (o instanceof ReverseAttributeQueryRequest) {
+                            collectionOfInstancesOnly = setCollectionOfInstancesOnlyFlag(o, collectionOfInstancesOnly);
+                            ReverseAttributeQueryRequest subAqr = (ReverseAttributeQueryRequest) o;
+                            if (isNotNullQuery(subAqr)) {
+                                query.append(" MATCH (s").append(pos).append(")")
+                                        .append("-[:").append(subAqr.getAttribute().getName())
+                                        .append("]->(").append(subAqr.getCls().getName()).append(")");
+                            }
+                        }
+                    }
+                    if (collectionOfInstancesOnly) {
+                        whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID IN (").append(dbIds).append(")");
+                    }
+                } else {
+                    // Single value - either 1. Instance, or 2. an "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest.
+                    if (value instanceof org.gk.model.Instance) {
+                        if (!aqr.getOperator().equals("IS NOT NULL")) {
+                            if (!aqr.getOperator().equals("IS NULL")) {
+                                whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID = ").append(((GKInstance) value).getDBID());
+                            } else {
+                                whereClause.append(whereClauseKeyWord).append(" NOT ").append("(n)-[:").append(attName).append("]->() ");
+                            }
+                        }
+                    } else if (value instanceof AttributeQueryRequest) {
+                        AttributeQueryRequest subAqr = (AttributeQueryRequest) value;
+                        if (isNotNullQuery(subAqr)) {
+                            query.append(" MATCH (s").append(pos).append(":")
+                                    .append(subAqr.getCls().getName()).append(")")
+                                    .append("-[:").append(attName).append("]->()");
+                        }
+                    } else if (value instanceof ReverseAttributeQueryRequest) {
+                        ReverseAttributeQueryRequest subAqr = (ReverseAttributeQueryRequest) value;
+                        if (isNotNullQuery(subAqr)) {
+                            query.append(" MATCH (s").append(pos).append(")")
+                                    .append("-[:").append(subAqr.getAttribute().getName())
+                                    .append("]->(").append(subAqr.getCls().getName()).append(")");
+                        }
+                    }
+                }
+            } else {
+                // Primitive attribute
+                if (att.isMultiple()) {
+                    // E.g. Species.name
+                    whereClause.append(whereClauseKeyWord).append(" ANY(x IN n.").append(attName);
+                } else {
+                    whereClause.append(whereClauseKeyWord).append(" n.").append(attName);
+                }
+                if (value instanceof Collection) {
+                    // Value is a collection of primitive values
+                    List<Object> vals = new ArrayList();
+                    for (Iterator ci = ((Collection) value).iterator(); ci.hasNext(); ) {
+                        Object val = ci.next();
+                        if (val instanceof String) {
+                            vals.add("\"" + val + "\"");
+                        } else if (val instanceof Integer) {
+                            vals.add(((Integer) val).intValue());
+                        } else if (val instanceof Float) {
+                            vals.add(((Float) val).floatValue());
+                        } else if (val instanceof Boolean) {
+                            vals.add(((Boolean) val).booleanValue());
+                        } else if (val instanceof Long) {
+                            vals.add(((Long) val).longValue());
+                        }
+                    }
+                    if (att.isMultiple()) {
+                        whereClause.append(" WHERE x");
+                    }
+                    whereClause.append(" IN (").append(vals).append(")");
+                    if (att.isMultiple()) {
+                        whereClause.append(")");
+                    }
+                } else {
+                    // Single primitive value
+                    if (!aqr.getOperator().equals("IS NULL") && !aqr.getOperator().equals("IS NOT NULL")) {
+                        if (att.isMultiple()) {
+                            whereClause.append(" WHERE x");
+                        }
+                        if (value instanceof String) {
+                            whereClause.append(" = \"").append(value + "\"");
+                        } else if (value instanceof Integer) {
+                            whereClause.append(" = ").append(((Integer) value).intValue());
+                        } else if (value instanceof Float) {
+                            whereClause.append(" = ").append(((Float) value).floatValue());
+                        } else if (value instanceof Boolean) {
+                            whereClause.append(" = ").append(((Boolean) value).booleanValue());
+                        } else if (value instanceof Long) {
+                            whereClause.append(" = ").append(((Long) value).longValue());
+                        }
+                    } else {
+                        whereClause.append(" ").append(aqr.getOperator());
+                    }
+                    if (att.isMultiple()) {
+                        whereClause.append(")");
+                    }
+                }
+            }
+            whereClauseKeyWord = " AND";
+            pos++;
+        }
+        query.append(" ").append(whereClause).append(" RETURN n.DB_ID, n._displayName, n.schemaClass");
+        Set instances = new HashSet();
+        System.out.println(query); // DEBUG
+        try (Session session = driver.session(SessionConfig.forDatabase(getDBName()))) {
+            Result result = session.run(query.toString());
+            while (result.hasNext()) {
+                Record res = result.next();
+                Long dbId = res.get(0) != Values.NULL ? res.get(0).asLong() : null;
+                String dislayName = res.get(1) != Values.NULL ? res.get(1).toString() : null;
+                String clsName = res.get(2) != Values.NULL ? res.get(2).asString() : null;
+                if (dbId != null) {
+                    Instance instance = getInstance(clsName, dbId);
+                    instance.setAttributeValue(_displayName, dislayName);
+                    instances.add(instance);
+                }
+            }
+            return instances;
+        }
+    }
 
     public Collection fetchInstancesByClass(SchemaClass schemaClass) throws Exception {
         return fetchInstancesByClass(schemaClass.getName(), null);
@@ -752,7 +944,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             if (debug) System.out.println(instance + "\tno defining attributes.");
             return null;
         }
-        List aqrList = makeAqrs(instance);
+        List<QueryRequest> aqrList = makeAqrs(instance);
         if (aqrList == null) {
             if (debug) System.out.println(instance + "\tno matching instances due to unmatching attribute value(s).");
         } else if (aqrList.isEmpty()) {
@@ -775,7 +967,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * to be sorted out programmatically.
      *
      * @param instance
-     * @param identicals
      * @return
      * @throws Exception
      */
@@ -1530,7 +1721,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @return Collection of instances
      * @throws Exception Thrown if unable to retrieve instances by DB_ID values from the database
      */
-    public Collection fetchInstance(Collection dbIDs) throws Exception {
+    public Collection fetchInstance(Collection<Long> dbIDs) throws Exception {
         return fetchInstanceByAttribute(((GKSchema) schema).getRootClass().getName(), "DB_ID", "=", dbIDs);
     }
 
@@ -1550,7 +1741,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return new ReverseAttributeQueryRequest(cls, att, operator, value);
     }
 
-    public class QueryRequestList extends ArrayList {
+    public class QueryRequestList extends ArrayList<QueryRequest> {
 
     }
 

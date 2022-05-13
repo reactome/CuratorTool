@@ -865,7 +865,7 @@ public class IdentifierDatabase {
             // to create a new one.  If one already exists, it means that
             // somebody (probably you) has already done a stable ID run with
             // the given release.  A potentially dodgy thing to do!
-            List query = new ArrayList();
+            List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
             query.add(dba.createAttributeQueryRequest("ReleaseId", getReleaseColumn(), "=", release));
             query.add(dba.createAttributeQueryRequest("ReleaseId", "instanceDB_ID", "=", DB_ID));
             Set releaseIds = new HashSet();
@@ -983,8 +983,8 @@ public class IdentifierDatabase {
 			Neo4JAdaptor dba = getDba();
 			
 			// Retrieve the current release instance
-            List query = new ArrayList();
-			List projectSubquery = new ArrayList();
+            List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
+			List<Neo4JAdaptor.QueryRequest> projectSubquery = new ArrayList();
 			projectSubquery.add(dba.createAttributeQueryRequest("Project","name","=",currentProjectName));
 			Set projects = new HashSet(dba.fetchInstance(projectSubquery));
 //			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projectSubquery));
@@ -1300,7 +1300,7 @@ public class IdentifierDatabase {
 			releaseIdsSubquery.add(dba.createAttributeQueryRequest("ReleaseId","instanceDB_ID","=",DB_ID));
 			stableIdentifierVersionSubquery.add(dba.createAttributeQueryRequest("StableIdentifierVersion","releaseIds","=",releaseIdsSubquery));
 
-			List query = new ArrayList();
+			List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
 			query.add(dba.createAttributeQueryRequest(stableIdentifierClass,"stableIdentifierVersion","=",stableIdentifierVersionSubquery));
 
 			stableIdentifiers = new HashSet();
@@ -1334,8 +1334,8 @@ public class IdentifierDatabase {
 		// currentReleaseNum.
         GKInstance release = null;
         try {
-			List query = new ArrayList();
-			List projectSubquery = new ArrayList();
+			List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
+			List<Neo4JAdaptor.QueryRequest> projectSubquery = new ArrayList();
 			projectSubquery.add(dba.createAttributeQueryRequest("Project","name","=",projectName));
 			Set projects = new HashSet(dba.fetchInstance(projectSubquery));
 //			query.add(dba.createAttributeQueryRequest(getReleaseTable(),"project","=",projectSubquery));

@@ -159,7 +159,7 @@ public class EventSlicingHelper {
      * @param events
      */
     private void extractFloatingPathwaysAndReactions(Set events, Neo4JAdaptor sourceDBA, List topLevelIDs) throws Exception {
-		ArrayList qr = new ArrayList(3);
+		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList(3);
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
 		SchemaAttribute hasCompAtt = pathwayCls.getAttribute(ReactomeJavaConstants.hasEvent);
 		qr.add(sourceDBA.createReverseAttributeQueryRequest(pathwayCls, hasCompAtt, "IS NULL", null));
@@ -219,7 +219,7 @@ public class EventSlicingHelper {
     }
     
     private void extractFloatingReactions(Set reactions, Neo4JAdaptor sourceDBA) throws Exception {
-		ArrayList qr = new ArrayList(1);
+		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList(1);
 		SchemaClass reactionCls = sourceDBA.getSchema().getClassByName("Reaction");
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
 		SchemaAttribute hasCompAtt = pathwayCls.getAttribute(ReactomeJavaConstants.hasEvent);

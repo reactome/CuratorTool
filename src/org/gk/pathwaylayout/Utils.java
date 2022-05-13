@@ -73,7 +73,7 @@ public class Utils {
 		Neo4JAdaptor.AttributeQueryRequest aqr1 = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReactionlikeEvent,ReactomeJavaConstants.species,"=",species);
 		Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 = 
 			dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.ReactionCoordinates,ReactomeJavaConstants.locatedEvent,"IS NOT NULL",null);
-		List aqrList = new ArrayList();
+		List<Neo4JAdaptor.QueryRequest> aqrList = new ArrayList();
 		aqrList.add(aqr1);
 		aqrList.add(aqr2);
 		Collection out = dba.fetchInstance(aqrList);
@@ -89,7 +89,7 @@ public class Utils {
 					dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent),
 					dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionCoordinates).getAttribute(ReactomeJavaConstants.locatedEvent),
 					"IS NOT NULL",null);
-		List aqrList = new ArrayList();
+		List<Neo4JAdaptor.QueryRequest> aqrList = new ArrayList();
 		aqrList.add(aqr1);
 		aqrList.add(aqr2);
 		Collection out = dba.fetchInstance(aqrList);
@@ -403,7 +403,7 @@ public class Utils {
 	}
 	
 	public static Collection<GKInstance> getTopLevelPathwaysForSpecies(Neo4JAdaptor dba, GKInstance species) throws Exception {
-		ArrayList qr = new ArrayList();
+		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList();
 		qr.add(dba.createAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.species, "=", species));
 		qr.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		HashSet<GKInstance> out = new HashSet<GKInstance>();
@@ -417,7 +417,7 @@ public class Utils {
 	}
 
 	public static Collection<GKInstance> getTopLevelPathways(Neo4JAdaptor dba) throws Exception {
-		ArrayList qr = new ArrayList();
+		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList();
 		qr.add(dba.createReverseAttributeQueryRequest(ReactomeJavaConstants.Pathway, ReactomeJavaConstants.frontPageItem, "IS NOT NULL", null));
 		HashSet<GKInstance> out = new HashSet<GKInstance>();
 		out.addAll(dba.fetchInstance(qr));
