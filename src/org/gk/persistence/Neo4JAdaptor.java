@@ -370,8 +370,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
         return true;
     }
-
-    // TODO: This method cannot handle the level of sub-nesting in e.g. IdentifierDatabase.getStableIdentifiersFromReleaseDB_ID()
+    
     public Set fetchInstance(List<QueryRequest> aqrList) throws Exception {
         SchemaAttribute _displayName = ((GKSchema) schema).getRootClass().getAttribute("_displayName");
         StringBuilder query = new StringBuilder();
