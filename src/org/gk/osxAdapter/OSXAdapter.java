@@ -13,8 +13,9 @@ public class OSXAdapter extends ApplicationAdapter {
 	// pseudo-singleton model; no point in making multiple instances
 	// of the EAWT application or our adapter
 	private static OSXAdapter						theAdapter;
+	// Need to look at this: https://stackoverflow.com/questions/56860692/resolving-com-apple-import-error-on-windows
 	private static com.apple.eawt.Application		theApplication;
-
+	
 	// reference to the app where the existing quit, about, prefs code is
 	private OSXApplication									mainApp;
 	
