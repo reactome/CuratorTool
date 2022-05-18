@@ -9,8 +9,6 @@ import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;

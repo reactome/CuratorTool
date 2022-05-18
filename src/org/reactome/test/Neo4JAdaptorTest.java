@@ -50,6 +50,9 @@ public class Neo4JAdaptorTest {
     public void testFetchSchema() throws Exception {
         assumeTrue(schema.getClasses().size() > 0);
         assumeTrue(schema.getTimestamp() != null);
+        SchemaClass sc1 = schema.getClassByName("BlackBoxEvent");
+        // Test that only immediate parents are retrieved
+        assumeTrue(sc1.getSuperClasses().size() == 1);
         SchemaClass sc = schema.getClassByName("Pathway");
         assumeTrue(sc.getName().equals("Pathway"));
         Collection<SchemaAttribute> attributes = sc.getAttributes();

@@ -192,11 +192,12 @@ public class Neo4JSchemaParser {
         }
     }
 
+    // Find immediate parents only
     private List<String> findParents(String className) throws ClassNotFoundException {
         List<String> parents = new ArrayList<String>();
         String packageName = DatabaseObject.class.getPackage().getName() + ".";
         Class clazz = Class.forName(packageName + className);
-        while (clazz != null) {
+        if (clazz != null) {
             clazz = clazz.getSuperclass();
             if (!clazz.equals(Object.class)) {
                 parents.add(clazz.getSimpleName());
