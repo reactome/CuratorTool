@@ -172,8 +172,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
                             query.append(" RETURN DISTINCT n.").append(att.getName());
                         } else {
-                            String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
-                            query.append("-[:").append(att.getName()).append("]->(s:").append(allowedClassName).append(") RETURN DISTINCT s.DB_ID");
+                            StringBuilder allowedClassClause = new StringBuilder();
+                            if (att.getAllowedClasses().iterator().hasNext()) {
+                                String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
+                                allowedClassClause.append(":").append(allowedClassName);
+                            }
+                            query.append("-[:").append(att.getName()).append("]->(s").append(allowedClassClause).append(") RETURN DISTINCT s.DB_ID");
                         }
                         typeAsInt = att.getTypeAsInt();
                         // DEBUG: System.out.println(query);
@@ -368,7 +372,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
         return true;
     }
-    
+
     public Set fetchInstance(List<QueryRequest> aqrList) throws Exception {
         SchemaAttribute _displayName = ((GKSchema) schema).getRootClass().getAttribute("_displayName");
         StringBuilder query = new StringBuilder();
