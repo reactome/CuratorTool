@@ -9,9 +9,16 @@ import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
+import javax.tools.ToolProvider;
+import java.io.File;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class Neo4JAdaptor implements PersistenceAdaptor {
     private String host;
@@ -93,19 +100,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     public Schema fetchSchema() throws Exception {
-        Collection<String> classNames = new ArrayList<String>();
-        try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-            Result result = session.run("MATCH (n:DatabaseObject) UNWIND labels(n) as label WITH DISTINCT label RETURN label\n");
-            while (result.hasNext()) {
-                Record record = result.next();
-                classNames.add(record.get("label").asString().replaceAll("\"", ""));
-            }
-            Neo4JSchemaParser neo4jSP = new Neo4JSchemaParser();
-            schema = neo4jSP.parseNeo4JResults(classNames);
-            // Retrieve from Neo4J the timestamp for the current data model and set it in schema
-            ((GKSchema) schema).setTimestamp(getSchemaTimestamp());
-            return schema;
-        }
+        schema = new Neo4JSchemaParser().parseNeo4JResults(getClassNames("org.reactome.server.graph.curator.domain.model"));
+        // Retrieve from Neo4J the timestamp for the current data model and set it in schema
+        ((GKSchema) schema).setTimestamp(getSchemaTimestamp());
+        return schema;
     }
 
     public Schema getSchema() {
@@ -1740,6 +1738,26 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     public ReverseAttributeQueryRequest createReverseAttributeQueryRequest(SchemaClass cls, SchemaAttribute att, String operator, Object value) throws InvalidAttributeException {
         return new ReverseAttributeQueryRequest(cls, att, operator, value);
+    }
+
+    // Adapted from https://stackoverflow.com/questions/520328/can-you-find-all-classes-in-a-package-using-reflection
+    private static Collection<String> getClassNames(final String pack) throws java.io.IOException {
+        final StandardJavaFileManager fileManager = ToolProvider.getSystemJavaCompiler().getStandardFileManager(null, null, null);
+        return StreamSupport.stream(
+                        fileManager.list(StandardLocation.CLASS_PATH, pack, Collections.singleton(JavaFileObject.Kind.CLASS), false).spliterator(),
+                        false)
+                .map(javaFileObject -> {
+                    final String[] split = javaFileObject.getName()
+                            .replace(".class", "")
+                            .replace(")", "")
+                            .split(Pattern.quote(File.separator));
+                    String className = split[split.length - 1];
+                    if (className.indexOf("$") == -1)
+                        // Exclude inner classes
+                        return className;
+                    return null;
+                })
+                .filter(x -> x != null).collect(Collectors.toCollection(ArrayList::new));
     }
 
     public class QueryRequestList extends ArrayList<QueryRequest> {
