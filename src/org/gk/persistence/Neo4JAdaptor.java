@@ -154,90 +154,167 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         if (attributes.isEmpty() || instances.isEmpty()) {
             return;
         }
+        // Collect attributes into groups:
+        // 1. primitive attributes (into primitiveAttributesWithSingleValue) with single value
+        // 2. each primitive attribute with multiple values (into primitiveAttributesWithMultipleValues)
+        // 3. Instance-type attributes - per allowed class
+        Map<String, List<GKSchemaAttribute>> allowedClassName2instanceTypeAtt = new HashMap<>();
+        List<GKSchemaAttribute> primitiveAttributesWithSingleValue = new ArrayList<>();
+        List<GKSchemaAttribute> primitiveAttributesWithMultipleValues = new ArrayList<>();
         for (Iterator ii = instances.iterator(); ii.hasNext(); ) {
             GKInstance ins = (GKInstance) ii.next();
             for (Iterator ai = attributes.iterator(); ai.hasNext(); ) {
                 GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
-                if (ins.isAttributeValueLoaded(att)) {
-                    // Don't inflate att if it has already been loaded
+                if (ins.isAttributeValueLoaded(att) || !ins.getSchemClass().isValidAttribute(att)) {
+                    // Don't inflate att if it has already been loaded or is not valid for this instance
                     continue;
                 }
-                if (ins.getSchemClass().isValidAttribute(att)) {
-                    // Retrieve attribute value only if it's valid for that instance
-                    try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-                        StringBuilder query = new StringBuilder("MATCH (n:").append(ins.getSchemClass().getName()).append("{DB_ID:").append(ins.getDBID()).append("})");
-                        Integer typeAsInt;
-                        if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
-                            query.append(" RETURN DISTINCT n.").append(att.getName());
+                if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
+                    if (att.isMultiple()) {
+                        primitiveAttributesWithMultipleValues.add(att);
+                    } else {
+                        primitiveAttributesWithSingleValue.add(att);
+                    }
+                } else {
+                    if (att.getAllowedClasses().iterator().hasNext()) {
+                        String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
+                        List<GKSchemaAttribute> gkAtts;
+                        if (allowedClassName2instanceTypeAtt.containsKey(allowedClassName)) {
+                            gkAtts = allowedClassName2instanceTypeAtt.get(allowedClassName);
                         } else {
-                            StringBuilder allowedClassClause = new StringBuilder();
-                            if (att.getAllowedClasses().iterator().hasNext()) {
-                                String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
-                                allowedClassClause.append(":").append(allowedClassName);
-                            }
-                            query.append("-[:").append(att.getName()).append("]->(s").append(allowedClassClause).append(") RETURN DISTINCT s.DB_ID");
+                            gkAtts = new ArrayList<GKSchemaAttribute>();
                         }
-                        typeAsInt = att.getTypeAsInt();
-                        // DEBUG: System.out.println(query);
-                        Result result = session.run(query.toString());
-                        List<Value> values = new ArrayList();
-                        while (result.hasNext()) {
-                            Value val = result.next().get(0);
-                            if (val != NullValue.NULL) values.add(val);
+                        gkAtts.add(att);
+                        allowedClassName2instanceTypeAtt.put(allowedClassName, gkAtts);
+                    }
+                }
+            }
+            // Now construct Neo4J queries per each of the attribute groups in primitiveAttNames and allowedClassName2instanceTypeAttName
+            Map<String, List<GKSchemaAttribute>> cypherQueries = new HashMap<>();
+            // Primitive attributes with a single value
+            StringBuilder queryRoot = new StringBuilder("MATCH (n:").append(ins.getSchemClass().getName()).append("{DB_ID:").append(ins.getDBID()).append("})");
+            if (primitiveAttributesWithSingleValue.size() > 0) {
+                StringBuilder query = new StringBuilder(queryRoot.toString());
+                Boolean first = true;
+                for (GKSchemaAttribute a : primitiveAttributesWithSingleValue) {
+                    if (first) {
+                        query.append(" RETURN DISTINCT ");
+                        first = false;
+                    } else query.append(", ");
+                    query.append("n.").append(a.getName());
+                }
+                cypherQueries.put(query.toString(), primitiveAttributesWithSingleValue);
+            }
+            // Primitive attributes with multiple values
+            if (primitiveAttributesWithMultipleValues.size() > 0) {
+                for (GKSchemaAttribute a : primitiveAttributesWithMultipleValues) {
+                    StringBuilder query = new StringBuilder("MATCH (n:").append(ins.getSchemClass().getName()).append("{DB_ID:").append(ins.getDBID()).append("})");
+                    query.append(" RETURN DISTINCT n.").append(a.getName());
+                    cypherQueries.put(query.toString(), Collections.singletonList(a));
+                }
+            }
+            // Instance-type attributes
+            if (!allowedClassName2instanceTypeAtt.isEmpty()) {
+                for (String ac : allowedClassName2instanceTypeAtt.keySet()) {
+                    StringBuilder query = new StringBuilder(queryRoot.toString());
+                    Boolean first = true;
+                    query.append("-[:");
+                    for (GKSchemaAttribute a : allowedClassName2instanceTypeAtt.get(ac)) {
+                        if (!first) {
+                            query.append("|");
                         }
-                        if (values.size() > 0) {
-                            try {
-                                switch (typeAsInt) {
-                                    case SchemaAttribute.INSTANCE_TYPE:
-                                        SchemaClass attributeClass = (SchemaClass) att.getAllowedClasses().iterator().next();
-                                        if (values.size() > 1) {
-                                            List<Instance> attrInstances = new ArrayList();
-                                            for (Value value : values) {
-                                                GKInstance instance;
-                                                if (recursive) {
-                                                    instance = getInflateInstance(value, attributeClass);
-                                                } else {
-                                                    Long dbID = value.asLong();
-                                                    instance = (GKInstance) getInstance(attributeClass.getName(), dbID);
-                                                }
-                                                attrInstances.add(instance);
-                                            }
-                                            ins.setAttributeValueNoCheck(att, attrInstances);
-                                        } else {
-                                            GKInstance instance = getInflateInstance(values.get(0), attributeClass);
-                                            ins.setAttributeValueNoCheck(att, instance);
-                                        }
-                                        break;
-                                    case SchemaAttribute.STRING_TYPE:
-                                        List<String> res = values.stream().map((x) -> (x.asString())).collect(Collectors.toList());
-                                        ins.setAttributeValueNoCheck(att, res.size() > 1 ? res : res.get(0));
-                                        break;
-                                    case SchemaAttribute.INTEGER_TYPE:
-                                        List<Integer> resI = values.stream().map((x) -> (x.asInt())).collect(Collectors.toList());
-                                        ins.setAttributeValueNoCheck(att, resI.size() > 1 ? resI : resI.get(0));
-                                        break;
-                                    case SchemaAttribute.LONG_TYPE:
-                                        List<Long> resL = values.stream().map((x) -> (x.asLong())).collect(Collectors.toList());
-                                        ins.setAttributeValueNoCheck(att, resL.size() > 1 ? resL : resL.get(0));
-                                        break;
-                                    case SchemaAttribute.FLOAT_TYPE:
-                                        List<Float> resF = values.stream().map((x) -> (x.asFloat())).collect(Collectors.toList());
-                                        ins.setAttributeValueNoCheck(att, resF.size() > 1 ? resF : resF.get(0));
-                                        break;
-                                    case SchemaAttribute.BOOLEAN_TYPE:
-                                        List<Boolean> resB = values.stream().map((x) -> (x.asBoolean())).collect(Collectors.toList());
-                                        ins.setAttributeValueNoCheck(att, resB.size() > 1 ? resB : resB.get(0));
-                                        break;
-                                    default:
-                                        throw new Exception("Unknown value type: " + att.getTypeAsInt());
+                        first = false;
+                        query.append(a.getName());
+                    }
+                    query.append("]->(s:").append(ac).append(") RETURN DISTINCT s.DB_ID");
+                    cypherQueries.put(query.toString(), allowedClassName2instanceTypeAtt.get(ac));
+                }
+            }
+            // Now run cypherQueries and collect results
+            for (String query : cypherQueries.keySet()) {
+                List<GKSchemaAttribute> atts = cypherQueries.get(query);
+                try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
+                    // DEBUG: System.out.println(query);
+                    Result result = session.run(query);
+                    List<Value> values = new ArrayList();
+                    if (atts.size() > 0 && !atts.get(0).isMultiple()) {
+                        // Single-value attribute
+                        if (result.hasNext()) {
+                            Record rec = result.next();
+                            int i = 0;
+                            for (GKSchemaAttribute gkAtt : atts) {
+                                Value val = rec.get(i++);
+                                if (val != NullValue.NULL) {
+                                    handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
                                 }
-                            } catch (org.neo4j.driver.exceptions.value.Uncoercible ex) {
-                                // DEBUG: System.out.println(query);
-                                ins.setAttributeValueNoCheck(att, values.get(0).asList());
                             }
+                        }
+                    } else {
+                        for (GKSchemaAttribute gkAtt : atts) {
+                            // Multiple-value attribute
+                            while (result.hasNext()) {
+                                Value val = result.next().get(0);
+                                if (val != NullValue.NULL) values.add(val);
+                            }
+                            handleAttributeValue(ins, gkAtt, values, recursive);
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private void handleAttributeValue(GKInstance ins, GKSchemaAttribute att, List<Value> values, Boolean recursive) throws Exception {
+        Integer typeAsInt = att.getTypeAsInt();
+        if (values.size() > 0) {
+            try {
+                switch (typeAsInt) {
+                    case SchemaAttribute.INSTANCE_TYPE:
+                        SchemaClass attributeClass = (SchemaClass) att.getAllowedClasses().iterator().next();
+                        if (values.size() > 1) {
+                            List<Instance> attrInstances = new ArrayList();
+                            for (Value value : values) {
+                                GKInstance instance;
+                                if (recursive) {
+                                    instance = getInflateInstance(value, attributeClass);
+                                } else {
+                                    Long dbID = value.asLong();
+                                    instance = (GKInstance) getInstance(attributeClass.getName(), dbID);
+                                }
+                                attrInstances.add(instance);
+                            }
+                            ins.setAttributeValueNoCheck(att, attrInstances);
+                        } else {
+                            GKInstance instance = getInflateInstance(values.get(0), attributeClass);
+                            ins.setAttributeValueNoCheck(att, instance);
+                        }
+                        break;
+                    case SchemaAttribute.STRING_TYPE:
+                        List<String> res = values.stream().map((x) -> (x.asString())).collect(Collectors.toList());
+                        ins.setAttributeValueNoCheck(att, res.size() > 1 ? res : res.get(0));
+                        break;
+                    case SchemaAttribute.INTEGER_TYPE:
+                        List<Integer> resI = values.stream().map((x) -> (x.asInt())).collect(Collectors.toList());
+                        ins.setAttributeValueNoCheck(att, resI.size() > 1 ? resI : resI.get(0));
+                        break;
+                    case SchemaAttribute.LONG_TYPE:
+                        List<Long> resL = values.stream().map((x) -> (x.asLong())).collect(Collectors.toList());
+                        ins.setAttributeValueNoCheck(att, resL.size() > 1 ? resL : resL.get(0));
+                        break;
+                    case SchemaAttribute.FLOAT_TYPE:
+                        List<Float> resF = values.stream().map((x) -> (x.asFloat())).collect(Collectors.toList());
+                        ins.setAttributeValueNoCheck(att, resF.size() > 1 ? resF : resF.get(0));
+                        break;
+                    case SchemaAttribute.BOOLEAN_TYPE:
+                        List<Boolean> resB = values.stream().map((x) -> (x.asBoolean())).collect(Collectors.toList());
+                        ins.setAttributeValueNoCheck(att, resB.size() > 1 ? resB : resB.get(0));
+                        break;
+                    default:
+                        throw new Exception("Unknown value type: " + att.getTypeAsInt());
+                }
+            } catch (org.neo4j.driver.exceptions.value.Uncoercible ex) {
+                // DEBUG: System.out.println(query);
+                ins.setAttributeValueNoCheck(att, values.get(0).asList());
             }
         }
     }
