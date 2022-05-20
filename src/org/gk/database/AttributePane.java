@@ -1380,7 +1380,7 @@ public class AttributePane extends JPanel {
 
         private void inflateInstance() throws Exception {
             Neo4JAdaptor dba = (Neo4JAdaptor) instance.getDbAdaptor();
-            dba.loadInstanceAttributeValues(instance);
+            dba.loadInstanceAttributeValues(instance, false);
             // Want to make sure all _displayNames have been loaded
             Set unloaded = new HashSet();
             for (Iterator it = instance.getSchemClass().getAttributes().iterator(); it.hasNext();) {

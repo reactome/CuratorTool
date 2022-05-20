@@ -154,15 +154,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         if (attributes.isEmpty() || instances.isEmpty()) {
             return;
         }
-        // Collect attributes into groups:
-        // 1. primitive attributes (into primitiveAttributesWithSingleValue) with single value
-        // 2. each primitive attribute with multiple values (into primitiveAttributesWithMultipleValues)
-        // 3. Instance-type attributes - per allowed class
-        Map<String, List<GKSchemaAttribute>> allowedClassName2instanceTypeAtt = new HashMap<>();
-        List<GKSchemaAttribute> primitiveAttributesWithSingleValue = new ArrayList<>();
-        List<GKSchemaAttribute> primitiveAttributesWithMultipleValues = new ArrayList<>();
+
         for (Iterator ii = instances.iterator(); ii.hasNext(); ) {
             GKInstance ins = (GKInstance) ii.next();
+            // Collect attributes into groups:
+            // 1. primitive attributes (into primitiveAttributesWithSingleValue) with single value
+            // 2. each primitive attribute with multiple values (into primitiveAttributesWithMultipleValues)
+            // 3. Instance-type attributes - per allowed class
+            Map<String, List<GKSchemaAttribute>> allowedClassName2instanceTypeAtt = new HashMap<>();
+            List<GKSchemaAttribute> primitiveAttributesWithSingleValue = new ArrayList<>();
+            List<GKSchemaAttribute> primitiveAttributesWithMultipleValues = new ArrayList<>();
             for (Iterator ai = attributes.iterator(); ai.hasNext(); ) {
                 GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
                 if (ins.isAttributeValueLoaded(att) || !ins.getSchemClass().isValidAttribute(att)) {
@@ -182,7 +183,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         if (allowedClassName2instanceTypeAtt.containsKey(allowedClassName)) {
                             gkAtts = allowedClassName2instanceTypeAtt.get(allowedClassName);
                         } else {
-                            gkAtts = new ArrayList<GKSchemaAttribute>();
+                            gkAtts = new ArrayList<>();
                         }
                         gkAtts.add(att);
                         allowedClassName2instanceTypeAtt.put(allowedClassName, gkAtts);
@@ -238,7 +239,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     Result result = session.run(query);
                     List<Value> values = new ArrayList();
                     if (atts.size() > 0 && !atts.get(0).isMultiple()) {
-                        // Single-value attribute
+                        // Single-value attributes
                         if (result.hasNext()) {
                             Record rec = result.next();
                             int i = 0;
@@ -254,7 +255,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                             // Multiple-value attribute
                             while (result.hasNext()) {
                                 Value val = result.next().get(0);
-                                if (val != NullValue.NULL) values.add(val);
+                                if (val != NullValue.NULL)
+                                    values.add(val);
                             }
                             handleAttributeValue(ins, gkAtt, values, recursive);
                         }
@@ -285,7 +287,13 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                             }
                             ins.setAttributeValueNoCheck(att, attrInstances);
                         } else {
-                            GKInstance instance = getInflateInstance(values.get(0), attributeClass);
+                            GKInstance instance;
+                            if (recursive) {
+                                instance = getInflateInstance(values.get(0), attributeClass);
+                            } else {
+                                Long dbID = values.get(0).asLong();
+                                instance = (GKInstance) getInstance(attributeClass.getName(), dbID);
+                            }
                             ins.setAttributeValueNoCheck(att, instance);
                         }
                         break;
@@ -335,6 +343,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return instance;
     }
 
+
+
     /**
      * (Re)loads all attribute values from the database.
      *
@@ -343,6 +353,18 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *                   queried is invalid in the schema
      */
     public void loadInstanceAttributeValues(GKInstance instance) throws Exception {
+        loadInstanceAttributeValues(instance, true);
+    }
+
+    /**
+     * (Re)loads all attribute values from the database.
+     *
+     * @param instance GKInstance for which to load attribute values
+     * @param recursive if true, inflate all instances recursively
+     * @throws Exception Thrown if unable to load attribute values or if an attribute being
+     *                   queried is invalid in the schema
+     */
+    public void loadInstanceAttributeValues(GKInstance instance, Boolean recursive) throws Exception {
         if (!instance.isInflated()) {
             Collection attributes = new HashSet();
             java.util.List list = new ArrayList(1);
@@ -351,7 +373,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
                 attributes.add(att);
             }
-            loadInstanceAttributeValues(list, attributes);
+            loadInstanceAttributeValues(list, attributes, recursive);
             instance.setIsInflated(true);
         }
     }
