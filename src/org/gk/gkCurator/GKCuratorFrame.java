@@ -1108,8 +1108,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	}
 
 	private void initMenuBar() {
-		if (isMac)
-			GKApplicationUtilities.macOSXRegistration(this);
+//		if (isMac)
+//			GKApplicationUtilities.macOSXRegistration(this);
 		JMenuBar menuBar = new JMenuBar();
 		int shortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
         // Set up the file menu

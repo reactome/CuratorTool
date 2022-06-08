@@ -243,4 +243,20 @@ public class ReachLocalProcessManager {
         Path conf = root.resolve("application.conf");
         process(Arrays.asList("PMC6683984"), jar, conf);
     }
+    
+    public static void main(String[] args) {
+    	try {
+    		if (args.length < 4)
+    			throw new IllegalArgumentException("Need parameters: reach_root_dir pcmidlist_file reach_jar_file application_conf_file");
+    		Path root = Paths.get(args[0]);
+    		List<String> pmcids = Files.readAllLines(Paths.get(args[0], args[1]));
+    		Path jar = Paths.get(args[0], args[2]);
+    		Path conf = Paths.get(args[0], args[3]);
+    		ReachLocalProcessManager runner = new ReachLocalProcessManager(root);
+    		runner.process(pmcids, jar, conf);
+    	}
+    	catch(Exception e) {
+    		e.printStackTrace();
+    	}
+    }
 }

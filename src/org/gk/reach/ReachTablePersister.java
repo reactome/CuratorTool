@@ -37,6 +37,26 @@ public class ReachTablePersister {
     public ReachTablePersister() {
     }
     
+    public void loadPreResults(ReachResultTableFrame frame) {
+    	JFileChooser fileChooser = GKApplicationUtilities.createFileChooser(GKApplicationUtilities.getApplicationProperties());
+    	fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+    	fileChooser.setDialogTitle("Select a directory having REACH results (one PMCID should have four json files)");
+    	int reply = fileChooser.showOpenDialog(frame);
+    	if (reply != JFileChooser.APPROVE_OPTION)
+    		return;
+    	try {
+    		List<FriesObject> objects = new ReachCuratorToolHandler().readJsonFiles(fileChooser.getSelectedFile().getAbsoluteFile());
+    		frame.setReachData(objects);
+    	}
+    	catch(Exception e) {
+            JOptionPane.showMessageDialog(frame,
+                    "Error in loading preprocessed files: " + e.getMessage(),
+                    "Error in Opening",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+    	}
+    }
+    
     public void openPreProcessedFiles(ReachResultTableFrame frame) {
         FileNameExtensionFilter filter = new FileNameExtensionFilter("FRIES Files", "json");
         File[] files = getFiles(true,

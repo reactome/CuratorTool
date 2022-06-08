@@ -116,6 +116,13 @@ public class ReachResultTableFrame extends JFrame {
         openBut.setToolTipText("Open pre-generated Reach output files");
         JButton cancelBut = new JButton("Cancel");
         
+        JButton loadBtn = new JButton("Load");
+        loadBtn.setToolTipText("Load pre-processed files in a folder. One PMCID has four json files.");
+        loadBtn.addActionListener(e -> {
+        	ReachTablePersister helper = new ReachTablePersister();
+        	helper.loadPreResults(ReachResultTableFrame.this);
+        });
+        
         JButton processBtn = new JButton("Process (WS)");
         processBtn.setToolTipText("Submit PMCIDs for Reach NLP via a WS server");
         processBtn.addActionListener(e -> {
@@ -145,6 +152,7 @@ public class ReachResultTableFrame extends JFrame {
         installButtonListeners(acceptBut, openBut, cancelBut, eventTable);
         botPanel.add(acceptBut);
         botPanel.add(openBut);
+        botPanel.add(loadBtn);
         botPanel.add(processBtn);
         botPanel.add(localProcessBtn);
         botPanel.add(importBtn);
