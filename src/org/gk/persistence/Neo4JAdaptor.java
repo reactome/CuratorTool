@@ -14,7 +14,6 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 import java.io.File;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1412,7 +1411,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param dbIds DbIds to check if they exist in the database
      * @return true if all DB_IDs in the passed list exist in the database; false otherwise
-     * @throws SQLException Thrown if there is a problem querying the database for the DB_IDs
+     * @throws Exception Thrown if there is a problem querying the database for the DB_IDs
      */
     public boolean exist(List dbIds) throws Exception {
         @SuppressWarnings("unchecked") Set<Long> idsInDB = existing(dbIds, true, false);
@@ -1433,7 +1432,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * @param dbIds      the db ids to check
      * @param checkCache check cache (before checking the DB) if true
      * @return the db ids which are in the database (or cache - of checkCache is true)
-     * @throws SQLException Thrown if there is a problem querying the database for the dbIds
+     * @throws Exception Thrown if there is a problem querying the database for the dbIds
      */
     public Set<Long> existing(Collection<Long> dbIds, boolean checkCache, boolean inverse) throws Exception {
         Set<Long> foundDBIds = new HashSet(dbIds.size());
