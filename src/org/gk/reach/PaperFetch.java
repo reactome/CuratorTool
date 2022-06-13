@@ -73,7 +73,9 @@ public class PaperFetch {
 
     @Test
     public void testFetchPaper() throws Exception {
-        String pmcid = "PMC6683984";
+    	// Apparently this is not open access so abstracts only.
+    	// See: https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id=21325
+        String pmcid = "PMC21325";
         String nxml = fetchPaper(pmcid);
         System.out.println("Downloaded nxml: " + nxml);
     }

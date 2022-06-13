@@ -146,7 +146,9 @@ public abstract class ReachProcessHandler {
             }
             if (eventFile == null || referenceFile == null ||
                 sentenceFile == null || entityFile == null) {
-                throw new IllegalStateException("Not enough json files (4 required) for: " + id);
+//                throw new IllegalStateException("Not enough json files (4 required) for: " + id);
+                System.err.println("Not enough json files (4 required) for: " + id);
+                continue; 
             }
             FriesObject friesObject = readJsonFiles(referenceFile, eventFile, entityFile, sentenceFile);
             friesObjects.add(friesObject);
