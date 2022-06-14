@@ -442,7 +442,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
     }
     
     private void loadDefaultPerson(Node node) {
-        String dbId = ((Element)node).getAttribute(Schema.DB_ID_NAME);
+        String dbId = ((Element)node).getAttribute("dbId");
         if (dbId != null)
             setDefaultPersonId(new Long(dbId));
     }
