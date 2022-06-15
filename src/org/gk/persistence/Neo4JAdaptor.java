@@ -214,6 +214,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
             }
             // Instance-type attributes
+            // TODO: &&&& Need to handle order in multiple-value Instance attributes
             if (!allowedClassName2instanceTypeAtt.isEmpty()) {
                 for (String ac : allowedClassName2instanceTypeAtt.keySet()) {
                     StringBuilder query = new StringBuilder(queryRoot.toString());
@@ -252,6 +253,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     } else {
                         for (GKSchemaAttribute gkAtt : atts) {
                             // Multiple-value attribute
+                            // TODO: &&&& Need to handle order for multiple-value attributes
                             while (result.hasNext()) {
                                 Value val = result.next().get(0);
                                 if (val != NullValue.NULL)
@@ -343,7 +345,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
 
-
     /**
      * (Re)loads all attribute values from the database.
      *
@@ -358,7 +359,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     /**
      * (Re)loads all attribute values from the database.
      *
-     * @param instance GKInstance for which to load attribute values
+     * @param instance  GKInstance for which to load attribute values
      * @param recursive if true, inflate all instances recursively
      * @throws Exception Thrown if unable to load attribute values or if an attribute being
      *                   queried is invalid in the schema
@@ -558,7 +559,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     // E.g. Species.name
                     whereClause.append(whereClauseKeyWord).append(" ANY(x IN n.").append(attName);
                 } else {
-                    whereClause.append(whereClauseKeyWord).append(" n.").append(attName);
+                    whereClause.append(whereClauseKeyWord);
+                    if (Arrays.asList("NOT LIKE", "!=").contains(aqr.getOperator())) {
+                        whereClause.append(" NOT (");
+                    }
+                    whereClause.append(" n.").append(attName);
                 }
                 if (value instanceof Collection) {
                     // Value is a collection of primitive values
@@ -566,8 +571,31 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     for (Iterator ci = ((Collection) value).iterator(); ci.hasNext(); ) {
                         Object val = ci.next();
                         if (val instanceof String) {
-                            vals.add("\"" + val + "\"");
-                        } else if (val instanceof Integer) {
+                            if (att.getTypeAsInt() == SchemaAttribute.LONG_TYPE) {
+                                try {
+                                    vals.add(Long.parseLong((String) val));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.INTEGER_TYPE) {
+                                try {
+                                    vals.add(Integer.parseInt((String) val));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.FLOAT_TYPE) {
+                                try {
+                                    vals.add(Float.parseFloat((String) val));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.BOOLEAN_TYPE) {
+                                try {
+                                    vals.add(Boolean.parseBoolean((String) val));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.STRING_TYPE) {
+                                vals.add("\"" + val + "\"");
+                            }
+                        }
+                        if (val instanceof Integer) {
                             vals.add(((Integer) val).intValue());
                         } else if (val instanceof Float) {
                             vals.add(((Float) val).floatValue());
@@ -586,20 +614,53 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     }
                 } else {
                     // Single primitive value
-                    if (!aqr.getOperator().equals("IS NULL") && !aqr.getOperator().equals("IS NOT NULL")) {
+                    if (!Arrays.asList("IS NULL", "IS NOT NULL").contains(aqr.getOperator())) {
+                        String operator = " = ";
+                        if (Arrays.asList("LIKE", "NOT LIKE", "REGEXP").contains(aqr.getOperator())) {
+                            operator = " =~ ";
+                        }
                         if (att.isMultiple()) {
-                            whereClause.append(" WHERE x");
+                            if (Arrays.asList("NOT LIKE", "!=").contains(aqr.getOperator())) {
+                                whereClause.append(" WHERE NOT (x");
+                            } else {
+                                whereClause.append(" WHERE x");
+                            }
                         }
                         if (value instanceof String) {
-                            whereClause.append(" = \"").append(value + "\"");
+                            if (att.getTypeAsInt() == SchemaAttribute.LONG_TYPE) {
+                                try {
+                                    whereClause.append(operator).append(Long.parseLong((String) value));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.INTEGER_TYPE) {
+                                try {
+                                    whereClause.append(operator).append(Integer.parseInt((String) value));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.FLOAT_TYPE) {
+                                try {
+                                    whereClause.append(operator).append(Float.parseFloat((String) value));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.BOOLEAN_TYPE) {
+                                try {
+                                    whereClause.append(operator).append(Boolean.parseBoolean((String) value));
+                                } catch (NumberFormatException nfe) {
+                                }
+                            } else if (att.getTypeAsInt() == SchemaAttribute.STRING_TYPE) {
+                                whereClause.append(operator).append("\"").append(value + "\"");
+                            }
                         } else if (value instanceof Integer) {
-                            whereClause.append(" = ").append(((Integer) value).intValue());
+                            whereClause.append(operator).append(((Integer) value).intValue());
                         } else if (value instanceof Float) {
-                            whereClause.append(" = ").append(((Float) value).floatValue());
+                            whereClause.append(operator).append(((Float) value).floatValue());
                         } else if (value instanceof Boolean) {
-                            whereClause.append(" = ").append(((Boolean) value).booleanValue());
+                            whereClause.append(operator).append(((Boolean) value).booleanValue());
                         } else if (value instanceof Long) {
-                            whereClause.append(" = ").append(((Long) value).longValue());
+                            whereClause.append(operator).append(((Long) value).longValue());
+                        }
+                        if (Arrays.asList("NOT LIKE", "!=").contains(aqr.getOperator())) {
+                            whereClause.append(")");
                         }
                     } else {
                         whereClause.append(" ").append(aqr.getOperator());

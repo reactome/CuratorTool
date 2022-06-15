@@ -262,7 +262,7 @@ public class SearchPane extends JPanel {
 	    String text = valueField.getText().trim();
 	    String operator = getOperator(operatorBox);
 	    if (operator.equals("LIKE") || operator.contentEquals("NOT LIKE"))
-	        text = "%" + text + "%";
+	        text = ".*" + text + ".*";
 	    return text;
 	}
 	
@@ -358,7 +358,7 @@ public class SearchPane extends JPanel {
 	        }
 	    }
 	    else
-	        c = persistenceAdaptor.fetchInstanceByAttribute(cls.getName(), 
+	        c = persistenceAdaptor.fetchInstanceByAttribute(cls.getName(),
 	                                                        att.getName(),
 	                                                        operator,
 	                                                        value);
