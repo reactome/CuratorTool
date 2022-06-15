@@ -200,7 +200,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     if (first) {
                         query.append(" RETURN DISTINCT ");
                         first = false;
-                    } else query.append(", ");
+                    } else
+                        query.append(", ");
                     query.append("n.").append(a.getName());
                 }
                 cypherQueries.put(query.toString(), primitiveAttributesWithSingleValue);
@@ -214,20 +215,30 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
             }
             // Instance-type attributes
-            // TODO: &&&& Need to handle order in multiple-value Instance attributes
             if (!allowedClassName2instanceTypeAtt.isEmpty()) {
                 for (String ac : allowedClassName2instanceTypeAtt.keySet()) {
                     StringBuilder query = new StringBuilder(queryRoot.toString());
                     Boolean first = true;
-                    query.append("-[:");
+                    Boolean isMultiple = false;
+                    query.append("-[r:");
                     for (GKSchemaAttribute a : allowedClassName2instanceTypeAtt.get(ac)) {
+                        if (a.isMultiple()) {
+                            // N.B. Relationship for multiple-value attributes contains order property.
+                            // In order to use that property in a sane way, we need to assume that
+                            // allowedClassName2instanceTypeAtt.get(ac) can contain more than one
+                            // single value attribute, but never more than one multi-value attribute.
+                            isMultiple = true;
+                        }
                         if (!first) {
                             query.append("|");
                         }
                         first = false;
                         query.append(a.getName());
                     }
-                    query.append("]->(s:").append(ac).append(") RETURN DISTINCT s.DB_ID");
+                    query.append("]-(s:").append(ac).append(") RETURN DISTINCT s.DB_ID, type(r)");
+                    if (isMultiple) {
+                        query.append(", r.order");
+                    }
                     cypherQueries.put(query.toString(), allowedClassName2instanceTypeAtt.get(ac));
                 }
             }
@@ -235,31 +246,45 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             for (String query : cypherQueries.keySet()) {
                 List<GKSchemaAttribute> atts = cypherQueries.get(query);
                 try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
-                    // DEBUG: System.out.println(query);
+                    System.out.println(query); // DEBUG
                     Result result = session.run(query);
                     List<Value> values = new ArrayList();
-                    if (atts.size() > 0 && !atts.get(0).isMultiple()) {
-                        // Single-value attributes
-                        if (result.hasNext()) {
-                            Record rec = result.next();
-                            int i = 0;
-                            for (GKSchemaAttribute gkAtt : atts) {
-                                Value val = rec.get(i++);
-                                if (val != NullValue.NULL) {
-                                    handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
+                    if (atts.size() > 0) {
+                        if (!atts.get(0).isMultiple()) {
+                            // Single-value attributes
+                            List<Record> results = result.list();
+                            if (results.size() > 0) {
+                                for (GKSchemaAttribute gkAtt : atts) {
+                                    List<Record> resultsForAttr  = results.stream()
+                                            .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
+                                    if (resultsForAttr.size() > 0) {
+                                        Value val = resultsForAttr.get(0).get(0);
+                                        if (val != NullValue.NULL) {
+                                            handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        for (GKSchemaAttribute gkAtt : atts) {
-                            // Multiple-value attribute
-                            // TODO: &&&& Need to handle order for multiple-value attributes
-                            while (result.hasNext()) {
-                                Value val = result.next().get(0);
-                                if (val != NullValue.NULL)
-                                    values.add(val);
+                        } else {
+                            for (GKSchemaAttribute gkAtt : atts) {
+                                // Multiple-value attribute
+                                List<Record> results = result.list();
+                                // First sort all results by order property of the relationship
+                                Collections.sort(results, new Comparator<Record>() {
+                                    public int compare(Record o1, Record o2) {
+                                        return o1.get(2).asInt() - o2.get(2).asInt();
+                                    }
+                                });
+                                // Second filter sorted results by gkAtt's name
+                                List<Record> resultsForAttr = results.stream()
+                                        .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
+                                for (Record rec : resultsForAttr) {
+                                    Value val = rec.get(0);
+                                    if (val != NullValue.NULL)
+                                        values.add(val);
+                                }
+                                handleAttributeValue(ins, gkAtt, values, recursive);
                             }
-                            handleAttributeValue(ins, gkAtt, values, recursive);
                         }
                     }
                 }
