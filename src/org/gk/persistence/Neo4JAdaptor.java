@@ -252,38 +252,66 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     if (atts.size() > 0) {
                         if (!atts.get(0).isMultiple()) {
                             // Single-value attributes
-                            List<Record> results = result.list();
-                            if (results.size() > 0) {
-                                for (GKSchemaAttribute gkAtt : atts) {
-                                    List<Record> resultsForAttr  = results.stream()
-                                            .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
-                                    if (resultsForAttr.size() > 0) {
-                                        Value val = resultsForAttr.get(0).get(0);
+                            if (!atts.get(0).isInstanceTypeAttribute()) {
+                                // Primitive attributes
+                                if (result.hasNext()) {
+                                    Record rec = result.next();
+                                    int i = 0;
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        Value val = rec.get(i++);
                                         if (val != NullValue.NULL) {
                                             handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
                                         }
                                     }
                                 }
+                            } else {
+                                // Instance-type attributes
+                                List<Record> results = result.list();
+                                if (results.size() > 0) {
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        List<Record> resultsForAttr = results.stream()
+                                                .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
+                                        if (resultsForAttr.size() > 0) {
+                                            Value val = resultsForAttr.get(0).get(0);
+                                            if (val != NullValue.NULL) {
+                                                handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } else {
-                            for (GKSchemaAttribute gkAtt : atts) {
-                                // Multiple-value attribute
-                                List<Record> results = result.list();
-                                // First sort all results by order property of the relationship
-                                Collections.sort(results, new Comparator<Record>() {
-                                    public int compare(Record o1, Record o2) {
-                                        return o1.get(2).asInt() - o2.get(2).asInt();
+                            // Multiple-value attributes
+                            if (!atts.get(0).isInstanceTypeAttribute()) {
+                                // Primitive attributes
+                                for (GKSchemaAttribute gkAtt : atts) {
+                                    while (result.hasNext()) {
+                                        Value val = result.next().get(0);
+                                        if (val != NullValue.NULL)
+                                            values.add(val);
                                     }
-                                });
-                                // Second filter sorted results by gkAtt's name
-                                List<Record> resultsForAttr = results.stream()
-                                        .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
-                                for (Record rec : resultsForAttr) {
-                                    Value val = rec.get(0);
-                                    if (val != NullValue.NULL)
-                                        values.add(val);
+                                    handleAttributeValue(ins, gkAtt, values, recursive);
                                 }
-                                handleAttributeValue(ins, gkAtt, values, recursive);
+                            } else {
+                                // Instance-type attributes
+                                for (GKSchemaAttribute gkAtt : atts) {
+                                    List<Record> results = result.list();
+                                    // First sort all results by order property of the relationship
+                                    Collections.sort(results, new Comparator<Record>() {
+                                        public int compare(Record o1, Record o2) {
+                                            return o1.get(2).asInt() - o2.get(2).asInt();
+                                        }
+                                    });
+                                    // Then filter sorted results by gkAtt's name
+                                    List<Record> resultsForAttr = results.stream()
+                                            .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
+                                    for (Record rec : resultsForAttr) {
+                                        Value val = rec.get(0);
+                                        if (val != NullValue.NULL)
+                                            values.add(val);
+                                    }
+                                    handleAttributeValue(ins, gkAtt, values, recursive);
+                                }
                             }
                         }
                     }
