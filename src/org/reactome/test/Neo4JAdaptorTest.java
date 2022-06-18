@@ -91,8 +91,8 @@ public class Neo4JAdaptorTest {
     }
 
     @Test
-    public void testInverseSlots(){
-        for (String attName : Arrays.asList("orthologousEvent", "reverseReaction")){
+    public void testInverseSlots() {
+        for (String attName : Arrays.asList("orthologousEvent", "reverseReaction")) {
             SchemaClass sc = schema.getClassByName("Pathway");
             Collection<SchemaAttribute> attributes = sc.getAttributes();
             assumeTrue(attributes.size() > 0);
@@ -592,7 +592,7 @@ public class Neo4JAdaptorTest {
         Neo4JAdaptor.AttributeQueryRequest aqr2 = neo4jAdaptor.createAttributeQueryRequest(attribute2, "IS NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
         assumeTrue(instances.size() == 1);
-        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "IN", Arrays.asList(9604294L,9604295L));
+        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "IN", Arrays.asList(9604294L, 9604295L));
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
         assumeTrue(instances.size() == 1);
     }
@@ -616,17 +616,17 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "="
-        GKInstance species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=","Homo sapiens").iterator().next();
+        GKInstance species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species, ReactomeJavaConstants.name, "=", "Homo sapiens").iterator().next();
         Neo4JAdaptor.AttributeQueryRequest aqr1 =
-                neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent",ReactomeJavaConstants.species,"=",species);
+                neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent", ReactomeJavaConstants.species, "=", species);
         Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 =
-                neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType",ReactomeJavaConstants.reactionType,"IS NOT NULL",null);
+                neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType", ReactomeJavaConstants.reactionType, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
         assumeTrue(instances.size() > 0);
         // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "IN"
-        species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=",Arrays.asList("Homo sapiens", "H. sapiens")).iterator().next();
-        aqr1 = neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent",ReactomeJavaConstants.species,"=",species);
-        aqr2 = neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType",ReactomeJavaConstants.reactionType,"IS NOT NULL",null);
+        species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species, ReactomeJavaConstants.name, "=", Arrays.asList("Homo sapiens", "H. sapiens")).iterator().next();
+        aqr1 = neo4jAdaptor.createAttributeQueryRequest("ReactionLikeEvent", ReactomeJavaConstants.species, "=", species);
+        aqr2 = neo4jAdaptor.createReverseAttributeQueryRequest("ReactionType", ReactomeJavaConstants.reactionType, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
         assumeTrue(instances.size() > 0);
     }
@@ -639,21 +639,31 @@ public class Neo4JAdaptorTest {
         // Below: Find all Pathway instances in which the value of hasEvent attribute is one or more of instances (of some class)
         // have a hasEvent attribute
         Neo4JAdaptor.ReverseAttributeQueryRequest subQuery =
-                neo4jAdaptor.createReverseAttributeQueryRequest("Pathway","hasEvent","IS NOT NULL",null);
+                neo4jAdaptor.createReverseAttributeQueryRequest("Pathway", "hasEvent", "IS NOT NULL", null);
         Neo4JAdaptor.AttributeQueryRequest aqr =
-                neo4jAdaptor.createAttributeQueryRequest("Pathway","hasEvent","=",subQuery);
+                neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", subQuery);
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test AttributeQueryRequest with a list of "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest sub-queries
         // Below: Find all Pathway instances in which hasEvent attribute is one or more of instances (of some class)
         // have _both_ an hasEvent attribute and a precedingEvent attribute
         Neo4JAdaptor.ReverseAttributeQueryRequest subQuery1 =
-                neo4jAdaptor.createReverseAttributeQueryRequest("StableIdentifier","stableIdentifier","IS NOT NULL",null);
-        aqr = neo4jAdaptor.createAttributeQueryRequest("Pathway","hasEvent","=",Arrays.asList(subQuery, subQuery1));
+                neo4jAdaptor.createReverseAttributeQueryRequest("StableIdentifier", "stableIdentifier", "IS NOT NULL", null);
+        aqr = neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", Arrays.asList(subQuery, subQuery1));
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
     }
 
+    @Test
+    public void testLoadAllAttributeValues() throws Exception {
+        SchemaClass cls = schema.getClassByName("Event");
+        SchemaAttribute attribute = cls.getAttribute(ReactomeJavaConstants._doRelease);
+        neo4jAdaptor.loadAllAttributeValues(cls.getName(), attribute);
+
+        cls = schema.getClassByName(ReactomeJavaConstants.Pathway);
+        attribute = cls.getAttribute(ReactomeJavaConstants.hasEvent);
+        neo4jAdaptor.loadAllAttributeValues(cls.getName(), attribute);
+    }
     /*
     @Test
     // Note this test takes a long time to run

@@ -147,7 +147,7 @@ public class Neo4JSchemaParser {
      * @param type   Current class
      * @return inherited and declared fields
      */
-    private List<Field> getAllFields(List<Field> fields, Class<?> type) {
+    public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
         fields.addAll(Arrays.asList(type.getDeclaredFields()));
         if (type.getSuperclass() != null && !type.getSuperclass().equals(Object.class)) {
             fields = getAllFields(fields, type.getSuperclass());
