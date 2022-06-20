@@ -636,8 +636,8 @@ public class Neo4JAdaptorTest {
         SchemaClass refererSc = schema.getClassByName("Pathway");
         SchemaAttribute attribute = refererSc.getAttribute("hasEvent");
         // Test AttributeQueryRequest with a "IS NOT NULL" ReverseAttributeQueryRequest sub-query
-        // Below: Find all Pathway instances in which the value of hasEvent attribute is one or more of instances (of some class)
-        // have a hasEvent attribute
+        // Below: Find all Pathway instances in which the value of hasEvent attribute is one or more instances (of some class)
+        // that has the hasEvent attribute
         Neo4JAdaptor.ReverseAttributeQueryRequest subQuery =
                 neo4jAdaptor.createReverseAttributeQueryRequest("Pathway", "hasEvent", "IS NOT NULL", null);
         Neo4JAdaptor.AttributeQueryRequest aqr =
@@ -652,6 +652,22 @@ public class Neo4JAdaptorTest {
         aqr = neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", Arrays.asList(subQuery, subQuery1));
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
+    }
+
+
+    @Test
+    public void testFetchInstanceByQueryRequest4() throws Exception {
+
+        for (String operator : Arrays.asList("LIKE","NOT LIKE","REGEXP")) {
+            String value = "NFKbeta";
+            if (operator.equals("REGEXP")) {
+                value = ".*" + value + ".*";
+            }
+            Neo4JAdaptor.AttributeQueryRequest aqr =
+                    neo4jAdaptor.createAttributeQueryRequest("Pathway", "_displayName", "NOT LIKE", value);
+            Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
+            assumeTrue(instances.size() > 0);
+        }
     }
 
     @Test

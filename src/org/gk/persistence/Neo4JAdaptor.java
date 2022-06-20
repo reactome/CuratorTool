@@ -794,7 +794,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                 } catch (NumberFormatException nfe) {
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.STRING_TYPE) {
-                                whereClause.append(operator).append("\"").append(value + "\"");
+                                whereClause.append(operator).append("\"");
+                                if (operator.equals("=~")) {
+                                    whereClause.append(".*").append(value + ".*\"");
+                                } else {
+                                    whereClause.append(value + "\"");
+                                }
                             }
                         } else if (value instanceof Integer) {
                             whereClause.append(operator).append(((Integer) value).intValue());
