@@ -701,11 +701,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
             } else {
                 // Primitive attribute
+                whereClause.append(whereClauseKeyWord);
                 if (att.isMultiple()) {
                     // E.g. Species.name
-                    whereClause.append(whereClauseKeyWord).append(" ANY(x IN n.").append(attName);
+                    whereClause.append(" ANY(x IN n.").append(attName);
                 } else {
-                    whereClause.append(whereClauseKeyWord);
                     if (Arrays.asList("NOT LIKE", "!=").contains(aqr.getOperator())) {
                         whereClause.append(" NOT (");
                     }
@@ -822,7 +822,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     }
                 }
             }
-            whereClauseKeyWord = " AND";
+            if (whereClause.toString().contains(" WHERE"))
+                whereClauseKeyWord = " AND";
             pos++;
         }
         query.append(" ").append(whereClause).append(" RETURN n.DB_ID, n._displayName, n.schemaClass");
