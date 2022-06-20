@@ -660,9 +660,6 @@ public class Neo4JAdaptorTest {
 
         for (String operator : Arrays.asList("LIKE","NOT LIKE","REGEXP")) {
             String value = "NFKbeta";
-            if (operator.equals("REGEXP")) {
-                value = ".*" + value + ".*";
-            }
             Neo4JAdaptor.AttributeQueryRequest aqr =
                     neo4jAdaptor.createAttributeQueryRequest("Pathway", "_displayName", "NOT LIKE", value);
             Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
