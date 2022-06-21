@@ -1775,7 +1775,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     // Adapted from: https://neo4j.com/docs/java-reference/current/transaction-management/
-    public Value executeTransaction(String statement, Transaction tx) {
+    private Value executeTransaction(String statement, Transaction tx) {
         Throwable txEx = null;
         for (int i = 0; i < RETRIES; i++) {
             try {
