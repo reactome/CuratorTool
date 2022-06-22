@@ -687,6 +687,13 @@ public class Neo4JAdaptorTest {
     }
     */
 
+    @Test
+    public void testMintNewDBID() throws Exception {
+        Long dbID = neo4jAdaptor.mintNewDBID();
+        System.out.println(dbID);
+        assumeTrue(dbID != null);
+    }
+
     private boolean fitForService() {
         try (Session session = driver.session(SessionConfig.forDatabase("graph.db"))) {
             Result result = session.run(
