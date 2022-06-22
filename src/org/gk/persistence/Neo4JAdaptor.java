@@ -1127,31 +1127,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    /**
-     * IMPORTANT: this method updates only those instances in the given collection
-     * and not those referred but not contained in the collection. Storage works for both.
-     *
-     * @param instances Collection of instances to store or update
-     * @throws Exception Thrown if:
-     *                   -storing and unable to retrieve attribute values from the instance or if unable to store the instance.
-     *                   -updating and the instance has no DB_ID, if there is a problem updating the instance or its referrers in the
-     *                   database, or there is a problem loading attribute values if the instance is in the instance cache
-     */
-    public void storeOrUpdate(Collection instances, Transaction tx) throws Exception {
-        try {
-            for (Iterator ii = instances.iterator(); ii.hasNext(); ) {
-                GKInstance i = (GKInstance) ii.next();
-                if (i.getDBID() == null) {
-                    storeInstance(i, tx);
-                } else {
-                    updateInstance(i, tx);
-                }
-            }
-        } catch (Exception e) {
-            throw (e);
-        }
-    }
-
     private void storeAttribute(SchemaAttribute att, GKInstance instance, Transaction tx, boolean recursive) throws
             Exception {
         SchemaClass cls = instance.getSchemClass();
