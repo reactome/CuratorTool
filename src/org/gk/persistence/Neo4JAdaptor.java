@@ -1018,6 +1018,25 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * database.
      *
      * @param instance GKInstance to store (it might be from the local file system)
+     * @return DB_ID of the stored instance
+     * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
+     *                   the instance
+     */
+    public Long txStoreInstance(GKInstance instance, boolean forceStore) throws Exception {
+        try (Session session = driver.session(SessionConfig.forDatabase(getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            Long dbId = storeInstance(instance, forceStore, tx, true);
+            tx.commit();
+            return dbId;
+        }
+    }
+
+    /**
+     * Store a GKInstance object into the database. The implementation of this method will store
+     * all newly created, referred GKInstances by the specified GKInstance if they are not in the
+     * database.
+     *
+     * @param instance GKInstance to store (it might be from the local file system)
      * @param tx       transaction
      * @return DB_ID of the stored instance
      * @throws Exception Thrown if unable to retrieve attribute values from the instance or if unable to store
