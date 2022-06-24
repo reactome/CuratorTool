@@ -11,6 +11,10 @@ public class AttributeValueCache {
     // Class Name -> Attribute Name -> DB_ID -> List<Value>
     private Map<String, Map<String, Map<Long, List<Value>>>> cache = new ConcurrentHashMap<>();
 
+    public void clear() {
+        cache.clear();
+    }
+
     public Boolean hasValues(String className, String attributeName) {
         return cache.containsKey(className) &&
                 cache.get(className).containsKey(attributeName) &&

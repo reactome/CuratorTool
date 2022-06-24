@@ -306,6 +306,36 @@ public class Neo4JAdaptorTest {
     }
 
     @Test
+    public void testStoichiometry() throws Exception {
+        SchemaClass sc = schema.getClassByName("Pathway");
+        // Create Pathway instance
+        GKInstance instance = neo4jAdaptor.fetchInstance(9612973L);
+        instance.setDBID(null);
+        instance.setDisplayName("TestName");
+        instance.setSchemaClass(sc);
+        List<GKInstance> instances = new ArrayList();
+        for (Long dbId : Arrays.asList(9664770L, 9615710L, 9664770L)) {
+            instances.add(neo4jAdaptor.fetchInstance("Event", dbId));
+        }
+        // Set that instance as value for attribute "compartment"
+        instance.setAttributeValue("hasEvent", instances);
+        try (Session session = driver.session(SessionConfig.forDatabase(neo4jAdaptor.getDBName()))) {
+            Transaction tx = session.beginTransaction();
+            // Store instance
+            long dbID = neo4jAdaptor.storeInstance(instance, tx);
+            tx.commit();
+            neo4jAdaptor.refresh();
+            GKInstance inst = neo4jAdaptor.fetchInstance("Pathway", dbID);
+            neo4jAdaptor.loadInstanceAttributeValues(inst, true);
+            assumeTrue(inst.getAttributeValuesList("hasEvent").size() == 3);
+            // Clean up after test
+            tx = session.beginTransaction();
+            neo4jAdaptor.deleteInstance(inst, tx);
+            tx.commit();
+        }
+    }
+
+    @Test
     public void testDeleteInstanceAttribute() throws Exception {
         neo4jAdaptor.setUseCache(false);
         SchemaClass sc = schema.getClassByName("Pathway");
@@ -337,6 +367,7 @@ public class Neo4JAdaptorTest {
             tx = session.beginTransaction();
             neo4jAdaptor.deleteInstance(instance1, tx);
             tx.commit();
+            neo4jAdaptor.refresh(); // Clear cache
             fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
             fetchedInstance.setSchemaClass(sc);
             fetchedInstance.setIsInflated(false);
@@ -423,26 +454,16 @@ public class Neo4JAdaptorTest {
 
     @Test
     public void test_Release() throws Exception {
-        boolean exceptionThrown = false;
-        try {
-            // _Release in gkCentral mysql db has no records - hence no class won't have been loaded
-            neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._Release, null);
-        } catch (InvalidClassException e) {
-            exceptionThrown = true;
-        }
-        assumeTrue(exceptionThrown);
+        // _Release in gkCentral mysql db has no records - hence no class won't have been loaded
+        Collection coll = neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._Release, null);
+        assumeTrue(coll.size() == 0);
     }
 
     @Test
     public void test_UpdateTracker() throws Exception {
-        boolean exceptionThrown = false;
-        try {
-            // _UpdateTracker in gkCentral mysql db has no records - hence no class won't have been loaded
-            neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker, null);
-        } catch (InvalidClassException e) {
-            exceptionThrown = true;
-        }
-        assumeTrue(exceptionThrown);
+        // _UpdateTracker in gkCentral mysql db has no records - hence no class won't have been loaded
+        Collection coll = neo4jAdaptor.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker, null);
+        assumeTrue(coll.size() == 0);
     }
 
     @Test
@@ -533,7 +554,8 @@ public class Neo4JAdaptorTest {
         // Test AttributeQueryRequest for an Instance attribute with a single value
         SchemaClass sc = schema.getClassByName("Pathway");
         SchemaAttribute attribute = sc.getAttribute("hasEvent");
-        Collection<Instance> instances = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 9612973L);
+        Instance instance = neo4jAdaptor.fetchInstance(Collections.singletonList(9612973L).iterator().next());
+        Collection<Instance> instances = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", instance);
         assumeTrue(instances.iterator().next().getDBID().equals(9664770L));
         // Test AttributeQueryRequest for a primitive attribute with a single value
         SchemaAttribute attribute1 = sc.getAttribute("_displayName");
@@ -556,8 +578,10 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test AttributeQueryRequest for an Instance attribute with multiple values
-        Collection<Instance> insts1 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 5693579L);
-        Collection<Instance> insts2 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", 5693616L);
+        Instance inst1 = neo4jAdaptor.fetchInstance(Collections.singletonList(5693579L).iterator().next());
+        Instance inst2 = neo4jAdaptor.fetchInstance(Collections.singletonList(5693616L).iterator().next());
+        Collection<Instance> insts1 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", inst1);
+        Collection<Instance> insts2 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", inst2);
         aqr = neo4jAdaptor.createAttributeQueryRequest(
                 attribute, "=", Arrays.asList(insts1.iterator().next(), insts2.iterator().next()));
         instances = neo4jAdaptor.fetchInstance(aqr);
