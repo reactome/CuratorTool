@@ -186,7 +186,7 @@ public class Neo4JAdaptorTest {
     @Test
     public void testFetchInstanceByDBId() throws Exception {
         GKInstance instance = neo4jAdaptor.fetchInstance(9612973l);
-        assumeTrue(instance.getSchemClass().getName().equals("DatabaseObject"));
+        assumeTrue(instance.getSchemClass().getName().equals("Pathway"));
         assumeTrue(instance.getDisplayName().equals("Autophagy"));
     }
 
@@ -664,14 +664,6 @@ public class Neo4JAdaptorTest {
         Neo4JAdaptor.AttributeQueryRequest aqr =
                 neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", subQuery);
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
-        assumeTrue(instances.size() > 0);
-        // Test AttributeQueryRequest with a list of "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest sub-queries
-        // Below: Find all Pathway instances in which hasEvent attribute is one or more of instances (of some class)
-        // have _both_ an hasEvent attribute and a precedingEvent attribute
-        Neo4JAdaptor.ReverseAttributeQueryRequest subQuery1 =
-                neo4jAdaptor.createReverseAttributeQueryRequest("StableIdentifier", "stableIdentifier", "IS NOT NULL", null);
-        aqr = neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", Arrays.asList(subQuery, subQuery1));
-        instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
     }
 
