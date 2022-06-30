@@ -2,6 +2,7 @@ package org.gk.schema;
 
 import org.reactome.server.graph.curator.domain.annotations.ReactomeConstraint;
 import org.reactome.server.graph.curator.domain.annotations.ReactomeInstanceDefiningValue;
+import org.reactome.server.graph.curator.domain.annotations.ReactomeAllowedClasses;
 import org.reactome.server.graph.curator.domain.model.DatabaseObject;
 import org.reactome.server.graph.curator.service.helper.AttributeClass;
 import org.reactome.server.graph.curator.service.helper.AttributeProperties;
@@ -15,7 +16,7 @@ import java.util.*;
 public class Neo4JSchemaParser {
 
     private Map cache = new HashMap();
-    // className -> (field Name -> Field in the the Java class corresponding to className_
+    // className -> (field Name -> Field in the Java class corresponding to className)
     private Map<String, Map<String, Field>> classNameToFields = new HashMap();
 
     public GKSchema parseNeo4JResults(
@@ -45,7 +46,7 @@ public class Neo4JSchemaParser {
                     ska.setName(ap.getName());
                     if (skaId.contains(":")) {
                         ska.addSchemaClass(parentSC);
-                        setCategoryAndDefiningType(parentName, ska, ap);
+                        setCategoryDefiningTypeAllowedClasses(parentName, ska, ap);
                     }
 
                     String cardinality = ap.getCardinality();
@@ -85,9 +86,13 @@ public class Neo4JSchemaParser {
                             ska.setType(Class.forName("java.lang.Boolean"));
                             ska.setTypeAsInt(SchemaAttribute.BOOLEAN_TYPE);
                         } else {
-                            GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
-                            typeSC.setName(typeSimpleName);
-                            ska.addAllowedClass(typeSC);
+                            if (ska.getAllowedClasses().isEmpty()) {
+                                // If we haven't added any allowed classes from @ReactomeAllowedClasses annotation,
+                                // add class of the attribute
+                                GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
+                                typeSC.setName(typeSimpleName);
+                                ska.addAllowedClass(typeSC);
+                            }
                             ska.setType(Class.forName("org.gk.model.Instance"));
                             ska.setTypeAsInt(SchemaAttribute.INSTANCE_TYPE);
                         }
@@ -108,7 +113,7 @@ public class Neo4JSchemaParser {
      * @param ska
      * @param ap
      */
-    private void setCategoryAndDefiningType(String className, GKSchemaAttribute ska, AttributeProperties ap)
+    private void setCategoryDefiningTypeAllowedClasses(String className, GKSchemaAttribute ska, AttributeProperties ap)
             throws ClassNotFoundException {
         if (!classNameToFields.containsKey(className)) {
             String parentClazzName = DatabaseObject.class.getPackage().getName() + "." + className;
@@ -136,6 +141,19 @@ public class Neo4JSchemaParser {
                     category = null;
                 }
                 ska.setDefiningType(category);
+            }
+            // Set allowed classes
+            annotation = field.getAnnotation(ReactomeAllowedClasses.class);
+            if (annotation != null) {
+                Iterator allowedClassesIter = Arrays.stream(((ReactomeAllowedClasses) annotation).allowed()).iterator();
+                // If @ReactomeAllowedClasses annotation had been set for a DatabaseObject attribute,
+                // use classes in that annotation in preference to the (too-generic) DatabaseObject
+                while (allowedClassesIter.hasNext()) {
+                    String typeSimpleName = ((Class) allowedClassesIter.next()).getSimpleName();
+                    GKSchemaClass typeSC = schemaClassFromCacheOrNew(typeSimpleName);
+                    typeSC.setName(typeSimpleName);
+                    ska.addAllowedClass(typeSC);
+                }
             }
         }
     }
