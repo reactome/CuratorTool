@@ -133,7 +133,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    private String getQueryOperand(String className, String attributeName) throws ClassNotFoundException {
+    private List<String> getQueryOperands(String className, String attributeName, QueryRequest qr) throws ClassNotFoundException {
+        List<String> ret = new ArrayList();
         String parentClazzName = DatabaseObject.class.getPackage().getName() + "." + className;
         Class<?> parentClazz = Class.forName(parentClazzName);
         List<Field> fields = Neo4JSchemaParser.getAllFields(new ArrayList<>(), parentClazz);
@@ -143,17 +144,23 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
         Field attNameField = fieldName2Field.get(attributeName);
         Annotation annotation = attNameField.getAnnotation(Relationship.class);
-        if (annotation != null && ((Relationship) annotation).direction() == Relationship.Direction.INCOMING) {
-            return "<-";
+        if ((qr != null && qr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) ||
+                (annotation != null && ((Relationship) annotation).direction() == Relationship.Direction.INCOMING)) {
+            ret.add("<-");
+            ret.add("-");
         }
-        return "-";
+        ret.add("-");
+        ret.add("->");
+        return ret;
     }
 
     // Load all values for className and att and put them into attributeValuesCache
     public void loadAllAttributeValues(String className, SchemaAttribute att) throws Exception {
-        if (attributeValuesCache.hasValues(className, att.getName())) {
+        if (useAttributeValuesCache == false || attributeValuesCache.inCacheAlready(className, att.getName())) {
             return;
         }
+        // Add placeholder to cache - in case no results are returned for className and att.getName() below
+        attributeValuesCache.addClassAttribute(className, att.getName());
         // Prepare query
         StringBuilder query = new StringBuilder("MATCH (n:").append(className).append(")");
         if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
@@ -162,8 +169,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         } else {
             // Instance attribute
             String allowedClassName = ((SchemaClass) att.getAllowedClasses().iterator().next()).getName();
-            String operand = getQueryOperand(className, att.getName());
-            query.append(operand).append("[r:").append(att.getName()).append("]->(s:").append(allowedClassName).append(") RETURN DISTINCT n.DB_ID, s.DB_ID");
+            List<String> operands = getQueryOperands(className, att.getName(), null);
+            query.append(operands.get(0)).append("[r:").append(att.getName()).append("]")
+                    .append(operands.get(1)).append("(s:").append(allowedClassName).append(") ")
+                    .append("RETURN DISTINCT n.DB_ID, s.DB_ID");
             if (att.isMultiple()) {
                 query.append(", r.order, r.stoichiometry");
             }
@@ -300,10 +309,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             }
             // Instance-type attributes
             for (GKSchemaAttribute a : instanceAttributes) {
-                String operand = getQueryOperand(instanceClassName, a.getName());
+                List<String> operands = getQueryOperands(instanceClassName, a.getName(), null);
                 String allowedClassName = ((SchemaClass) a.getAllowedClasses().iterator().next()).getName();
                 StringBuilder query = new StringBuilder(queryRoot.toString()).append("-[r:").append(a.getName());
-                query.append("]").append(operand).append("(s:").append(allowedClassName).append(") RETURN DISTINCT s.DB_ID, type(r)");
+                query.append("]").append(operands.get(0)).append("(s:").append(allowedClassName).append(") ")
+                        .append("RETURN DISTINCT s.DB_ID, type(r)");
                 if (a.isMultiple()) {
                     query.append(", r.order, r.stoichiometry");
                 }
@@ -315,9 +325,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 List<GKSchemaAttribute> atts = cypherQueries.get(query);
                 try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
                     Result result = null;
-                    if (atts.size() == 1) {
-                        loadAllAttributeValues(instanceClassName, atts.get(0));
-                    } else {
+                    for (GKSchemaAttribute att: atts) {
+                        loadAllAttributeValues(instanceClassName, att);
+                    }
+                    if (!useAttributeValuesCache) {
                         // DEBUG System.out.println(query);
                         result = session.run(query);
                     }
@@ -338,8 +349,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                         }
                                     }
                                 } else {
-                                    List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
-                                    handleAttributeValue(ins, atts.get(0), values, recursive);
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                    }
                                 }
                             } else {
                                 // Instance-type Single-value attributes
@@ -358,8 +371,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                         }
                                     }
                                 } else {
-                                    List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
-                                    handleAttributeValue(ins, atts.get(0), values, recursive);
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                    }
                                 }
                             }
                         } else {
@@ -377,8 +392,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                         handleAttributeValue(ins, gkAtt, values, recursive);
                                     }
                                 } else {
-                                    List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
-                                    handleAttributeValue(ins, atts.get(0), values, recursive);
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                    }
                                 }
                             } else {
                                 // Instance-type Multiple-value attributes
@@ -410,8 +427,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                         handleAttributeValue(ins, gkAtt, values, recursive);
                                     }
                                 } else {
-                                    List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
-                                    handleAttributeValue(ins, atts.get(0), values, recursive);
+                                    for (GKSchemaAttribute gkAtt : atts) {
+                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
+                                        handleAttributeValue(ins, atts.get(0), values, recursive);
+                                    }
                                 }
                             }
                         }
@@ -637,23 +656,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         Integer pos = 1;
         for (Iterator i = aqrList.iterator(); i.hasNext(); ) {
             Neo4JAdaptor.QueryRequest aqr = (Neo4JAdaptor.QueryRequest) i.next();
-            if (aqr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) {
-                query.append(" MATCH (n)");
-            } else {
-                query.append(" MATCH (n:").append(aqr.getCls().getName()).append(")");
-            }
+            query.append(" MATCH (n:").append(aqr.getCls().getName()).append(")");
             SchemaAttribute att = aqr.getAttribute();
             String attName = att.getName();
             Object value = aqr.getValue();
             if (att.isInstanceTypeAttribute()) {
                 // Instance attribute
-                String operand = getQueryOperand(att.getOrigin().getName(), att.getName());
+                List<String> operands = getQueryOperands(att.getOrigin().getName(), att.getName(), aqr);
                 if (!aqr.getOperator().equals("IS NULL")) {
-                    query.append(operand).append("[:").append(attName).append("]->(s").append(pos);
-                    if (aqr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) {
-                        query.append(":").append(aqr.getCls().getName());
-                    }
-                    query.append(") ");
+                    query.append(operands.get(0)).append("[:").append(attName).append("]")
+                            .append(operands.get(1)).append("(s").append(pos).append(") ");
                 }
                 if (value instanceof Collection) {
                     // Value is a collection
@@ -678,9 +690,9 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                             collectionOfInstancesOnly = setCollectionOfInstancesOnlyFlag(o, collectionOfInstancesOnly);
                             ReverseAttributeQueryRequest subAqr = (ReverseAttributeQueryRequest) o;
                             if (isNotNullQuery(subAqr)) {
-                                query.append(" MATCH (s").append(pos).append(")")
-                                        .append("-[:").append(subAqr.getAttribute().getName())
-                                        .append("]->(").append(subAqr.getCls().getName()).append(")");
+                                query.append(" MATCH (s").append(pos).append(":")
+                                        .append(subAqr.getCls().getName()).append(")")
+                                        .append("<-[:").append(attName).append("]-()");
                             }
                         }
                     }
@@ -688,13 +700,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID IN (").append(dbIds).append(")");
                     }
                 } else {
-                    // Single value - either 1. Instance, or 2. an "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest.
-                    if (value instanceof org.gk.model.Instance) {
+                    // Single value - either 1. null ("IS NULL" query) or Instance,
+                    // or 2. an "IS NOT NULL" AttributeQueryRequest/ReverseAttributeQueryRequest.
+                    if (value == null || value instanceof org.gk.model.Instance) {
                         if (!aqr.getOperator().equals("IS NOT NULL")) {
                             if (!aqr.getOperator().equals("IS NULL")) {
                                 whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID = ").append(((GKInstance) value).getDBID());
                             } else {
-                                whereClause.append(whereClauseKeyWord).append(" NOT ").append("(n)-[:").append(attName).append("]->() ");
+                                whereClause.append(whereClauseKeyWord).append(" NOT ").append("(n)")
+                                        .append(operands.get(0)).append("[:").append(attName).append("]")
+                                        .append(operands.get(1)).append("() ");
                             }
                         }
                     } else if (value instanceof AttributeQueryRequest) {
@@ -707,9 +722,9 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     } else if (value instanceof ReverseAttributeQueryRequest) {
                         ReverseAttributeQueryRequest subAqr = (ReverseAttributeQueryRequest) value;
                         if (isNotNullQuery(subAqr)) {
-                            query.append(" MATCH (s").append(pos).append(")")
-                                    .append("-[:").append(subAqr.getAttribute().getName())
-                                    .append("]->(").append(subAqr.getCls().getName()).append(")");
+                            query.append(" MATCH (s").append(pos).append(":")
+                                    .append(subAqr.getCls().getName()).append(")")
+                                    .append("<-[:").append(attName).append("]-()");
                         }
                     }
                 }
@@ -848,7 +863,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             while (result.hasNext()) {
                 Record res = result.next();
                 Long dbId = res.get(0) != Values.NULL ? res.get(0).asLong() : null;
-                String dislayName = res.get(1) != Values.NULL ? res.get(1).toString() : null;
+                String dislayName = res.get(1) != Values.NULL ? res.get(1).asString() : null;
                 String clsName = res.get(2) != Values.NULL ? res.get(2).asString() : null;
                 if (dbId != null) {
                     Instance instance = getInstance(clsName, dbId);
@@ -1868,7 +1883,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 Instance instance = getInstance(schemaClass, dbId);
                 instances.add(instance);
                 instance.setDisplayName(displayName);
-                instance.setSchemaClass(getSchema().getClassByName(className));
+                instance.setSchemaClass(getSchema().getClassByName(schemaClass));
             }
             return instances;
         }
