@@ -143,7 +143,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             fieldName2Field.put(field.getName(), field);
         }
         Field attNameField = fieldName2Field.get(attributeName);
-        Annotation annotation = attNameField.getAnnotation(Relationship.class);
+        Annotation annotation = null;
+        if (attNameField != null) {
+            annotation = attNameField.getAnnotation(Relationship.class);
+        }
         if ((qr != null && qr instanceof Neo4JAdaptor.ReverseAttributeQueryRequest) ||
                 (annotation != null && ((Relationship) annotation).direction() == Relationship.Direction.INCOMING)) {
             ret.add("<-");
@@ -172,7 +175,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             List<String> operands = getQueryOperands(className, att.getName(), null);
             query.append(operands.get(0)).append("[r:").append(att.getName()).append("]")
                     .append(operands.get(1)).append("(s:").append(allowedClassName).append(") ")
-                    .append("RETURN DISTINCT n.DB_ID, s.DB_ID");
+                    .append("RETURN DISTINCT n.DB_ID, s.DB_ID, s.schemaClass");
             if (att.isMultiple()) {
                 query.append(", r.order, r.stoichiometry");
             }
@@ -187,7 +190,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     Record rec = result.next();
                     Long dbId = rec.get(0).asLong();
                     if (rec.get(1) != NullValue.NULL) {
-                        attributeValuesCache.addValue(className, att.getName(), dbId, rec.get(1));
+                        attributeValuesCache.addPrimitiveValue(className, att.getName(), dbId, rec.get(1));
                     }
                 }
             } else {
@@ -198,7 +201,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         Record rec = result.next();
                         Long dbId = rec.get(0).asLong();
                         if (rec.get(1) != NullValue.NULL) {
-                            attributeValuesCache.addValue(className, att.getName(), dbId, rec.get(1));
+                            attributeValuesCache.addInstanceValue(className, att.getName(), dbId, rec.get(1), rec.get(2).asString());
                         }
                     }
                 } else {
@@ -207,18 +210,18 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     // Sort all results by order property of the relationship
                     Collections.sort(results, new Comparator<Record>() {
                         public int compare(Record o1, Record o2) {
-                            return o1.get(2).asInt() - o2.get(2).asInt();
+                            return o1.get(3).asInt() - o2.get(3).asInt();
                         }
                     });
                     // Retrieve sorted results
                     for (Record rec : results) {
                         Long dbId = rec.get(0).asLong();
-                        Long stoichiometry = rec.get(3).asLong();
+                        Long stoichiometry = rec.get(4).asLong();
                         if (rec.get(1) != NullValue.NULL) {
                             Long cnt = 0L;
                             // 'Explode' each value into the number of duplicates equal to stoichiometry of the relationship
                             while (cnt < stoichiometry) {
-                                attributeValuesCache.addValue(className, att.getName(), dbId, rec.get(1));
+                                attributeValuesCache.addInstanceValue(className, att.getName(), dbId, rec.get(1), rec.get(2).asString());
                                 cnt++;
                             }
                         }
@@ -313,7 +316,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 String allowedClassName = ((SchemaClass) a.getAllowedClasses().iterator().next()).getName();
                 StringBuilder query = new StringBuilder(queryRoot.toString()).append("-[r:").append(a.getName());
                 query.append("]").append(operands.get(0)).append("(s:").append(allowedClassName).append(") ")
-                        .append("RETURN DISTINCT s.DB_ID, type(r)");
+                        .append("RETURN DISTINCT s.DB_ID, s.schemaClass, type(r)");
                 if (a.isMultiple()) {
                     query.append(", r.order, r.stoichiometry");
                 }
@@ -344,13 +347,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                         for (GKSchemaAttribute gkAtt : atts) {
                                             Value val = rec.get(i++);
                                             if (val != NullValue.NULL) {
-                                                handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
+                                                handleAttributeValue(ins, gkAtt,
+                                                        Collections.singletonList(new AttributeValueCache.AttValCacheRecord(val)),
+                                                        recursive);
                                             }
                                         }
                                     }
                                 } else {
                                     for (GKSchemaAttribute gkAtt : atts) {
-                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        List<AttributeValueCache.AttValCacheRecord> values =
+                                                attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
                                         handleAttributeValue(ins, gkAtt, values, recursive);
                                     }
                                 }
@@ -364,16 +370,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                                     .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
                                             if (resultsForAttr.size() > 0) {
                                                 Value val = resultsForAttr.get(0).get(0);
+                                                String valueSchemaClass = resultsForAttr.get(0).get(1).asString();
                                                 if (val != NullValue.NULL) {
-                                                    handleAttributeValue(ins, gkAtt, Collections.singletonList(val), recursive);
+                                                    handleAttributeValue(ins, gkAtt,
+                                                            Collections.singletonList(new AttributeValueCache.AttValCacheRecord(val,valueSchemaClass)), recursive);
                                                 }
                                             }
                                         }
                                     }
                                 } else {
                                     for (GKSchemaAttribute gkAtt : atts) {
-                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
-                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                        List<AttributeValueCache.AttValCacheRecord> attValCacheRecords =
+                                                attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, attValCacheRecords, recursive);
                                     }
                                 }
                             }
@@ -382,53 +391,56 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                             if (!atts.get(0).isInstanceTypeAttribute()) {
                                 // Primitive Multiple-value attributes
                                 if (result != null) {
-                                    List<Value> values = new ArrayList();
+                                    List<AttributeValueCache.AttValCacheRecord> attValCacheRecords = new ArrayList();
                                     for (GKSchemaAttribute gkAtt : atts) {
                                         while (result.hasNext()) {
                                             Value val = result.next().get(0);
                                             if (val != NullValue.NULL)
-                                                values.add(val);
+                                                attValCacheRecords.add(new AttributeValueCache.AttValCacheRecord(val));
                                         }
-                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                        handleAttributeValue(ins, gkAtt, attValCacheRecords, recursive);
                                     }
                                 } else {
                                     for (GKSchemaAttribute gkAtt : atts) {
-                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
-                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                        List<AttributeValueCache.AttValCacheRecord> attValCacheRecords =
+                                                attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, attValCacheRecords, recursive);
                                     }
                                 }
                             } else {
                                 // Instance-type Multiple-value attributes
                                 if (result != null) {
-                                    List<Value> values = new ArrayList();
+                                    List<AttributeValueCache.AttValCacheRecord> attValCacheRecords = new ArrayList();
                                     List<Record> results = result.list();
                                     for (GKSchemaAttribute gkAtt : atts) {
                                         // First sort all results by order property of the relationship
                                         Collections.sort(results, new Comparator<Record>() {
                                             public int compare(Record o1, Record o2) {
-                                                return o1.get(2).asInt() - o2.get(2).asInt();
+                                                return o1.get(3).asInt() - o2.get(3).asInt();
                                             }
                                         });
                                         // Then filter sorted results by gkAtt's name
                                         List<Record> resultsForAttr = results.stream()
-                                                .filter(p -> p.get(1).asString().equals(gkAtt.getName())).collect(Collectors.toList());
+                                                .filter(p -> p.get(2).asString().equals(gkAtt.getName())).collect(Collectors.toList());
                                         for (Record rec : resultsForAttr) {
                                             Value val = rec.get(0);
-                                            Long stoichiometry = rec.get(3).asLong();
+                                            String valueSchemaClass = rec.get(1).asString();
+                                            Long stoichiometry = rec.get(4).asLong();
                                             if (val != NullValue.NULL) {
                                                 Long cnt = 0L;
                                                 // 'Explode' each value into the number of duplicates equal to stoichiometry of the relationship
                                                 while (cnt < stoichiometry) {
-                                                    values.add(val);
+                                                    attValCacheRecords.add(new AttributeValueCache.AttValCacheRecord(val, valueSchemaClass));
                                                     cnt++;
                                                 }
                                             }
                                         }
-                                        handleAttributeValue(ins, gkAtt, values, recursive);
+                                        handleAttributeValue(ins, gkAtt, attValCacheRecords, recursive);
                                     }
                                 } else {
                                     for (GKSchemaAttribute gkAtt : atts) {
-                                        List<Value> values = attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
+                                        List<AttributeValueCache.AttValCacheRecord> values =
+                                                attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
                                         handleAttributeValue(ins, atts.get(0), values, recursive);
                                     }
                                 }
@@ -440,20 +452,22 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    private void handleAttributeValue(GKInstance ins, GKSchemaAttribute att, List<Value> values, Boolean
-            recursive) throws Exception {
+    private void handleAttributeValue(GKInstance ins, GKSchemaAttribute att,
+                                      List<AttributeValueCache.AttValCacheRecord> attValCacheRecords, Boolean recursive) throws Exception {
         Integer typeAsInt = att.getTypeAsInt();
-        if (values != null && values.size() > 0) {
+        if (attValCacheRecords != null && attValCacheRecords.size() > 0) {
             try {
                 switch (typeAsInt) {
                     case SchemaAttribute.INSTANCE_TYPE:
                         SchemaClass attributeClass = (SchemaClass) att.getAllowedClasses().iterator().next();
-                        if (values.size() > 1) {
+                        if (attValCacheRecords.size() > 1) {
                             List<Instance> attrInstances = new ArrayList();
-                            for (Value value : values) {
+                            for (AttributeValueCache.AttValCacheRecord rec : attValCacheRecords) {
+                                Value value = rec.getValue();
+                                SchemaClass valueSchemaClass = getSchema().getClassByName(rec.getSchemaClass());
                                 GKInstance instance;
                                 if (recursive) {
-                                    instance = getInflateInstance(value, attributeClass);
+                                    instance = getInflateInstance(value, valueSchemaClass);
                                 } else {
                                     Long dbID = value.asLong();
                                     instance = (GKInstance) getInstance(attributeClass.getName(), dbID);
@@ -462,34 +476,36 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                             }
                             ins.setAttributeValueNoCheck(att, attrInstances);
                         } else {
+                            Value value = attValCacheRecords.get(0).getValue();
+                            SchemaClass valueSchemaClass = getSchema().getClassByName(attValCacheRecords.get(0).getSchemaClass());
                             GKInstance instance;
                             if (recursive) {
-                                instance = getInflateInstance(values.get(0), attributeClass);
+                                instance = getInflateInstance(value, valueSchemaClass);
                             } else {
-                                Long dbID = values.get(0).asLong();
-                                instance = (GKInstance) getInstance(attributeClass.getName(), dbID);
+                                Long dbID = value.asLong();
+                                instance = (GKInstance) getInstance(valueSchemaClass.getName(), dbID);
                             }
                             ins.setAttributeValueNoCheck(att, instance);
                         }
                         break;
                     case SchemaAttribute.STRING_TYPE:
-                        List<String> res = values.stream().map((x) -> (x.asString())).collect(Collectors.toList());
+                        List<String> res = attValCacheRecords.stream().map((x) -> (x.getValue().asString())).collect(Collectors.toList());
                         ins.setAttributeValueNoCheck(att, res.size() > 1 ? res : res.get(0));
                         break;
                     case SchemaAttribute.INTEGER_TYPE:
-                        List<Integer> resI = values.stream().map((x) -> (x.asInt())).collect(Collectors.toList());
+                        List<Integer> resI = attValCacheRecords.stream().map((x) -> (x.getValue().asInt())).collect(Collectors.toList());
                         ins.setAttributeValueNoCheck(att, resI.size() > 1 ? resI : resI.get(0));
                         break;
                     case SchemaAttribute.LONG_TYPE:
-                        List<Long> resL = values.stream().map((x) -> (x.asLong())).collect(Collectors.toList());
+                        List<Long> resL = attValCacheRecords.stream().map((x) -> (x.getValue().asLong())).collect(Collectors.toList());
                         ins.setAttributeValueNoCheck(att, resL.size() > 1 ? resL : resL.get(0));
                         break;
                     case SchemaAttribute.FLOAT_TYPE:
-                        List<Float> resF = values.stream().map((x) -> (x.asFloat())).collect(Collectors.toList());
+                        List<Float> resF = attValCacheRecords.stream().map((x) -> (x.getValue().asFloat())).collect(Collectors.toList());
                         ins.setAttributeValueNoCheck(att, resF.size() > 1 ? resF : resF.get(0));
                         break;
                     case SchemaAttribute.BOOLEAN_TYPE:
-                        List<Boolean> resB = values.stream().map((x) -> (x.asBoolean())).collect(Collectors.toList());
+                        List<Boolean> resB = attValCacheRecords.stream().map((x) -> (x.getValue().asBoolean())).collect(Collectors.toList());
                         ins.setAttributeValueNoCheck(att, resB.size() > 1 ? resB : resB.get(0));
                         break;
                     default:
@@ -497,7 +513,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
             } catch (org.neo4j.driver.exceptions.value.Uncoercible ex) {
                 // DEBUG: System.out.println(query);
-                ins.setAttributeValueNoCheck(att, values.get(0).asList());
+                ins.setAttributeValueNoCheck(att, attValCacheRecords.get(0).getValue().asList());
             }
         }
     }
