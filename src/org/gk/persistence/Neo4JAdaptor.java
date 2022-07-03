@@ -1117,7 +1117,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         cls = schema.getClassByName(cls.getName());
         List<String> classHierarchy = ((List<GKSchemaClass>) cls.getOrderedAncestors()).stream().map((x) -> (x.getName())).collect(Collectors.toList());
         StringBuilder stmt = new StringBuilder();
-        if (dbID == null) {
+        if (dbID == null || dbID < 0) {
             // Mint new DB_ID
             dbID = mintNewDBID();
             instance.setDBID(dbID);
