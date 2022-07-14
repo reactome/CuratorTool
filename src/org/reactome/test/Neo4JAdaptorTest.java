@@ -246,6 +246,7 @@ public class Neo4JAdaptorTest {
             long dbID = neo4jAdaptor.storeInstance(instance, tx);
             tx.commit();
             assumeTrue(dbID >= 9760736);
+            assumeTrue(instance.getAttributeValue(ReactomeJavaConstants._timestamp) != null);
             tx = session.beginTransaction();
             neo4jAdaptor.deleteInstance(instance, tx);
             tx.commit();
@@ -286,7 +287,9 @@ public class Neo4JAdaptorTest {
             instance1.setAttributeValue(ReactomeJavaConstants._displayName, "TestCompartment 2");
             instance1.setDBID(null);
             neo4jAdaptor.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
+            String timestamp = instance.getAttributeValue(ReactomeJavaConstants._timestamp).toString();
             neo4jAdaptor.updateInstanceAttribute(instance, "compartment", tx);
+            assumeTrue(!instance.getAttributeValue(ReactomeJavaConstants._timestamp).toString().equals(timestamp));
             tx.commit();
             // Re-fetch instance dbID from Neo4j and check that the values changed in memory have been updated in DB
             GKInstance fetchedInstance = neo4jAdaptor.fetchInstance(dbID);

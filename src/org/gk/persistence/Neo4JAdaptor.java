@@ -23,6 +23,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class Neo4JAdaptor implements PersistenceAdaptor {
     private String host;
     private String database;
@@ -879,11 +882,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             while (result.hasNext()) {
                 Record res = result.next();
                 Long dbId = res.get(0) != Values.NULL ? res.get(0).asLong() : null;
-                String dislayName = res.get(1) != Values.NULL ? res.get(1).asString() : null;
+                String displayName = res.get(1) != Values.NULL ? res.get(1).asString() : null;
                 String clsName = res.get(2) != Values.NULL ? res.get(2).asString() : null;
                 if (dbId != null) {
                     Instance instance = getInstance(clsName, dbId);
-                    instance.setAttributeValue(_displayName, dislayName);
+                    instance.setAttributeValue(_displayName, displayName);
                     instances.add(instance);
                 }
             }
@@ -1150,6 +1153,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         dbID = result.asLong();
 
         // Store attributes
+        // Set _timestamp to current time - before storing in DB
+        instance.setAttributeValue(ReactomeJavaConstants._timestamp, getCurrentTimestamp());
         for (Iterator ai = instance.getSchemaAttributes().iterator(); ai.hasNext(); ) {
             GKSchemaAttribute att = (GKSchemaAttribute) ai.next();
             storeAttribute(att, instance, tx, recursive);
@@ -1245,6 +1250,14 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             stmt.append(" RETURN n.DB_ID");
             stmts.add(stmt.toString());
         }
+        // Set _timestamp to current time - before storing in DB
+        String currentTimeStamp = getCurrentTimestamp();
+        instance.setAttributeValue(ReactomeJavaConstants._timestamp, currentTimeStamp);
+        // Add statement to update _timestamp for the node instance.getDBID()
+        stmts.add(new StringBuilder("MATCH (n:").append(cls.getName()).append("{").append("DB_ID:").append(instance.getDBID())
+                .append("}) SET n.").append(ReactomeJavaConstants._timestamp)
+                .append(" = ").append("\"").append(currentTimeStamp).append("\"").toString());
+
         for (String stmt : stmts) {
             executeTransaction(stmt, tx);
         }
@@ -1261,6 +1274,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             stmt.append(cls.getName()).append("{").append("DB_ID:").append(instance.getDBID()).append("}) ").append("-[r:").append(att.getName()).append("]->() DELETE r");
             executeTransaction(stmt.toString(), tx);
         }
+    }
+
+    private String getCurrentTimestamp() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date();
+        return formatter.format(date);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
