@@ -288,6 +288,8 @@ public class Neo4JAdaptorTest {
             instance1.setDBID(null);
             neo4jAdaptor.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
             String timestamp = instance.getAttributeValue(ReactomeJavaConstants._timestamp).toString();
+            // We need to sleep for 1s to give _timestamp (it has 1s resolution) a chance to change to satisfy the test below
+            Thread.sleep(1000);
             neo4jAdaptor.updateInstanceAttribute(instance, "compartment", tx);
             assumeTrue(!instance.getAttributeValue(ReactomeJavaConstants._timestamp).toString().equals(timestamp));
             tx.commit();
