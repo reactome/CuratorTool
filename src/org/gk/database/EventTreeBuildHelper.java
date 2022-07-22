@@ -3,12 +3,10 @@
  */
 package org.gk.database;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.swing.Icon;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -30,7 +28,11 @@ import org.gk.util.GKApplicationUtilities;
 public class EventTreeBuildHelper {
 
 	private Neo4JAdaptor dba;
-	
+
+	// For making calls to loadInstanceAttributeValues() asynchronous
+	private ExecutorService executor = Executors.newFixedThreadPool(5);
+
+
 	public EventTreeBuildHelper() {
 	}
 	
@@ -260,6 +262,13 @@ public class EventTreeBuildHelper {
 	public Collection getAllEvents() throws Exception {
 		return dba.fetchInstancesByClass("Event");
 	}
+
+	public Future<Void> loadInstanceAttributeValuesAsync(Collection instances, SchemaAttribute attribute){
+		return executor.submit(() -> {
+			dba.loadInstanceAttributeValues(instances, attribute);
+			return null;
+		});
+	}
 	
 	/**
 	 * The attributes for "hasInstance", "hasComponent", "taxon" will be loaded.
@@ -322,16 +331,28 @@ public class EventTreeBuildHelper {
 		    if (cls.isValidAttribute(ReactomeJavaConstants.hasEvent))
 		        dba.loadInstanceAttributeValues(blackBoxEvents, cls.getAttribute(ReactomeJavaConstants.hasEvent));
 		}
-		cls = dba.getSchema().getClassByName("Event");
-		if (cls.isValidAttribute("taxon"))
-		    dba.loadInstanceAttributeValues(events, cls.getAttribute("taxon"));
-		else if (cls.isValidAttribute("species")) // New schema uses species
-		    dba.loadInstanceAttributeValues(events, cls.getAttribute("species"));
+
 		// Need to load _doNotRelease
-        if (cls.isValidAttribute(ReactomeJavaConstants._doRelease))
-            dba.loadInstanceAttributeValues(events, cls.getAttribute(ReactomeJavaConstants._doRelease));
-        else if (cls.isValidAttribute(ReactomeJavaConstants._doNotRelease))
-            dba.loadInstanceAttributeValues(events, cls.getAttribute(ReactomeJavaConstants._doNotRelease));
+		if (cls.isValidAttribute(ReactomeJavaConstants._doRelease))
+			dba.loadInstanceAttributeValues(events, cls.getAttribute(ReactomeJavaConstants._doRelease));
+		else if (cls.isValidAttribute(ReactomeJavaConstants._doNotRelease))
+			dba.loadInstanceAttributeValues(events, cls.getAttribute(ReactomeJavaConstants._doNotRelease));
+
+		// Note that the following are loaded asynchronously, _after_ Events are shown to the user on the LHS of the Event View Panel
+		List<Future<Void>> futures = new ArrayList<>();
+		cls = dba.getSchema().getClassByName("Event");
+		if (cls.isValidAttribute("taxon")) {
+			futures.add(loadInstanceAttributeValuesAsync(events, cls.getAttribute("taxon")));
+		} else if (cls.isValidAttribute("species")) {// New schema uses species
+			futures.add(loadInstanceAttributeValuesAsync(events, cls.getAttribute("species")));
+		}
+		// The following are pre-loaded to speed up GraphEditorController.convertToReactionNode()
+		cls = dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent);
+		if (cls.isValidAttribute("catalystActivity"))
+			futures.add(loadInstanceAttributeValuesAsync(events, cls.getAttribute("catalystActivity")));
+		cls = dba.getSchema().getClassByName(ReactomeJavaConstants.CatalystActivity);
+		if (cls.isValidAttribute("physicalEntity"))
+			futures.add(loadInstanceAttributeValuesAsync(events, cls.getAttribute("physicalEntity")));
 	}
 	
 	/**

@@ -165,6 +165,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         if (useAttributeValuesCache == false || attributeValuesCache.inCacheAlready(className, att.getName())) {
             return;
         }
+        // DEBUG: System.out.println("loadAllAttributeValues - " + className + ":" + att.getName());
         // Add placeholder to cache - in case no results are returned for className and att.getName() below
         attributeValuesCache.addClassAttribute(className, att.getName());
         // Prepare query
