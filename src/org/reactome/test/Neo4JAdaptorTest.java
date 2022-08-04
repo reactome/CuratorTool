@@ -3,8 +3,10 @@ package org.reactome.test;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.AttributeQueryRequest;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.ReverseAttributeQueryRequest;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.*;
@@ -329,7 +331,7 @@ public class Neo4JAdaptorTest {
             // Store instance
             long dbID = neo4jAdaptor.storeInstance(instance, tx);
             tx.commit();
-            neo4jAdaptor.refresh();
+            neo4jAdaptor.refreshCaches();
             GKInstance inst = neo4jAdaptor.fetchInstance("Pathway", dbID);
             neo4jAdaptor.loadInstanceAttributeValues(inst, true);
             assumeTrue(inst.getAttributeValuesList("hasEvent").size() == 3);
@@ -372,7 +374,7 @@ public class Neo4JAdaptorTest {
             tx = session.beginTransaction();
             neo4jAdaptor.deleteInstance(instance1, tx);
             tx.commit();
-            neo4jAdaptor.refresh(); // Clear cache
+            neo4jAdaptor.refreshCaches(); // Clear cache
             fetchedInstance = neo4jAdaptor.fetchInstance(dbID);
             fetchedInstance.setSchemaClass(sc);
             fetchedInstance.setIsInflated(false);
@@ -567,19 +569,19 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstanceByAttribute(attribute1, "=", "Deregulating Cellular Energetics");
         assumeTrue(instances.iterator().next().getDBID().equals(9664770L));
         // Test AttributeQueryRequest for an Instance attribute with operator = IS NULL and = IS NOT NULL
-        Neo4JAdaptor.AttributeQueryRequest aqr =
-                neo4jAdaptor.createAttributeQueryRequest(attribute, "IS NOT NULL", null);
+        AttributeQueryRequest aqr =
+                new AttributeQueryRequest(attribute, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
-        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute, "IS NULL", null);
+        aqr = new AttributeQueryRequest(attribute, "IS NULL", null);
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test AttributeQueryRequest for a primitive attribute with operator = IS NULL and = IS NOT NULL
         aqr =
-                neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NOT NULL", null);
+                new AttributeQueryRequest(attribute1, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
-        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NULL", null);
+        aqr = new AttributeQueryRequest(attribute1, "IS NULL", null);
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test AttributeQueryRequest for an Instance attribute with multiple values
@@ -587,12 +589,12 @@ public class Neo4JAdaptorTest {
         Instance inst2 = neo4jAdaptor.fetchInstance(Collections.singletonList(5693616L).iterator().next());
         Collection<Instance> insts1 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", inst1);
         Collection<Instance> insts2 = neo4jAdaptor.fetchInstanceByAttribute(attribute, "", inst2);
-        aqr = neo4jAdaptor.createAttributeQueryRequest(
+        aqr = new AttributeQueryRequest(
                 attribute, "=", Arrays.asList(insts1.iterator().next(), insts2.iterator().next()));
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() == 2);
         // Test AttributeQueryRequest for a primitive attribute with multiple values
-        aqr = neo4jAdaptor.createAttributeQueryRequest(
+        aqr = new AttributeQueryRequest(
                 attribute1, "=",
                 Arrays.asList("Deregulating Cellular Energetics", "Homologous DNA Pairing and Strand Exchange"));
         instances = neo4jAdaptor.fetchInstance(aqr);
@@ -609,19 +611,19 @@ public class Neo4JAdaptorTest {
         // Test AttributeQueryRequest for a List of aqr's - a mixture of Instance and primitive attributes
         Instance inst1 = neo4jAdaptor.fetchInstance(9604294L);
         Instance inst2 = neo4jAdaptor.fetchInstance(5685319L);
-        Neo4JAdaptor.AttributeQueryRequest aqr = neo4jAdaptor.createAttributeQueryRequest(
+        AttributeQueryRequest aqr = new AttributeQueryRequest(
                 attribute, "=", Arrays.asList(inst1, inst2));
-        Neo4JAdaptor.AttributeQueryRequest aqr1 = neo4jAdaptor.createAttributeQueryRequest(
+        AttributeQueryRequest aqr1 = new AttributeQueryRequest(
                 attribute1, "=", "Homologous DNA Pairing and Strand Exchange");
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1));
         assumeTrue(instances.size() == 1);
         // Test AttributeQueryRequest for a List of aqr's - a mixture of IS NULL and IS NOT NULL clauses
-        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "=", 9604294L);
-        aqr1 = neo4jAdaptor.createAttributeQueryRequest(attribute1, "IS NOT NULL", null);
-        Neo4JAdaptor.AttributeQueryRequest aqr2 = neo4jAdaptor.createAttributeQueryRequest(attribute2, "IS NULL", null);
+        aqr = new AttributeQueryRequest(attribute3, "=", 9604294L);
+        aqr1 = new AttributeQueryRequest(attribute1, "IS NOT NULL", null);
+        AttributeQueryRequest aqr2 = new AttributeQueryRequest(attribute2, "IS NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
         assumeTrue(instances.size() == 1);
-        aqr = neo4jAdaptor.createAttributeQueryRequest(attribute3, "IN", Arrays.asList(9604294L, 9604295L));
+        aqr = new AttributeQueryRequest(attribute3, "IN", Arrays.asList(9604294L, 9604295L));
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr, aqr1, aqr2));
         assumeTrue(instances.size() == 1);
     }
@@ -633,26 +635,26 @@ public class Neo4JAdaptorTest {
         SchemaClass sc = schema.getClassByName(ReactomeJavaConstants.Species);
         // Test ReverseAttributeQueryRequest (necessarily for an Instance attribute) with operator = IS NOT NULL
         // Find non-orphan species = at least one node contains them in their species attribute
-        Neo4JAdaptor.ReverseAttributeQueryRequest aqr =
-                neo4jAdaptor.createReverseAttributeQueryRequest(sc, attribute, "IS NOT NULL", null);
+        ReverseAttributeQueryRequest aqr =
+                new ReverseAttributeQueryRequest(sc, attribute, "IS NOT NULL", null);
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Find orphan species = no node contains them in their species attribute
-        aqr = neo4jAdaptor.createReverseAttributeQueryRequest(sc, attribute, "IS NULL", null);
+        aqr = new ReverseAttributeQueryRequest(sc, attribute, "IS NULL", null);
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "="
         GKInstance species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species, ReactomeJavaConstants.name, "=", "Homo sapiens").iterator().next();
-        Neo4JAdaptor.AttributeQueryRequest aqr1 =
-                neo4jAdaptor.createAttributeQueryRequest("Pathway", ReactomeJavaConstants.species, "=", species);
-        Neo4JAdaptor.ReverseAttributeQueryRequest aqr2 =
-                neo4jAdaptor.createReverseAttributeQueryRequest("Pathway", ReactomeJavaConstants.hasEvent, "IS NOT NULL", null);
+        AttributeQueryRequest aqr1 =
+                new AttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.species, "=", species);
+        ReverseAttributeQueryRequest aqr2 =
+                new ReverseAttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.hasEvent, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
         assumeTrue(instances.size() > 0);
         // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "IN"
         species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species, ReactomeJavaConstants.name, "=", Arrays.asList("Homo sapiens", "H. sapiens")).iterator().next();
-        aqr1 = neo4jAdaptor.createAttributeQueryRequest("Pathway", ReactomeJavaConstants.species, "IN", species); // TODO: &&&&
-        aqr2 = neo4jAdaptor.createReverseAttributeQueryRequest("Pathway", ReactomeJavaConstants.hasEvent, "IS NOT NULL", null);
+        aqr1 = new AttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.species, "IN", species); // TODO: &&&&
+        aqr2 = new ReverseAttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.hasEvent, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
         assumeTrue(instances.size() > 0);
     }
@@ -664,10 +666,10 @@ public class Neo4JAdaptorTest {
         // Test AttributeQueryRequest with a "IS NOT NULL" ReverseAttributeQueryRequest sub-query
         // Below: Find all Pathway instances in which the value of hasEvent attribute is one or more instances (of some class)
         // that has the hasEvent attribute
-        Neo4JAdaptor.ReverseAttributeQueryRequest subQuery =
-                neo4jAdaptor.createReverseAttributeQueryRequest("Pathway", "hasEvent", "IS NOT NULL", null);
-        Neo4JAdaptor.AttributeQueryRequest aqr =
-                neo4jAdaptor.createAttributeQueryRequest("Pathway", "hasEvent", "=", subQuery);
+        ReverseAttributeQueryRequest subQuery =
+                new ReverseAttributeQueryRequest(schema, "Pathway", "hasEvent", "IS NOT NULL", null);
+        AttributeQueryRequest aqr =
+                new AttributeQueryRequest(schema, "Pathway", "hasEvent", "=", subQuery);
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
     }
@@ -678,8 +680,8 @@ public class Neo4JAdaptorTest {
 
         for (String operator : Arrays.asList("LIKE","NOT LIKE","REGEXP")) {
             String value = "NFKbeta";
-            Neo4JAdaptor.AttributeQueryRequest aqr =
-                    neo4jAdaptor.createAttributeQueryRequest("Pathway", "_displayName", "NOT LIKE", value);
+            AttributeQueryRequest aqr =
+                    new AttributeQueryRequest(schema, "Pathway", "_displayName", "NOT LIKE", value);
             Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
             assumeTrue(instances.size() > 0);
         }

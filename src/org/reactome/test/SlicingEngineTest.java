@@ -8,8 +8,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -28,7 +29,7 @@ public class SlicingEngineTest {
     
     @Test
     public void check() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", "test_slice_54a", "root", "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost", "test_slice_54a", "root", "macmysql01");
         SchemaClass eventCls = dba.fetchSchema().getClassByName(ReactomeJavaConstants.Event);
         Collection<?> events = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Event,
                                                             ReactomeJavaConstants.species,

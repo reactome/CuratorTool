@@ -14,8 +14,9 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.junit.Test;
@@ -76,7 +77,7 @@ public class ProjectFixer {
             fileAdaptor.deleteInstance(inst);
         fileAdaptor.save(dir + "DNAmethylation-140228_fixed.rtpj");
         
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -146,7 +147,7 @@ public class ProjectFixer {
     
     @Test
     public void checkPathwayParticipants() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_current_ver36", 
                                             "root",
                                             "macmysql01");
