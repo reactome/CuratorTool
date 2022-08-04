@@ -14,11 +14,9 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.Project;
+import org.gk.persistence.*;
 import org.gk.render.EntitySetAndEntitySetLink;
 import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.FlowLine;
@@ -50,7 +48,7 @@ public class PathwayDiagramSlicingHelper {
     }
     
     public void removeDoNotReleaseEvents(GKInstance diagramInstance,
-                                         Neo4JAdaptor dba) throws Exception {
+                                         PersistenceAdaptor dba) throws Exception {
         RenderablePathway diagram = diagramReader.openDiagram(diagramInstance);
         removeDoNotReleaseEvents(diagram, diagramInstance, dba);
     }
@@ -63,7 +61,7 @@ public class PathwayDiagramSlicingHelper {
      */
     public void removeDoNotReleaseEvents(RenderablePathway diagram,
                                           GKInstance diagramInstance,
-                                          Neo4JAdaptor dba) throws Exception {
+                                          PersistenceAdaptor dba) throws Exception {
         List<Renderable> components = diagram.getComponents();
         if (components == null || components.size() == 0)
             return;
@@ -157,7 +155,7 @@ public class PathwayDiagramSlicingHelper {
      */
     private void processDoNotReleaseEvent(Renderable r,
                                           Set<Renderable> toBeRemoved,
-                                          Neo4JAdaptor dba) throws Exception {
+                                          PersistenceAdaptor dba) throws Exception {
         toBeRemoved.add(r);
         if (r instanceof ProcessNode) {
             List<HyperEdge> edges = ((ProcessNode)r).getConnectedReactions();
@@ -209,7 +207,7 @@ public class PathwayDiagramSlicingHelper {
      * @throws Exception
      */
     public Set<GKInstance> loadContainedSubPathways(GKInstance diagram,
-                                                    Neo4JAdaptor dba) throws Exception {
+                                                    PersistenceAdaptor dba) throws Exception {
         Set<GKInstance> subDiagrams = new HashSet<GKInstance>();
         // Read the diagram
         loadContainedSubPathways(diagram, 
@@ -218,8 +216,8 @@ public class PathwayDiagramSlicingHelper {
         return subDiagrams;
     }
 
-    private void loadContainedSubPathways(GKInstance diagram, 
-                                          Neo4JAdaptor dba,
+    private void loadContainedSubPathways(GKInstance diagram,
+                                          PersistenceAdaptor dba,
                                           Set<GKInstance> subDiagrams) throws InvalidAttributeException, Exception {
         String xml = (String) diagram.getAttributeValue(ReactomeJavaConstants.storedATXML);
         RenderablePathway rDiagram = diagramReader.openDiagram(xml);
@@ -262,7 +260,7 @@ public class PathwayDiagramSlicingHelper {
     }
     
     protected GKInstance fetchDiagramForPathway(GKInstance pathway,
-                                                Neo4JAdaptor dba) throws Exception {
+                                                PersistenceAdaptor dba) throws Exception {
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=",
@@ -278,11 +276,11 @@ public class PathwayDiagramSlicingHelper {
      */
     @Test
     public void testRemoveDoNotReleaseEvents() throws Exception {
-        Neo4JAdaptor targetDBA = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor targetDBA = new MySQLAdaptor("localhost",
                                                   "gk_central_091112",
                                                   "root",
                                                   "macmysql01");
-        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor sourceDBA = new MySQLAdaptor("localhost",
                                                   "gk_central_091112", 
                                                   "root", 
                                                   "macmysql01");

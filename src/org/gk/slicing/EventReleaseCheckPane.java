@@ -37,8 +37,8 @@ import org.gk.database.EventPanePopupManager;
 import org.gk.database.HierarchicalEventPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.TreeUtilities;
 
@@ -263,7 +263,7 @@ class EventReleaseCheckPane extends JPanel {
         return l;
     }
     
-    public void setTopEvent(GKInstance event, Neo4JAdaptor dba) {
+    public void setTopEvent(GKInstance event, PersistenceAdaptor dba) {
         if (topEvent == event)
             return;
         this.topEvent = event;

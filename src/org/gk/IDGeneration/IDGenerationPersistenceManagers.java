@@ -3,16 +3,11 @@
  */
 package org.gk.IDGeneration;
 
-import java.awt.Component;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.util.GKApplicationUtilities;
+import org.gk.model.PersistenceAdaptor;
 
 /**
  * Maintains persistence managers for multiple, named,
@@ -72,24 +67,24 @@ public class IDGenerationPersistenceManagers {
 	 * 
 	 * @return
 	 */
-	public static Neo4JAdaptor getDatabaseAdaptor(String dbName) {
+	public static PersistenceAdaptor getPersistenceAdaptor(String dbName) {
 		IDGenerationPersistenceManager pm = getManager(dbName);
-		
+
 		if (pm==null) {
 			System.err.println("getDatabaseAdaptor: WARNING - persistence manager is null for dbName=" + dbName);
 		}
 
-		Neo4JAdaptor neo4JAdaptor = null;
+		PersistenceAdaptor dba = null;
 //		if (pm.getDBConnectInfo()==null)
-//			neo4JAdaptor = null;
+//			dba = null;
 //		else
 			try {
-				neo4JAdaptor = pm.getActiveNeo4JAdaptor(null);
+				dba = pm.getActivePersistenceAdaptor(null);
 			} catch (Exception e) {
 				System.err.println("getDatabaseAdaptor: something went wrong when trying to get dba for " + dbName);
 				e.printStackTrace();
 			}
-		
-		return neo4JAdaptor;
+
+		return dba;
 	}
 }

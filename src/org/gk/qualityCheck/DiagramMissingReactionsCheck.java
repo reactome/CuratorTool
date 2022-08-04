@@ -11,7 +11,7 @@ import javax.swing.JOptionPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.RenderablePathway;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class DiagramMissingReactionsCheck extends DiagramReactionsCheck {
     
     @Test
     public void testCheckInCommand() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");
@@ -37,7 +37,7 @@ public class DiagramMissingReactionsCheck extends DiagramReactionsCheck {
     
     @Test
     public void testCheckOneDiagram() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");

@@ -30,6 +30,8 @@ import javax.swing.table.AbstractTableModel;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -269,7 +271,7 @@ public class InstanceSelectDialog extends JDialog {
 	}
 	
 	private void browseDB() {
-		Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(this);
+		PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(this);
 		if (dba == null) {
 			JOptionPane.showMessageDialog(this,
 			                              "Cannot connect to the database.",
@@ -314,7 +316,8 @@ public class InstanceSelectDialog extends JDialog {
 		GKInstance instance = null;
 		for (int i = 0; i < list.size(); i++) {
 			instance = (GKInstance)list.get(i);
-			if (instance.getDbAdaptor() instanceof Neo4JAdaptor) {
+			PersistenceAdaptor adaptor = instance.getDbAdaptor();
+			if (adaptor instanceof Neo4JAdaptor || adaptor instanceof MySQLAdaptor) {
 				GKInstance localRef = PersistenceManager.getManager().getLocalReference(instance);
 				// Need the whole thing instead of the shell instance.
 				try {

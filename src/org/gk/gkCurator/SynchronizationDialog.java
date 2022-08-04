@@ -36,7 +36,7 @@ import org.gk.database.InstanceListPane;
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaClass;
@@ -74,7 +74,7 @@ public class SynchronizationDialog extends JDialog{
 	private boolean isCancelled;
 	// Two adaptors
 	private XMLFileAdaptor fileAdaptor;
-	private Neo4JAdaptor dbAdaptor;
+	private PersistenceAdaptor dbAdaptor;
 	// The four InstanceListPane
 	private InstanceListPane changedList;
 	private InstanceListPane newList;
@@ -101,7 +101,7 @@ public class SynchronizationDialog extends JDialog{
 
 	public SynchronizationDialog(JFrame parentFrame, 
                                  XMLFileAdaptor fileAdaptor, 
-                                 Neo4JAdaptor dbAdaptor) {
+                                 PersistenceAdaptor dbAdaptor) {
 		this(parentFrame);
 		setAdaptors(fileAdaptor, dbAdaptor);
 	}
@@ -646,7 +646,7 @@ public class SynchronizationDialog extends JDialog{
 	}
 	
 	public void setAdaptors(XMLFileAdaptor fileAdaptor,
-            Neo4JAdaptor dbAdaptor) {
+            PersistenceAdaptor dbAdaptor) {
 		setAdaptors(fileAdaptor, dbAdaptor, null);
 	}
 	
@@ -659,11 +659,11 @@ public class SynchronizationDialog extends JDialog{
 	 * will be taken instead.
 	 * 
 	 * @param fileAdaptor XMLFileAdaptor to access data from the local project
-	 * @param dbAdaptor Neo4JAdaptor to access data remotely from database
+	 * @param dbAdaptor PersistenceAdaptor to access data remotely from database
 	 * @param uncheckableList
 	 */
 	public void setAdaptors(XMLFileAdaptor fileAdaptor,
-	                        Neo4JAdaptor dbAdaptor,
+							PersistenceAdaptor dbAdaptor,
 							List uncheckableList) {
 		try {
 			this.fileAdaptor = fileAdaptor;
@@ -715,7 +715,7 @@ public class SynchronizationDialog extends JDialog{
 	 * Sideeffect: changes typeMap.
 	 */
 	private Map synchronize(final XMLFileAdaptor fileAdaptor, 
-                            final Neo4JAdaptor dbAdaptor) {
+                            final PersistenceAdaptor dbAdaptor) {
 		// Need another thread to display the progress
 		final ProgressDialog progDialog = new ProgressDialog((JFrame)getOwner());
 		progDialog.setSize(300, 180);

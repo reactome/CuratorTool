@@ -8,7 +8,8 @@ import java.util.Iterator;
 
 import org.gk.database.util.MODReactomeAnalyzer;
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
@@ -102,7 +103,7 @@ public class RiceReactomeNewProjectCreator extends MODReactomeAnalyzer {
      */
     @Test
     public void runGenerateProject() throws Exception {
-        Neo4JAdaptor dbaAdaptor = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dbaAdaptor = new MySQLAdaptor("localhost",
                                                    "test_rice_reactome_v2_111610", 
                                                    "root", 
                                                    "macmysql01");
@@ -111,7 +112,7 @@ public class RiceReactomeNewProjectCreator extends MODReactomeAnalyzer {
         setMaxDumpIEDbId(981538L);
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dbaAdaptor);
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dbaAdaptor);
         checkMODInstances();
         checkOutAsNewProject();
         String fileName = "/Users/wgm/Documents/gkteam/Liya/NewInTestRiceReactomeV2.rtpj";

@@ -10,12 +10,7 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 
 import org.gk.database.SynchronizationManager;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.model.Reference;
-import org.gk.model.Summation;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.*;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePropertyNames;
@@ -27,12 +22,12 @@ import org.gk.render.RenderablePropertyNames;
  */
 public class RenderableHandlerHelper {
     private XMLFileAdaptor fileAdaptor;
-    private Neo4JAdaptor dbAdaptor;
+    private PersistenceAdaptor dbAdaptor;
 
     public RenderableHandlerHelper() {    
     }
     
-    public void setDBAdaptor(Neo4JAdaptor dbAdaptor) {
+    public void setDBAdaptor(PersistenceAdaptor dbAdaptor) {
         this.dbAdaptor = dbAdaptor;
     }
     

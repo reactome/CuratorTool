@@ -13,7 +13,7 @@ import javax.swing.JOptionPane;
 import org.gk.database.FrameManager;
 import org.gk.database.InstanceSelectDialog;
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.GKApplicationUtilities;
@@ -66,7 +66,7 @@ public class PersonChoosingHelper {
             }
         }
         // Need to go do the database
-        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentDialog);
+        PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(parentDialog);
         if (dba == null)
             return;
         try {

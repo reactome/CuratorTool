@@ -23,8 +23,8 @@ import java.util.Properties;
 import javax.swing.*;
 
 import org.gk.database.util.DBTool;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.GKApplicationUtilities;
@@ -35,7 +35,7 @@ import org.gk.util.GKApplicationUtilities;
  */
 public class GKDatabaseBrowser extends JFrame {
 	// Connection to the database
-	private Neo4JAdaptor dba;
+	private PersistenceAdaptor dba;
 	// GUIs
 	private SchemaViewPane schemaView;
 	// A flag
@@ -57,11 +57,11 @@ public class GKDatabaseBrowser extends JFrame {
 	
 	public GKDatabaseBrowser(String host, String dbName, String port, String user, String pwd) {
 		init();
-		Neo4JAdaptor dba = (Neo4JAdaptor)PersistenceManager.getManager().getNeo4JAdaptor(
+		PersistenceAdaptor dba = PersistenceManager.getManager().getPersistenceAdaptor(
 		                         host, dbName, user, pwd, Integer.parseInt(port));
 		if (dba != null) {
 			try {
-				setNeo4JAdaptor(dba);
+				setPersistenceAdaptor(dba);
 				if (dbName != null && host != null)
 					setTitle(dbName + "@" + host + " - Schema View");
 				else
@@ -79,16 +79,16 @@ public class GKDatabaseBrowser extends JFrame {
 		}		
 	}
 	
-	public GKDatabaseBrowser(Neo4JAdaptor adaptor) {
+	public GKDatabaseBrowser(PersistenceAdaptor adaptor) {
 		this(adaptor, false, null);
 	}
 
-	public GKDatabaseBrowser(Neo4JAdaptor adaptor, boolean useShortMenu, Action dbEventViewAction) {
+	public GKDatabaseBrowser(PersistenceAdaptor adaptor, boolean useShortMenu, Action dbEventViewAction) {
 		this.useShortMenu = useShortMenu;
 		this.dbEventViewAction = dbEventViewAction;
 		init();
 		try {
-			setNeo4JAdaptor(adaptor);
+			setPersistenceAdaptor(adaptor);
 			setTitle(adaptor.getDBName() + "@" + adaptor.getDBHost() + " - Schema View");
 		}
 		catch (Exception e) {
@@ -101,16 +101,16 @@ public class GKDatabaseBrowser extends JFrame {
 		}
 	}
 	
-	private void setNeo4JAdaptor(Neo4JAdaptor adaptor) throws Exception {
+	private void setPersistenceAdaptor(PersistenceAdaptor adaptor) {
 		dba = adaptor;
 		schemaView.setPersistenceAdaptor(dba);
 	}
 	
-	public Neo4JAdaptor getNeo4JAdaptor() {
+	public PersistenceAdaptor getPersistenceAdaptor() {
 		return this.dba;
 	}
 	
-	private void getClassCounters(GKSchemaClass schemaClass, Map counterMap, Neo4JAdaptor dba)
+	private void getClassCounters(GKSchemaClass schemaClass, Map counterMap, PersistenceAdaptor dba)
 	             throws Exception {
 		long counter = dba.getClassInstanceCount(schemaClass);
 		counterMap.put(schemaClass, new Long(counter));
@@ -236,7 +236,7 @@ public class GKDatabaseBrowser extends JFrame {
 	
 	private void refresh() {
 		try {
-			dba.refresh();
+			dba.refreshCaches();
 			schemaView.refresh(dba);
 		}
 		catch(Exception e) {
@@ -397,7 +397,7 @@ public class GKDatabaseBrowser extends JFrame {
 			return;
 		}
 		PersistenceManager.getManager().setDBConnectInfo(prop);
-		Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(new JFrame());
+		PersistenceAdaptor adaptor = PersistenceManager.getManager().getActivePersistenceAdaptor(new JFrame());
 		if (adaptor == null) {
 			JOptionPane.showMessageDialog(null, "Cannot connect to the database.",
 			                              "Error", JOptionPane.ERROR_MESSAGE);

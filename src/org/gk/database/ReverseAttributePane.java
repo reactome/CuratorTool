@@ -31,6 +31,7 @@ import javax.swing.*;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaAttribute;
@@ -251,7 +252,7 @@ public class ReverseAttributePane extends JPanel {
             if (adaptor instanceof XMLFileAdaptor) { // For a local GKInstance
                 map = ((XMLFileAdaptor)adaptor).getReferrersMap(instance);
             }
-            else if (adaptor instanceof Neo4JAdaptor) {
+            else if (adaptor instanceof Neo4JAdaptor || adaptor instanceof MySQLAdaptor) {
                 map = getReferrersMapForDBInstance(instance);
             }
             if (map == null)

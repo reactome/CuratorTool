@@ -16,11 +16,9 @@ import java.util.stream.Stream;
 import org.gk.database.util.ReferencePeptideSequenceAutoFiller;
 import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.persistence.*;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.junit.Test;
@@ -31,27 +29,27 @@ import org.neo4j.driver.Transaction;
 
 /**
  * Create a local project based on some specification.
- * @author wug
  *
+ * @author wug
  */
 @SuppressWarnings("unchecked")
 public class LocalProjectCreator {
-    
+
     public LocalProjectCreator() {
     }
-    
+
     /**
      * This method is used to fix instances that have been overwriten in their modified slot.
      */
     @Test
     public void fixModifed() throws Exception {
         // Instances there to be fixed
-        Neo4JAdaptor targetDBA = new Neo4JAdaptor("",
+        PersistenceAdaptor targetDBA = new MySQLAdaptor("",
                 "gk_central",
                 "",
                 "");
         // Instances having correct modified slot values.
-        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor sourceDBA = new MySQLAdaptor("localhost",
                 "before_cov_manual_updates",
                 "",
                 "");
@@ -69,57 +67,112 @@ public class LocalProjectCreator {
         System.out.println("Total referred instances: " + touchedInstances.size());
         // Check one by one
         int totalChanged = 0;
-        Driver driver = targetDBA.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (GKInstance inst : touchedInstances) {
-                boolean isChanged = false;
-                System.out.println("Checking " + inst + "...");
-                // Set the source
-                GKInstance srcInst = sourceDBA.fetchInstance(inst.getDBID());
-                List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
-                List<Long> modifiedIds = modified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
-                List<GKInstance> sourceModified = srcInst.getAttributeValuesList(ReactomeJavaConstants.modified);
-                List<Long> sourceModifiedIds = sourceModified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
-                if (modifiedIds.equals(sourceModifiedIds)) {
-                    System.out.println("Pass: Same list of modified!");
-                    continue;
-                }
-                int originalSize = modified.size();
-                // Need to update the target instance
-                for (int i = sourceModified.size() - 1; i >= 0; i--) {
-                    Long sourceId = sourceModifiedIds.get(i);
-                    // Just in case
-                    if (modifiedIds.contains(sourceId)) {
-                        System.out.println("InstanceEdit with DB_ID has been there: " + sourceId);
+        if (targetDBA instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) targetDBA).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (GKInstance inst : touchedInstances) {
+                    boolean isChanged = false;
+                    System.out.println("Checking " + inst + "...");
+                    // Set the source
+                    GKInstance srcInst = sourceDBA.fetchInstance(inst.getDBID());
+                    List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    List<Long> modifiedIds = modified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                    List<GKInstance> sourceModified = srcInst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    List<Long> sourceModifiedIds = sourceModified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                    if (modifiedIds.equals(sourceModifiedIds)) {
+                        System.out.println("Pass: Same list of modified!");
                         continue;
                     }
-                    GKInstance targetIE = targetDBA.fetchInstance(sourceId);
-                    // Have to make sure it exists
-                    if (targetIE == null)
-                        throw new IllegalStateException("InstanceEdit for DB_ID, " + sourceId + ", cannot be found!");
-                    if (!targetIE.getSchemClass().isa(ReactomeJavaConstants.InstanceEdit)) {
-                        throw new IllegalStateException(targetIE + " is not an InstanceEdit!");
+                    int originalSize = modified.size();
+                    // Need to update the target instance
+                    for (int i = sourceModified.size() - 1; i >= 0; i--) {
+                        Long sourceId = sourceModifiedIds.get(i);
+                        // Just in case
+                        if (modifiedIds.contains(sourceId)) {
+                            System.out.println("InstanceEdit with DB_ID has been there: " + sourceId);
+                            continue;
+                        }
+                        GKInstance targetIE = targetDBA.fetchInstance(sourceId);
+                        // Have to make sure it exists
+                        if (targetIE == null)
+                            throw new IllegalStateException("InstanceEdit for DB_ID, " + sourceId + ", cannot be found!");
+                        if (!targetIE.getSchemClass().isa(ReactomeJavaConstants.InstanceEdit)) {
+                            throw new IllegalStateException(targetIE + " is not an InstanceEdit!");
+                        }
+                        modified.add(0, targetIE);
+                        isChanged = true;
                     }
-                    modified.add(0, targetIE);
-                    isChanged = true;
+                    if (!isChanged) {
+                        System.out.println("Nothing to be changed after checking.");
+                        continue;
+                    }
+                    System.out.println("Update modified by adding: " + originalSize + " -> " + modified.size());
+                    inst.setAttributeValue(ReactomeJavaConstants.modified, modified);
+                    targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                    totalChanged++;
                 }
-                if (!isChanged) {
-                    System.out.println("Nothing to be changed after checking.");
-                    continue;
-                }
-                System.out.println("Update modified by adding: " + originalSize + " -> " + modified.size());
-                inst.setAttributeValue(ReactomeJavaConstants.modified, modified);
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
-                totalChanged++;
+                tx.commit();
+                System.out.println("Total changed instance: " + totalChanged);
             }
-            tx.commit();
-            System.out.println("Total changed instance: " + totalChanged);
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) targetDBA).startTransaction();
+                for (GKInstance inst : touchedInstances) {
+                    boolean isChanged = false;
+                    System.out.println("Checking " + inst + "...");
+                    // Set the source
+                    GKInstance srcInst = sourceDBA.fetchInstance(inst.getDBID());
+                    List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    List<Long> modifiedIds = modified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                    List<GKInstance> sourceModified = srcInst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    List<Long> sourceModifiedIds = sourceModified.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+                    if (modifiedIds.equals(sourceModifiedIds)) {
+                        System.out.println("Pass: Same list of modified!");
+                        continue;
+                    }
+                    int originalSize = modified.size();
+                    // Need to update the target instance
+                    for (int i = sourceModified.size() - 1; i >= 0; i--) {
+                        Long sourceId = sourceModifiedIds.get(i);
+                        // Just in case
+                        if (modifiedIds.contains(sourceId)) {
+                            System.out.println("InstanceEdit with DB_ID has been there: " + sourceId);
+                            continue;
+                        }
+                        GKInstance targetIE = targetDBA.fetchInstance(sourceId);
+                        // Have to make sure it exists
+                        if (targetIE == null)
+                            throw new IllegalStateException("InstanceEdit for DB_ID, " + sourceId + ", cannot be found!");
+                        if (!targetIE.getSchemClass().isa(ReactomeJavaConstants.InstanceEdit)) {
+                            throw new IllegalStateException(targetIE + " is not an InstanceEdit!");
+                        }
+                        modified.add(0, targetIE);
+                        isChanged = true;
+                    }
+                    if (!isChanged) {
+                        System.out.println("Nothing to be changed after checking.");
+                        continue;
+                    }
+                    System.out.println("Update modified by adding: " + originalSize + " -> " + modified.size());
+                    inst.setAttributeValue(ReactomeJavaConstants.modified, modified);
+                    targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, null);
+                    totalChanged++;
+                }
+                ((MySQLAdaptor) targetDBA).commit();
+                System.out.println("Total changed instance: " + totalChanged);
+            } catch (Exception e) {
+                ((MySQLAdaptor) targetDBA).rollback();
+                e.printStackTrace();
+            }
         }
+
     }
-    
+
     /**
      * Fix a local project for Marc by switch species into the relatedSpecies slot.
+     *
      * @throws Exception
      */
     @Test
@@ -129,16 +182,16 @@ public class LocalProjectCreator {
         String srcFileName = dirName + "HCMV_Fix_GW.rtpj";
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         fileAdaptor.setSource(srcFileName);
-        
+
         Long dbId = 9610379L;
         GKInstance lateEvent = fileAdaptor.fetchInstance(dbId);
-        
-        Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+
+        PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
+                "gk_central",
+                "authortool",
+                "T001test");
         GKInstance dbLateEvent = dba.fetchInstance(dbId);
-        
+
         List<GKInstance> hasEvent = lateEvent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
         List<GKInstance> dbHasEvent = dbLateEvent.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
         Set<Long> dbHasEventIds = dbHasEvent.stream().map(inst -> inst.getDBID()).collect(Collectors.toSet());
@@ -164,7 +217,7 @@ public class LocalProjectCreator {
             // Remove stable id
             clone.setAttributeValue(ReactomeJavaConstants.stableIdentifier, null);
             original2clone.put(hasEventInst, clone);
-            total ++;
+            total++;
         }
         System.out.println("Total: " + total);
         // Handle the pathway diagram
@@ -185,7 +238,7 @@ public class LocalProjectCreator {
         }
         diagramofHCMVInfection.setIsDirty(true);
         fileAdaptor.addDiagramForPathwayDiagram(diagramofHCMVInfection, diagram);
-        
+
         for (int i = 0; i < hasEvent.size(); i++) {
             GKInstance hasEventInst = hasEvent.get(i);
             GKInstance clone = original2clone.get(hasEventInst);
@@ -194,26 +247,26 @@ public class LocalProjectCreator {
             hasEvent.set(i, clone);
         }
         lateEvent.setIsDirty(true);
-        
+
         fileAdaptor.save(dirName + "HCMV_Fix_GW_Fix.rtpj");
     }
-    
+
     @Test
     public void fixProject() throws Exception {
         String dirName = "/Users/wug/Documents/wgm/work/reactome/covid-19/";
         String srcFileName = dirName + "Ralf_Project_Fix.rtpj";
         String targetFileName = dirName + "Ralf_Project_Fix_1.rtpj";
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_central_2020_07_16",
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_2020_07_16",
+                "root",
+                "macmysql01");
         Long[] ieDbIds = {9695980L, 9695985L};
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         fileAdaptor.setSource(srcFileName);
         int count = 0;
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveNeo4JAdaptor(dba);
+        manager.setActivePersistenceAdaptor(dba);
         for (Long dbId : ieDbIds) {
             GKInstance ie = fileAdaptor.fetchInstance(dbId);
             Collection<GKInstance> referrers = fileAdaptor.getReferers(ie);
@@ -224,7 +277,7 @@ public class LocalProjectCreator {
                 if (dbCopy == null)
                     continue;
                 System.out.println(referrer + " -> " + dbCopy);
-                count ++;
+                count++;
                 // Need to do some fix now
                 // Flip the current DB_ID
                 referrer.setDBID(-referId);
@@ -238,7 +291,7 @@ public class LocalProjectCreator {
 //        fileAdaptor.save(targetFileName);
         System.out.println("Total wrong instances: " + count);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void removeIEInModified() throws Exception {
@@ -253,7 +306,7 @@ public class LocalProjectCreator {
         for (GKInstance inst : instances) {
             if (!inst.isDirty())
                 continue;
-            counter ++;
+            counter++;
             List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
             GKInstance lastIE = modified.get(modified.size() - 1);
             if (!lastIE.getDBID().equals(toBeRemovedID))
@@ -263,10 +316,11 @@ public class LocalProjectCreator {
         System.out.println("Total dirty instances: " + counter);
         fileAdaptor.save(targetFileName);
     }
-    
+
     /**
      * Use this method to flip DB_IDs from positive to negative. This is used to create a new curator tool
      * project for pathways orthologously predicted or coming from other sources.
+     *
      * @throws Exception
      */
     @Test
@@ -279,14 +333,14 @@ public class LocalProjectCreator {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         fileAdaptor.setSource(srcFileName, true);
         // The original database used to generate the source project
-        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
-                                                  "test_cov_inference",
-                                                  "root",
-                                                  "macmysql01");
+        PersistenceAdaptor sourceDBA = new MySQLAdaptor("localhost",
+                "test_cov_inference",
+                "root",
+                "macmysql01");
         // Have to make sure all new instances have been fully downloaded.
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveNeo4JAdaptor(sourceDBA);
+        manager.setActivePersistenceAdaptor(sourceDBA);
         while (true) {
             Collection<GKInstance> instances = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.DatabaseObject);
             boolean hasShell = false;
@@ -313,10 +367,11 @@ public class LocalProjectCreator {
         fileAdaptor.assignInstancesToDiagrams();
         fileAdaptor.save(targetFileName);
     }
-    
+
     /**
      * Reset DB_ID for local projects so that the project can be re-committed
      * into database to fix a database issue.
+     *
      * @throws Exception
      */
     @Test
@@ -335,8 +390,8 @@ public class LocalProjectCreator {
             ies.add(ie);
             Map<?, ?> refs = fileAdaptor.getReferrersMap(ie);
             refs.forEach((key, value) -> {
-               List<GKInstance> set = (List<GKInstance>) value;
-               referrers.addAll(set);
+                List<GKInstance> set = (List<GKInstance>) value;
+                referrers.addAll(set);
             });
         }
         // This number should be 58
@@ -368,18 +423,19 @@ public class LocalProjectCreator {
         String outFileName = dir + "NR1H2,3_2018_Reset.rtpj";
         fileAdaptor.save(outFileName);
     }
-    
-    private Neo4JAdaptor getDBA() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+
+    private PersistenceAdaptor getDBA() throws Exception {
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                "gk_central",
+                "authortool",
+                "T001test");
         return dba;
     }
-    
+
     /**
      * Based on a list of UniProt ids to generate a local project by pulling
      * necessary information from UniProt.
+     *
      * @throws Exception
      */
     @Test
@@ -387,49 +443,47 @@ public class LocalProjectCreator {
         String dir = "/Users/wug/Documents/wgm/work/reactome/CuratorsProjects/";
         String idFile = dir + "UniProt_HHV5Merlin_IDs_Only.txt";
         Set<String> ids = Files.lines(Paths.get(idFile))
-                               .collect(Collectors.toSet());
+                .collect(Collectors.toSet());
         System.out.println("Total ids: " + ids.size());
-        
-        Neo4JAdaptor dba = getDBA();
+
+        PersistenceAdaptor dba = getDBA();
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveNeo4JAdaptor(dba);
-        
+        manager.setActivePersistenceAdaptor(dba);
+
         // We need this species for the filler
         Long dbId = 2671791L; // Human cytomegalovirus
         GKInstance dbInst = dba.fetchInstance(dbId);
         GKInstance localInst = manager.getLocalReference(dbInst);
         manager.updateLocalFromDB(localInst, dbInst);
-        
+
         ReferencePeptideSequenceAutoFiller filler = new ReferencePeptideSequenceAutoFiller();
         filler.setPersistenceAdaptor(fileAdaptor);
-        
+
         for (String id : ids) {
             @SuppressWarnings("unchecked")
             Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
-                                                                    ReactomeJavaConstants.identifier, 
-                                                                    "=",
-                                                                    id);
+                    ReactomeJavaConstants.identifier,
+                    "=",
+                    id);
             if (c.size() == 0) {
                 // Need to pull out instances
                 System.out.println("Fetching from UniProt for " + id);
                 GKInstance instance = fileAdaptor.createNewInstance(ReactomeJavaConstants.ReferenceGeneProduct);
                 instance.setAttributeValue(ReactomeJavaConstants.identifier, id);
                 filler.process(instance);
-            }
-            else if (c.size() == 1) {
+            } else if (c.size() == 1) {
                 System.out.println(id + " is in the database!");
                 dbInst = c.stream().findFirst().get();
                 localInst = manager.getLocalReference(dbInst);
                 manager.updateLocalFromDB(localInst, dbInst);
-            }
-            else
+            } else
                 System.out.println("More than one instance for " + id);
         }
         fileAdaptor.save(dir + "HHV5Merlin_RefEntities_Marc_022118.rtpj");
     }
-    
+
     @Test
     public void generateLocalProjectForDrugs() throws Exception {
         String dir = "/Users/wug/Box Sync/Working/reactome/drug/";
@@ -440,33 +494,32 @@ public class LocalProjectCreator {
         List<Long> dbIds = new ArrayList<>();
         try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
             stream.skip(1)
-                  .map(line -> line.split("\t"))
-                  .forEach(tokens -> {
-                      if (tokens[2].startsWith(curatorName) && tokens[3].equals("yes"))
-                          dbIds.add(new Long(tokens[0]));
-                  });
+                    .map(line -> line.split("\t"))
+                    .forEach(tokens -> {
+                        if (tokens[2].startsWith(curatorName) && tokens[3].equals("yes"))
+                            dbIds.add(new Long(tokens[0]));
+                    });
         }
         System.out.println("Total DB_IDs for " + curatorName + ": " + dbIds.size());
-        
+
         String outDirName = "/Users/wug/Documents/wgm/work/reactome/drugs/";
         String outFileName = outDirName + curatorName + "_Drug_081317.rtpj";
         createLocalProject(dbIds, outFileName);
     }
-    
+
     private void createLocalProject(Collection<Long> dbIds,
                                     String fileName) throws Exception {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        manager.setActiveNeo4JAdaptor(dba);
+        manager.setActivePersistenceAdaptor(dba);
         dbIds.forEach(dbId -> {
             try {
                 GKInstance dbInst = dba.fetchInstance(dbId);
                 GKInstance localInst = manager.getLocalReference(dbInst);
                 manager.updateLocalFromDB(localInst, dbInst);
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });

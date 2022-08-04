@@ -7,8 +7,12 @@ import java.util.*;
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.AttributeQueryRequest;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.QueryRequest;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
@@ -42,14 +46,20 @@ public class ClearDuplicatedOldIdentifiers {
         int port = Integer.valueOf(args[4]);
         String firstName = args[5];
         String lastName = args[6];
-        Neo4JAdaptor adapter = new Neo4JAdaptor(host, database, username, password, port);
+        PersistenceAdaptor adapter;
+        if (args[7].equals("-neo4J")) {
+            adapter = new Neo4JAdaptor(host, database, username, password, port);
+        } else {
+            adapter = new MySQLAdaptor(host, database, username, password, port);
+        }
         DefaultInstanceEditHelper helper = new DefaultInstanceEditHelper();
         GKInstance person = null;
 
         try {
-            List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
-            query.add(adapter.createAttributeQueryRequest("Person", "firstname", "=", firstName));
-            query.add(adapter.createAttributeQueryRequest("Person", "surname", "=", lastName));
+            List<QueryRequest> query = new ArrayList();
+            Schema schema = adapter.getSchema();
+            query.add(new AttributeQueryRequest(schema, "Person", "firstname", "=", firstName));
+            query.add(new AttributeQueryRequest(schema, "Person", "surname", "=", lastName));
             Collection instances = adapter.fetchInstance(query);
             if (instances.iterator().hasNext()) {
                 person = (GKInstance) instances.iterator().next();
@@ -57,29 +67,50 @@ public class ClearDuplicatedOldIdentifiers {
             if (person == null) {
                 throw new Error("No person could be found! Check your search criteria and try again.");
             }
-
             GKInstance instanceEdit = helper.createDefaultInstanceEdit(person);
             instanceEdit.setAttributeValue(ReactomeJavaConstants.note, "oldIdentifier de-duplication");
             instanceEdit.addAttributeValue(ReactomeJavaConstants.dateTime, GKApplicationUtilities.getDateTime());
             String displayName = InstanceDisplayNameGenerator.generateDisplayName(instanceEdit);
             instanceEdit.setAttributeValue(ReactomeJavaConstants._displayName, displayName);
-            adapter.txStoreInstance(instanceEdit);
 
-            for (Map<String, Object> stableId : adapter.fetchStableIdentifiersWithDuplicateDBIds()) {
-                Long dbId = Long.parseLong(stableId.get(Schema.DB_ID_NAME).toString());
-                String identifier = stableId.get("identifier").toString();
-                String oldIdentifier = stableId.get(OLD_IDENTIFIER).toString();
-                try {
-                    GKInstance stableIdentifierInstance = adapter.fetchInstance(Long.valueOf(dbId));
-                    System.out.println("StableIdentifier db_id: " + dbId + " identifier: " +
-                            identifier + " oldIdentifier: " +
-                            oldIdentifier);
+            if (adapter instanceof Neo4JAdaptor) {
+                adapter.txStoreInstance(instanceEdit);
+                for (Map<String, Object> stableId : ((Neo4JAdaptor) adapter).fetchStableIdentifiersWithDuplicateDBIds()) {
+                    Long dbId = Long.parseLong(stableId.get(Schema.DB_ID_NAME).toString());
+                    String identifier = stableId.get("identifier").toString();
+                    String oldIdentifier = stableId.get(OLD_IDENTIFIER).toString();
+                    try {
+                        GKInstance stableIdentifierInstance = adapter.fetchInstance(Long.valueOf(dbId));
+                        System.out.println("StableIdentifier db_id: " + dbId + " identifier: " +
+                                identifier + " oldIdentifier: " +
+                                oldIdentifier);
+                        // clear the value in the oldIdentifier field. I wonder why oldIdentifier isn't in ReactomeJavaConstants?
+                        setOldIdentifier(adapter, instanceEdit, dbId, null, stableIdentifierInstance);
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                adapter.storeInstance(instanceEdit, null);
+                String queryString = "select StableIdentifier.* "
+                        + " from StableIdentifier "
+                        + " inner join ( "
+                        + " select count(db_id), StableIdentifier.oldIdentifier "
+                        + " from StableIdentifier "
+                        + " where oldIdentifier is not null "
+                        + " group by StableIdentifier.oldIdentifier "
+                        + " having count(db_id) > 1) as subq "
+                        + " on subq.oldIdentifier = StableIdentifier.oldIdentifier "
+                        + " order by StableIdentifier.oldIdentifier, StableIdentifier.identifier;";
+                ResultSet results = ((MySQLAdaptor) adapter).executeQuery(queryString, null);
+                while (results.next()) {
+                    Long db_id = results.getLong("db_id");
+                    GKInstance stableIdentifierInstance = adapter.fetchInstance(Long.valueOf(db_id));
+                    System.out.println("StableIdentifier db_id: " + db_id + " identifier: " + results.getString("identifier") + " oldIdentifier: " + results.getString(OLD_IDENTIFIER));
                     // clear the value in the oldIdentifier field. I wonder why oldIdentifier isn't in ReactomeJavaConstants?
-                    setOldIdentifier(adapter, instanceEdit, dbId, null, stableIdentifierInstance);
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    setOldIdentifier(adapter, instanceEdit, db_id, null, stableIdentifierInstance);
                 }
             }
 
@@ -101,20 +132,24 @@ public class ClearDuplicatedOldIdentifiers {
             GKInstance inst3 = adapter.fetchInstance(db_id);
             oldIdentifierToUse = "REACT_267875";
             setOldIdentifier(adapter, instanceEdit, db_id, oldIdentifierToUse, inst3);
-        } catch (InvalidAttributeException e1) {
+        } catch (
+                InvalidAttributeException e1) {
             e1.printStackTrace();
             throw new Error(e1);
-        } catch (InvalidAttributeValueException e1) {
+        } catch (
+                InvalidAttributeValueException e1) {
             e1.printStackTrace();
             throw new Error(e1);
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             e.printStackTrace();
             throw new Error(e);
         }
 
         try {
             adapter.cleanUp();
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             e.printStackTrace();
             throw new Error(e);
         }
@@ -134,7 +169,7 @@ public class ClearDuplicatedOldIdentifiers {
      * @throws InvalidAttributeValueException
      * @throws Exception
      */
-    private static void setOldIdentifier(Neo4JAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, GKInstance inst)
+    private static void setOldIdentifier(PersistenceAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, GKInstance inst)
             throws InvalidAttributeException, InvalidAttributeValueException, Exception {
         setOldIdentifier(adapter, instanceEdit, db_id, oldIdentifierToUse, null, inst);
     }
@@ -152,7 +187,7 @@ public class ClearDuplicatedOldIdentifiers {
      * @throws InvalidAttributeValueException
      * @throws Exception
      */
-    private static void setOldIdentifier(Neo4JAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, String oldIdentifierVersionToUse, GKInstance inst)
+    private static void setOldIdentifier(PersistenceAdaptor adapter, GKInstance instanceEdit, Long db_id, String oldIdentifierToUse, String oldIdentifierVersionToUse, GKInstance inst)
             throws InvalidAttributeException, InvalidAttributeValueException, Exception {
         //Set the oldIdentifier and oldIdentifierVersion
         inst.setAttributeValue(OLD_IDENTIFIER_VERSION, oldIdentifierVersionToUse);
@@ -160,14 +195,22 @@ public class ClearDuplicatedOldIdentifiers {
         //Load instance edit history into memory first, so the "addAttributeValue" call doesn't wipe out history.
         inst.getAttributeValuesList(ReactomeJavaConstants.modified);
         inst.addAttributeValue(ReactomeJavaConstants.modified, instanceEdit);
-        Driver driver = adapter.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(adapter.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER_VERSION, tx);
-            adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER, tx);
-            adapter.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
-            tx.commit();
-            System.out.println("updated " + db_id);
+        if (adapter instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) adapter).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(adapter.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER_VERSION, tx);
+                adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER, tx);
+                adapter.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                tx.commit();
+            }
+        } else {
+            // MySQL
+            adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER_VERSION, null);
+            adapter.updateInstanceAttribute(inst, OLD_IDENTIFIER, null);
+            adapter.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, null);
         }
+        System.out.println("updated " + db_id);
+
     }
 }

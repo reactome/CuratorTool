@@ -6,8 +6,8 @@ package org.gk.IDGeneration;
 import java.util.Properties;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This customized JPane for db connection info.
@@ -97,7 +97,7 @@ public class ReleasesDBConnectionPane extends DBConnectionPane {
 		if (release!=null && simpleProp!=null) {
 			try {
 				GKInstance dbParams = (GKInstance)release.getAttributeValue(dbParamsAttributeName);
-				Neo4JAdaptor instanceDatabaseDba = IdentifierDatabase.getDba();
+				PersistenceAdaptor instanceDatabaseDba = IdentifierDatabase.getDba();
 				if (dbParams==null) {
 					// Insert a new DbParams instance, if necessary
 					dbParams = new GKInstance();

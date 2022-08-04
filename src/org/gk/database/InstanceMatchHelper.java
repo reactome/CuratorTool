@@ -44,7 +44,7 @@ import javax.swing.event.ListSelectionListener;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.SchemaClass;
@@ -77,11 +77,11 @@ public class InstanceMatchHelper {
      * @param parentDialog Window GUI to display messages
      */
     public void matchInstanceInDB(GKInstance localInstance, Window parentDialog) {
-        Neo4JAdaptor dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentDialog);
-        if (dbAdaptor == null)
-            return;
         Collection matchedInstances = null;
         try {
+            PersistenceAdaptor dbAdaptor = PersistenceManager.getManager().getActivePersistenceAdaptor(parentDialog);
+            if (dbAdaptor == null)
+                return;
             matchedInstances = dbAdaptor.fetchIdenticalInstances(localInstance);
         }
         catch (Exception e) {
@@ -288,7 +288,7 @@ public class InstanceMatchHelper {
      * @param parentDialog
      */
     boolean checkMatchedInstances(Set localSet, 
-                                  Neo4JAdaptor dbAdaptor,
+                                  PersistenceAdaptor dbAdaptor,
                                   XMLFileAdaptor fileAdaptor,
                                   Window parentDialog) {
         if (localSet == null || localSet.size() == 0)

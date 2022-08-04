@@ -18,10 +18,7 @@ import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathwaylayout.PathwayDiagramGeneratorViaAT;
 import org.gk.pathwaylayout.PredictedPathwayDiagramGeneratorFromDB;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.persistence.*;
 import org.gk.render.EntitySetAndEntitySetLink;
 import org.gk.render.EntitySetAndMemberLink;
 import org.gk.render.Node;
@@ -40,59 +37,68 @@ import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to test drawing between EntitySet and its members.
- * @author wgm
  *
+ * @author wgm
  */
 public class ELVMemberAndSetLinkTest {
-    private Neo4JAdaptor dba;
-    
+    private PersistenceAdaptor dba;
+
     public ELVMemberAndSetLinkTest() {
     }
-    
-    public Neo4JAdaptor getDBA() throws Exception {
+
+    public PersistenceAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new Neo4JAdaptor("localhost",
-                                   "gk_central_071712",
-                                   "root",
-                                   "macmysql01");
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_071712",
+                    "root",
+                    "macmysql01");
         }
         return dba;
     }
-    
-    public void setDBA(Neo4JAdaptor dba) {
+
+    public void setDBA(PersistenceAdaptor dba) {
         this.dba = dba;
     }
-    
+
     public static void main(String[] args) {
         if (args.length < 4) {
-            System.err.println("Run as java -Xmx2048m dbHost dbName dbUser dbPwd");
+            System.err.println("Run as java -Xmx2048m dbHost dbName dbUser dbPwd use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(1);
         }
         ELVMemberAndSetLinkTest runner = new ELVMemberAndSetLinkTest();
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
-                                                args[1], 
-                                                args[2],
-                                                args[3]);
+            PersistenceAdaptor dba = null;
+            boolean useNeo4J = Boolean.parseBoolean(args[4]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
+            else
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
             runner.setDBA(dba);
 //            runner.updateDiagramsInDb();
             runner.updateDiagramsForSetSetLinksInDb();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     /**
-     * Because of a bug in method updateDbDiagram(), the original values in the 
+     * Because of a bug in method updateDbDiagram(), the original values in the
      * modified slot has been wiped out. This method is used to fix this problem
      * by using a back-up gk_central database.
+     *
      * @throws Exception
      */
     @Test
     public void fixModifediAttributeValues() throws Exception {
         String dirName = "/Users/gwu/Documents/wgm/work/reactome/";
-        String[] fileNames = new String[] {
+        String[] fileNames = new String[]{
                 "OutputFromAddingLinksBetweenCandidateSetsAndCandidates.txt",
                 "OutputFromAddSetSetLinks.txt"
         };
@@ -103,58 +109,104 @@ public class ELVMemberAndSetLinkTest {
         }
         System.out.println("Total PDs: " + dbIds.size());
         // Original database
-        Neo4JAdaptor srcDBA = new Neo4JAdaptor("reactomedev.oicr.on.ca",
-                                               "test_gk_central_041112",
-                                               "authortool", 
-                                               "T001test");
+        PersistenceAdaptor srcDBA = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                "test_gk_central_041112",
+                "authortool",
+                "T001test");
         // Current database
-        Neo4JAdaptor targetDBA = new Neo4JAdaptor("reactomedev.oicr.on.ca",
-                                                  "gk_central",
-                                                  "authortool", 
-                                                  "T001test");
+        PersistenceAdaptor targetDBA = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                "gk_central",
+                "authortool",
+                "T001test");
         int count = 0;
-        Driver driver = targetDBA.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (Long dbId : dbIds) {
-                GKInstance srcPd = srcDBA.fetchInstance(dbId);
-                List<?> srcModified = srcPd.getAttributeValuesList(ReactomeJavaConstants.modified);
-                GKInstance targetPd = targetDBA.fetchInstance(dbId);
-                List<GKInstance> targetModified = targetPd.getAttributeValuesList(ReactomeJavaConstants.modified);
-                // Compare these two modified attributes
-                if (srcModified != null && srcModified.size() > 0) {
-                    System.out.println("Need to be fixed: " + targetPd);
-                    count ++;
-                    // Need to copy the src modified values into the target modified values
-                    for (Object obj : srcModified) {
-                        GKInstance srcIE = (GKInstance) obj;
-                        GKInstance targetIE = targetDBA.fetchInstance(srcIE.getDBID());
-                        if (targetIE == null) {
-                            throw new IllegalStateException(targetIE + " cannot be found in the current DB!");
+        if (targetDBA instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) targetDBA).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (Long dbId : dbIds) {
+                    GKInstance srcPd = srcDBA.fetchInstance(dbId);
+                    List<?> srcModified = srcPd.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    GKInstance targetPd = targetDBA.fetchInstance(dbId);
+                    List<GKInstance> targetModified = targetPd.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    // Compare these two modified attributes
+                    if (srcModified != null && srcModified.size() > 0) {
+                        System.out.println("Need to be fixed: " + targetPd);
+                        count++;
+                        // Need to copy the src modified values into the target modified values
+                        for (Object obj : srcModified) {
+                            GKInstance srcIE = (GKInstance) obj;
+                            GKInstance targetIE = targetDBA.fetchInstance(srcIE.getDBID());
+                            if (targetIE == null) {
+                                throw new IllegalStateException(targetIE + " cannot be found in the current DB!");
+                            }
+                            if (targetModified.contains(targetIE)) {
+                                throw new IllegalStateException(targetIE + " is in the target modified slot already!");
+                            }
+                            targetModified.add(targetIE);
                         }
-                        if (targetModified.contains(targetIE)) {
-                            throw new IllegalStateException(targetIE + " is in the target modified slot already!");
-                        }
-                        targetModified.add(targetIE);
+                        // Need to sort it
+                        Collections.sort(targetModified, new Comparator<GKInstance>() {
+                            public int compare(GKInstance ie1, GKInstance ie2) {
+                                return ie1.getDBID().compareTo(ie2.getDBID());
+                            }
+                        });
+                        targetPd.setAttributeValue(ReactomeJavaConstants.modified,
+                                targetModified);
+                        targetDBA.updateInstanceAttribute(targetPd,
+                                ReactomeJavaConstants.modified, tx);
+                        System.out.println("Total target modified slots: " + targetModified.size());
                     }
-                    // Need to sort it
-                    Collections.sort(targetModified, new Comparator<GKInstance>() {
-                        public int compare(GKInstance ie1, GKInstance ie2) {
-                            return ie1.getDBID().compareTo(ie2.getDBID());
-                        }
-                    });
-                    targetPd.setAttributeValue(ReactomeJavaConstants.modified,
-                                               targetModified);
-                    targetDBA.updateInstanceAttribute(targetPd,
-                                                      ReactomeJavaConstants.modified, tx);
-                    System.out.println("Total target modified slots: " + targetModified.size());
                 }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) targetDBA).startTransaction();
+                for (Long dbId : dbIds) {
+                    GKInstance srcPd = srcDBA.fetchInstance(dbId);
+                    List<?> srcModified = srcPd.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    GKInstance targetPd = targetDBA.fetchInstance(dbId);
+                    List<GKInstance> targetModified = targetPd.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    // Compare these two modified attributes
+                    if (srcModified != null && srcModified.size() > 0) {
+                        System.out.println("Need to be fixed: " + targetPd);
+                        count ++;
+                        // Need to copy the src modified values into the target modified values
+                        for (Object obj : srcModified) {
+                            GKInstance srcIE = (GKInstance) obj;
+                            GKInstance targetIE = targetDBA.fetchInstance(srcIE.getDBID());
+                            if (targetIE == null) {
+                                throw new IllegalStateException(targetIE + " cannot be found in the current DB!");
+                            }
+                            if (targetModified.contains(targetIE)) {
+                                throw new IllegalStateException(targetIE + " is in the target modified slot already!");
+                            }
+                            targetModified.add(targetIE);
+                        }
+                        // Need to sort it
+                        Collections.sort(targetModified, new Comparator<GKInstance>() {
+                            public int compare(GKInstance ie1, GKInstance ie2) {
+                                return ie1.getDBID().compareTo(ie2.getDBID());
+                            }
+                        });
+                        targetPd.setAttributeValue(ReactomeJavaConstants.modified,
+                                targetModified);
+                        targetDBA.updateInstanceAttribute(targetPd,
+                                ReactomeJavaConstants.modified, null);
+                        System.out.println("Total target modified slots: " + targetModified.size());
+                    }
+                }
+                ((MySQLAdaptor) targetDBA).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) targetDBA).rollback();
+                throw e;
+            }
         }
         System.out.println("Total fixes: " + count);
     }
-    
+
     private Set<Long> grepPDIds(String fileName) throws Exception {
         Set<Long> dbIds = new HashSet<Long>();
         FileUtilities fu = new FileUtilities();
@@ -172,70 +224,116 @@ public class ELVMemberAndSetLinkTest {
         fu.close();
         return dbIds;
     }
-    
+
     /**
-     * This method is used to update diagrams in gk_central to add links among EntitySets that 
+     * This method is used to update diagrams in gk_central to add links among EntitySets that
      * share members.
+     *
      * @throws Exception
      */
     public void updateDiagramsForSetSetLinksInDb() throws Exception {
         // Get the database
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         InstanceUtilities.sortInstances(list);
-        
+
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         DiagramGKBWriter diagramWriter = new DiagramGKBWriter();
         Map<Long, List<Renderable>> dbIdToObject = new HashMap<Long, List<Renderable>>();
         Set<GKInstance> entitySets = new HashSet<GKInstance>();
         int count = 0;
         // The following is used for updating
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance newIE = createDefaultIE(dba, tx);
-            System.out.println("Default IE: " + newIE);
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance newIE = createDefaultIE(dba, tx);
+                System.out.println("Default IE: " + newIE);
 
-            for (GKInstance pd : list) {
+                for (GKInstance pd : list) {
 //                System.out.println("Working on " + pd);
-                // Just a quick check
-                String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
-                if (xml == null)
-                    continue;
-                //            System.out.println("Checking " + pd + "...");
-                RenderablePathway diagram = diagramReader.openDiagram(pd);
-                RenderableRegistry.getRegistry().open(diagram);
-                checkInstancesInDiagram(dba,
-                        diagram,
-                        dbIdToObject,
-                        entitySets);
-                int addedLinks = addSetSetLinks(dbIdToObject,
-                        entitySets,
-                        diagram);
-                if (addedLinks > 0) {
-                    // Need to reset the XML
-                    updateDbDiagram(dba,
-                            diagramWriter,
-                            newIE,
-                            pd,
-                            diagram, tx);
-                    count++;
-                    System.out.println(count + ": " + pd + " (" + addedLinks + " lines).\n");
+                    // Just a quick check
+                    String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                    if (xml == null)
+                        continue;
+                    //            System.out.println("Checking " + pd + "...");
+                    RenderablePathway diagram = diagramReader.openDiagram(pd);
+                    RenderableRegistry.getRegistry().open(diagram);
+                    checkInstancesInDiagram(dba,
+                            diagram,
+                            dbIdToObject,
+                            entitySets);
+                    int addedLinks = addSetSetLinks(dbIdToObject,
+                            entitySets,
+                            diagram);
+                    if (addedLinks > 0) {
+                        // Need to reset the XML
+                        updateDbDiagram(dba,
+                                diagramWriter,
+                                newIE,
+                                pd,
+                                diagram, tx);
+                        count++;
+                        System.out.println(count + ": " + pd + " (" + addedLinks + " lines).\n");
+                    }
+                    dbIdToObject.clear();
+                    entitySets.clear();
                 }
-                dbIdToObject.clear();
-                entitySets.clear();
+                System.out.println("Total Pathway Diagram changed: " + count);
+                tx.commit();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            System.out.println("Total Pathway Diagram changed: " + count);
-            tx.commit();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                GKInstance newIE = createDefaultIE(dba, null);
+                System.out.println("Default IE: " + newIE);
+
+                for (GKInstance pd : list) {
+//                System.out.println("Working on " + pd);
+                    // Just a quick check
+                    String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                    if (xml == null)
+                        continue;
+                    //            System.out.println("Checking " + pd + "...");
+                    RenderablePathway diagram = diagramReader.openDiagram(pd);
+                    RenderableRegistry.getRegistry().open(diagram);
+                    checkInstancesInDiagram(dba,
+                            diagram,
+                            dbIdToObject,
+                            entitySets);
+                    int addedLinks = addSetSetLinks(dbIdToObject,
+                            entitySets,
+                            diagram);
+                    if (addedLinks > 0) {
+                        // Need to reset the XML
+                        updateDbDiagram(dba,
+                                diagramWriter,
+                                newIE,
+                                pd,
+                                diagram, null);
+                        count ++;
+                        System.out.println(count + ": " + pd + " (" + addedLinks + " lines).\n");
+                    }
+                    dbIdToObject.clear();
+                    entitySets.clear();
+                }
+                System.out.println("Total Pathway Diagram changed: " + count);
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                e.printStackTrace();
+            }
         }
     }
 
-    private void updateDbDiagram(Neo4JAdaptor dba,
+    private void updateDbDiagram(PersistenceAdaptor dba,
                                  DiagramGKBWriter diagramWriter,
-                                 GKInstance newIE, 
+                                 GKInstance newIE,
                                  GKInstance pd,
                                  RenderablePathway diagram,
                                  Transaction tx) throws Exception {
@@ -248,10 +346,11 @@ public class ELVMemberAndSetLinkTest {
         dba.updateInstanceAttribute(pd, ReactomeJavaConstants.storedATXML, tx);
         dba.updateInstanceAttribute(pd, ReactomeJavaConstants.modified, tx);
     }
-    
+
     /**
-     * This method is used to add EntitySetAndMemberLinks directly to PathwayDiagram in 
+     * This method is used to add EntitySetAndMemberLinks directly to PathwayDiagram in
      * a database.
+     *
      * @throws Exception
      */
     @Test
@@ -269,7 +368,7 @@ public class ELVMemberAndSetLinkTest {
         Long dbIds[] = new Long[]{};
         List<Long> escapeList = Arrays.asList(dbIds);
         // Get the database
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         DiagramGKBWriter diagramWriter = new DiagramGKBWriter();
@@ -277,80 +376,149 @@ public class ELVMemberAndSetLinkTest {
         Set<GKInstance> entitySets = new HashSet<GKInstance>();
         int count = 1;
         // The following is used for updating
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            // Set up default IE
-            GKInstance newIE = createDefaultIE(dba, tx);
-            System.out.println("Default IE: " + newIE);
-            
-            for (Iterator<?> it = c.iterator(); it.hasNext();) {
-                GKInstance pd = (GKInstance) it.next();
-                if (escapeList.contains(pd.getDBID()))
-                    continue; // Escape these PathwayDiagram instances.
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                // Set up default IE
+                GKInstance newIE = createDefaultIE(dba, tx);
+                System.out.println("Default IE: " + newIE);
+
+                for (Iterator<?> it = c.iterator(); it.hasNext(); ) {
+                    GKInstance pd = (GKInstance) it.next();
+                    if (escapeList.contains(pd.getDBID()))
+                        continue; // Escape these PathwayDiagram instances.
 //                System.out.println("Working on " + pd);
-                // Just a quick check
-                String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
-                if (xml == null)
-                    continue;
-                //            System.out.println("Checking " + pd + "...");
-                RenderablePathway diagram = diagramReader.openDiagram(pd);
-                RenderableRegistry.getRegistry().open(diagram);
-                checkInstancesInDiagram(dba, 
-                                        diagram,
-                                        dbIdToObject,
-                                        entitySets);
-                boolean isChanged = false;
-                for (GKInstance set : entitySets) {
-                    List<Renderable> rSets = dbIdToObject.get(set.getDBID());
+                    // Just a quick check
+                    String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                    if (xml == null)
+                        continue;
+                    //            System.out.println("Checking " + pd + "...");
+                    RenderablePathway diagram = diagramReader.openDiagram(pd);
+                    RenderableRegistry.getRegistry().open(diagram);
+                    checkInstancesInDiagram(dba,
+                            diagram,
+                            dbIdToObject,
+                            entitySets);
+                    boolean isChanged = false;
+                    for (GKInstance set : entitySets) {
+                        List<Renderable> rSets = dbIdToObject.get(set.getDBID());
 //                    List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasMember);
-                    // These statements are used to add links between CandidateSet and its candidates
-                    if (!set.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasCandidate))
-                        continue;
-                    List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasCandidate);
-                    if (members == null || members.size() == 0)
-                        continue;
-                    for (Renderable rSet : rSets) {
-                        for (Object obj : members) {
-                            GKInstance member = (GKInstance) obj;
-                            List<Renderable> rMembers = dbIdToObject.get(member.getDBID());
-                            if (rMembers == null || rMembers.size() == 0)
-                                continue;
-                            // Need to add links
-                            if (!isChanged) {
-                                System.out.println(count + ": " + pd);
-                                isChanged = true;
-                                count++;
-                            }
-                            for (Renderable rMember : rMembers) {
-                                addEntitySetAndMemberLink(diagram, 
-                                                          rSet,
-                                                          rMember);
+                        // These statements are used to add links between CandidateSet and its candidates
+                        if (!set.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasCandidate))
+                            continue;
+                        List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasCandidate);
+                        if (members == null || members.size() == 0)
+                            continue;
+                        for (Renderable rSet : rSets) {
+                            for (Object obj : members) {
+                                GKInstance member = (GKInstance) obj;
+                                List<Renderable> rMembers = dbIdToObject.get(member.getDBID());
+                                if (rMembers == null || rMembers.size() == 0)
+                                    continue;
+                                // Need to add links
+                                if (!isChanged) {
+                                    System.out.println(count + ": " + pd);
+                                    isChanged = true;
+                                    count++;
+                                }
+                                for (Renderable rMember : rMembers) {
+                                    addEntitySetAndMemberLink(diagram,
+                                            rSet,
+                                            rMember);
+                                }
                             }
                         }
                     }
+                    if (isChanged) {
+                        updateDbDiagram(dba, diagramWriter, newIE, pd,
+                                diagram, tx);
+                    }
+                    dbIdToObject.clear();
+                    entitySets.clear();
                 }
-                if (isChanged) {
-                    updateDbDiagram(dba, diagramWriter, newIE, pd,
-                                    diagram, tx);
-                }
-                dbIdToObject.clear();
-                entitySets.clear();
+                System.out.println("Total Pathway Diagram changed: " + (count - 1));
+                tx.commit();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            System.out.println("Total Pathway Diagram changed: " + (count - 1));
-            tx.commit();
-        }
-        catch(Exception e) {
-            e.printStackTrace();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                // Set up default IE
+                GKInstance newIE = createDefaultIE(dba, null);
+                System.out.println("Default IE: " + newIE);
+
+                for (Iterator<?> it = c.iterator(); it.hasNext();) {
+                    GKInstance pd = (GKInstance) it.next();
+                    if (escapeList.contains(pd.getDBID()))
+                        continue; // Escape these PathwayDiagram instances.
+//                System.out.println("Working on " + pd);
+                    // Just a quick check
+                    String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                    if (xml == null)
+                        continue;
+                    //            System.out.println("Checking " + pd + "...");
+                    RenderablePathway diagram = diagramReader.openDiagram(pd);
+                    RenderableRegistry.getRegistry().open(diagram);
+                    checkInstancesInDiagram(dba,
+                            diagram,
+                            dbIdToObject,
+                            entitySets);
+                    boolean isChanged = false;
+                    for (GKInstance set : entitySets) {
+                        List<Renderable> rSets = dbIdToObject.get(set.getDBID());
+//                    List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasMember);
+                        // These statements are used to add links between CandidateSet and its candidates
+                        if (!set.getSchemClass().isValidAttribute(ReactomeJavaConstants.hasCandidate))
+                            continue;
+                        List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasCandidate);
+                        if (members == null || members.size() == 0)
+                            continue;
+                        for (Renderable rSet : rSets) {
+                            for (Object obj : members) {
+                                GKInstance member = (GKInstance) obj;
+                                List<Renderable> rMembers = dbIdToObject.get(member.getDBID());
+                                if (rMembers == null || rMembers.size() == 0)
+                                    continue;
+                                // Need to add links
+                                if (!isChanged) {
+                                    System.out.println(count + ": " + pd);
+                                    isChanged = true;
+                                    count++;
+                                }
+                                for (Renderable rMember : rMembers) {
+                                    addEntitySetAndMemberLink(diagram,
+                                            rSet,
+                                            rMember);
+                                }
+                            }
+                        }
+                    }
+                    if (isChanged) {
+                        updateDbDiagram(dba, diagramWriter, newIE, pd,
+                                diagram, null);
+                    }
+                    dbIdToObject.clear();
+                    entitySets.clear();
+                }
+                System.out.println("Total Pathway Diagram changed: " + (count - 1));
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                e.printStackTrace();
+            }
         }
     }
 
-    private GKInstance createDefaultIE(Neo4JAdaptor dba, Transaction tx) throws Exception,
+    private GKInstance createDefaultIE(PersistenceAdaptor dba, Transaction tx) throws Exception,
             InvalidAttributeException, InvalidAttributeValueException {
         Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
         return ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
     }
-    
+
     @Test
     public void checkDigramsForAddingSetSetLink() throws Exception {
         final PopupMenuManager manager = new PopupMenuManager(null);
@@ -359,14 +527,14 @@ public class ELVMemberAndSetLinkTest {
             public int addLinks(Map<Long, List<Renderable>> idToNodes,
                                 Set<GKInstance> entitySets,
                                 RenderablePathway diagram) throws Exception {
-                return addSetSetLinks(idToNodes, 
-                                      entitySets,
-                                      diagram);
+                return addSetSetLinks(idToNodes,
+                        entitySets,
+                        diagram);
             }
         };
         addLinksForEntitySets(addLinks, true);
     }
-    
+
     private void addEntitySetEntitySetLink(GKInstance set1,
                                            GKInstance set2,
                                            Map<Long, List<Renderable>> idToNodes,
@@ -376,17 +544,17 @@ public class ELVMemberAndSetLinkTest {
         for (Renderable node1 : nodes1) {
             for (Renderable node2 : nodes2) {
                 EntitySetAndEntitySetLink flowLine = new EntitySetAndEntitySetLink();
-                flowLine.setEntitySets((Node)node1, (Node)node2);
+                flowLine.setEntitySets((Node) node1, (Node) node2);
                 diagram.addComponent(flowLine);
                 flowLine.setContainer(diagram);
                 flowLine.layout();
-                System.out.println("Creating set and set link: " + node1.getDisplayName() + 
-                                   " - " + node2.getDisplayName());
+                System.out.println("Creating set and set link: " + node1.getDisplayName() +
+                        " - " + node2.getDisplayName());
             }
         }
-        
+
     }
-    
+
     private int addSetSetLinks(Map<Long, List<Renderable>> idToNodes,
                                Set<GKInstance> entitySets,
                                RenderablePathway diagram) throws Exception {
@@ -394,19 +562,19 @@ public class ELVMemberAndSetLinkTest {
         List<GKInstance> list = new ArrayList<GKInstance>(entitySets);
         for (int i = 0; i < list.size() - 1; i++) {
             GKInstance set1 = list.get(i);
-            Set<GKInstance> members1 = InstanceUtilities.getContainedInstances(set1, 
-                                                                               ReactomeJavaConstants.hasMember,
-                                                                               ReactomeJavaConstants.hasCandidate);
+            Set<GKInstance> members1 = InstanceUtilities.getContainedInstances(set1,
+                    ReactomeJavaConstants.hasMember,
+                    ReactomeJavaConstants.hasCandidate);
             List<Renderable> nodes1 = idToNodes.get(set1.getDBID());
             for (int j = i + 1; j < list.size(); j++) {
                 GKInstance set2 = list.get(j);
                 // Make sure they are not self contained
                 if (InstanceUtilities.isEntitySetAndMember(set1, set2) ||
-                    InstanceUtilities.isEntitySetAndMember(set2, set1))
+                        InstanceUtilities.isEntitySetAndMember(set2, set1))
                     continue; // Should be escaped!
-                Set<GKInstance> members2 = InstanceUtilities.getContainedInstances(set2, 
-                                                                                   ReactomeJavaConstants.hasMember,
-                                                                                   ReactomeJavaConstants.hasCandidate);
+                Set<GKInstance> members2 = InstanceUtilities.getContainedInstances(set2,
+                        ReactomeJavaConstants.hasMember,
+                        ReactomeJavaConstants.hasCandidate);
                 // Check if there any sharing
                 members2.retainAll(members1);
                 filterSharedMembers(members2);
@@ -420,18 +588,19 @@ public class ELVMemberAndSetLinkTest {
         }
         return count;
     }
-    
+
     private void filterSharedMembers(Set<GKInstance> members) {
-        for (Iterator<GKInstance> it = members.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = members.iterator(); it.hasNext(); ) {
             GKInstance inst = it.next();
             if (inst.getSchemClass().isa(ReactomeJavaConstants.SimpleEntity))
                 it.remove();
         }
     }
-    
+
     /**
-     * This method is used to check all PathwayDiagram to see if EntitySet and its members can be 
+     * This method is used to check all PathwayDiagram to see if EntitySet and its members can be
      * linked together.
+     *
      * @throws Exception
      */
     @Test
@@ -469,11 +638,11 @@ public class ELVMemberAndSetLinkTest {
         };
         addLinksForEntitySets(addLinks, false);
     }
-    
+
     private void addLinksForEntitySets(AddLinks addLinks,
-                                       boolean needExportDiagram) throws Exception{
+                                       boolean needExportDiagram) throws Exception {
         // Get the database
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         Map<Long, List<Renderable>> dbIdToObject = new HashMap<Long, List<Renderable>>();
@@ -481,7 +650,7 @@ public class ELVMemberAndSetLinkTest {
         int index = 0;
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         InstanceUtilities.sortInstances(list);
-        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+        for (Iterator<?> it = list.iterator(); it.hasNext(); ) {
             GKInstance pd = (GKInstance) it.next();
             // Just a quick check
             String xml = (String) pd.getAttributeValue(ReactomeJavaConstants.storedATXML);
@@ -489,16 +658,16 @@ public class ELVMemberAndSetLinkTest {
                 continue;
 //            System.out.println("Checking " + pd + "...");
             RenderablePathway diagram = diagramReader.openDiagram(pd);
-            checkInstancesInDiagram(dba, 
-                                    diagram,
-                                    dbIdToObject,
-                                    entitySets);
+            checkInstancesInDiagram(dba,
+                    diagram,
+                    dbIdToObject,
+                    entitySets);
             boolean isCheckDone = false;
-            int count = addLinks.addLinks(dbIdToObject, 
-                                          entitySets,
-                                          diagram);
+            int count = addLinks.addLinks(dbIdToObject,
+                    entitySets,
+                    diagram);
             if (count > 0) {
-                index ++;
+                index++;
                 System.out.println(index + ": " + pd + " (" + count + " lines)\n");
                 if (needExportDiagram)
                     exportDiagram(pd, diagram);
@@ -509,7 +678,7 @@ public class ELVMemberAndSetLinkTest {
         }
         System.out.println("Total Pathway Diagram needs to be changed: " + index);
     }
-    
+
     private void exportDiagram(GKInstance diagramInst,
                                RenderablePathway pathway) throws IOException {
         PredictedPathwayDiagramGeneratorFromDB helper = new PredictedPathwayDiagramGeneratorFromDB();
@@ -529,7 +698,7 @@ public class ELVMemberAndSetLinkTest {
         File pdfFileName = new File("tmp/AddLinks/", fileName + ".pdf");
         SwingImageCreator.exportImageInPDF(editor, pdfFileName);
     }
-    
+
     @Test
     public void testDraw() throws Exception {
         String dirName = "/Users/gwu/Documents/gkteam/Steve/";
@@ -538,19 +707,19 @@ public class ELVMemberAndSetLinkTest {
 //        String fileName = dirName + "EGFRSignaling.rtpj";
 //        String destFileName = dirName + "EGFRSignalingWithSetToMemberLinks.rtpj";
 //        Long pathwayId = 177929L;
-        
+
 //        String fileName = dirName + "FGFRSignaling.rtpj";
 //        String destFileName = dirName + "FGFRSignalingWithSetToMemberLinks.rtpj";
 //        Long pathwayId = 190236L;
-        
+
 //        String fileName = dirName + "GPVI-mediated activation cascade.rtpj";
 //        String destFileName = dirName + "GPVI-mediated activation cascadeWithSetToMemberLinks_101711.rtpj";
 //        Long pathwayId = 114604L;
-        
+
         String fileName = dirName + "SPhase.rtpj";
         String destFileName = dirName + "SPhase_101711.rtpj";
         Long pathwayId = 69242L;
-        
+
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor(fileName);
         GKInstance pathway = fileAdaptor.fetchInstance(pathwayId);
         RenderablePathway diagram = fileAdaptor.getDiagram(pathway);
@@ -560,10 +729,10 @@ public class ELVMemberAndSetLinkTest {
         Map<Long, List<Renderable>> dbIdToObjects = new HashMap<Long, List<Renderable>>();
         // Get a list of EntitySet instances       
         Set<GKInstance> entitySets = new HashSet<GKInstance>();
-        checkInstancesInDiagram(fileAdaptor, 
-                                diagram, 
-                                dbIdToObjects,
-                                entitySets);
+        checkInstancesInDiagram(fileAdaptor,
+                diagram,
+                dbIdToObjects,
+                entitySets);
         // Create links for renderable objects between EntitySet and its members
         for (GKInstance set : entitySets) {
             List<?> members = set.getAttributeValuesList(ReactomeJavaConstants.hasMember);
@@ -577,9 +746,9 @@ public class ELVMemberAndSetLinkTest {
                     if (rMembers == null || rMembers.size() == 0)
                         continue;
                     for (Renderable rMember : rMembers) {
-                        addEntitySetAndMemberLink(diagram, 
-                                                  rSet, 
-                                                  rMember);
+                        addEntitySetAndMemberLink(diagram,
+                                rSet,
+                                rMember);
                     }
                 }
             }
@@ -591,17 +760,18 @@ public class ELVMemberAndSetLinkTest {
     private void addEntitySetAndMemberLink(RenderablePathway diagram,
                                            Renderable rSet, Renderable rMember) {
         EntitySetAndMemberLink flowLine = new EntitySetAndMemberLink();
-        flowLine.setEntitySet((Node)rSet);
-        flowLine.setMember((Node)rMember);
+        flowLine.setEntitySet((Node) rSet);
+        flowLine.setMember((Node) rMember);
         diagram.addComponent(flowLine);
         flowLine.setContainer(diagram);
         flowLine.layout();
-        System.out.println("Creating set and member link: " + rSet.getDisplayName() + 
-                           " <- " + rMember.getDisplayName());
-    }                                             
+        System.out.println("Creating set and member link: " + rSet.getDisplayName() +
+                " <- " + rMember.getDisplayName());
+    }
 
     /**
      * One GKInstance can be displayed multiple times as shortcuts.
+     *
      * @param adaptor
      * @param diagram
      * @param dbIdToObjects
@@ -614,7 +784,7 @@ public class ELVMemberAndSetLinkTest {
                                          Set<GKInstance> entitySets) throws Exception {
         if (diagram.getComponents() == null)
             return;
-        for (Iterator<?> it = diagram.getComponents().iterator(); it.hasNext();) {
+        for (Iterator<?> it = diagram.getComponents().iterator(); it.hasNext(); ) {
             Renderable r = (Renderable) it.next();
             if (r.getReactomeId() == null)
                 continue;
@@ -635,14 +805,14 @@ public class ELVMemberAndSetLinkTest {
             }
         }
     }
-    
+
     private interface AddLinks {
         public int addLinks(Map<Long, List<Renderable>> idToNodes,
                             Set<GKInstance> entitySets,
                             RenderablePathway diagram) throws Exception;
-                             
+
     }
-    
+
     /**
      * There is a bug in the curator tool so that a self-link is added for an EntitySet
      * in the ELV after a reaction is DnD to a pathway ELV panel. This method is used to check
@@ -650,7 +820,7 @@ public class ELVMemberAndSetLinkTest {
      */
     @Test
     public void checkWrongSetAndSetLinks() throws Exception {
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader reader = new DiagramGKBReader();
         List<Long> dbIds = new ArrayList<Long>();
@@ -682,14 +852,14 @@ public class ELVMemberAndSetLinkTest {
         for (Long dbId : dbIds)
             System.out.println(dbId);
     }
-    
+
     @Test
     public void fixWrongSetAndSetLinks() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
-                                            "db_name",
-                                            "db_user",
-                                            "db_pwd");
-        Long dbIds[] = new Long[] {
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                "db_name",
+                "db_user",
+                "db_pwd");
+        Long dbIds[] = new Long[]{
                 504073L,
                 1243100L,
                 1273430L,
@@ -702,39 +872,72 @@ public class ELVMemberAndSetLinkTest {
                 2395206L,
                 2399662L
         };
-        
+
         DiagramGKBReader reader = new DiagramGKBReader();
         DiagramGKBWriter writer = new DiagramGKBWriter();
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance defaultIE = createDefaultIE(dba, tx);
-            for (Long dbId : dbIds) {
-                GKInstance pd = dba.fetchInstance(dbId);
-                System.out.println("Processing " + pd);
-                RenderablePathway pathway = reader.openDiagram(pd);
-                List<Renderable> comps = pathway.getComponents();
-                boolean changed = false;
-                for (Iterator<Renderable> it = comps.iterator(); it.hasNext();) {
-                    Renderable r = it.next();
-                    if (r instanceof EntitySetAndEntitySetLink) {
-                        EntitySetAndEntitySetLink link = (EntitySetAndEntitySetLink) r;
-                        Node input = link.getInputNode(0);
-                        Node output = link.getOutputNode(0);
-                        if (input == output) {
-                            it.remove();
-                            changed = true;
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance defaultIE = createDefaultIE(dba, tx);
+                for (Long dbId : dbIds) {
+                    GKInstance pd = dba.fetchInstance(dbId);
+                    System.out.println("Processing " + pd);
+                    RenderablePathway pathway = reader.openDiagram(pd);
+                    List<Renderable> comps = pathway.getComponents();
+                    boolean changed = false;
+                    for (Iterator<Renderable> it = comps.iterator(); it.hasNext(); ) {
+                        Renderable r = it.next();
+                        if (r instanceof EntitySetAndEntitySetLink) {
+                            EntitySetAndEntitySetLink link = (EntitySetAndEntitySetLink) r;
+                            Node input = link.getInputNode(0);
+                            Node output = link.getOutputNode(0);
+                            if (input == output) {
+                                it.remove();
+                                changed = true;
+                            }
                         }
                     }
+                    if (changed)
+                        updateDbDiagram(dba, writer, defaultIE, pd, pathway, tx);
                 }
-                if (changed) 
-                    updateDbDiagram(dba, writer, defaultIE, pd, pathway, tx);
+                tx.commit();
+            } catch (Exception e) {
+                e.printStackTrace();
+                ;
             }
-            tx.commit();
-        }
-        catch(Exception e) {
-            e.printStackTrace();;
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                GKInstance defaultIE = createDefaultIE(dba, null);
+                for (Long dbId : dbIds) {
+                    GKInstance pd = dba.fetchInstance(dbId);
+                    System.out.println("Processing " + pd);
+                    RenderablePathway pathway = reader.openDiagram(pd);
+                    List<Renderable> comps = pathway.getComponents();
+                    boolean changed = false;
+                    for (Iterator<Renderable> it = comps.iterator(); it.hasNext();) {
+                        Renderable r = it.next();
+                        if (r instanceof EntitySetAndEntitySetLink) {
+                            EntitySetAndEntitySetLink link = (EntitySetAndEntitySetLink) r;
+                            Node input = link.getInputNode(0);
+                            Node output = link.getOutputNode(0);
+                            if (input == output) {
+                                it.remove();
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                        updateDbDiagram(dba, writer, defaultIE, pd, pathway, null);
+                }
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+            }
         }
     }
-    
+
 }

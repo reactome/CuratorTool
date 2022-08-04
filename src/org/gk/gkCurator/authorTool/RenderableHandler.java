@@ -8,8 +8,8 @@ import java.util.Map;
 
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePropertyNames;
@@ -25,18 +25,18 @@ import org.gk.schema.SchemaClass;
  */
 public abstract class RenderableHandler {
     protected XMLFileAdaptor fileAdaptor;
-    protected Neo4JAdaptor dbAdaptor;
+    protected PersistenceAdaptor dbAdaptor;
     private RenderableHandlerHelper helper;
     
     public RenderableHandler() {
         helper = new RenderableHandlerHelper();
     }
     
-    public Neo4JAdaptor getDbAdaptor() {
+    public PersistenceAdaptor getDbAdaptor() {
         return dbAdaptor;
     }
 
-    public void setDbAdaptor(Neo4JAdaptor dbAdaptor) {
+    public void setDbAdaptor(PersistenceAdaptor dbAdaptor) {
         this.dbAdaptor = dbAdaptor;
         helper.setDBAdaptor(dbAdaptor);
     }

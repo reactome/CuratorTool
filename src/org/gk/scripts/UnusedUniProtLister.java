@@ -19,7 +19,9 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -33,7 +35,7 @@ import org.junit.Test;
  *
  */
 public class UnusedUniProtLister {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
 	
     public UnusedUniProtLister() {
     }
@@ -41,13 +43,15 @@ public class UnusedUniProtLister {
     public static void main(String[] args) {
         try {
             // Need to get the database connection information
-            if (args.length < 4) {
-                System.err.println("Usage: java org.gk.scripts.UnusedUniProtLister dbHost dbName dbUser dbPwd");
+            if (args.length < 5) {
+                System.err.println("Usage: java org.gk.scripts.UnusedUniProtLister dbHost dbName dbUser dbPwd use_neo4j");
+                System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
                 System.exit(1);
             }
             
             UnusedUniProtLister lister = new UnusedUniProtLister();
-            lister.setDBA(args[0], args[1], args[2], args[3]);
+            boolean useNeo4J = Boolean.parseBoolean(args[4]);
+            lister.setDBA(args[0], args[1], args[2], args[3], useNeo4J);
             lister.list();
         }
         catch(Exception e) {
@@ -354,10 +358,13 @@ public class UnusedUniProtLister {
     }
     
     private void setDBA() throws Exception {
-         dba = new Neo4JAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
+         dba = new MySQLAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
     }
-    
-    private void setDBA(String host, String db, String user, String pass) throws Exception {
-        dba = new Neo4JAdaptor(host, db, user, pass);
+
+    private void setDBA(String host, String db, String user, String pass, boolean useNeo4J) throws Exception {
+        if (useNeo4J)
+            dba = new Neo4JAdaptor(host, db, user, pass);
+        else
+            dba = new MySQLAdaptor(host, db, user, pass);
    }
 }

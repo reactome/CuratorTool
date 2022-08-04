@@ -356,11 +356,11 @@ public class OptionDialog extends JDialog {
 			return;
 		}
 		PersistenceManager.ConnectInfo newConnectInfo = new PersistenceManager.ConnectInfo(prop);
-		if (PersistenceManager.getManager().getActiveNeo4JAdaptor() != null &&
+		if (PersistenceManager.getManager().getActivePersistenceAdaptor() != null &&
 			!newConnectInfo.equals(oldConnectInfo)) {
 			// Need to reset the active Neo4JAdaptor
 			FrameManager.getManager().closeBrowser();
-			PersistenceManager.getManager().setActiveNeo4JAdaptor(null);
+			PersistenceManager.getManager().setActivePersistenceAdaptor(null);
 		}	
 		dispose();
 	}

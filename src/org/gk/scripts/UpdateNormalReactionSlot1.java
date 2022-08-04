@@ -9,8 +9,9 @@ import java.util.Set;
 import org.gk.database.SynchronizationManager;
 import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
@@ -28,8 +29,8 @@ public class UpdateNormalReactionSlot1 {
         
     }
     
-    public Neo4JAdaptor getDBA() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomerelease.oicr.on.ca",
+    public PersistenceAdaptor getDBA() throws Exception {
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
                                             "test_slice_64",
                                             "",
                                             "");
@@ -38,7 +39,7 @@ public class UpdateNormalReactionSlot1 {
     
     @Test
     public void generateProject() throws Exception {
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                                                                 ReactomeJavaConstants.normalReaction,
                                                                 "IS NOT NULL",
@@ -69,7 +70,7 @@ public class UpdateNormalReactionSlot1 {
         System.out.println("Total pathways to be checked out: " + pathways.size());
         // Download it
         PersistenceManager manager = PersistenceManager.getManager();
-        manager.setActiveNeo4JAdaptor(dba);
+        manager.setActivePersistenceAdaptor(dba);
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         manager.setActiveFileAdaptor(fileAdaptor);
         SynchronizationManager syncManager = SynchronizationManager.getManager();

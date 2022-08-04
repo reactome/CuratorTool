@@ -16,7 +16,7 @@ import org.gk.database.FrameManager;
 import org.gk.database.GKDatabaseBrowser;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 
 /**
  * 
@@ -38,7 +38,7 @@ public class ReactionToGoMFMap implements DBTool {
 		if (reply != JFileChooser.APPROVE_OPTION)
 			return;
 		File file = dialog.getSelectedFile();
-		Neo4JAdaptor adaptor = browser.getNeo4JAdaptor();
+		PersistenceAdaptor adaptor = browser.getPersistenceAdaptor();
 		try {
 			Collection events = adaptor.fetchInstancesByClass("Reaction");
 			// Sort it

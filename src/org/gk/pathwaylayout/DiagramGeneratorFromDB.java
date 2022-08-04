@@ -29,11 +29,9 @@ import org.gk.gkEditor.CoordinateSerializer;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.persistence.*;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
@@ -65,7 +63,7 @@ public class DiagramGeneratorFromDB {
     private final String LATEST_IE_KEY = "latestIE";
     private final String TERM_KEY = "searchableTerms";
     // Connection to the database
-    protected Neo4JAdaptor dba;
+    protected PersistenceAdaptor dba;
     // Base directory for image
     private String imageBaseDir;
     // The user who created the images
@@ -77,11 +75,11 @@ public class DiagramGeneratorFromDB {
     public DiagramGeneratorFromDB() {
     }
     
-    public void setNeo4JAdaptor(Neo4JAdaptor dba) {
+    public void setPersistenceAdaptor(PersistenceAdaptor dba) {
         this.dba = dba;
     }
     
-    public Neo4JAdaptor getNeo4JAdaptor() {
+    public PersistenceAdaptor getPersistenceAdaptor() {
         return this.dba;
     }
     
@@ -250,11 +248,11 @@ public class DiagramGeneratorFromDB {
         pathwayId = 5603029L;
         pathwayId = 6802949L;
 //        pathwayId = 5657562L; 
-//        dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+//        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                               "gk_central", 
 //                               "authortool", 
 //                               "T001test");
-        dba = new Neo4JAdaptor("localhost",
+        dba = new MySQLAdaptor("localhost",
                                "test_gk_central_efs_new",
                                "root",
                                "macmysql01");
@@ -423,20 +421,39 @@ public class DiagramGeneratorFromDB {
             String value = prop.getProperty(TERM_KEY);
             if (value != null && value.length() > 0) {
                 String[] ids = value.split(",");
-
-                Driver driver = dba.getConnection();
-                try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-                    Transaction tx = session.beginTransaction();
-                    for (String id : ids) {
-                        GKInstance inst = dba.fetchInstance(new Long(id));
-                        // If there is a null, let it roll back. Probably
-                        // there is something inconsistence in the database and info file.
-                        // Don't delete anything in case this DB_ID is used for something else!
-                        dba.deleteInstance(inst, tx);
+                if (dba instanceof Neo4JAdaptor) {
+                    Driver driver = ((Neo4JAdaptor) dba).getConnection();
+                    try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                        Transaction tx = session.beginTransaction();
+                        for (String id : ids) {
+                            GKInstance inst = dba.fetchInstance(new Long(id));
+                            // If there is a null, let it roll back. Probably
+                            // there is something inconsistence in the database and info file.
+                            // Don't delete anything in case this DB_ID is used for something else!
+                            ((Neo4JAdaptor) dba).deleteInstance(inst, tx);
+                        }
+                        tx.commit();
+                    } catch (Exception e) {
+                        logger.error("Delete old VertexSearchTerm: " + e, e);
                     }
-                    tx.commit();
-                } catch (Exception e) {
-                    logger.error("Delete old VertexSearchTerm: " + e, e);
+                } else {
+                    // MySQL
+                    try {
+                        ((MySQLAdaptor) dba).startTransaction();
+                        // Delete all old terms
+                        for (String id : ids) {
+                            GKInstance inst = dba.fetchInstance(new Long(id));
+                            // If there is a null, let it roll back. Probably
+                            // there is something inconsistence in the database and info file.
+                            // Don't delete anything in case this DB_ID is used for something else!
+                            ((MySQLAdaptor) dba).deleteInstance(inst);
+                        }
+                        ((MySQLAdaptor) dba).commit();
+                    }
+                    catch(Exception e) {
+                        ((MySQLAdaptor) dba).rollback();
+                        logger.error("Delete old VertexSearchTerm: " + e, e);
+                    }
                 }
             }
             fis.close();
@@ -445,15 +462,35 @@ public class DiagramGeneratorFromDB {
         VertexSearchableTermGenerator termGenerator = new VertexSearchableTermGenerator();
         Set<GKInstance> terms = termGenerator.generateVertexSearchableTerms(diagram, 
                                                                             pathway, dba);
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (GKInstance inst : terms)
-                dba.storeInstance(inst, tx);
-            tx.commit();
-            return terms;
-        } catch (Exception e) {
-            logger.error("Store new VertexSearchTerms: " + e, e);
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (GKInstance inst : terms)
+                    dba.storeInstance(inst, tx);
+                tx.commit();
+                return terms;
+            } catch (Exception e) {
+                logger.error("Store new VertexSearchTerms: " + e, e);
+            }
+        } else {
+            // MySQL
+            boolean isTASupported = ((MySQLAdaptor) dba).supportsTransactions();
+            try {
+                if (isTASupported)
+                    ((MySQLAdaptor) dba).startTransaction();
+                for (GKInstance inst : terms)
+                    ((MySQLAdaptor) dba).storeInstance(inst, null);
+                if (isTASupported)
+                    ((MySQLAdaptor) dba).commit();
+                return terms;
+            }
+            catch(Exception e) {
+                if (isTASupported)
+                    ((MySQLAdaptor) dba).rollback();
+                logger.error("Store new VertexSearchTerms: " + e, e);
+            }
         }
         return null;
     }
@@ -496,71 +533,169 @@ public class DiagramGeneratorFromDB {
     }
 
     private void handleVertex(RenderablePathway rPathway, GKInstance diagram) throws Exception {
-        List<Long> existedIds = new ArrayList<Long>();
-        // Check if any vertex have been created for this diagram. If true, delete them.
-        Collection<?> existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, ReactomeJavaConstants.pathwayDiagram, "=", diagram);
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            List<Long> existedIds = new ArrayList<Long>();
+            // Check if any vertex have been created for this diagram. If true, delete them.
+            Collection<?> existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, ReactomeJavaConstants.pathwayDiagram, "=", diagram);
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
 
-            if (existed != null && existed.size() > 0) {
-                for (Iterator<?> it = existed.iterator(); it.hasNext(); ) {
-                    GKInstance inst = (GKInstance) it.next();
-                    existedIds.add(inst.getDBID());
-                    dba.deleteInstance(inst, tx);
-                }
-            }
-            // Check for vertex
-            existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Edge, ReactomeJavaConstants.pathwayDiagram, "=", diagram);
-            if (existed != null && existed.size() > 0) {
-                for (Iterator<?> it = existed.iterator(); it.hasNext(); ) {
-                    GKInstance inst = (GKInstance) it.next();
-                    existedIds.add(inst.getDBID());
-                    dba.deleteInstance(inst, tx);
-                }
-            }
-            // Create new Vertex instances
-            List<GKInstance> newVertices = new ArrayList<GKInstance>();
-            // Go through each displayed objects and save them
-            List<Renderable> components = rPathway.getComponents();
-            if (components != null) {
-                CoordinateSerializer serializer = new CoordinateSerializer();
-                Map<Renderable, GKInstance> rToIMap = new HashMap<Renderable, GKInstance>();
-                // Have to hold edges till all nodes have been converted
-                List<HyperEdge> edges = new ArrayList<HyperEdge>();
-                // Background escape if applicable
-                List<Renderable> bgEscaped = getEscapedBgComponents(rPathway);
-                for (Renderable r : components) {
-                    if (serializer.avoidVertexGeneration(r) || bgEscaped.contains(r)) continue;
-                    if (r instanceof Node) {
-                        GKInstance inst = serializer.convertNodeToInstance((Node) r, diagram, dba);
-                        newVertices.add(inst);
-                        rToIMap.put(r, inst);
-                    } else if (r instanceof HyperEdge) edges.add((HyperEdge) r);
-                }
-                for (HyperEdge edge : edges) {
-                    List<GKInstance> edgeInstances = serializer.convertEdgeToInstances(edge, diagram, dba, rToIMap);
-                    if (edgeInstances != null) newVertices.addAll(edgeInstances);
-                }
-            }
-            // reuse the DB_IDs
-            if (existedIds.size() > 0) {
-                for (int i = 0; i < existedIds.size(); i++) {
-                    Long dbId = existedIds.get(i);
-                    if (i < newVertices.size()) {
-                        GKInstance newInst = newVertices.get(i);
-                        newInst.setDBID(dbId);
+                if (existed != null && existed.size() > 0) {
+                    for (Iterator<?> it = existed.iterator(); it.hasNext(); ) {
+                        GKInstance inst = (GKInstance) it.next();
+                        existedIds.add(inst.getDBID());
+                        ((Neo4JAdaptor) dba).deleteInstance(inst, tx);
                     }
                 }
+                // Check for vertex
+                existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Edge, ReactomeJavaConstants.pathwayDiagram, "=", diagram);
+                if (existed != null && existed.size() > 0) {
+                    for (Iterator<?> it = existed.iterator(); it.hasNext(); ) {
+                        GKInstance inst = (GKInstance) it.next();
+                        existedIds.add(inst.getDBID());
+                        ((Neo4JAdaptor) dba).deleteInstance(inst, tx);
+                    }
+                }
+                // Create new Vertex instances
+                List<GKInstance> newVertices = new ArrayList<GKInstance>();
+                // Go through each displayed objects and save them
+                List<Renderable> components = rPathway.getComponents();
+                if (components != null) {
+                    CoordinateSerializer serializer = new CoordinateSerializer();
+                    Map<Renderable, GKInstance> rToIMap = new HashMap<Renderable, GKInstance>();
+                    // Have to hold edges till all nodes have been converted
+                    List<HyperEdge> edges = new ArrayList<HyperEdge>();
+                    // Background escape if applicable
+                    List<Renderable> bgEscaped = getEscapedBgComponents(rPathway);
+                    for (Renderable r : components) {
+                        if (serializer.avoidVertexGeneration(r) || bgEscaped.contains(r)) continue;
+                        if (r instanceof Node) {
+                            GKInstance inst = serializer.convertNodeToInstance((Node) r, diagram, dba);
+                            newVertices.add(inst);
+                            rToIMap.put(r, inst);
+                        } else if (r instanceof HyperEdge) edges.add((HyperEdge) r);
+                    }
+                    for (HyperEdge edge : edges) {
+                        List<GKInstance> edgeInstances = serializer.convertEdgeToInstances(edge, diagram, dba, rToIMap);
+                        if (edgeInstances != null) newVertices.addAll(edgeInstances);
+                    }
+                }
+                // reuse the DB_IDs
+                if (existedIds.size() > 0) {
+                    for (int i = 0; i < existedIds.size(); i++) {
+                        Long dbId = existedIds.get(i);
+                        if (i < newVertices.size()) {
+                            GKInstance newInst = newVertices.get(i);
+                            newInst.setDBID(dbId);
+                        }
+                    }
+                }
+                //int hasDbIds = 0;
+                for (GKInstance vertex : newVertices) {
+                    if (vertex.getDBID() != null) {
+                        ((Neo4JAdaptor) dba).storeInstance(vertex, true, tx, true);
+                        //      hasDbIds ++;
+                    } else ((Neo4JAdaptor) dba).storeInstance(vertex, false, tx, true);
+                }
+                tx.commit();
             }
-            //int hasDbIds = 0;
-            for (GKInstance vertex : newVertices) {
-                if (vertex.getDBID() != null) {
-                    dba.storeInstance(vertex, true, tx, true);
-                    //      hasDbIds ++;
-                } else dba.storeInstance(vertex, false, tx, true);
+        } else {
+            // MySQL
+            try {
+                List<Long> existedIds = new ArrayList<Long>();
+                // Check if any vertex have been created for this diagram. If true, delete them.
+                Collection<?> existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex,
+                        ReactomeJavaConstants.pathwayDiagram,
+                        "=",
+                        diagram);
+                boolean isTransactionSupported = ((MySQLAdaptor) dba).supportsTransactions();
+                if (isTransactionSupported)
+                    ((MySQLAdaptor) dba).startTransaction();
+                if (existed != null && existed.size() > 0) {
+                    for (Iterator<?> it = existed.iterator(); it.hasNext();) {
+                        GKInstance inst = (GKInstance) it.next();
+                        existedIds.add(inst.getDBID());
+                        ((MySQLAdaptor) dba).deleteInstance(inst);
+                    }
+                }
+                // Check for vertex
+                existed = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Edge,
+                        ReactomeJavaConstants.pathwayDiagram,
+                        "=",
+                        diagram);
+                if (existed != null && existed.size() > 0) {
+                    for (Iterator<?> it = existed.iterator(); it.hasNext();) {
+                        GKInstance inst = (GKInstance) it.next();
+                        existedIds.add(inst.getDBID());
+                        ((MySQLAdaptor) dba).deleteInstance(inst);
+                    }
+                }
+                // Create new Vertex instances
+                List<GKInstance> newVertices = new ArrayList<GKInstance>();
+                // Go through each displayed objects and save them
+                List<Renderable> components = rPathway.getComponents();
+                if (components != null) {
+                    CoordinateSerializer serializer = new CoordinateSerializer();
+                    Map<Renderable, GKInstance> rToIMap = new HashMap<Renderable, GKInstance>();
+                    // Have to hold edges till all nodes have been converted
+                    List<HyperEdge> edges = new ArrayList<HyperEdge>();
+                    // Background escape if applicable
+                    List<Renderable> bgEscaped = getEscapedBgComponents(rPathway);
+                    for (Renderable r : components) {
+                        if (serializer.avoidVertexGeneration(r) || bgEscaped.contains(r))
+                            continue;
+                        if (r instanceof Node) {
+                            GKInstance inst = serializer.convertNodeToInstance((Node)r,
+                                    diagram,
+                                    dba);
+                            newVertices.add(inst);
+                            rToIMap.put(r, inst);
+                        }
+                        else if (r instanceof HyperEdge)
+                            edges.add((HyperEdge)r);
+                    }
+                    for (HyperEdge edge : edges) {
+                        List<GKInstance> edgeInstances = serializer.convertEdgeToInstances(edge,
+                                diagram,
+                                dba,
+                                rToIMap);
+                        if (edgeInstances != null)
+                            newVertices.addAll(edgeInstances);
+                    }
+                }
+                // reuse the DB_IDs
+                if (existedIds.size() > 0)  {
+                    for (int i = 0; i < existedIds.size(); i++) {
+                        Long dbId = existedIds.get(i);
+                        if (i < newVertices.size()) {
+                            GKInstance newInst = newVertices.get(i);
+                            newInst.setDBID(dbId);
+                        }
+                    }
+                }
+                //int hasDbIds = 0;
+                for (GKInstance vertex : newVertices) {
+                    if (vertex.getDBID() != null) {
+                        ((MySQLAdaptor) dba).storeInstance(vertex, true);
+                        //      hasDbIds ++;
+                    }
+                    else
+                        ((MySQLAdaptor) dba).storeInstance(vertex, false);
+                }
+                //System.out.println("Has dbId : " + hasDbIds);
+                //System.out.println("Has no dbId: " + (newVertices.size() - hasDbIds));
+                if (isTransactionSupported)
+                    ((MySQLAdaptor) dba).commit();
+                // refresh to avoid any duplication error
+                dba.refreshCaches();
             }
-            tx.commit();
+            catch(Exception e) {
+                if (((MySQLAdaptor) dba).supportsTransactions())
+                    ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
     
@@ -769,15 +904,15 @@ public class DiagramGeneratorFromDB {
         
     @Test
     public void testGenerateImages() throws Exception {
-//        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
 //                                            "gk_current_ver44",
 //                                            "root",
 //                                            "macmysql01");
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
-        setNeo4JAdaptor(dba);
+        setPersistenceAdaptor(dba);
         setImageBaseDir("tiles");
         //generateImages(69620L); // Cell Cycle Checkpoints
         //generateImages(71387L); // Metabolism of carbohydrates
@@ -798,27 +933,38 @@ public class DiagramGeneratorFromDB {
      * @param args Command-line arguments
      */
     public static void main(String[] args) {
-        if (args.length < 6) {
-            System.err.println("Usage: java -Xmx512m DiagramGeneratorFromDB dbHost dbName dbUser dbPwd dbPort imageBaseDir (topicFile)\n" +
+        if (args.length < 7) {
+            System.err.println("Usage: java -Xmx512m DiagramGeneratorFromDB dbHost dbName dbUser dbPwd dbPort imageBaseDir use_neo4j (topicFile)\n" +
             		            "The topicFile name is optional. If no topicFile name is provided, images for all PathwayDiagram instances\n" +
             		            "will be generated.");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(1);
         }
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
-                                                args[1],
-                                                args[2],
-                                                args[3],
-                                                Integer.parseInt(args[4]));
+            boolean useNeo4J = Boolean.parseBoolean(args[6]);
+            PersistenceAdaptor dba;
+            if (useNeo4J) {
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        Integer.parseInt(args[4]));
+            } else {
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        Integer.parseInt(args[4]));
+            }
             DiagramGeneratorFromDB generator = new DiagramGeneratorFromDB();
-            generator.setNeo4JAdaptor(dba);
+            generator.setPersistenceAdaptor(dba);
             generator.setImageBaseDir(args[5]);
             generator.setNeedInfo(false); // Don't need information stored.
             List<Long> dbIds = null;
-            if (args.length > 6) {
+            if (args.length > 7) {
                 // Need to parse the file to get pathway ids
                 FileUtilities fu = new FileUtilities();
-                fu.setInput(args[6]);
+                fu.setInput(args[7]);
                 String line = null;
                 dbIds = new ArrayList<Long>();
                 while ((line = fu.readLine()) != null) {
@@ -845,11 +991,11 @@ public class DiagramGeneratorFromDB {
     
     /**
      * This helper method is used to grep a list of DB_IDs for pathways having diagrams available.
-     * @param dbda
+     * @param dba
      * @return
      * @throws Exception
      */
-    protected List<Long> getPathwayIDsForDiagrams(Neo4JAdaptor dba) throws Exception {
+    protected List<Long> getPathwayIDsForDiagrams(PersistenceAdaptor dba) throws Exception {
         // Get all pathway diagrams
         Collection diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         SchemaClass diagramCls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);

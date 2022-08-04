@@ -31,6 +31,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
@@ -336,7 +337,7 @@ public class SearchPane extends JPanel {
 	                    attInstances.addAll(attInstances1);
 	            //}
 	            if (attInstances != null && attInstances.size() > 0) {
-	                if (persistenceAdaptor instanceof Neo4JAdaptor) {
+	                if (persistenceAdaptor instanceof Neo4JAdaptor || persistenceAdaptor instanceof MySQLAdaptor) {
 	                    c = persistenceAdaptor.fetchInstanceByAttribute(cls.getName(),
 	                                                                    att.getName(),
 	                                                                    "=",

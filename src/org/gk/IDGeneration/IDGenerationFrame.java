@@ -41,11 +41,11 @@ public class IDGenerationFrame  extends JFrame {
 	private IDGenerationPane idGenerationPane;
 	private Properties systemProperties;
 	
-	public IDGenerationFrame() {
-		init();
+	public IDGenerationFrame(boolean neo4J) {
+		init(neo4J);
 	}
 	
-	private void init() {
+	private void init(boolean neo4J) {
 		initFileAdaptor();
 		
 		systemProperties = SystemProperties.retrieveSystemProperties();
@@ -71,9 +71,9 @@ public class IDGenerationFrame  extends JFrame {
 
 		controller = new IDGenerationController(this);
 		
-		initMenuBar();
+		initMenuBar(neo4J);
 		
-		JToolBar toolbar = createToolBar();
+		JToolBar toolbar = createToolBar(neo4J);
 		getContentPane().add(toolbar, BorderLayout.NORTH);
 
 		idGenerationPane = new IDGenerationPane(this);
@@ -103,7 +103,7 @@ public class IDGenerationFrame  extends JFrame {
 		}
     }
     
-	private void initMenuBar() {
+	private void initMenuBar(boolean neo4J) {
 		JMenuBar menuBar = new JMenuBar();
 		
 		JMenu fileMenu = new JMenu("File");
@@ -111,8 +111,8 @@ public class IDGenerationFrame  extends JFrame {
 		menuBar.add(fileMenu);
 		
 		JMenu toolsMenu = new JMenu("Tools");
-        JMenuItem testItem = toolsMenu.add(controller.getTestAction());
-        JMenuItem runItem = toolsMenu.add(controller.getRunAction());
+        JMenuItem testItem = toolsMenu.add(controller.getTestAction(neo4J));
+        JMenuItem runItem = toolsMenu.add(controller.getRunAction(neo4J));
         JMenuItem rollbackItem = toolsMenu.add(controller.getRollbackAction());
 		menuBar.add(toolsMenu);
 		
@@ -124,13 +124,13 @@ public class IDGenerationFrame  extends JFrame {
 		setJMenuBar(menuBar);
 	}
 	
-	private JToolBar createToolBar() {
+	private JToolBar createToolBar(boolean neo4J) {
 		JToolBar toolbar = new JToolBar();
 		
 		if (controller!=null) {
-			JButton testBtn = toolbar.add(controller.getTestAction());
+			JButton testBtn = toolbar.add(controller.getTestAction(neo4J));
 			toolbar.addSeparator();
-			JButton runBtn = toolbar.add(controller.getRunAction());
+			JButton runBtn = toolbar.add(controller.getRunAction(neo4J));
 			toolbar.addSeparator();
 			JButton rollbackBtn = toolbar.add(controller.getRollbackAction());
 			toolbar.addSeparator();
@@ -149,7 +149,14 @@ public class IDGenerationFrame  extends JFrame {
 	}
 	
 	static public void main(String[] args) {
-		new IDGenerationFrame();
+		String s;
+		boolean neo4J = false;
+		for (int i = 0; i < args.length; i++) {
+			s = args[i];
+			if (s.equals("-neo4J"))
+				neo4J = true;
+		}
+		new IDGenerationFrame(neo4J);
 	}
 	
 	public void exit() {

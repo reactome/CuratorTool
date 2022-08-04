@@ -14,11 +14,9 @@ import java.util.Map;
 import org.gk.gkCurator.authorTool.CuratorToolToAuthorToolConverter;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.GKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.Project;
+import org.gk.persistence.*;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
@@ -32,14 +30,14 @@ import org.junit.Test;
  *
  */
 public class AuthorToolProjectTest {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
     
     public AuthorToolProjectTest() {
     }
     
-    public Neo4JAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new Neo4JAdaptor("localhost",
+            dba = new MySQLAdaptor("localhost",
                                    "reactome_25_pathway_diagram",
                                    "root",
                                    "macmysql01",
@@ -50,8 +48,8 @@ public class AuthorToolProjectTest {
     
     @Test
     public void exportPathwayIntoATProject() throws Exception {
-        Neo4JAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;
         GKInstance pathway = dba.fetchInstance(dbId);
@@ -142,7 +140,7 @@ public class AuthorToolProjectTest {
     }
     
     private Map<Long, GKInstance> loadVertex(GKInstance pathwayDiagram,
-                                             Neo4JAdaptor dba) throws Exception {
+                                             PersistenceAdaptor dba) throws Exception {
         // This is used to test human apoptosis
         // Need to get vertex
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, 

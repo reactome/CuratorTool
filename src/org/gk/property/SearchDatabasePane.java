@@ -31,8 +31,8 @@ import javax.swing.event.ListSelectionListener;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.render.RenderableRegistry;
 import org.gk.util.AuthorToolAppletUtilities;
@@ -44,7 +44,7 @@ import org.gk.util.GKApplicationUtilities;
  *
  */
 public class SearchDatabasePane extends JPanel {
-    protected Neo4JAdaptor dbAdaptor;
+    protected PersistenceAdaptor dbAdaptor;
     // GUI Controls
     protected JButton searchBtn;
     protected JButton cancelBtn;
@@ -503,7 +503,7 @@ public class SearchDatabasePane extends JPanel {
      */
     public boolean initDatabaseConnection() {
         PersistenceManager.getManager().initDatabaseConnection(this);
-        dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(this);
+        dbAdaptor = PersistenceManager.getManager().getActivePersistenceAdaptor(this);
         return dbAdaptor != null;
     }
     

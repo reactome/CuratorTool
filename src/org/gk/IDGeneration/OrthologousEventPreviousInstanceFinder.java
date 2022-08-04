@@ -5,15 +5,12 @@ package org.gk.IDGeneration;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.schema.GKSchemaClass;
-import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 
 /** 
@@ -26,7 +23,7 @@ import org.gk.schema.SchemaAttribute;
 class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 	private boolean deleteBackToSource = false;
 	
-	public OrthologousEventPreviousInstanceFinder(String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase, boolean deleteBackToSource) {
+	public OrthologousEventPreviousInstanceFinder(String currentReleaseNum, PersistenceAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase, boolean deleteBackToSource) {
 		super(currentReleaseNum, previousDba, allowIDsFromUnspecifiedReleases, identifierDatabase);
 		
 		this.deleteBackToSource = deleteBackToSource;
@@ -81,16 +78,16 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 		return false;
 	}
 	
-	public GKInstance getPreviousInstance() {
+	public GKInstance getPreviousInstance(boolean neo4J) {
 		GKInstance previousInstance = _getPreviousInstance(previousDba, currentInstance);
 		
 		if (deleteBackToSource && previousInstance != null)
-			deleteStableIdsBackToSource(previousInstance);
+			deleteStableIdsBackToSource(previousInstance, neo4J);
 		
 		return previousInstance;				
 	}
 	
-	public GKInstance _getPreviousInstance(Neo4JAdaptor previousDba, GKInstance instance) {
+	public GKInstance _getPreviousInstance(PersistenceAdaptor previousDba, GKInstance instance) {
 		if (previousDba==null)
 			return null;
 		if (instance==null)
@@ -183,8 +180,8 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 		return previousInstance;				
 	}
 	
-	private void deleteStableIdsBackToSource(GKInstance instance) {
-		List<List<Object>> releaseNumsAndInstances = getReleaseNumsAndInstances(instance);
+	private void deleteStableIdsBackToSource(GKInstance instance, boolean neo4J) {
+		List<List<Object>> releaseNumsAndInstances = getReleaseNumsAndInstances(instance, neo4J);
 		for (int i=0; i<releaseNumsAndInstances.size(); i++) {
 			String releaseNum = (String) releaseNumsAndInstances.get(i).get(0);
 			GKInstance event = (GKInstance) releaseNumsAndInstances.get(i).get(1);
@@ -265,7 +262,7 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 	 * @param instance
 	 * @return
 	 */
-	private List<List<Object>> getReleaseNumsAndInstances(GKInstance instance) {
+	private List<List<Object>> getReleaseNumsAndInstances(GKInstance instance, boolean neo4J) {
 		List<GKInstance> validReleases = getValidReleaseList();
 //		Collections.reverse(validReleases); // TODO: do we need this?
 		GKInstance event = instance;
@@ -296,9 +293,9 @@ class OrthologousEventPreviousInstanceFinder extends PreviousInstanceFinder {
 				if (i1 < validReleaseCount) {
 					release = validReleases.get(i1);
 					releaseNum = (String)release.getAttributeValue("num");
-					Neo4JAdaptor dba = null;
+					PersistenceAdaptor dba = null;
 					try {
-						dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName);
+						dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName, neo4J);
 					} catch (Exception e1) {
 						System.err.println("OrthologousEventPreviousInstanceFinder.getPreviousInstances: could not get a database adaptor for release " + releaseNum);
 					}

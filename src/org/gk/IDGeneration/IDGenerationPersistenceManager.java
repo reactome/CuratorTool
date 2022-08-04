@@ -6,11 +6,9 @@ package org.gk.IDGeneration;
 import java.awt.Component;
 import java.util.Properties;
 
-import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.DBConnectionPane;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
-import org.gk.schema.InvalidAttributeException;
 
 /**
  * A persistence manager for databases, modifies the
@@ -45,9 +43,9 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 	/**
 	 * Overwrite supclass method to allow null/empty password or port.
 	 * 
-	 * @return the initilized Neo4JAdaptor.
+	 * @return the initilized PersistenceAdaptor.
 	 */
-	protected Neo4JAdaptor initNeo4JAdaptor(Component comp) {
+	protected PersistenceAdaptor initPersistenceAdaptor(Component comp) {
 		Properties dbConnectInfo = getDBConnectInfo();
 		
 		if (dbConnectInfo==null)
@@ -83,7 +81,7 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 		if (dbPwd==null)
 			dbPwd = "";
 		
-		return getNeo4JAdaptor(dbHost, xdbName, dbUser, dbPwd, Integer.parseInt(dbPort));
+		return getPersistenceAdaptor(dbHost, xdbName, dbUser, dbPwd, Integer.parseInt(dbPort));
 	}
 	
 	public void unsetDBConnectInfo() {
@@ -129,7 +127,7 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 			dbProp = null;
 		} else {
 			super.setDBConnectInfo(simpleProp);
-			initNeo4JAdaptor(null);
+			initPersistenceAdaptor(null);
 			
 			dbProp = new Properties();
 			copySimplePropToDbProp(simpleProp, this.dbName, dbProp);
@@ -208,16 +206,16 @@ public class IDGenerationPersistenceManager extends PersistenceManager {
 	}
 	
     /**
-     * An overloaded method to get the active Neo4JAdaptor.
+     * An overloaded method to get the active PersistenceAdaptor.
      * @param comp 
-     * @return the active Neo4JAdaptor.
-     * @see getActiveNeo4JAdaptor()
+     * @return the active PersistenceAdaptor.
+     * @see getActivePersistenceAdaptor()
      */
-	public Neo4JAdaptor getActiveNeo4JAdaptor(Component comp) {
+	public PersistenceAdaptor getActivePersistenceAdaptor(Component comp) {
 		if (dbProp==null)
 			return null;
 		
-		Neo4JAdaptor dba = initNeo4JAdaptor(comp);
+		PersistenceAdaptor dba = initPersistenceAdaptor(comp);
 		
 		return dba;
 	}

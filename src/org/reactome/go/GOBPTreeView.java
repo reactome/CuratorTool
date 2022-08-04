@@ -30,7 +30,10 @@ import javax.swing.tree.TreePath;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.AttributeQueryRequest;
+import org.gk.persistence.QueryRequest;
+import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
 import org.gk.util.BrowserLauncher;
 import org.gk.util.GKApplicationUtilities;
@@ -45,7 +48,7 @@ public class GOBPTreeView extends JPanel {
 	
 	private JTree tree;
 	private JLabel titleLabel;
-	private Neo4JAdaptor dbAdaptor;
+	private PersistenceAdaptor dbAdaptor;
 	// Node type map
 	private Icon isAIcon;
 	private Icon isPartOfIcon;
@@ -55,17 +58,17 @@ public class GOBPTreeView extends JPanel {
 		init();
 	}
 	
-	public GOBPTreeView(Neo4JAdaptor dbAdaptor) {
+	public GOBPTreeView(PersistenceAdaptor dbAdaptor) {
 		init();
-		setNeo4JAdaptor(dbAdaptor);
+		setPersistenceAdaptor(dbAdaptor);
 	}
 	
-	public void setNeo4JAdaptor(Neo4JAdaptor adaptor) {
+	public void setPersistenceAdaptor(PersistenceAdaptor adaptor) {
 		this.dbAdaptor = adaptor;
 		fetchGOProcesses();
 	}
 	
-	public Neo4JAdaptor getNeo4JAdaptor() {
+	public PersistenceAdaptor getPersistenceAdaptor() {
 		return this.dbAdaptor;
 	}
 	
@@ -137,10 +140,11 @@ public class GOBPTreeView extends JPanel {
 			return;
 		try {
 			//dbAdaptor.refresh();
-			ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList();
+			ArrayList<QueryRequest> qr = new ArrayList();
 			String clsName = "GO_BiologicalProcess";
-			qr.add(dbAdaptor.createAttributeQueryRequest(clsName, "instanceOf", "IS NULL", null));
-			qr.add(dbAdaptor.createAttributeQueryRequest(clsName, "componentOf", "IS NULL", null));
+			Schema schema = dbAdaptor.getSchema();
+			qr.add(new AttributeQueryRequest(schema, clsName, "instanceOf", "IS NULL", null));
+			qr.add(new AttributeQueryRequest(schema, clsName, "componentOf", "IS NULL", null));
 			Collection topLevelProcesses = dbAdaptor.fetchInstance(qr);
 			Collection c = dbAdaptor.fetchInstancesByClass(clsName);
 			SchemaClass cls = dbAdaptor.getSchema().getClassByName(clsName);

@@ -10,7 +10,7 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JOptionPane;
 
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 
 /** 
  *  Provides the actions for the buttons and menus of the IDGenerationFrame.
@@ -56,57 +56,58 @@ public class IDGenerationController {
     	return quitAction;
     }
     
-	private void test() {
+	private void test(boolean neo4J) {
 		List schemaClasses = getSchemaClassesIfOk();
 		if (schemaClasses!=null) {
-	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-			Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-			Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-			Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
+			PersistenceAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+			PersistenceAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+			PersistenceAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);
 			idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
-			idGenerator.testIDs(schemaClasses);
+			idGenerator.testIDs(schemaClasses, neo4J);
 			idGenerationFrame.getIdGenerationPane().getTestResultsPane().setTitleLabelTest();
 			displayTestResults();
 		}
 	}
 	
-	public Action getTestAction() {
+	public Action getTestAction(boolean neo4J) {
     	if (testAction == null) {
     		testAction = new AbstractAction("Test") {
     			public void actionPerformed(ActionEvent e) {
-    				test();
+    				test(neo4J);
     			}
     		};
     	}
     	return testAction;
 	}
 	
-	private void run() {
+	private void run(boolean neo4J) {
 		int reply = JOptionPane.showConfirmDialog(idGenerationFrame,
 				"Run will modify live databases. " +
 				"Are you really sure you want to do this?",
-				"Run confirmation",                                                                          JOptionPane.YES_NO_OPTION);
+				"Run confirmation",
+				JOptionPane.YES_NO_OPTION);
 		if (reply == JOptionPane.NO_OPTION)
 			return;
 		
 		List schemaClasses = getSchemaClassesIfOk();
 		if (schemaClasses!=null) {
-	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-			Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-			Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-			Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+	    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
+			PersistenceAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+			PersistenceAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+			PersistenceAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);
 			idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
-			idGenerator.generateIDs(schemaClasses);
+			idGenerator.generateIDs(schemaClasses, neo4J);
 			idGenerationFrame.getIdGenerationPane().getTestResultsPane().setTitleLabelRun();
 			displayTestResults();
 		}
 	}
 	
-	public Action getRunAction() {
+	public Action getRunAction(boolean neo4J) {
     	if (runAction == null) {
     		runAction = new AbstractAction("Run") {
     			public void actionPerformed(ActionEvent e) {
-    				run();
+    				run(neo4J);
     			}
     		};
     	}
@@ -122,10 +123,10 @@ public class IDGenerationController {
 			return;
 		
 		List schemaClasses = getSchemaClassesIfOk();
-    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
-		Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
-		Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
-		Neo4JAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);			
+    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
+		PersistenceAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+		PersistenceAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+		PersistenceAdaptor gk_centraldba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.GK_CENTRAL_MANAGER);
 		idGenerator = new IDGenerator(previousDba, currentDba, gk_centraldba, identifierDatabase);
 		idGenerator.rollbackIDs(schemaClasses);
 	}
@@ -238,9 +239,9 @@ public class IDGenerationController {
 		}
 		
 		String releaseCountString = idGenerationFrame.getIdGenerationPane().getReleasesPane().getController().getModel().getLastNonNullReleaseNum();
-		Neo4JAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
+		PersistenceAdaptor previousDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.PREVIOUS_MANAGER);
 		String previousReleaseNumString = identifierDatabase.getReleaseNumFromReleaseDba(previousDba);
-		Neo4JAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+		PersistenceAdaptor currentDba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
 		String currentReleaseNumString = identifierDatabase.getReleaseNumFromReleaseDba(currentDba);
 		int previousReleaseNum = Integer.MIN_VALUE;
 		if (previousReleaseNumString!=null && !previousReleaseNumString.equals(""))

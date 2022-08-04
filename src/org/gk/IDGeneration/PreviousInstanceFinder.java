@@ -7,8 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
-
+import org.gk.model.PersistenceAdaptor;
 /** 
  * Determines if and how a previous instance should be found
  * 
@@ -20,14 +19,14 @@ abstract class PreviousInstanceFinder {
 	protected String currentReleaseNum;
 	protected String previousReleaseNum;
 	protected String projectName;
-	protected Neo4JAdaptor previousDba = null;
+	protected PersistenceAdaptor previousDba = null;
 	protected boolean allowIDsFromUnspecifiedReleases;
 	protected IdentifierDatabase identifierDatabase;
 	protected boolean test = false;
 	
 	protected boolean iDsFromUnspecifiedReleases;
 	
-	public PreviousInstanceFinder (String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
+	public PreviousInstanceFinder (String currentReleaseNum, PersistenceAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
 		this.currentReleaseNum = currentReleaseNum;
 		this.previousDba = previousDba;
 		this.allowIDsFromUnspecifiedReleases = allowIDsFromUnspecifiedReleases;
@@ -109,7 +108,7 @@ abstract class PreviousInstanceFinder {
 	 * 
 	 * @return
 	 */
-	public abstract GKInstance getPreviousInstance();
+	public abstract GKInstance getPreviousInstance(boolean neo4J);
 	
 	/**
 	 * Looks through the full set of known releases to find instances with the
@@ -120,7 +119,7 @@ abstract class PreviousInstanceFinder {
 	 * @return previousStableID
 	 * @throws Exception
 	 */
-	public GKInstance generateIDsFromUnspecifiedReleases(Long dbId, String currentProjectName, String currentReleaseNum) throws Exception {
+	public GKInstance generateIDsFromUnspecifiedReleases(Long dbId, String currentProjectName, String currentReleaseNum, boolean neo4J) throws Exception {
 		GKInstance previousInstance = null;
 		
 		if (dbId == null) {
@@ -160,7 +159,7 @@ abstract class PreviousInstanceFinder {
 				String dbName = (String)sliceDbParams.getAttributeValue("dbName");
 				if (dbName==null)
 					continue;
-				Neo4JAdaptor dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName);
+				PersistenceAdaptor dba = identifierDatabase.getReleaseDbaFromReleaseNum(releaseNum, projectName, neo4J);
 				if (dba==null) {
 					System.err.println("PreviousInstanceFinder.generateIDsFromUnspecifiedReleases: was not able to get DBA for releaseNum=" + releaseNum);
 					continue;

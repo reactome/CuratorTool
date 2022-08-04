@@ -182,7 +182,7 @@ public class EventCheckOutHandler {
                              clsMap);
         }
         // Fetch all attributes
-        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
+        PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor();
         loadAttributeValues(clsMap, dba);
         GKSchemaAttribute att = null;
         // Fetch attributes values
@@ -281,13 +281,12 @@ public class EventCheckOutHandler {
         mergeMap(schemaMap, fringeMap);
         mergeMap(schemaMap, shellMap);
         // Need to load _displayName for shell instance
-        loadDisplayNamesForShells(schemaMap,
-                                  dba);
+        loadDisplayNamesForShells(schemaMap, dba);
         return schemaMap;
     }
     
     private void loadDisplayNamesForShells(Map<SchemaClass, Set<GKInstance>> clsToSet,
-                                           Neo4JAdaptor dba) throws Exception {
+                                           PersistenceAdaptor dba) throws Exception {
         Set<GKInstance> insts = new HashSet<GKInstance>();
         for (Set<GKInstance> set : clsToSet.values()) {
             for (GKInstance inst : set)
@@ -396,7 +395,7 @@ public class EventCheckOutHandler {
     }
     
     private void loadAttributeValues(Map<SchemaClass, Set<GKInstance>> clsMap,
-                                     Neo4JAdaptor dba) throws Exception {
+                                     PersistenceAdaptor dba) throws Exception {
         // Fetch all attributes
         GKSchemaAttribute att = null;
         List<GKSchemaAttribute> atts = new ArrayList<GKSchemaAttribute>();
@@ -579,7 +578,7 @@ public class EventCheckOutHandler {
 //                                            "gk_central",
 //                                            "authortool",
 //                                            "T001test");
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         GKInstance event = dba.fetchInstance(109581L);
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);

@@ -26,15 +26,8 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import org.gk.graphEditor.ArrayListTransferable;
-import org.gk.model.Bookmark;
-import org.gk.model.GKInstance;
-import org.gk.model.Instance;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.model.StoichiometryInstance;
-import org.gk.persistence.Bookmarks;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.model.*;
+import org.gk.persistence.*;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
@@ -1379,8 +1372,12 @@ public class AttributePane extends JPanel {
 		}
 
         private void inflateInstance() throws Exception {
-            Neo4JAdaptor dba = (Neo4JAdaptor) instance.getDbAdaptor();
-            dba.loadInstanceAttributeValues(instance, false);
+            PersistenceAdaptor dba = instance.getDbAdaptor();
+			if (dba instanceof Neo4JAdaptor) {
+				((Neo4JAdaptor) dba).loadInstanceAttributeValues(instance, false);
+			} else {
+				((MySQLAdaptor) dba).fastLoadInstanceAttributeValues(instance);
+			}
             // Want to make sure all _displayNames have been loaded
             Set unloaded = new HashSet();
             for (Iterator it = instance.getSchemClass().getAttributes().iterator(); it.hasNext();) {

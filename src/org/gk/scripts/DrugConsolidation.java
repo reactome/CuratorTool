@@ -1,16 +1,13 @@
 package org.gk.scripts;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
@@ -24,25 +21,26 @@ import org.neo4j.driver.Transaction;
  * This class is used to consolidate three drug subclasses, ChemicalDrug, ProteinDrug, and
  * RNADrug into a single Drug class and then use an attribute called drugType to assign
  * drug types for annotated drugs. The class also moves referenceEntity to crossReference
- * after creating new DatabaseObject instance and then move ReferenceTherapeutic from 
+ * after creating new DatabaseObject instance and then move ReferenceTherapeutic from
  * refereneTherapeutic to referenceEntity.
- * @author wug
  *
+ * @author wug
  */
 @SuppressWarnings("unchecked")
 public class DrugConsolidation {
-    
+
     public DrugConsolidation() {
     }
-    
+
     /**
      * Create DrugActionType instances as shown in the second slide of this file:
-     * https://docs.google.com/presentation/d/1NllQLkNdOq2eaGem4vP1IWB-PsQirPF-8iuuRzJcpzM/edit#slide=id.gb953c97efd_0_0 
+     * https://docs.google.com/presentation/d/1NllQLkNdOq2eaGem4vP1IWB-PsQirPF-8iuuRzJcpzM/edit#slide=id.gb953c97efd_0_0
+     *
      * @throws Exception
      */
     @Test
     public void createDrugActionTypes() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("curator.reactome.org",
+        PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
                 "gk_central",
                 "",
                 "");
@@ -66,10 +64,59 @@ public class DrugConsolidation {
                 "negative allosteric modulator"
         };
         List<GKInstance> toBeStored = new ArrayList<>();
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, false, tx);
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, false, tx);
+                toBeStored.add(ie);
+                SchemaClass drugActionTypeCls = dba.getSchema().getClassByName(ReactomeJavaConstants.DrugActionType);
+                Map<String, GKInstance> nameToInst = new HashMap<>();
+                for (String name : names) {
+                    GKInstance instance = new GKInstance(drugActionTypeCls);
+                    instance.setDbAdaptor(dba);
+                    instance.addAttributeValue(ReactomeJavaConstants.name, name);
+                    InstanceDisplayNameGenerator.setDisplayName(instance);
+                    instance.setAttributeValue(ReactomeJavaConstants.created, ie);
+                    nameToInst.put(name, instance);
+                    toBeStored.add(instance);
+                }
+                // Need to create parent-child relationships
+                GKInstance parent = nameToInst.get("Agonist");
+                GKInstance child = nameToInst.get("partial agonist");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                child = nameToInst.get("inverse agonist");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                parent = nameToInst.get("Antagonist");
+                child = nameToInst.get("allosteric antagonist");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                parent = nameToInst.get("Inhibitor");
+                child = nameToInst.get("gating inhibitor");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                child = nameToInst.get("antisense inhibitor");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                parent = nameToInst.get("Modulator");
+                child = nameToInst.get("Positive modulator");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                child = nameToInst.get("Allosteric modulator");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                parent = child;
+                child = nameToInst.get("positive allosteric modulator");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                child = nameToInst.get("negative allosteric modulator");
+                child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
+                System.out.println("Total instances to be stored: " + toBeStored.size());
+                for (GKInstance inst : toBeStored) {
+                    dba.storeInstance(inst, tx);
+                }
+                tx.commit();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            // MySQL
+            GKInstance ie = ScriptUtilities.createDefaultIE(dba, ScriptUtilities.GUANMING_WU_DB_ID, false, null);
             toBeStored.add(ie);
             SchemaClass drugActionTypeCls = dba.getSchema().getClassByName(ReactomeJavaConstants.DrugActionType);
             Map<String, GKInstance> nameToInst = new HashMap<>();
@@ -107,53 +154,68 @@ public class DrugConsolidation {
             child = nameToInst.get("negative allosteric modulator");
             child.addAttributeValue(ReactomeJavaConstants.instanceOf, parent);
             System.out.println("Total instances to be stored: " + toBeStored.size());
-            for (GKInstance inst : toBeStored) {
-                dba.storeInstance(inst, tx);
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                for (GKInstance inst : toBeStored) {
+                    dba.storeInstance(inst, null);
+                }
+                ((MySQLAdaptor) dba).commit();
             }
-            tx.commit();
-        } catch (Exception e) {
-            e.printStackTrace();
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                e.printStackTrace();
+            }
         }
     }
-    
+
     public static void main(String[] args) throws Exception {
         // Need database name and user account
-        if (args.length < 3) {
-            System.err.println("java -Xmx8G DrugConsolidation dbName user pass");
+        if (args.length < 4) {
+            System.err.println("java -Xmx8G DrugConsolidation dbName user pass use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             return;
         }
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            args[0],
-                                            args[1],
-                                            args[2]);
+        PersistenceAdaptor dba = null;
+        boolean useNeo4J = Boolean.parseBoolean(args[3]);
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    args[0],
+                    args[1],
+                    args[2]);
+        else
+            dba = new MySQLAdaptor("localhost",
+                    args[0],
+                    args[1],
+                    args[2]);
         DrugConsolidation consolidation = new DrugConsolidation();
         consolidation.split(dba);
 //        consolidation.consolidate(dba);
     }
-    
-    public void consolidate(Neo4JAdaptor dba) throws Exception {
+
+    public void consolidate(PersistenceAdaptor dba) throws Exception {
         Collection<GKInstance> drugs = loadDrugs(dba);
         System.out.println("Total drugs: " + drugs.size());
         Set<GKInstance> databaseIdentifiers = moveReferenceEntityToCrossReference(drugs, dba);
         System.out.println("Total newly created DatabaseIdentifiers: " + databaseIdentifiers.size());
         // Need to call this before the next method. Otherwise, ReferenceTherapeutic
         // cannot be added to referenceEntity!
-        useDrugAsType(drugs, dba); 
+        useDrugAsType(drugs, dba);
         moveReferenceTherapeuticToReferenceEntity(drugs, dba);
         commit(drugs, databaseIdentifiers, dba);
     }
-    
+
     /**
      * Rollback the change made by consolidation so that we have three subclasses:
      * ProteinDrug, RNADrug, and ChemicalDrug. But nothing else will change.
+     *
      * @param dba
      * @throws Exception
      */
-    public void split(Neo4JAdaptor dba) throws Exception {
+    public void split(PersistenceAdaptor dba) throws Exception {
         Collection<GKInstance> drugs = dba.fetchInstancesByClass(ReactomeJavaConstants.Drug);
         // All values should be loaded before update. Otherwise, values may be lost.
         for (GKInstance drug : drugs)
-            dba.loadInstanceAttributeValues(drug);
+            dba.loadInstanceAttributeValues(Collections.singleton(drug));
         Schema schema = dba.getSchema();
         SchemaClass proteinCls = schema.getClassByName(ReactomeJavaConstants.ProteinDrug);
         SchemaClass chemicalCls = schema.getClassByName(ReactomeJavaConstants.ChemicalDrug);
@@ -171,23 +233,24 @@ public class DrugConsolidation {
         }
         commit(drugs, null, dba);
     }
-    
-    private Collection<GKInstance> loadDrugs(Neo4JAdaptor dba) throws Exception {
+
+    private Collection<GKInstance> loadDrugs(PersistenceAdaptor dba) throws Exception {
         Collection<GKInstance> drugs = dba.fetchInstancesByClass(ReactomeJavaConstants.Drug);
         for (GKInstance drug : drugs)
-            dba.loadInstanceAttributeValues(drug); // Load everything locally so that we can do update later on
+            dba.loadInstanceAttributeValues(Collections.singleton(drug)); // Load everything locally so that we can do update later on
         return drugs;
     }
-    
+
     /**
      * Create new DatabaseIdentifier instances based on ReferenceEntities and then attach
      * them to crossReference.
+     *
      * @param drugs
      * @return
      * @throws Exception
      */
     private Set<GKInstance> moveReferenceEntityToCrossReference(Collection<GKInstance> drugs,
-                                                                Neo4JAdaptor dba) throws Exception {
+                                                                PersistenceAdaptor dba) throws Exception {
         SchemaClass diCls = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseIdentifier);
         // Here is a local set to avoid duplication
         Map<String, GKInstance> keyToInstance = new HashMap<>();
@@ -219,19 +282,20 @@ public class DrugConsolidation {
                 keyToInstance.put(key, databaseIdentifier);
             }
             drug.setAttributeValue(ReactomeJavaConstants.crossReference,
-                                   databaseIdentifier);
+                    databaseIdentifier);
         }
         return keyToInstance.values().stream().filter(inst -> inst.getDBID() == null).collect(Collectors.toSet());
     }
-    
+
     /**
      * Move referenceTherapeutic to the referenceEntity slot.
+     *
      * @param drugs
      * @param dba
      * @throws Exception
      */
     private void moveReferenceTherapeuticToReferenceEntity(Collection<GKInstance> drugs,
-                                                           Neo4JAdaptor dba) throws Exception {
+                                                           PersistenceAdaptor dba) throws Exception {
         for (GKInstance drug : drugs) {
             GKInstance referenceTherapeutic = (GKInstance) drug.getAttributeValue(ReactomeJavaConstants.referenceTherapeutic);
             if (referenceTherapeutic == null)
@@ -241,15 +305,16 @@ public class DrugConsolidation {
             drug.setAttributeValue(ReactomeJavaConstants.referenceTherapeutic, null); // Empty it
         }
     }
-    
+
     /**
      * Switch the class for all instances to Drug. Make sure three DrugType instances
      * existing in the database before the following can run!
+     *
      * @param drugs
      * @throws Exception
      */
-    private void useDrugAsType(Collection<GKInstance> drugs, 
-                               Neo4JAdaptor dba) throws Exception {
+    private void useDrugAsType(Collection<GKInstance> drugs,
+                               PersistenceAdaptor dba) throws Exception {
         Map<String, GKInstance> nameToType = loadDrugTypes(dba);
         SchemaClass drugCls = dba.getSchema().getClassByName(ReactomeJavaConstants.Drug);
         for (GKInstance drug : drugs) {
@@ -262,8 +327,8 @@ public class DrugConsolidation {
             drug.setAttributeValue(ReactomeJavaConstants.drugType, drugType);
         }
     }
-    
-    private Map<String, GKInstance> loadDrugTypes(Neo4JAdaptor dba) throws Exception {
+
+    private Map<String, GKInstance> loadDrugTypes(PersistenceAdaptor dba) throws Exception {
         Collection<GKInstance> drugTypes = dba.fetchInstancesByClass(ReactomeJavaConstants.DrugType);
         Map<String, GKInstance> nameToType = new HashMap<>();
         for (GKInstance drugType : drugTypes) {
@@ -274,30 +339,61 @@ public class DrugConsolidation {
 
     private void commit(Collection<GKInstance> drugs,
                         Set<GKInstance> databaseIdentifiers,
-                        Neo4JAdaptor dba) throws Exception {
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba,
-                    ScriptUtilities.GUANMING_WU_DB_ID,
-                    true, tx);
-            if (databaseIdentifiers != null) {
-                // Store the new instances
-                for (GKInstance inst : databaseIdentifiers) {
-                    inst.setAttributeValue(ReactomeJavaConstants.created, ie);
-                    dba.storeInstance(inst, tx);
+                        PersistenceAdaptor dba) throws Exception {
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance ie = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, tx);
+                if (databaseIdentifiers != null) {
+                    // Store the new instances
+                    for (GKInstance inst : databaseIdentifiers) {
+                        inst.setAttributeValue(ReactomeJavaConstants.created, ie);
+                        dba.storeInstance(inst, tx);
+                    }
                 }
-            }
-            // Update drugs
-            for (GKInstance drug : drugs) {
-                // Need to load all values first so that the update will not lose values
-                // This step should be performed as the first step to avoid overwriting any
-                // later changes.
+                // Update drugs
+                for (GKInstance drug : drugs) {
+                    // Need to load all values first so that the update will not lose values
+                    // This step should be performed as the first step to avoid overwriting any
+                    // later changes.
 //                dba.fastLoadInstanceAttributeValues(drug);
-                drug.addAttributeValue(ReactomeJavaConstants.modified, ie);
-                dba.updateInstance(drug, tx);
+                    drug.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                    ((Neo4JAdaptor) dba).updateInstance(drug, tx);
+                }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                GKInstance ie = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, null);
+                if (databaseIdentifiers != null) {
+                    // Store the new instances
+                    for (GKInstance inst : databaseIdentifiers) {
+                        inst.setAttributeValue(ReactomeJavaConstants.created, ie);
+                        dba.storeInstance(inst, null);
+                    }
+                }
+                // Update drugs
+                for (GKInstance drug : drugs) {
+                    // Need to load all values first so that the update will not lose values
+                    // This step should be performed as the first step to avoid overwriting any
+                    // later changes.
+//                dba.fastLoadInstanceAttributeValues(drug);
+                    drug.addAttributeValue(ReactomeJavaConstants.modified, ie);
+                    ((MySQLAdaptor) dba).updateInstance(drug);
+                }
+                ((MySQLAdaptor) dba).commit();
+            } catch (Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
 

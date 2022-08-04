@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This class is used to check EntitySetCompartment. This is a very simple check
@@ -46,7 +46,7 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
     }
 
     protected void loadAttributes(Collection<GKInstance> instances) throws Exception {
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         Set<GKInstance> toBeLoaded = loadEntitySetMembers(instances, dba);
         if (progressPane != null)
             progressPane.setText("Load PhysicalEntity compartment...");

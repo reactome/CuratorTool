@@ -27,13 +27,11 @@ import java.util.regex.Pattern;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathwaylayout.PathwayDiagramXMLGenerator;
 import org.gk.pathwaylayout.PredictedPathwayDiagramGeneratorFromDB;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.persistence.*;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderableCompartment;
@@ -50,49 +48,108 @@ import org.neo4j.driver.Transaction;
 
 /**
  * @author wgm
- *
  */
 public class PathwayDiagramScripts {
-    
+
     public PathwayDiagramScripts() {
     }
-    
+
     public static void main(String[] args) {
-        if (args.length != 6) {
-            System.err.println("Usage java -Xmx1024m org.gk.scripts.PathwayDiagramScripts dbHost dbName dbUser dbPwd diagramId imageBaseDir");
+        if (args.length != 7) {
+            System.err.println("Usage java -Xmx1024m org.gk.scripts.PathwayDiagramScripts dbHost dbName dbUser dbPwd diagramId imageBaseDir use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(1);
         }
         PropertyConfigurator.configure("resources/log4j.properties");
+        PersistenceAdaptor dba = null;
+        boolean useNeo4J = Boolean.parseBoolean(args[6]);
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
-                                                args[1],
-                                                args[2],
-                                                args[3]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
+            else
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
             Long dbId = new Long(args[4]);
             PathwayDiagramScripts scripts = new PathwayDiagramScripts();
             scripts.fixDiagramsForRelease(dba, dbId, args[5]);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * This method is used to fix a wrong diagram for release 42.
+     *
      * @throws Exception
      */
-    public void fixDiagramsForRelease(Neo4JAdaptor dba,
+    public void fixDiagramsForRelease(PersistenceAdaptor dba,
                                       Long dbId,
                                       String imageBaseDir) throws Exception {
         // Need to get the original form from gk_central
-        Neo4JAdaptor gk_central = new Neo4JAdaptor("reactomedev.oicr.on.ca",
+        PersistenceAdaptor gk_central = new MySQLAdaptor("reactomedev.oicr.on.ca",
                 "gk_central",
                 "authortool",
                 "T001test");
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
 
+                GKInstance gkCentralInst = gk_central.fetchInstance(dbId);
+                DiagramGKBReader diagramReader = new DiagramGKBReader();
+                RenderablePathway pathway = diagramReader.openDiagram(gkCentralInst);
+                PathwayDiagramSlicingHelper slicingHelper = new PathwayDiagramSlicingHelper();
+                slicingHelper.removeDoNotReleaseEvents(pathway, gkCentralInst, gk_central);
+                String xml = (String) gkCentralInst.getAttributeValue(ReactomeJavaConstants.storedATXML);
+                System.out.println(xml);
+
+                // Do an update in the target DBA
+                // Need to update the PathwayDigaram first
+                GKInstance sourceInst = dba.fetchInstance(dbId);
+                SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
+                SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.storedATXML);
+                sourceInst.setAttributeValue(att, xml);
+                dba.updateInstanceAttribute(sourceInst, att.getName(), tx);
+
+                // Generate image files for the original diagram
+                PredictedPathwayDiagramGeneratorFromDB diagramGenerator = new PredictedPathwayDiagramGeneratorFromDB();
+                diagramGenerator.setImageBaseDir(imageBaseDir);
+                diagramGenerator.setPersistenceAdaptor(dba);
+                diagramGenerator.setDefaultPersonId(140537L);
+
+                GKInstance pathwayInst = (GKInstance) sourceInst.getAttributeValue(ReactomeJavaConstants.representedPathway);
+                if (pathwayInst == null)
+                    throw new IllegalStateException("Cannot find pathway for " + sourceInst);
+                diagramGenerator.generateELVInstancesAndFiles(pathwayInst,
+                        sourceInst);
+
+                // Check predicted pathway diagrams
+                List<GKInstance> orthologousEvents = pathwayInst.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
+                for (GKInstance orEvent : orthologousEvents) {
+                    Collection<GKInstance> referrers = orEvent.getReferers(ReactomeJavaConstants.representedPathway);
+                    if (referrers != null && referrers.size() > 0) {
+                        for (GKInstance referrer : referrers)
+                            ((Neo4JAdaptor) dba).deleteInstance(referrer, tx);
+                    }
+                    GKInstance predictedPathway = diagramGenerator.generatePredictedDiagram(orEvent,
+                            pathwayInst,
+                            sourceInst, tx);
+                    predictedPathway.addAttributeValue(ReactomeJavaConstants.representedPathway,
+                            orEvent);
+                    dba.updateInstanceAttribute(predictedPathway,
+                            ReactomeJavaConstants.representedPathway, tx);
+                    diagramGenerator.generateELVInstancesAndFiles(orEvent,
+                            predictedPathway);
+                }
+                tx.commit();
+            }
+        } else {
+            // MySQL
             GKInstance gkCentralInst = gk_central.fetchInstance(dbId);
             DiagramGKBReader diagramReader = new DiagramGKBReader();
             RenderablePathway pathway = diagramReader.openDiagram(gkCentralInst);
@@ -107,12 +164,12 @@ public class PathwayDiagramScripts {
             SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
             SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.storedATXML);
             sourceInst.setAttributeValue(att, xml);
-            dba.updateInstanceAttribute(sourceInst, att.getName(), tx);
+            dba.updateInstanceAttribute(sourceInst, att.getName(), null);
 
             // Generate image files for the original diagram
             PredictedPathwayDiagramGeneratorFromDB diagramGenerator = new PredictedPathwayDiagramGeneratorFromDB();
             diagramGenerator.setImageBaseDir(imageBaseDir);
-            diagramGenerator.setNeo4JAdaptor(dba);
+            diagramGenerator.setPersistenceAdaptor(dba);
             diagramGenerator.setDefaultPersonId(140537L);
 
             GKInstance pathwayInst = (GKInstance) sourceInst.getAttributeValue(ReactomeJavaConstants.representedPathway);
@@ -127,33 +184,32 @@ public class PathwayDiagramScripts {
                 Collection<GKInstance> referrers = orEvent.getReferers(ReactomeJavaConstants.representedPathway);
                 if (referrers != null && referrers.size() > 0) {
                     for (GKInstance referrer : referrers)
-                        dba.deleteInstance(referrer, tx);
+                        ((MySQLAdaptor) dba).deleteInstance(referrer);
                 }
                 GKInstance predictedPathway = diagramGenerator.generatePredictedDiagram(orEvent,
                         pathwayInst,
-                        sourceInst, tx);
+                        sourceInst, null);
                 predictedPathway.addAttributeValue(ReactomeJavaConstants.representedPathway,
                         orEvent);
                 dba.updateInstanceAttribute(predictedPathway,
-                        ReactomeJavaConstants.representedPathway, tx);
+                        ReactomeJavaConstants.representedPathway, null);
                 diagramGenerator.generateELVInstancesAndFiles(orEvent,
                         predictedPathway);
             }
-            tx.commit();
         }
     }
-    
-    private Neo4JAdaptor getNeo4JAdaptor() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+
+    private PersistenceAdaptor getPersistenceAdaptor() throws Exception {
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                "gk_central",
+                "authortool",
+                "T001test");
         return dba;
     }
-    
+
     @Test
     public void geneatePathwayDiagramList() throws Exception {
-        Neo4JAdaptor dba = getNeo4JAdaptor();
+        PersistenceAdaptor dba = getPersistenceAdaptor();
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
         dba.loadInstanceAttributeValues(c, cls.getAttribute(ReactomeJavaConstants.representedPathway));
@@ -172,7 +228,7 @@ public class PathwayDiagramScripts {
         for (GKInstance inst : list)
             System.out.println(inst.getDisplayName() + " [" + inst.getDBID() + "]");
     }
-    
+
     private List<String> loadDBIds(String fileName) throws IOException {
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
@@ -185,25 +241,25 @@ public class PathwayDiagramScripts {
         fu.close();
         return rtn;
     }
-    
+
     @Test
     public void generateProcessXMLWithDisplayNames() throws Exception {
-        Neo4JAdaptor dba = getNeo4JAdaptor();
+        PersistenceAdaptor dba = getPersistenceAdaptor();
 //        Long dbId = 507988L;
 //        String output = "tmp/EGFR_Simple_36.xml";
 //        String output = "tmp/EGFR_Simple_gk_central.xml";
-        
+
 //        Long dbId = 1500930L;
 //        String output = "tmp/XMLTest.xml";
         Long dbId = 480128L;
         String output = "tmp/Mitotic G1-G1_S phases.xml";
-        
+
         GKInstance pd = dba.fetchInstance(dbId);
-        
+
         PathwayDiagramXMLGenerator xmlGenerator = new PathwayDiagramXMLGenerator();
         xmlGenerator.generateXMLForPathwayDiagram(pd, new File(output));
     }
-    
+
     private List<Long> loadPDIdsFromAddSetAndMemberLinksFile() throws IOException {
         String fileName = "/Users/gwu/Documents/wgm/work/reactome/AddSetAndMemberLinks_gk_central_102011.txt";
         FileUtilities fu = new FileUtilities();
@@ -221,14 +277,14 @@ public class PathwayDiagramScripts {
         }
         return ids;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void checkExtraCellularInDiagrams() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_central_050313", 
-                                            "root", 
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_050313",
+                "root",
+                "macmysql01");
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader reader = new DiagramGKBReader();
         int count = 0;
@@ -243,57 +299,58 @@ public class PathwayDiagramScripts {
             for (Renderable r : list) {
                 if (r instanceof RenderableCompartment) {
                     if (r.getDisplayName().contains("extracellular")) {
-                        count ++;
+                        count++;
                         GKInstance ie = ScriptUtilities.getAuthor(inst);
                         System.out.println(inst.getDBID() + "\t" +
-                                           inst.getDisplayName() + "\t"+ 
-                                           ie.getDisplayName());
+                                inst.getDisplayName() + "\t" +
+                                ie.getDisplayName());
                     }
                 }
             }
         }
     }
-    
+
     @Test
     public void fixRenderableTypes() throws Exception {
         String dirName = "/Users/gwu/Documents/gkteam/Peter/";
         String srcFileName = dirName + "L_aminoacid_cleanup_diagram_fix.rtpj";
         String fixedFileName = dirName + "L_aminoacid_cleanup_diagram_fixed.rtpj";
-        
+
         XMLFileAdaptor adaptor = new XMLFileAdaptor();
         adaptor.setSource(srcFileName);
-        
+
         Collection<GKInstance> pdInstances = adaptor.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         for (GKInstance pd : pdInstances)
             System.out.println(pd);
         // There is only one pathway diagram
         GKInstance pd = pdInstances.iterator().next();
-        
+
         RenderablePathway diagram = new DiagramGKBReader().openDiagram(pd);
         DiagramGKBWriter writer = new DiagramGKBWriter();
         writer.setPersistenceAdaptor(adaptor);
         String xml = writer.generateXMLString(diagram);
         System.out.println(xml);
         pd.setAttributeValue(ReactomeJavaConstants.storedATXML,
-                             xml);
+                xml);
         adaptor.save(fixedFileName);
     }
-    
+
     /**
      * Compare two gk_centrals and find reactions that are not in the second gk_central
      * for PathwayDiagram instances.
+     *
      * @throws Exception
      */
     @Test
     public void checkReactionsViaComparison() throws Exception {
-        Neo4JAdaptor dba1 = new Neo4JAdaptor("localhost",
-                                             "gk_central_2016_02_28",
-                                             "root", 
-                                             "macmysql01");
-        Neo4JAdaptor dba2 = new Neo4JAdaptor("localhost",
-                                             "gk_central_041416",
-                                             "root", 
-                                             "macmysql01");
+        PersistenceAdaptor dba1 = new MySQLAdaptor("localhost",
+                "gk_central_2016_02_28",
+                "root",
+                "macmysql01");
+        PersistenceAdaptor dba2 = new MySQLAdaptor("localhost",
+                "gk_central_041416",
+                "root",
+                "macmysql01");
         // Get all PathwayDiagrams in the second database that have been modified after the first database
         Collection<GKInstance> c = dba2.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         dba2.loadInstanceAttributeValues(c, new String[]{ReactomeJavaConstants.modified});
@@ -311,25 +368,25 @@ public class PathwayDiagramScripts {
                     GKInstance lastModified = modified2.get(modified2.size() - 1);
                     String text = removed.toString();
                     text = text.substring(1, text.length() - 1);
-                    System.out.println(pd2.getDBID() + "\t" + 
-                            pd2.getDisplayName() + "\t" + 
-                            lastModified.getDisplayName() + "\t" + 
-                            removed.size() + "\t" + 
+                    System.out.println(pd2.getDBID() + "\t" +
+                            pd2.getDisplayName() + "\t" +
+                            lastModified.getDisplayName() + "\t" +
+                            removed.size() + "\t" +
                             text);
-                    count ++;
+                    count++;
                 }
             }
         }
         System.out.println("Total: " + count);
     }
-    
+
     private List<GKInstance> getUnReleasedDeletedEvents(GKInstance pd2, GKInstance pd1) throws Exception {
         List<GKInstance> events1 = getDisplayedEvents(pd1);
         List<GKInstance> events2 = getDisplayedEvents(pd2);
         Set<Long> dbIds2 = new HashSet<Long>();
-        for (GKInstance event2 : events2) 
+        for (GKInstance event2 : events2)
             dbIds2.add(event2.getDBID());
-        for (Iterator<GKInstance> it = events1.iterator(); it.hasNext();) {
+        for (Iterator<GKInstance> it = events1.iterator(); it.hasNext(); ) {
             GKInstance event = it.next();
             if (dbIds2.contains(event.getDBID())) {
                 it.remove();
@@ -341,7 +398,7 @@ public class PathwayDiagramScripts {
         }
         return events1;
     }
-    
+
     private List<GKInstance> getDisplayedEvents(GKInstance pd) throws Exception {
         DiagramGKBReader reader = new DiagramGKBReader();
         RenderablePathway pathway = reader.openDiagram(pd);
@@ -357,25 +414,25 @@ public class PathwayDiagramScripts {
         }
         return events;
     }
-    
+
     @Test
     public void testloadPDIdsFromAddSetAndMemberLinksFile() throws IOException {
         List<Long> ids = loadPDIdsFromAddSetAndMemberLinksFile();
         System.out.println("Total ids: " + ids.size());
     }
-    
+
     @Test
     public void runBatchDeployment() throws Exception {
 //        String fileName = "/Users/wgm/Documents/gkteam/Lisa/pathway_diagram_DBIDs.txt";
 //        List<String> pdIds = loadDBIds(fileName);
         List<Long> pdIds = loadPDIdsFromAddSetAndMemberLinksFile();
-        Neo4JAdaptor dba = getNeo4JAdaptor();
+        PersistenceAdaptor dba = getPersistenceAdaptor();
         String serviceUrl = "http://reactomedev.oicr.on.ca:8080/ELVWebApp/ElvService";
         int index = 0;
         for (Long dbId : pdIds) {
             GKInstance pd = dba.fetchInstance(dbId);
             System.out.println(index + ": Deploy diagram for " + pd.getDisplayName());
-            index ++;
+            index++;
             URL url = new URL(serviceUrl);
             URLConnection connection = url.openConnection();
             connection.setDoOutput(true);
@@ -405,63 +462,65 @@ public class PathwayDiagramScripts {
             System.out.println(builder.toString());
         }
     }
-    
+
     /**
      * Check if a pathway diagram has no-process nodes.
+     *
      * @throws Exception
      */
     @Test
     public void checkDiagramContents() throws Exception {
-    	Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
-    									    "gk_central",
-    									    "authortool",
-    										"T001test");
-    	FileUtilities fu = new FileUtilities();
-    	String fileName = "/Users/Gwu/Desktop/LisaList.txt";
-    	fu.setInput(fileName);
-    	String line = null;
-    	DiagramGKBReader reader = new DiagramGKBReader();
-    	while ((line = fu.readLine()) != null) {
-    		GKInstance pathway = dba.fetchInstance(new Long(line));
-    		Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.representedPathway);
-    		if (referrers.size() == 0) {
-    			System.out.println(line + " doesn't have a diagram!");
-    			continue;
-    		}
-    		RenderablePathway diagram = reader.openDiagram(referrers.iterator().next());
-    		boolean hasEntity = false;
-    		for (Object r : diagram.getComponents()) {
-    			if (r instanceof Node) {
-    				Long reactomeId = ((Node)r).getReactomeId();
-    				if (reactomeId == null)
-    					continue;
-    				GKInstance entity = dba.fetchInstance(reactomeId);
-    				if (entity == null) {
-    					System.out.println(diagram + " has a deleted entity!");
-    					continue;
-    				}
-    				if (entity.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
-    					hasEntity = true;
-    					break;
-    				}
-    			}
-    		}
-    		System.out.println(line + "\t" + pathway.getDisplayName() + "\t" + hasEntity);
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                "gk_central",
+                "authortool",
+                "T001test");
+        FileUtilities fu = new FileUtilities();
+        String fileName = "/Users/Gwu/Desktop/LisaList.txt";
+        fu.setInput(fileName);
+        String line = null;
+        DiagramGKBReader reader = new DiagramGKBReader();
+        while ((line = fu.readLine()) != null) {
+            GKInstance pathway = dba.fetchInstance(new Long(line));
+            Collection<GKInstance> referrers = pathway.getReferers(ReactomeJavaConstants.representedPathway);
+            if (referrers.size() == 0) {
+                System.out.println(line + " doesn't have a diagram!");
+                continue;
+            }
+            RenderablePathway diagram = reader.openDiagram(referrers.iterator().next());
+            boolean hasEntity = false;
+            for (Object r : diagram.getComponents()) {
+                if (r instanceof Node) {
+                    Long reactomeId = ((Node) r).getReactomeId();
+                    if (reactomeId == null)
+                        continue;
+                    GKInstance entity = dba.fetchInstance(reactomeId);
+                    if (entity == null) {
+                        System.out.println(diagram + " has a deleted entity!");
+                        continue;
+                    }
+                    if (entity.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity)) {
+                        hasEntity = true;
+                        break;
+                    }
+                }
+            }
+            System.out.println(line + "\t" + pathway.getDisplayName() + "\t" + hasEntity);
 //    		break;
-    	}
-    	fu.close();
+        }
+        fu.close();
     }
-    
+
     /**
      * This method is used to check how many pathways that have detailed pathway diagrams.
+     *
      * @throws Exception
      */
     @Test
     public void checkDetailedPathwayDiagrams() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            "gk_current_ver42",
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_current_ver42",
+                "root",
+                "macmysql01");
         Collection<GKInstance> pathways = dba.fetchInstancesByClass(ReactomeJavaConstants.Pathway);
         dba.loadInstanceAttributeValues(pathways, new String[]{ReactomeJavaConstants.species, ReactomeJavaConstants.hasComponent});
         Collection<GKInstance> diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
@@ -493,5 +552,5 @@ public class PathwayDiagramScripts {
         System.out.println("Total time: " + (time2 - time1));
         System.out.println("Total Selected Pathways: " + selectedPathways.size());
     }
-    
+
 }

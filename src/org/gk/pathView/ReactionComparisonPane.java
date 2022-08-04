@@ -27,7 +27,8 @@ import org.gk.database.InstanceComparisonPane;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.GKApplicationUtilities;
 
 /**
@@ -39,9 +40,9 @@ public class ReactionComparisonPane extends JPanel {
 	private InstanceListPane newReactionPane;
 	private InstanceListPane deleteReactionPane;
 	private InstanceListPane changedReactionPane; 
-	// Cache Neo4JAdaptor information
-	private Neo4JAdaptor oldAdaptor;
-	private Neo4JAdaptor newAdaptor;
+	// Cache PersistenceAdaptor information
+	private PersistenceAdaptor oldAdaptor;
+	private PersistenceAdaptor newAdaptor;
 	// To control the diff JFrames
 	private Map diffFrameMap = new HashMap();
 
@@ -148,7 +149,7 @@ public class ReactionComparisonPane extends JPanel {
 	 * @param adaptor1 the old database.
 	 * @param adaptor2 the new database
 	 */
-	public void setNeo4JAdaptors(Neo4JAdaptor adaptor1, Neo4JAdaptor adaptor2) {
+	public void setPersistenceAdaptors(PersistenceAdaptor adaptor1, PersistenceAdaptor adaptor2) {
 		try {
 			Collection events1 = adaptor1.fetchInstancesByClass("Reaction");
 			// Convert to map to increase the performace
@@ -172,7 +173,7 @@ public class ReactionComparisonPane extends JPanel {
 			deleteReactionPane.setTitle("Reactions deleted at " + adaptor2.toString());
 		}
 		catch(Exception e) {
-			System.err.println("ReactionComparisonPane.setNeo4JAdaptor(): " + e);
+			System.err.println("ReactionComparisonPane.setPersistenceAdaptor(): " + e);
 			e.printStackTrace();
 		}
 	}
@@ -283,17 +284,17 @@ public class ReactionComparisonPane extends JPanel {
 		frame.setSize(400, 800);
 		frame.setVisible(true);
 		try {
-			Neo4JAdaptor dba1 = new Neo4JAdaptor("localhost",
+			PersistenceAdaptor dba1 = new MySQLAdaptor("localhost",
 			                                     "gk_sky",
 			                                     "wgm",
 			                                     "wgm",
 			                                     3306);
-			Neo4JAdaptor dba2 = new Neo4JAdaptor("localhost",
+			PersistenceAdaptor dba2 = new MySQLAdaptor("localhost",
 												 "gk_central_innodb",
 												 "wgm",
 												 "wgm",
 												 3306);
-			pane.setNeo4JAdaptors(dba1, dba2);
+			pane.setPersistenceAdaptors(dba1, dba2);
 		}
 		catch(Exception e) {
 			e.printStackTrace();

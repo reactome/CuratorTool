@@ -15,28 +15,29 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 
 @SuppressWarnings("serial")
-public class VariantCurationFrame extends JFrame {	
-	
-	private Neo4JAdaptor dba;
-	
-	private VariantCuration variantCuration;
-	
-	final public Color blueColor = new Color(65, 105, 255);
-	
-	final public Color whiteColor = new Color(255, 255, 255);
-	
-	public VariantCurationFrame(String title) {
+public class VariantCurationFrame extends JFrame {
+
+    private PersistenceAdaptor dba;
+
+    private VariantCuration variantCuration;
+
+    final public Color blueColor = new Color(65, 105, 255);
+
+    final public Color whiteColor = new Color(255, 255, 255);
+
+    public VariantCurationFrame(String title) {
         super(title);
-        
+
         setLayout(new BorderLayout());
-        
+
         JPanel panel = new JPanel();
-        
+
         panel.setLayout(null);
-        
+
         JLabel geneNameLable = new JLabel("Choose gene: ");
         geneNameLable.setBounds(280, 30, 160, 25);
         panel.add(geneNameLable);
@@ -45,7 +46,7 @@ public class VariantCurationFrame extends JFrame {
         geneNameField.setBackground(blueColor);
         geneNameField.setForeground(whiteColor);
         panel.add(geneNameField);
-        
+
         JLabel mutationLable = new JLabel("Enter mutation: ");
         mutationLable.setBounds(280, 70, 160, 25);
         panel.add(mutationLable);
@@ -54,7 +55,7 @@ public class VariantCurationFrame extends JFrame {
         mutationField.setBackground(blueColor);
         mutationField.setForeground(whiteColor);
         panel.add(mutationField);
-        
+
         JLabel coordinateLable = new JLabel("Coodinate: ");
         coordinateLable.setBounds(280, 110, 160, 25);
         panel.add(coordinateLable);
@@ -63,7 +64,7 @@ public class VariantCurationFrame extends JFrame {
         coordinateField.setBackground(blueColor);
         coordinateField.setForeground(whiteColor);
         panel.add(coordinateField);
-        
+
         JLabel wtResidueLable = new JLabel("Wild type residue: ");
         wtResidueLable.setBounds(280, 150, 160, 25);
         panel.add(wtResidueLable);
@@ -72,7 +73,7 @@ public class VariantCurationFrame extends JFrame {
         wtResidueField.setBackground(blueColor);
         wtResidueField.setForeground(whiteColor);
         panel.add(wtResidueField);
-        
+
         JLabel replacedResidueLable = new JLabel("Replaced residue: ");
         replacedResidueLable.setBounds(280, 190, 160, 25);
         panel.add(replacedResidueLable);
@@ -81,11 +82,11 @@ public class VariantCurationFrame extends JFrame {
         replacedResidueField.setBackground(blueColor);
         replacedResidueField.setForeground(whiteColor);
         panel.add(replacedResidueField);
-        
+
         JLabel ewasLable = new JLabel("");
         ewasLable.setBounds(210, 230, 170, 25);
         panel.add(ewasLable);
-        
+
         JLabel containingEntitiesLable = new JLabel("");
         containingEntitiesLable.setBounds(140, 270, 238, 25);
         panel.add(containingEntitiesLable);
@@ -95,36 +96,42 @@ public class VariantCurationFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String geneName = geneNameField.getText();
                 System.out.println(geneName);
-                if (getDba() == null)
-                    setDba(new Neo4JAdaptor("localhost", "gk_central_091120", "root", "lake3%7g", 3306));
+                try {
+                    if (getDba() == null)
+                        setDba(new MySQLAdaptor("localhost", "gk_central_091120", "root", "lake3%7g", 3306));
 
-                if (getVariantCuration() == null) {
+                    if (getVariantCuration() == null) {
 //            			setVariantCuration(new VariantCuration());
-                    try {
-                        List<GKInstance> eawsInstances = variantCuration.getWtEwases(geneName);
-                        List<String> ewasDisplayNames = new ArrayList<>();
-                        for (GKInstance ewas : eawsInstances) {
-                            ewasDisplayNames.add(ewas.getDisplayName());
-                        }
-                        JComboBox ewasDropDown = new JComboBox(ewasDisplayNames.toArray());
-                        ewasDropDown.setSelectedIndex(-1);
-                        ewasDropDown.setBounds(400, 230, 180, 25);
-                        ewasDropDown.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                String[] todo = {"todo1", "todo2..."};
-                                JComboBox entitiesDropDown = new JComboBox(todo);
-                                entitiesDropDown.setSelectedIndex(-1);
-                                entitiesDropDown.setBounds(400, 270, 180, 25);
-                                panel.add(entitiesDropDown);
-                                containingEntitiesLable.setText("Select a normal complex or EntitySet: ");
+                        try {
+                            List<GKInstance> eawsInstances = variantCuration.getWtEwases(geneName);
+                            List<String> ewasDisplayNames = new ArrayList<>();
+                            for (GKInstance ewas : eawsInstances) {
+                                ewasDisplayNames.add(ewas.getDisplayName());
                             }
-                        });
-                        panel.add(ewasDropDown);
-                    } catch (Exception e1) {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
+                            JComboBox ewasDropDown = new JComboBox(ewasDisplayNames.toArray());
+                            ewasDropDown.setSelectedIndex(-1);
+                            ewasDropDown.setBounds(400, 230, 180, 25);
+                            ewasDropDown.addActionListener(new ActionListener() {
+                                @Override
+                                public void actionPerformed(ActionEvent e) {
+                                    String[] todo = {"todo1", "todo2..."};
+                                    JComboBox entitiesDropDown = new JComboBox(todo);
+                                    entitiesDropDown.setSelectedIndex(-1);
+                                    entitiesDropDown.setBounds(400, 270, 180, 25);
+                                    panel.add(entitiesDropDown);
+                                    containingEntitiesLable.setText("Select a normal complex or EntitySet: ");
+                                }
+                            });
+                            panel.add(ewasDropDown);
+                        } catch (Exception e1) {
+                            // TODO Auto-generated catch block
+                            e1.printStackTrace();
+                        }
                     }
+
+                } catch (SQLException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
                 }
 
                 ewasLable.setText("Choose a wild-type EWAS: ");
@@ -135,20 +142,20 @@ public class VariantCurationFrame extends JFrame {
 
     }
 
-	public Neo4JAdaptor getDba() {
-		return dba;
-	}
+    public PersistenceAdaptor getDba() {
+        return dba;
+    }
 
-	public void setDba(Neo4JAdaptor dba) {
-		this.dba = dba;
-	}
+    public void setDba(PersistenceAdaptor dba) {
+        this.dba = dba;
+    }
 
-	public VariantCuration getVariantCuration() {
-		return variantCuration;
-	}
+    public VariantCuration getVariantCuration() {
+        return variantCuration;
+    }
 
-	public void setVariantCuration(VariantCuration variantCuration) {
-		this.variantCuration = variantCuration;
-	}
+    public void setVariantCuration(VariantCuration variantCuration) {
+        this.variantCuration = variantCuration;
+    }
 
 }

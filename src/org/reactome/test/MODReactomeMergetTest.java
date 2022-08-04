@@ -15,8 +15,9 @@ import junit.framework.TestCase;
 
 import org.gk.database.util.MODReactomeAnalyzer;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 
@@ -98,7 +99,7 @@ public class MODReactomeMergetTest extends TestCase {
      */
     public void testCheckMODInstances() throws Exception {
         // MOD database
-        Neo4JAdaptor mod = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor mod = new MySQLAdaptor("localhost",
                                             "drosophila_reactome",
                                             "root",
                                             "macmysql01",
@@ -153,7 +154,7 @@ public class MODReactomeMergetTest extends TestCase {
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);
         // MOD database
-        Neo4JAdaptor mod = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor mod = new MySQLAdaptor("localhost",
                                             "drosophila_reactome",
                                             "root",
                                             "macmysql01",

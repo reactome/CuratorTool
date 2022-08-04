@@ -6,8 +6,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 
@@ -35,7 +35,7 @@ public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null;
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         // The {reaction: diagrams} map.
         ReactionELVCheck reactionCheck = new ReactionELVCheck();
         Map<GKInstance, Set<GKInstance>> usageMap = reactionCheck.checkEventUsageInELV(dba);

@@ -16,8 +16,9 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
@@ -77,12 +78,12 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
      */
     @Test
     public void compareTwoSlicings() throws Exception {
-        Neo4JAdaptor oldDba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor oldDba = new MySQLAdaptor("localhost",
                                                "test_slicing_ver25",
                                                "root",
                                                "macmysql01",
                                                3306);
-        Neo4JAdaptor newDba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor newDba = new MySQLAdaptor("localhost",
                                                "test_slicing_ver25_new",
                                                "root",
                                                "macmysql01",
@@ -116,7 +117,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
      */
     @Test
     public void testExtractEvents() throws Exception {
-        sourceDBA = new Neo4JAdaptor("localhost",
+        sourceDBA = new MySQLAdaptor("localhost",
                                      "gk_central_051208",
                                      "root",
                                      "macmysql01",
@@ -145,7 +146,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
             System.out.println(clsName + ": " + list.size());
         }
         // Want to check what the differences between these two methods
-        Neo4JAdaptor oldSlice = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor oldSlice = new MySQLAdaptor("localhost",
                                                  "test_slicing_ver25",
                                                  "root",
                                                  "macmysql01",
@@ -477,7 +478,7 @@ public class ProjectBasedSlicingEngine extends SlicingEngine {
     
     
     public void testTopics() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "test_gk_central",
                                             "authortool",
                                             "T001test",

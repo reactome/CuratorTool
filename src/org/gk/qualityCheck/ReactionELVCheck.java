@@ -18,9 +18,10 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.HyperEdge;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
@@ -87,7 +88,7 @@ public class ReactionELVCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null;
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         // The {reaction: diagrams} map.
         Map<GKInstance, Set<GKInstance>> eventToDiagrams = checkEventUsageInELV(dba);
         addEventToDiagramMapToReport(report, eventToDiagrams);
@@ -121,7 +122,7 @@ public class ReactionELVCheck extends AbstractQualityCheck {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(Neo4JAdaptor dba) throws Exception {
+    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(PersistenceAdaptor dba) throws Exception {
         Map<GKInstance, Set<GKInstance>> reactionToDiagrams = new HashMap<GKInstance, Set<GKInstance>>();
         // Get all ReactionlikeEvent in the database
         Collection<GKInstance> reactions =
@@ -263,7 +264,7 @@ public class ReactionELVCheck extends AbstractQualityCheck {
     
     @Test
     public void testCheckReactionsInELVs() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_071712",
                                             "root",
                                             "macmysql01");

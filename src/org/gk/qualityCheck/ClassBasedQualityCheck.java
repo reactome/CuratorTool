@@ -20,7 +20,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.GKApplicationUtilities;
 
@@ -56,7 +56,7 @@ public abstract class ClassBasedQualityCheck extends AbstractQualityCheck {
     
     protected void loadAttributes(String clsName,
                                   String attName,
-                                  Neo4JAdaptor dba) throws Exception {
+                                  PersistenceAdaptor dba) throws Exception {
         Collection instances = dba.fetchInstancesByClass(clsName);
         loadAttributes(instances, clsName, attName, dba);
     }
@@ -64,7 +64,7 @@ public abstract class ClassBasedQualityCheck extends AbstractQualityCheck {
     protected void loadAttributes(Collection instances,
                                   String clsName,
                                   String attName,
-                                  Neo4JAdaptor dba) throws Exception {
+                                  PersistenceAdaptor dba) throws Exception {
         SchemaAttribute att = dba.getSchema().getClassByName(clsName).getAttribute(attName);
         dba.loadInstanceAttributeValues(instances, att);
     }

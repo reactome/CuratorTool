@@ -4,16 +4,13 @@
  */
 package org.gk.scripts;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
@@ -30,29 +27,30 @@ import org.neo4j.driver.Transaction;
  * 1). A gene regulation should regulate a blackbox event only.
  * 2). The regulated blackbox event should be only one output only. It may have one input with name ending with "gene".
  * 3). A gene regulation may be a PositiveRegulation or NegativeRegulation based on the original annotations.
- * @author gwu
  *
+ * @author gwu
  */
 public class GeneRegulationSorter {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
     private String fileName;
-    
+
     /**
      * Default constructor.
      */
     public GeneRegulationSorter() {
     }
-    
+
     /**
      * Use this method to generate some numbers for grant writing.
+     *
      * @throws Exception
      */
     @Test
     public void countGeneRegulations() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_central_102319",
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_102319",
+                "root",
+                "macmysql01");
         Set<String> tfs = new HashSet<>();
         Set<GKInstance> rles = new HashSet<>();
         Collection<GKInstance> geneRegulations = dba.fetchInstancesByClass(ReactomeJavaConstants.PositiveGeneExpressionRegulation);
@@ -86,64 +84,102 @@ public class GeneRegulationSorter {
             }
         }
     }
-    
+
     public static void main(String[] args) throws Exception {
-        if (args.length < 5) {
-            System.err.println("Usage java org.gk.scripts.GeneRegulationSorter dbHost dbName dbUser dbPwd outputFileName");
+        if (args.length < 6) {
+            System.err.println("Usage java org.gk.scripts.GeneRegulationSorter dbHost dbName dbUser dbPwd outputFileName use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+
             System.exit(0);
         }
-        Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
-                                            args[1],
-                                            args[2],
-                                            args[3]);
+        PersistenceAdaptor dba = null;
+        boolean useNeo4J = Boolean.parseBoolean(args[5]);
+        if (useNeo4J)
+            dba = new Neo4JAdaptor(args[0],
+                    args[1],
+                    args[2],
+                    args[3]);
+        else
+            dba = new MySQLAdaptor(args[0],
+                    args[1],
+                    args[2],
+                    args[3]);
         GeneRegulationSorter sorter = new GeneRegulationSorter();
         sorter.setDBA(dba);
         sorter.setFileName(args[4]);
         sorter.updateRegulations();
     }
-    
+
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
-    
-    public void setDBA(Neo4JAdaptor dba) {
+
+    public void setDBA(PersistenceAdaptor dba) {
         this.dba = dba;
     }
-    
-    public Neo4JAdaptor getDBA() throws Exception {
+
+    public PersistenceAdaptor getDBA() throws Exception {
         if (dba != null)
             return dba;
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_central_063016_new_schema",
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_063016_new_schema",
+                "root",
+                "macmysql01");
         return dba;
     }
 
     public void updateRegulations() throws Exception {
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Map<GKInstance, String> regulationToNewType = sort(dba);
         // Update the database
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-                    defaultPersonId,
-                    true, tx);
-            for (GKInstance regulation : regulationToNewType.keySet()) {
-                dba.loadInstanceAttributeValues(regulation);
-                String newType = regulationToNewType.get(regulation);
-                SchemaClass newCls = dba.getSchema().getClassByName(newType);
-                regulation.setSchemaClass(newCls);
-                regulation.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                dba.updateInstance(regulation, tx);
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                        defaultPersonId,
+                        true, tx);
+                for (GKInstance regulation : regulationToNewType.keySet()) {
+                    dba.loadInstanceAttributeValues(Collections.singleton(regulation));
+                    String newType = regulationToNewType.get(regulation);
+                    SchemaClass newCls = dba.getSchema().getClassByName(newType);
+                    regulation.setSchemaClass(newCls);
+                    regulation.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                    ((Neo4JAdaptor) dba).updateInstance(regulation, tx);
+                }
+                tx.commit();
+                output(regulationToNewType, fileName);
             }
-            tx.commit();
-            output(regulationToNewType, fileName);
+        } else {
+            // MySQL
+            boolean needTransaction = ((MySQLAdaptor) dba).supportsTransactions();
+            try {
+                if (needTransaction)
+                    ((MySQLAdaptor) dba).startTransaction();
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                        defaultPersonId,
+                        true, null);
+                for (GKInstance regulation : regulationToNewType.keySet()) {
+                    ((MySQLAdaptor) dba).fastLoadInstanceAttributeValues(regulation);
+                    String newType = regulationToNewType.get(regulation);
+                    SchemaClass newCls = dba.getSchema().getClassByName(newType);
+                    regulation.setSchemaClass(newCls);
+                    regulation.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                    ((MySQLAdaptor) dba).updateInstance(regulation);
+                }
+                if (needTransaction)
+                    ((MySQLAdaptor) dba).commit();
+                output(regulationToNewType, fileName);
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
-    
+
     private void output(Map<GKInstance, String> regulationToNewType,
                         String fileName) throws Exception {
         FileUtilities fu = new FileUtilities();
@@ -151,15 +187,15 @@ public class GeneRegulationSorter {
         fu.printLine("DB_ID\tDisplayName\tCurrentType\tNewType");
         for (GKInstance regulation : regulationToNewType.keySet()) {
             String newType = regulationToNewType.get(regulation);
-            fu.printLine(regulation.getDBID() + "\t" + 
-                    regulation.getDisplayName() + "\t" + 
-                    regulation.getSchemClass().getName() + "\t" + 
+            fu.printLine(regulation.getDBID() + "\t" +
+                    regulation.getDisplayName() + "\t" +
+                    regulation.getSchemClass().getName() + "\t" +
                     newType);
         }
         fu.close();
     }
-    
-    private Map<GKInstance, String> sort(Neo4JAdaptor dba) throws Exception {
+
+    private Map<GKInstance, String> sort(PersistenceAdaptor dba) throws Exception {
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         SchemaAttribute att = dba.getSchema().getClassByName(ReactomeJavaConstants.Regulation).getAttribute(ReactomeJavaConstants.regulatedEntity);
         dba.loadInstanceAttributeValues(regulations, att);
@@ -172,16 +208,16 @@ public class GeneRegulationSorter {
                 continue;
             if (!isGeneRegulatedEvent(regulatedEntity))
                 continue;
-            String newType = regulation.getSchemClass().isa(ReactomeJavaConstants.NegativeRegulation) ? 
-                             ReactomeJavaConstants.NegativeGeneExpressionRegulation : 
-                             ReactomeJavaConstants.PositiveGeneExpressionRegulation;
+            String newType = regulation.getSchemClass().isa(ReactomeJavaConstants.NegativeRegulation) ?
+                    ReactomeJavaConstants.NegativeGeneExpressionRegulation :
+                    ReactomeJavaConstants.PositiveGeneExpressionRegulation;
             regulationToNewType.put(regulation, newType);
         }
         return regulationToNewType;
     }
-    
+
     private boolean isGeneRegulatedEvent(GKInstance event) throws Exception {
-        if(!(event.getSchemClass().isa(ReactomeJavaConstants.BlackBoxEvent)))
+        if (!(event.getSchemClass().isa(ReactomeJavaConstants.BlackBoxEvent)))
             return false;
         GKInstance species = (GKInstance) event.getAttributeValue(ReactomeJavaConstants.species);
         if (species == null || !species.getDisplayName().equals("Homo sapiens"))
@@ -203,5 +239,5 @@ public class GeneRegulationSorter {
         }
         return true;
     }
-    
+
 }

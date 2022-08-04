@@ -12,8 +12,8 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This class is used to check species setting. Subclasses supply the
@@ -123,9 +123,9 @@ public abstract class SpeciesCheck extends SingleAttributeClassBasedCheck {
     }
     
     protected void loadSpeciesAttributeVAlues(Collection<GKInstance> instances,
-                                              Neo4JAdaptor dba) throws Exception {
+                                              PersistenceAdaptor dba) throws Exception {
         // Have to check all kinds of PEs. Otherwise, null will be assigned
-        // to the species attribute because of a bug in Neo4JAdaptor.
+        // to the species attribute because of a bug in PersistenceAdaptor.
         loadAttributes(instances,
                        ReactomeJavaConstants.GenomeEncodedEntity, 
                        ReactomeJavaConstants.species, 

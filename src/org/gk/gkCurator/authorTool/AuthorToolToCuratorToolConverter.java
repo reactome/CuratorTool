@@ -4,7 +4,6 @@
  */
 package org.gk.gkCurator.authorTool;
 
-import java.awt.Rectangle;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +32,7 @@ public class AuthorToolToCuratorToolConverter {
     private void init() {
         // call this method to initialize HandlerFactory
         RenderableHandlerFactory factory = RenderableHandlerFactory.getFactory();
-        factory.setDBAdaptor(PersistenceManager.getManager().getActiveNeo4JAdaptor());
+        factory.setDBAdaptor(PersistenceManager.getManager().getActivePersistenceAdaptor());
         factory.setFileAdaptor(PersistenceManager.getManager().getActiveFileAdaptor());
     }
     

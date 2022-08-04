@@ -2,6 +2,8 @@
  * Created on June 6, 2011
  */
 package org.gk.IDGeneration;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 
 /** 
@@ -17,8 +19,8 @@ public class DbParams  {
 	public String port = "";
 	public String password = "";
 	
-	public Neo4JAdaptor getDba() {
-		Neo4JAdaptor dba = null;
+	public PersistenceAdaptor getDba(boolean useNeo4j) {
+		PersistenceAdaptor dba = null;
 		
 		if (dbName == null) {
 			System.err.println("IDGenerationCommandLine.DbParams.getDba: dbName == null. aborting!");
@@ -30,7 +32,11 @@ public class DbParams  {
 		}
 		
 		try {
-			dba = new Neo4JAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
+			if (useNeo4j) {
+				dba = new Neo4JAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
+			} else {
+				dba = new MySQLAdaptor(hostname, dbName, username, password, Integer.parseInt(port));
+			}
 		} catch (NumberFormatException e) {
 			System.err.println("IDGenerationCommandLine.DbParams.getDba: port number is strange: " + port);
 			e.printStackTrace();

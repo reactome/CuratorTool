@@ -16,8 +16,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
-
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 /**
  * @author wgm
  * A class to use a map from Gene to Complex in Reactome.
@@ -34,7 +34,7 @@ public class GeneInComplexExtracter {
 	
 	public void extractComplexList() {
 		try {
-			Neo4JAdaptor adaptor = new Neo4JAdaptor("brie8.cshl.org",
+			PersistenceAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
 					"gk_central", "authortool", "T001test");
 			Collection instances = adaptor.fetchInstanceByAttribute("Species",
 					"_displayName", "=", "homo sapiens");
@@ -85,7 +85,7 @@ public class GeneInComplexExtracter {
 
 	public void extract() {
 		try {
-			Neo4JAdaptor adaptor = new Neo4JAdaptor("brie8.cshl.org",
+			PersistenceAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
 					"gk_central", "authortool", "T001test");
 			Collection instances = adaptor.fetchInstanceByAttribute("Species",
 					"_displayName", "=", "homo sapiens");

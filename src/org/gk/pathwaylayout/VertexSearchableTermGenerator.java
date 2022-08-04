@@ -13,11 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.gk.model.ClassAttributeFollowingInstruction;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.*;
 import org.gk.schema.InvalidAttributeException;
 
 /**
@@ -39,13 +35,13 @@ public class VertexSearchableTermGenerator {
      * This method is used to generate VertexSearchableTerm instances for a specified PathwayDiagram instance.
      * @param pathwayDiagram PathwayDiagram instance for which to fetch vertices
      * @param pathway Pathway instance to extract species for use by term instances
-     * @param dba Neo4JAdaptor to use in retrieving vertices
+     * @param dba PersistenceAdaptor to use in retrieving vertices
      * @return Set of VertextSearchableTerm (GKInstance object) instances
      * @throws Exception Thrown if unable to retrieve or set vertex or vertex term information
      */
     public Set<GKInstance> generateVertexSearchableTerms(GKInstance pathwayDiagram,
                                                          GKInstance pathway,
-                                                         Neo4JAdaptor dba) throws Exception {
+                                                         PersistenceAdaptor dba) throws Exception {
         // Get all related vertex first
         Collection vertices = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex,
                                                            ReactomeJavaConstants.pathwayDiagram,
@@ -121,7 +117,7 @@ public class VertexSearchableTermGenerator {
     private GKInstance getTermInstance(String term,
                                        Map<String, GKInstance> termToInst,
                                        GKInstance species,
-                                       Neo4JAdaptor dba) throws Exception {
+                                       PersistenceAdaptor dba) throws Exception {
         GKInstance termInst = termToInst.get(term);
         if (termInst == null) {
             // Create new termInst

@@ -15,8 +15,10 @@ import javax.imageio.ImageIO;
 
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.RenderablePathway;
@@ -26,27 +28,28 @@ import org.junit.Test;
 
 /**
  * This class is used to create a list of dump files for pathway diagrams for specific database.
- * @author wgm
  *
+ * @author wgm
  */
 public class PathwayDiagramDumper {
-    
+
     public PathwayDiagramDumper() {
     }
- 
+
     /**
      * The entry point to output diagrams.
-     * @param dba Neo4JAdaptor to use for retrieving PathwayDiagram instances
+     *
+     * @param dba       PersistenceAdaptor to use for retrieving PathwayDiagram instances
      * @param outputDir Directory to which to write diagram files
-     * @throws Exception Thrown if unable to retrieve PathwayDiagram instances, retrieving values from the 
-     * PathwayDiagram instances, or an error occurs during file IO.
+     * @throws Exception Thrown if unable to retrieve PathwayDiagram instances, retrieving values from the
+     *                   PathwayDiagram instances, or an error occurs during file IO.
      */
-    public void dumpDiagrams(Neo4JAdaptor dba, 
+    public void dumpDiagrams(PersistenceAdaptor dba,
                              File outputDir) throws Exception {
         // Make sure if these static variable values are used
         Node.setWidthRatioOfBoundsToText(1.0d);
         Node.setHeightRatioOfBoundsToText(1.0d);
-        
+
         outputDir = ensureDir(outputDir);
         Collection<?> diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         PathwayEditor editor = new PathwayEditor();
@@ -57,7 +60,7 @@ public class PathwayDiagramDumper {
         PathwayDiagramGeneratorViaAT generator = new PathwayDiagramGeneratorViaAT();
         File pdfDir = new File(outputDir, "PDF");
         File pngDir = new File(outputDir, "PNG");
-        for (Iterator<?> it = diagrams.iterator(); it.hasNext();) {
+        for (Iterator<?> it = diagrams.iterator(); it.hasNext(); ) {
             GKInstance diagramInst = (GKInstance) it.next();
 //            if (!diagramInst.getDisplayName().equals("Diagram of Abnormal metabolism in phenylketonuria"))
 //                continue;
@@ -93,39 +96,40 @@ public class PathwayDiagramDumper {
             SwingImageCreator.exportImageInPDF(editor, pdfFileName);
         }
     }
-    
+
     @Test
     public void testDumpDiagrams() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_current_ver43", 
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_current_ver43",
+                "root",
+                "macmysql01");
         File file = new File("tmp");
         dumpDiagrams(dba, file);
     }
-    
+
     /**
      * In this implementation, only human related diagrams should be exported.
+     *
      * @param diagram
      * @return
      * @throws Exception
      */
     private boolean shouldExport(GKInstance diagram) throws Exception {
-       GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
-       if (pathway == null)
-           return false;
-       List<?> values = pathway.getAttributeValuesList(ReactomeJavaConstants.species);
-       if (values == null || values.size() == 0)
-           return true; // Treat the default as human
-       // Check if human is a species
-       for (Iterator<?> it = values.iterator(); it.hasNext();) {
-           GKInstance species = (GKInstance) it.next();
-           if (species.getDBID().equals(GKApplicationUtilities.HOMO_SAPIENS_DB_ID))
-               return true;
-       }
-       return false;
+        GKInstance pathway = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.representedPathway);
+        if (pathway == null)
+            return false;
+        List<?> values = pathway.getAttributeValuesList(ReactomeJavaConstants.species);
+        if (values == null || values.size() == 0)
+            return true; // Treat the default as human
+        // Check if human is a species
+        for (Iterator<?> it = values.iterator(); it.hasNext(); ) {
+            GKInstance species = (GKInstance) it.next();
+            if (species.getDBID().equals(GKApplicationUtilities.HOMO_SAPIENS_DB_ID))
+                return true;
+        }
+        return false;
     }
-    
+
     private File ensureDir(File outputDir) throws IOException {
         if (outputDir == null) {
             outputDir = new File("diagram_output");
@@ -152,8 +156,7 @@ public class PathwayDiagramDumper {
             File pngDir = new File(outputDir, "PNG");
             pngDir.mkdir();
             return outputDir;
-        }
-        else {
+        } else {
             outputDir.mkdir();
             // Create two sub-folders
             File pdfDir = new File(outputDir, "PDF");
@@ -163,29 +166,38 @@ public class PathwayDiagramDumper {
             return outputDir;
         }
     }
-    
+
     public static void main(String[] args) {
         if (args.length < 5) {
             String message = "Usage java -Xmx1024m org.gk.pathwaylayout.PathwayDiagramDumper dbHost dbName dbUser dbPwd dbPort (output_dir)\n" +
-            		         "Note: the output_dir is optional. Two sub-directories will be created: one for PDF files, and another for PNG files.";
+                    "Note: the output_dir is optional. Two sub-directories will be created: one for PDF files, and another for PNG files.";
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.err.println(message);
             return;
         }
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
-                                                args[1],
-                                                args[2],
-                                                args[3],
-                                                new Integer(args[4]));
+            PersistenceAdaptor dba;
+            String dbName = args[1];
+            if (dbName.equals("graph.db"))
+                 dba = new Neo4JAdaptor(args[0],
+                        dbName,
+                        args[2],
+                        args[3],
+                        new Integer(args[4]));
+            else
+                dba = new MySQLAdaptor(args[0],
+                        dbName,
+                        args[2],
+                        args[3],
+                        new Integer(args[4]));
             File dir = null;
             if (args.length > 5)
                 dir = new File(args[5]);
             PathwayDiagramDumper dumper = new PathwayDiagramDumper();
             dumper.dumpDiagrams(dba, dir);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
 }

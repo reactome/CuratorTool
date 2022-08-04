@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.jdom.Element;
@@ -22,47 +24,55 @@ import org.junit.Test;
 
 /**
  * This class is used to generate the pathway hierachy as displayed in the web pathway browser.
- * @author gwu
  *
+ * @author gwu
  */
 public class PathwayHierachyGenerator {
-    
+
     public PathwayHierachyGenerator() {
     }
-    
+
     public static void main(String[] args) {
-        if (args.length < 6) {
-            System.err.println("Usage java -Xmx1024m dbHost dbName dbUser dbPwd dbPort directory");
+        if (args.length < 7) {
+            System.err.println("Usage java -Xmx1024m dbHost dbName dbUser dbPwd dbPort directory use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(1);
         }
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
-                                                args[1],
-                                                args[2],
-                                                args[3],
-                                                new Integer(args[4]));
+            PersistenceAdaptor dba;
+            boolean useNeo4J = Boolean.parseBoolean(args[6]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        new Integer(args[4]));
+            else
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        new Integer(args[4]));
             PathwayHierachyGenerator generator = new PathwayHierachyGenerator();
             generator.generateHierarchies(dba, args[5]);
             // Want to zip all XML files
             GKApplicationUtilities.zipDir(new File(args[5]),
-                                          new File(args[5], "PathwayHierarchy.zip"), 
-                                          "xml", 
-                                          false);
-        }
-        catch(Exception e) {
+                    new File(args[5], "PathwayHierarchy.zip"),
+                    "xml",
+                    false);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     /**
-     * 
      * @throws Exception
      */
-    public void generateHierarchies(Neo4JAdaptor dba, 
+    public void generateHierarchies(PersistenceAdaptor dba,
                                     String dir) throws Exception {
         Integer release = dba.getReleaseNumber();
         String releaseLabel = (release == null ? "" : "release_" + release.toString());
-                
+
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
         // There should be only one FrontPageItem
         GKInstance frontPageItem = (GKInstance) c.iterator().next();
@@ -89,8 +99,7 @@ public class PathwayHierachyGenerator {
                     GKInstance event = (GKInstance) obj;
                     addEvent(event, root);
                 }
-            }
-            else {
+            } else {
                 for (Object obj : items) {
                     GKInstance event = (GKInstance) obj;
                     List<?> orthologousEvents = event.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
@@ -104,20 +113,20 @@ public class PathwayHierachyGenerator {
                     }
                 }
             }
-            String fileName = "Pathway_Hierarchy_" + 
-                              species.getDisplayName().replaceAll(" ", "_") + "_" +
-                              releaseLabel + ".xml";
+            String fileName = "Pathway_Hierarchy_" +
+                    species.getDisplayName().replaceAll(" ", "_") + "_" +
+                    releaseLabel + ".xml";
             XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat());
             outputter.output(root, new FileOutputStream(new File(dir, fileName)));
         }
     }
-    
+
     @Test
     public void generateHierarchyInXML() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
-                                            "gk_current_ver39",
-                                            "root",
-                                            "macmysql01");
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_current_ver39",
+                "root",
+                "macmysql01");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
         GKInstance frontPageItem = (GKInstance) c.iterator().next();
         List<?> items = frontPageItem.getAttributeValuesList(ReactomeJavaConstants.frontPageItem);
@@ -131,7 +140,7 @@ public class PathwayHierachyGenerator {
         XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat());
         outputter.output(root, new FileOutputStream(fileName));
     }
-    
+
     private void addEvent(GKInstance inst, Element parentElm) throws Exception {
         Element elm = new Element(inst.getSchemClass().getName());
         elm.setAttribute("DB_ID", inst.getDBID().toString());
@@ -146,5 +155,5 @@ public class PathwayHierachyGenerator {
             }
         }
     }
-    
+
 }

@@ -34,6 +34,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -76,12 +77,16 @@ public class SchemaViewPane extends JPanel {
 			// Get the counters for classes
 			Map countMap = new HashMap();
             if (adaptor instanceof Neo4JAdaptor) {
-                Map clsNameToCount = ((Neo4JAdaptor)adaptor).getAllInstanceCounts();
-                changeClsNameToClsInCountMap(clsNameToCount,
-                                             countMap,
-                                             schema);
-            }
-            else
+				Map clsNameToCount = ((Neo4JAdaptor) adaptor).getAllInstanceCounts();
+				changeClsNameToClsInCountMap(clsNameToCount,
+						countMap,
+						schema);
+			} else if (adaptor instanceof MySQLAdaptor) {
+				Map clsNameToCount = ((MySQLAdaptor) adaptor).getAllInstanceCounts();
+				changeClsNameToClsInCountMap(clsNameToCount,
+						countMap,
+						schema);
+			} else
                 getClassCounters((GKSchemaClass)schema.getRootClass(), countMap, adaptor);
 			schemaPane.setClassCounts(countMap); // Call this before setSchema to 
 			// Only need for the local repository

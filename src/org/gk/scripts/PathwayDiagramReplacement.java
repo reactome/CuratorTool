@@ -12,23 +12,17 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.JOptionPane;
 
 import org.gk.database.AttributeEditConfig;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
-import org.gk.util.BrowserLauncher;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 import org.neo4j.driver.Driver;
@@ -42,29 +36,37 @@ import org.neo4j.driver.Transaction;
  *
  */
 public class PathwayDiagramReplacement {
-    private Neo4JAdaptor sourceDba;
-    private Neo4JAdaptor targetDba;
+    private PersistenceAdaptor sourceDba;
+    private PersistenceAdaptor targetDba;
     
     public PathwayDiagramReplacement() {
     }
     
-    public void setSourceDBA(Neo4JAdaptor dba) {
+    public void setSourceDBA(PersistenceAdaptor dba) {
         this.sourceDba = dba;
     }
     
-    public void setTargetDBA(Neo4JAdaptor dba) {
+    public void setTargetDBA(PersistenceAdaptor dba) {
         this.targetDba = dba;
     }
     
     public void replace() throws Exception {
-        Driver driver = targetDba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            cleanUpDiagramsInTarget(tx);
+        if (targetDba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) targetDba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                cleanUpDiagramsInTarget(tx);
+                List<GKInstance> diagrams = loadDiagramsFromSource();
+                cleanUpDiagramsFromSource(diagrams);
+                saveDiagramsToTarget(diagrams, tx);
+                tx.commit();
+            }
+        } else {
+            // MySQL
+            cleanUpDiagramsInTarget(null);
             List<GKInstance> diagrams = loadDiagramsFromSource();
             cleanUpDiagramsFromSource(diagrams);
-            saveDiagramsToTarget(diagrams, tx);
-            tx.commit();
+            saveDiagramsToTarget(diagrams, null);
         }
     }
     
@@ -75,7 +77,10 @@ public class PathwayDiagramReplacement {
             return;
         for (Iterator it = instances.iterator(); it.hasNext();) {
             GKInstance inst = (GKInstance) it.next();
-            targetDba.deleteInstance(inst, tx);
+            if (targetDba instanceof Neo4JAdaptor)
+                ((Neo4JAdaptor) targetDba).deleteInstance(inst, tx);
+            else
+                ((MySQLAdaptor) targetDba).deleteInstance(inst);
         }
     }
     
@@ -94,7 +99,7 @@ public class PathwayDiagramReplacement {
     private void cleanUpDiagramsFromSource(List<GKInstance> diagrams) throws Exception {
         // Just want to make things simpler: remove both modified and created IEs
         for (GKInstance inst : diagrams) {
-            sourceDba.loadInstanceAttributeValues(inst);
+            sourceDba.loadInstanceAttributeValues(Collections.singleton(inst));
             inst.setAttributeValue(ReactomeJavaConstants.created, null);
             inst.setAttributeValue(ReactomeJavaConstants.modified, null);
             // Flip the DB_Ids to avoid DB_Ids are used in other instances
@@ -103,16 +108,19 @@ public class PathwayDiagramReplacement {
     }
     
     private void saveDiagramsToTarget(List<GKInstance> diagrams, Transaction tx) throws Exception {
-        targetDba.storeLocalInstances(diagrams, tx);
+        if (targetDba instanceof Neo4JAdaptor)
+            ((Neo4JAdaptor) targetDba).storeLocalInstances(diagrams, tx);
+        else
+            ((MySQLAdaptor) targetDba).storeLocalInstances(diagrams);
     }
     
     @Test
     public void runReplace() throws Exception {
-        Neo4JAdaptor source = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor source = new MySQLAdaptor("localhost",
                                                "test_slice_1000",
                                                "root",
                                                "macmysql01");
-        Neo4JAdaptor target = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor target = new MySQLAdaptor("localhost",
                                                "test_reactome_1000",
                                                "root",
                                                "macmysql01");
@@ -160,7 +168,7 @@ public class PathwayDiagramReplacement {
     
     @Test
     public void batchDeployELVs() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortoor",
                                             "T001test");

@@ -9,6 +9,8 @@ import java.sql.Statement;
 import java.util.*;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.StringUtils;
 
@@ -18,10 +20,10 @@ import org.gk.util.StringUtils;
  * @author wgm
  */
 public class DatabaseComparison {
-    private Neo4JAdaptor localDBA;
-    private Neo4JAdaptor remoteDBA;
+    private PersistenceAdaptor localDBA;
+    private PersistenceAdaptor remoteDBA;
     
-    public DatabaseComparison(Neo4JAdaptor localDBA, Neo4JAdaptor remoteDBA) {
+    public DatabaseComparison(PersistenceAdaptor localDBA, PersistenceAdaptor remoteDBA) {
         this.localDBA = localDBA;
         this.remoteDBA = remoteDBA;
     }
@@ -31,7 +33,7 @@ public class DatabaseComparison {
         compare(className, remoteDBA, localDBA);
     }
     
-    private void compare(String className, Neo4JAdaptor sourceDBA, Neo4JAdaptor targetDBA) throws Exception {
+    private void compare(String className, PersistenceAdaptor sourceDBA, PersistenceAdaptor targetDBA) throws Exception {
         Collection sourceInstances = sourceDBA.fetchInstancesByClass(className);
         List<Long> dbIDs = new ArrayList();
         GKInstance reaction = null;
@@ -39,7 +41,11 @@ public class DatabaseComparison {
             reaction = (GKInstance) it.next();
             dbIDs.add(reaction.getDBID());
         }
-        Set<Long> missingDBIds = targetDBA.existing(dbIDs, false, true);
+        Set<Long> missingDBIds;
+        if (targetDBA instanceof Neo4JAdaptor)
+            missingDBIds = ((Neo4JAdaptor) targetDBA).existing(dbIDs, false, true);
+        else
+            missingDBIds = ((MySQLAdaptor) targetDBA).existing(dbIDs);
         for (Iterator it = missingDBIds.iterator(); it.hasNext();) {
             System.out.println(StringUtils.join(", ", List.copyOf(missingDBIds)));
             System.out.println("Total: " + missingDBIds.size());
@@ -49,12 +55,12 @@ public class DatabaseComparison {
 
     public static void main(String[] args) {
         try {
-            Neo4JAdaptor localDBA = new Neo4JAdaptor("localhost",
+            PersistenceAdaptor localDBA = new MySQLAdaptor("localhost",
                                                      "test_slicing",
                                                      "wgm",
                                                      "wgm",
                                                      3306);
-            Neo4JAdaptor remoteDBA = new Neo4JAdaptor("brie8",
+            PersistenceAdaptor remoteDBA = new MySQLAdaptor("brie8",
                                                       "test_slicing",
                                                       "authortool",
                                                       "T001test",

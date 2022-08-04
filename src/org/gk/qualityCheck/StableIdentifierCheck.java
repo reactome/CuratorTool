@@ -45,10 +45,8 @@ import org.gk.database.InstanceListDialog;
 import org.gk.database.InstanceListPane;
 import org.gk.database.StableIdentifierGenerator;
 import org.gk.database.SynchronizationManager;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.*;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.Schema;
@@ -312,8 +310,8 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
 
     private void loadCreatedAttribute(List<GKInstance> allInstances) throws Exception {
         // Load created slot
-        if (dataSource instanceof Neo4JAdaptor) {
-            Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        if (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor) {
+            PersistenceAdaptor dba = dataSource;
             if (progressPane != null)
                 progressPane.setText("Loading the created attribute...");
             // Try to use attributes. It seems that there is a problem using String: the value
@@ -335,9 +333,9 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     
     private void loadStableIdAttributes(List<GKInstance> instances,
                                         StableIdentifierGenerator stIdGenerator) throws Exception {
-        if (!(dataSource instanceof Neo4JAdaptor))
+        if (!(dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor))
             return;
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         if (progressPane != null)
             progressPane.setText("Loading related attributes...");
         // Load Stable ids
@@ -394,7 +392,7 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     }
 
     private void loadStableIdAttribute(List<GKInstance> instances,
-                                       Neo4JAdaptor dba, 
+                                       PersistenceAdaptor dba,
                                        List<GKInstance> list,
                                        String clsName,
                                        String attName) throws Exception {
@@ -484,10 +482,10 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
     private void fixStableIdsInDb() {
         if (resultFrame == null)
             return;
-        if (!(dataSource instanceof Neo4JAdaptor)) {
+        if (!(dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor)) {
             return; // Since this check works for the database only, this should not happen.
         }
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         Map<GKInstance, String> instToValidId = resultFrame.getSelectedInstanceToValidId();
         if (instToValidId.size() > 0) {
             int confirm = JOptionPane.showConfirmDialog(resultFrame,
@@ -535,26 +533,69 @@ public class StableIdentifierCheck extends AbstractQualityCheck {
                 }
             }
             boolean needTransaction = false;
-            Driver driver = dba.getConnection();
-            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-                Transaction tx = session.beginTransaction();
-                // Don't forget to commit this defaultIE
-                dba.storeInstance(defaultIE, tx);
-                for (GKInstance newStableId : newStableIds) {
-                    dba.storeInstance(newStableId, tx);
+            if (dba instanceof Neo4JAdaptor) {
+                // Neo4J
+                Driver driver = ((Neo4JAdaptor) dba).getConnection();
+                try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                    Transaction tx = session.beginTransaction();
+                    // Don't forget to commit this defaultIE
+                    dba.storeInstance(defaultIE, tx);
+                    for (GKInstance newStableId : newStableIds) {
+                        dba.storeInstance(newStableId, tx);
+                    }
+                    for (GKInstance updatedStableId : updatedStableIds) {
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier, tx);
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified, tx);
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName, tx);
+                    }
+                    for (GKInstance updatedInst : updatedInsts) {
+                        dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier, tx);
+                        dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified, tx);
+                    }
+                    tx.commit();
+                    cleanUpResultFrame(instToValidId.keySet());
+                    displayFixedStableIds(instToValidId.keySet());
                 }
-                for (GKInstance updatedStableId : updatedStableIds) {
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier, tx);
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified, tx);
-                    dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName, tx);
+            } else {
+                // MySQL
+                try {
+                    needTransaction = ((MySQLAdaptor) dba).supportsTransactions();
+                    if (needTransaction)
+                        ((MySQLAdaptor) dba).startTransaction();
+                    // Don't forget to commit this defaultIE
+                    dba.storeInstance(defaultIE, null);
+                    for (GKInstance newStableId : newStableIds) {
+                        dba.storeInstance(newStableId, null);
+                    }
+                    for (GKInstance updatedStableId : updatedStableIds) {
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.identifier, null);
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants.modified, null);
+                        dba.updateInstanceAttribute(updatedStableId, ReactomeJavaConstants._displayName, null);
+                    }
+                    for (GKInstance updatedInst : updatedInsts) {
+                        dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier, null);
+                        dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified, null);
+                    }
+                    if (needTransaction)
+                        ((MySQLAdaptor) dba).commit();
+                    cleanUpResultFrame(instToValidId.keySet());
+                    displayFixedStableIds(instToValidId.keySet());
                 }
-                for (GKInstance updatedInst : updatedInsts) {
-                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.stableIdentifier, tx);
-                    dba.updateInstanceAttribute(updatedInst, ReactomeJavaConstants.modified, tx);
+                catch(Exception e) {
+                    if (needTransaction) {
+                        try {
+                            ((MySQLAdaptor) dba).rollback();
+                        }
+                        catch (Exception e2) {
+                            JOptionPane.showMessageDialog(parentComp,
+                                    "Cannot rollback StableIdentifier instances. The database connection might be lost.",
+                                    "Error in Database",
+                                    JOptionPane.ERROR_MESSAGE);
+                            e2.printStackTrace();
+                        }
+                    }
+                    e.printStackTrace();
                 }
-                tx.commit();
-                cleanUpResultFrame(instToValidId.keySet());
-                displayFixedStableIds(instToValidId.keySet());
             }
         }
         catch(Exception e) {

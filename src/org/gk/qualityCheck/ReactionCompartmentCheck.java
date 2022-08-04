@@ -17,8 +17,8 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.GKApplicationUtilities;
@@ -201,8 +201,8 @@ public class ReactionCompartmentCheck extends CompartmentCheck {
     }
 
     protected void loadAttributes(Collection instances) throws Exception {
-        // Only MySQLAdator should be used to load attributes
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        // Only PersistenceAdaptor should be used to load attributes
+        PersistenceAdaptor dba = dataSource;
         String[] attNames = new String[] {
                 ReactomeJavaConstants.input,
                 ReactomeJavaConstants.output,

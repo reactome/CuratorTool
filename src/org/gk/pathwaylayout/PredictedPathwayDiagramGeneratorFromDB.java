@@ -5,27 +5,12 @@
 package org.gk.pathwaylayout;
 
 import java.awt.Point;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.Project;
+import org.gk.model.*;
+import org.gk.persistence.*;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Note;
@@ -50,23 +35,23 @@ import org.neo4j.driver.Transaction;
  * This class is used to generate diagrams for predicted pathways based on human pathway
  * diagrams created manually. This class is different from another class PredictedPathwayDiagramGenerator,
  * which use jgraph data structure and should be deprecated.
- * @author wgm
  *
+ * @author wgm
  */
 public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFromDB {
     private static final Logger logger = Logger.getLogger(PredictedPathwayDiagramGeneratorFromDB.class);
-    
+
     private GKInstance defaultIE;
     private Long defaultPersonId;
-    
+
     public PredictedPathwayDiagramGeneratorFromDB() {
     }
-    
+
     public void setDefaultPersonId(Long dbId) {
         this.defaultPersonId = dbId;
     }
-    
-    private GKInstance getDefaultIE(Neo4JAdaptor dba) throws Exception {
+
+    private GKInstance getDefaultIE(PersistenceAdaptor dba) throws Exception {
         if (defaultIE != null)
             return defaultIE;
         // Need to create this defaultIE
@@ -75,23 +60,24 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         defaultIE.setDbAdaptor(dba);
         GKInstance defaultPerson = dba.fetchInstance(defaultPersonId);
         defaultIE.setAttributeValue(ReactomeJavaConstants.author, defaultPerson);
-        defaultIE.setAttributeValue(ReactomeJavaConstants.note, 
-                                    "Predicted pathway diagrams from human pathways");
+        defaultIE.setAttributeValue(ReactomeJavaConstants.note,
+                "Predicted pathway diagrams from human pathways");
         defaultIE.setAttributeValue(ReactomeJavaConstants.dateTime,
-                                    GKApplicationUtilities.getDateTime()); // Use one dateTime only
+                GKApplicationUtilities.getDateTime()); // Use one dateTime only
         InstanceDisplayNameGenerator.setDisplayName(defaultIE);
         return defaultIE;
     }
-    
+
     /**
      * Generate a diagram for the passed predicted target pathway from the source diagram for source pathway.
+     *
      * @param targetPathway Pathway for which to generate the diagram
      * @param sourcePathway Pathway for which to retrieve information for generating the diagram
      * @param sourceDiagram Diagram for which to retrieve information for generating the diagram
-     * @param tx Neo4J transaction
+     * @param tx            Neo4J transaction
      * @return Generated target PathwayDiagram instance
      * @throws Exception Thrown if unable to get a default InstanceEdit from the set DBAdaptor or retrieve/set diagram
-     * data
+     *                   data
      */
     public GKInstance generatePredictedDiagram(GKInstance targetPathway,
                                                GKInstance sourcePathway,
@@ -103,57 +89,60 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         GKInstance targetDiagram = getTargetDiagramInstance(targetPathway, dba);
         RenderablePathway srcRDiagram = new DiagramGKBReader().openDiagram(sourceDiagram);
         RenderablePathway targetRDigram = generatePredictedDiagram(srcRDiagram,
-                                                                   targetPathway,
-                                                                   dba);
+                targetPathway,
+                dba);
         DiagramGKBWriter writer = new DiagramGKBWriter();
         String xml = writer.generateXMLString(new Project(targetRDigram));
-        targetDiagram.setAttributeValue(ReactomeJavaConstants.storedATXML, 
-                                        xml);
+        targetDiagram.setAttributeValue(ReactomeJavaConstants.storedATXML,
+                xml);
         // Use width, height from the source
-        targetDiagram.setAttributeValue(ReactomeJavaConstants.width, 
-                                        sourceDiagram.getAttributeValue(ReactomeJavaConstants.width));
-        targetDiagram.setAttributeValue(ReactomeJavaConstants.height, 
-                                        sourceDiagram.getAttributeValue(ReactomeJavaConstants.height));
+        targetDiagram.setAttributeValue(ReactomeJavaConstants.width,
+                sourceDiagram.getAttributeValue(ReactomeJavaConstants.width));
+        targetDiagram.setAttributeValue(ReactomeJavaConstants.height,
+                sourceDiagram.getAttributeValue(ReactomeJavaConstants.height));
         storePredictedDiagram(targetDiagram,
-                              dba, tx);
+                dba, tx);
         return targetDiagram;
     }
-    
+
     private void storePredictedDiagram(GKInstance diagram,
-                                       Neo4JAdaptor dba,
+                                       PersistenceAdaptor dba,
                                        Transaction tx) throws Exception {
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         GKInstance defaultIE = getDefaultIE(dba);
         GKInstance created = (GKInstance) diagram.getAttributeValue(ReactomeJavaConstants.created);
         if (created == null)
             diagram.setAttributeValue(ReactomeJavaConstants.created,
-                                      defaultIE);
+                    defaultIE);
         else
             diagram.addAttributeValue(ReactomeJavaConstants.modified,
-                                      defaultIE);
-            if (diagram.getDBID() == null)
-                dba.storeInstance(diagram, tx);
-            else
-                dba.updateInstance(diagram, tx);
+                    defaultIE);
+        if (diagram.getDBID() == null)
+            dba.storeInstance(diagram, tx);
+        else if (dba instanceof Neo4JAdaptor) {
+            ((Neo4JAdaptor) dba).updateInstance(diagram, tx);
+        } else {
+            ((MySQLAdaptor) dba).updateInstance(diagram);
+        }
     }
-    
+
     private GKInstance getTargetDiagramInstance(GKInstance targetPathway,
-                                                Neo4JAdaptor dba) throws Exception {
+                                                PersistenceAdaptor dba) throws Exception {
         // First check if there is a diagram available already
-        Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
-                                                    ReactomeJavaConstants.representedPathway,
-                                                    "=",
-                                                    targetPathway);
+        Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
+                ReactomeJavaConstants.representedPathway,
+                "=",
+                targetPathway);
         if (c != null && c.size() > 0) {
             GKInstance rtn = (GKInstance) c.iterator().next();
             // Have to call this method. Otherwise, original assigned attributes cannot be kept
             // during updating!
-            dba.loadInstanceAttributeValues(rtn);
+            dba.loadInstanceAttributeValues(Collections.singleton(rtn));
             // In case there is no name set: for some old bug
             if (rtn.getDisplayName() == null) {
                 GKInstance species = (GKInstance) targetPathway.getAttributeValue(ReactomeJavaConstants.species);
-                rtn.setDisplayName("Diagram of " + targetPathway.getDisplayName() + 
-                                   " (" + species.getDisplayName() + ")");
+                rtn.setDisplayName("Diagram of " + targetPathway.getDisplayName() +
+                        " (" + species.getDisplayName() + ")");
             }
             return rtn;
         }
@@ -161,16 +150,16 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         targetDiagram.setDbAdaptor(dba);
         targetDiagram.setSchemaClass(dba.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram));
         targetDiagram.setAttributeValue(ReactomeJavaConstants.representedPathway,
-                                        targetPathway);
+                targetPathway);
         GKInstance species = (GKInstance) targetPathway.getAttributeValue(ReactomeJavaConstants.species);
-        targetDiagram.setDisplayName("Diagram of " + targetPathway.getDisplayName() + 
-                                     " (" + species.getDisplayName() + ")");
+        targetDiagram.setDisplayName("Diagram of " + targetPathway.getDisplayName() +
+                " (" + species.getDisplayName() + ")");
         return targetDiagram;
     }
-    
+
     private RenderablePathway generatePredictedDiagram(RenderablePathway srcRDiagram,
                                                        GKInstance targetPathway,
-                                                       Neo4JAdaptor dba) throws Exception {
+                                                       PersistenceAdaptor dba) throws Exception {
         RenderablePathway predicted = new RenderablePathway();
         GKInstance species = (GKInstance) targetPathway.getAttributeValue(ReactomeJavaConstants.species);
         List components = srcRDiagram.getComponents();
@@ -185,7 +174,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         // entities in one other species.
         // These edges cannot be mapped (e.g. reactions for flow), should be mapped later
         List<HyperEdge> unmapped = new ArrayList<HyperEdge>();
-        for (Iterator it = components.iterator(); it.hasNext();) {
+        for (Iterator it = components.iterator(); it.hasNext(); ) {
             Renderable r = (Renderable) it.next();
             if (!(r instanceof HyperEdge))
                 continue;
@@ -194,8 +183,8 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             GKInstance inferred = null;
             if (isInferrable(edge)) {
                 inferred = getInferred(edge.getReactomeId(),
-                                       dba,
-                                       species);
+                        dba,
+                        species);
                 if (inferred == null)
                     continue;
             }
@@ -205,9 +194,9 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             }
             Map<Renderable, GKInstance> srcNodeToTargetInst = mapReactionParticipants(edge, inferred);
             HyperEdge target = cloneEdge(edge,
-                                         inferred,
-                                         srcToTarget,
-                                         srcNodeToTargetInst);
+                    inferred,
+                    srcToTarget,
+                    srcNodeToTargetInst);
             target.setReactomeId(inferred.getDBID());
             srcToTarget.put(edge, target);
         }
@@ -215,7 +204,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             predicted.addComponent(r);
         }
         // Handle nodes that have not been mapped (e.g. compartments, pathways, notes).
-        for (Iterator it = components.iterator(); it.hasNext();) {
+        for (Iterator it = components.iterator(); it.hasNext(); ) {
             Renderable r = (Renderable) it.next();
             if (srcToTarget.containsKey(r))
                 continue;
@@ -224,9 +213,9 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             GKInstance inferred = null;
             // Special case for compartments
             if (isInferrable(r)) {
-                inferred = getInferred(r.getReactomeId(), 
-                                       dba,
-                                       species);
+                inferred = getInferred(r.getReactomeId(),
+                        dba,
+                        species);
                 if (inferred == null)
                     continue; // Cannot create an inferred one
             }
@@ -244,13 +233,13 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             GKInstance inferred = null;
             if (isInferrable(edge)) {
                 inferred = getInferred(edge.getReactomeId(),
-                                       dba,
-                                       species);
+                        dba,
+                        species);
                 if (inferred == null)
                     continue;
             }
             HyperEdge target = cloneInteraction(edge,
-                                         srcToTarget);
+                    srcToTarget);
             if (inferred != null)
                 target.setReactomeId(inferred.getDBID());
             predicted.addComponent(target);
@@ -265,9 +254,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         predicted.setHideCompartmentInNode(true);
         return predicted;
     }
-    
+
     /**
      * Make sure compartments have correct components.
+     *
      * @param srcToTarget
      */
     private void validateCompartments(Map<Renderable, Renderable> srcToTarget) {
@@ -294,9 +284,9 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                                      Map<Renderable, Renderable> srcToTarget) {
         for (Renderable r : srcToTarget.values()) {
             if (r instanceof HyperEdge ||
-                r instanceof Note ||
-                r instanceof RenderableCompartment ||
-                r instanceof ProcessNode) // Pathways should be kept.
+                    r instanceof Note ||
+                    r instanceof RenderableCompartment ||
+                    r instanceof ProcessNode) // Pathways should be kept.
                 continue; // These should not be checked
             if (r instanceof Node) {
                 Node node = (Node) r;
@@ -306,18 +296,18 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             }
         }
     }
-    
+
     private boolean isInferrable(Renderable r) {
         if (r instanceof RenderableCompartment ||
-            r instanceof RenderableChemical) // Have to make sure EntitySet is correct!!!
+                r instanceof RenderableChemical) // Have to make sure EntitySet is correct!!!
             return false;
         if (r.getReactomeId() == null)
             return false;
         return true;
     }
-    
+
     private GKInstance getInferred(Long sourceDbId,
-                                   Neo4JAdaptor dba,
+                                   PersistenceAdaptor dba,
                                    GKInstance species) throws Exception {
         GKInstance sourceInstance = dba.fetchInstance(sourceDbId);
         // Just in case
@@ -336,11 +326,11 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         //queries.add(reverseQuery);
         //queries.add(query);
 //        Set c = dba.fetchInstance(queries);
-        
+
         Collection referred = sourceInstance.getReferers(ReactomeJavaConstants.inferredFrom);
         if (referred == null || referred.size() == 0)
             return null;
-        for (Iterator it = referred.iterator(); it.hasNext();) {
+        for (Iterator it = referred.iterator(); it.hasNext(); ) {
             GKInstance inferred = (GKInstance) it.next();
             GKInstance species1 = (GKInstance) inferred.getAttributeValue(ReactomeJavaConstants.species);
             if (species1 == species)
@@ -358,7 +348,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         }
         return null;
     }
-    
+
     private Map<Renderable, GKInstance> mapReactionParticipants(HyperEdge srcEdge,
                                                                 GKInstance target) throws Exception {
         List<Node> srcNodes = srcEdge.getConnectedNodes();
@@ -376,10 +366,9 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                         break;
                     }
                 }
-            }
-            else {
+            } else {
                 // Need to find one only
-                for (Iterator it = list.iterator(); it.hasNext();) {
+                for (Iterator it = list.iterator(); it.hasNext(); ) {
                     GKInstance tmp = (GKInstance) it.next();
                     targetId = tmp.getDBID();
                     for (Node node : srcNodes) {
@@ -393,12 +382,12 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                 }
                 // I believe there is a bug in the orthologour script for some DefinedSet cannot
                 // be mapped. This is a workaround - wgm on 4/20/2010.
-                if (!srcToTarget.containsValue(targetParticipant) && 
-                    targetParticipant.getSchemClass().isa(ReactomeJavaConstants.DefinedSet)) {
+                if (!srcToTarget.containsValue(targetParticipant) &&
+                        targetParticipant.getSchemClass().isa(ReactomeJavaConstants.DefinedSet)) {
                     Set<GKInstance> inferredFrom = new HashSet<GKInstance>();
                     List members = targetParticipant.getAttributeValuesList(ReactomeJavaConstants.hasMember);
                     if (members != null) {
-                        for (Iterator it = members.iterator(); it.hasNext();) {
+                        for (Iterator it = members.iterator(); it.hasNext(); ) {
                             GKInstance member = (GKInstance) it.next();
                             list = member.getAttributeValuesList(ReactomeJavaConstants.inferredFrom);
                             if (list != null)
@@ -424,25 +413,25 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         // as long as roles are correct
         if (srcToTarget.size() < targetParticipants.size()) {
             mapReactionParticipantsBasedOnRoles(srcEdge,
-                                                srcToTarget, 
-                                                target);
+                    srcToTarget,
+                    target);
         }
         return srcToTarget;
     }
-    
+
     private void mapReactionParticipantsBasedOnRoles(HyperEdge srcEdge,
                                                      Map<Renderable, GKInstance> srcToTarget,
                                                      GKInstance targetReaction) throws Exception {
         // Check inputs
         List<GKInstance> inputs = (List<GKInstance>) targetReaction.getAttributeValuesList(ReactomeJavaConstants.input);
-        mapReactionParticipantsBasedOnRoles(srcToTarget, 
-                                            inputs,
-                                            srcEdge.getInputNodes());
+        mapReactionParticipantsBasedOnRoles(srcToTarget,
+                inputs,
+                srcEdge.getInputNodes());
         // Check outputs
         List<GKInstance> outputs = (List<GKInstance>) targetReaction.getAttributeValuesList(ReactomeJavaConstants.output);
-        mapReactionParticipantsBasedOnRoles(srcToTarget, 
-                                            outputs,
-                                            srcEdge.getOutputNodes());
+        mapReactionParticipantsBasedOnRoles(srcToTarget,
+                outputs,
+                srcEdge.getOutputNodes());
         // Check Catalysts
         List<GKInstance> catalysts = new ArrayList<GKInstance>();
         List<GKInstance> cas = (List<GKInstance>) targetReaction.getAttributeValuesList(ReactomeJavaConstants.catalystActivity);
@@ -454,14 +443,14 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             }
         }
         mapReactionParticipantsBasedOnRoles(srcToTarget,
-                                            catalysts, 
-                                            srcEdge.getHelperNodes());
+                catalysts,
+                srcEdge.getHelperNodes());
         // Check Activators and Inhibitors
         List<GKInstance> activiators = new ArrayList<GKInstance>();
         List<GKInstance> inhibitors = new ArrayList<GKInstance>();
         Collection<?> regulations = InstanceUtilities.getRegulations(targetReaction);
         if (regulations != null && regulations.size() > 0) {
-            for (Iterator<?> it = regulations.iterator(); it.hasNext();) {
+            for (Iterator<?> it = regulations.iterator(); it.hasNext(); ) {
                 GKInstance regulation = (GKInstance) it.next();
                 GKInstance regulator = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulator);
                 if (regulator == null)
@@ -483,7 +472,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                                                      List<GKInstance> inputs,
                                                      List<Node> srcInputs) {
         if (inputs == null || srcInputs == null ||
-            inputs.size() == 0 || srcInputs.size() == 0)
+                inputs.size() == 0 || srcInputs.size() == 0)
             return;
         List<GKInstance> targetCopy = new ArrayList<GKInstance>(inputs);
         targetCopy.removeAll(srcToTarget.values());
@@ -492,10 +481,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         for (int i = 0; i < targetCopy.size(); i++) {
             if (i < srcCopy.size())
                 srcToTarget.put(srcCopy.get(i),
-                                targetCopy.get(i));
+                        targetCopy.get(i));
         }
     }
-    
+
     /**
      * Fine tune pathway diagram layout before an image is generated. For example,
      * tweak some display names, etc.
@@ -506,10 +495,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             return;
         // Remove name copied notes
         int index = 0;
-        for (Iterator it = rPathway.getComponents().iterator(); it.hasNext();) {
+        for (Iterator it = rPathway.getComponents().iterator(); it.hasNext(); ) {
             Renderable r = (Renderable) it.next();
             String name = r.getDisplayName();
-            if (name == null) 
+            if (name == null)
                 continue;
             index = name.indexOf("(name copied from");
             if (index > 0) {
@@ -525,9 +514,8 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         Renderable copy = (Renderable) cls.newInstance();
         RenderUtility.copyRenderInfo(r, copy);
         if (r instanceof Note) {
-            ((Note)copy).setPrivate(((Note)r).isPrivate());
-        }
-        else if (r instanceof RenderableComplex) {
+            ((Note) copy).setPrivate(((Note) r).isPrivate());
+        } else if (r instanceof RenderableComplex) {
             RenderableComplex complex = (RenderableComplex) r;
             RenderableComplex copyComplex = (RenderableComplex) copy;
             copyComplex.hideComponents(complex.isComponentsHidden());
@@ -535,21 +523,21 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         copy.setDisplayName(r.getDisplayName());
         return copy;
     }
-    
+
     private HyperEdge cloneInteraction(HyperEdge edge,
-                                       Map<Renderable, Renderable> src2Target) throws  InstantiationException, IllegalAccessException {
+                                       Map<Renderable, Renderable> src2Target) throws InstantiationException, IllegalAccessException {
         HyperEdge copy = (HyperEdge) edge.getClass().newInstance();
         RenderUtility.copyRenderInfo(edge, copy);
         // The following two properties have not been handled in the previous statement
         copy.setLineColor(edge.getLineColor());
         copy.setLineWidth(edge.getLineWidth());
-        
+
         copy.setBackbonePoints(copyPoints(edge.getBackbonePoints()));
         // Make sure position is a point in the backbone
         Point pos = edge.getPosition();
         for (Object p : copy.getBackbonePoints()) {
             if (p.equals(pos)) {
-                copy.setPosition((Point)p);
+                copy.setPosition((Point) p);
                 break;
             }
         }
@@ -559,28 +547,28 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         List<Node> inputs = edge.getInputNodes();
         for (Node input : inputs) {
             Renderable target = src2Target.get(input);
-            if (target != null) 
-                copy.addInput((Node)target);
+            if (target != null)
+                copy.addInput((Node) target);
         }
         List<Node> outputs = edge.getOutputNodes();
         for (Node output : outputs) {
             Renderable target = src2Target.get(output);
             if (target != null)
-                copy.addOutput((Node)target);
+                copy.addOutput((Node) target);
         }
         if (edge instanceof RenderableInteraction) {
             RenderableInteraction i = (RenderableInteraction) edge;
-            ((RenderableInteraction)copy).setInteractionType(i.getInteractionType());
+            ((RenderableInteraction) copy).setInteractionType(i.getInteractionType());
         }
         copyStoichiometries(copy, edge);
         return copy;
     }
-    
+
     private Node getTargetNode(Node src,
                                Map<Renderable, Renderable> src2Target,
                                Map<Renderable, GKInstance> srcNodeToTargetInst) throws Exception {
         Renderable target = src2Target.get(src);
-        if (target != null) 
+        if (target != null)
             return (Node) target;
         if (srcNodeToTargetInst.containsKey(src)) {
             GKInstance inst = srcNodeToTargetInst.get(src);
@@ -591,26 +579,26 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             src2Target.put(src, target);
             return (Node) target;
         }
-        return null;   
+        return null;
     }
-    
+
     private HyperEdge cloneEdge(HyperEdge edge,
                                 GKInstance targetRxt,
                                 Map<Renderable, Renderable> src2Target,
-                                Map<Renderable, GKInstance> srcNodeToTargetInst) throws  Exception {
+                                Map<Renderable, GKInstance> srcNodeToTargetInst) throws Exception {
 //        System.out.println("Clone edges: " + targetRxt);
         HyperEdge copy = (HyperEdge) edge.getClass().newInstance();
         RenderUtility.copyRenderInfo(edge, copy);
         // The following two properties have not been handled in the previous statement
         copy.setLineColor(edge.getLineColor());
         copy.setLineWidth(edge.getLineWidth());
-        
+
         copy.setBackbonePoints(copyPoints(edge.getBackbonePoints()));
         // Make sure position is a point in the backbone
         Point pos = edge.getPosition();
         for (Object p : copy.getBackbonePoints()) {
             if (p.equals(pos)) {
-                copy.setPosition((Point)p);
+                copy.setPosition((Point) p);
                 break;
             }
         }
@@ -620,22 +608,22 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         List<Node> inputs = edge.getInputNodes();
         for (Node input : inputs) {
             Node target = getTargetNode(input,
-                                        src2Target,
-                                        srcNodeToTargetInst);
+                    src2Target,
+                    srcNodeToTargetInst);
             if (target != null)
                 copy.addInput(target);
         }
         List<Node> outputs = edge.getOutputNodes();
         for (Node output : outputs) {
             Node target = getTargetNode(output,
-                                        src2Target,
-                                        srcNodeToTargetInst);
+                    src2Target,
+                    srcNodeToTargetInst);
             if (target != null)
                 copy.addOutput(target);
         }
         if (edge instanceof RenderableInteraction) {
             RenderableInteraction i = (RenderableInteraction) edge;
-            ((RenderableInteraction)copy).setInteractionType(i.getInteractionType());
+            ((RenderableInteraction) copy).setInteractionType(i.getInteractionType());
         }
         copyStoichiometries(copy, edge);
         // For catalyst
@@ -643,8 +631,8 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         List<Node> helpers = edge.getHelperNodes();
         for (Node node : helpers) {
             Node target = getTargetNode(node,
-                                        src2Target,
-                                        srcNodeToTargetInst);
+                    src2Target,
+                    srcNodeToTargetInst);
             if (target != null)
                 copy.addHelper(target);
         }
@@ -653,28 +641,28 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         List<Node> activators = edge.getActivatorNodes();
         for (Node node : activators) {
             Node target = getTargetNode(node,
-                                        src2Target,
-                                        srcNodeToTargetInst);
+                    src2Target,
+                    srcNodeToTargetInst);
             if (target != null)
                 copy.addActivator(target);
         }
         // Inhibitors
         copy.setInhibitorPoints(copyBranches(edge.getInhibitorPoints()));
         List<Node> inhibitors = edge.getInhibitorNodes();
-        for (Node node : inhibitors) { 
+        for (Node node : inhibitors) {
             Node target = getTargetNode(node,
-                                        src2Target,
-                                        srcNodeToTargetInst);
+                    src2Target,
+                    srcNodeToTargetInst);
             if (target != null)
                 copy.addInhibitor(target);
         }
         return copy;
     }
-    
+
     private void copyStoichiometries(HyperEdge target,
                                      HyperEdge source) {
         if (!(target instanceof RenderableReaction) ||
-            !(source instanceof RenderableReaction))
+                !(source instanceof RenderableReaction))
             return; // Have to be both are RenderableReaction!
         RenderableReaction srcRxt = (RenderableReaction) source;
         RenderableReaction targetRxt = (RenderableReaction) target;
@@ -687,7 +675,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             Node srcNode = srcInputs.get(i);
             int stoi = srcRxt.getInputStoichiometry(srcNode);
             targetRxt.setInputStoichiometry(targetInputs.get(i),
-                                            stoi);
+                    stoi);
         }
         // Handle output stoichiometries
         List<Node> srcOutputs = srcRxt.getOutputNodes();
@@ -698,10 +686,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             Node srcNode = srcOutputs.get(i);
             int stoi = srcRxt.getOutputStoichiometry(srcNode);
             targetRxt.setOutputStoichiometry(targetOutputs.get(i),
-                                             stoi);
+                    stoi);
         }
     }
-    
+
     private List<List<Point>> copyBranches(List<List<Point>> branches) {
         if (branches == null)
             return null;
@@ -714,7 +702,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         }
         return copy;
     }
-    
+
     private List<Point> copyPoints(List<Point> points) {
         if (points == null)
             return null;
@@ -723,24 +711,88 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             copy.add(new Point(p));
         return copy;
     }
-    
+
     /**
      * This method should be called to generate diagrams for other species. All human diagrams
      * will be mapped to other species when applicable. Only diagrams instances are created, other
      * instances and static images should be created in other place.
-     * @param dba Neo4JAdaptor used to retrieve/update PathwayDiagram instances
+     *
+     * @param dba           PersistenceAdaptor used to retrieve/update PathwayDiagram instances
      * @param defaultPerson Default person dbId to set
-     * @param srcSpeciesId Species instance dbId of the source species to find source PathwayDiagram instances
+     * @param srcSpeciesId  Species instance dbId of the source species to find source PathwayDiagram instances
      * @throws Exception Thrown if unable to retrieve/update PathwayDiagram instances or if unable to retrieve
-     * information from a PathwayDiagram instance or its pathway
+     *                   information from a PathwayDiagram instance or its pathway
      */
-    public void generateDiagramsForOtherSpecies(Neo4JAdaptor dba,
+    public void generateDiagramsForOtherSpecies(PersistenceAdaptor dba,
                                                 Long defaultPerson,
                                                 Long srcSpeciesId) throws Exception {
         this.dba = dba;
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                setDefaultPersonId(defaultPerson);
+                // Get all diagrams in the database
+                Collection diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
+                if (diagrams == null || diagrams.size() == 0)
+                    return; // Just in case
+                for (Iterator it = diagrams.iterator(); it.hasNext(); ) {
+                    GKInstance diagram = (GKInstance) it.next();
+//            if (!diagram.getDBID().equals(984845L))
+//                continue;
+                    List<?> pathways = diagram.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
+                    if (pathways == null || pathways.size() == 0) {
+                        logger.error(diagram + " has null pathway!");
+                        continue;
+                    }
+                    GKInstance pathway = (GKInstance) pathways.get(0);
+                    // Have to work from human only in case there is partial work done (e.g. during test)
+                    GKInstance species = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
+                    if (species == null) {
+                        logger.error("Pathway has no species: " + species);
+                        continue; // Don't work on it
+                    }
+                    if (!species.getDBID().equals(srcSpeciesId))
+                        continue;
+                    logger.info("Working on pathway " + pathway);
+                    List orthologousEvents = pathway.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
+                    if (orthologousEvents == null || orthologousEvents.size() == 0)
+                        continue;
+                    for (Iterator it1 = orthologousEvents.iterator(); it1.hasNext(); ) {
+                        GKInstance otherPathway = (GKInstance) it1.next();
+                        GKInstance otherSpecies = (GKInstance) otherPathway.getAttributeValue(ReactomeJavaConstants.species);
+                        logger.info("Predicting pathway diagram for " + otherPathway);
+                        GKInstance otherDiagram = generatePredictedDiagram(otherPathway,
+                                pathway,
+                                diagram, tx);
+                        // Attach other pathways to PathwayDiagram instance if any
+                        for (int i = 1; i < pathways.size(); i++) {
+                            GKInstance pathway1 = (GKInstance) pathways.get(i);
+                            // Get the orthologous
+                            List<?> orthologusEvents1 = pathway1.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
+                            // Find other pathway with the same species
+                            for (Object obj : orthologusEvents1) {
+                                GKInstance otherPathway1 = (GKInstance) obj;
+                                GKInstance otherSpecies1 = (GKInstance) otherPathway1.getAttributeValue(ReactomeJavaConstants.species);
+                                if (otherSpecies1 == otherSpecies) {
+                                    otherDiagram.addAttributeValue(ReactomeJavaConstants.representedPathway,
+                                            otherPathway1);
+                                    break;
+                                }
+                            }
+                        }
+                        if (pathways.size() > 1) {
+                            // Need to update the database
+                            dba.updateInstanceAttribute(otherDiagram,
+                                    ReactomeJavaConstants.representedPathway, tx);
+                        }
+                    }
+                }
+                tx.commit();
+            }
+        } else {
+            // MySQL
             setDefaultPersonId(defaultPerson);
             // Get all diagrams in the database
             Collection diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
@@ -774,7 +826,7 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                     logger.info("Predicting pathway diagram for " + otherPathway);
                     GKInstance otherDiagram = generatePredictedDiagram(otherPathway,
                             pathway,
-                            diagram, tx);
+                            diagram, null);
                     // Attach other pathways to PathwayDiagram instance if any
                     for (int i = 1; i < pathways.size(); i++) {
                         GKInstance pathway1 = (GKInstance) pathways.get(i);
@@ -794,21 +846,20 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
                     if (pathways.size() > 1) {
                         // Need to update the database
                         dba.updateInstanceAttribute(otherDiagram,
-                                ReactomeJavaConstants.representedPathway, tx);
+                                ReactomeJavaConstants.representedPathway, null);
                     }
                 }
             }
-            tx.commit();
         }
     }
-    
+
     @Test
     public void testGeneratePredictedDiagram() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("test.oicr.on.ca", 
-                                            "test", 
-                                            "test", 
-                                            "test");
-        setNeo4JAdaptor(dba);
+        PersistenceAdaptor dba = new MySQLAdaptor("test.oicr.on.ca",
+                "test",
+                "test",
+                "test");
+        setPersistenceAdaptor(dba);
         setDefaultPersonId(140537L); // For myself
         // Cell cycle checkpoints
 //        Long srcDbId = 69620L;
@@ -824,18 +875,24 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
         Long targetDbId = 9072242L;
         GKInstance srcPathway = dba.fetchInstance(srcDbId);
         Collection c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram,
-                                                    ReactomeJavaConstants.representedPathway,
-                                                    "=", 
-                                                    srcPathway);
+                ReactomeJavaConstants.representedPathway,
+                "=",
+                srcPathway);
         GKInstance srcDiagram = (GKInstance) c.iterator().next();
         GKInstance targetPathway = dba.fetchInstance(targetDbId);
         long time1 = System.currentTimeMillis();
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance predictedDiagram = generatePredictedDiagram(targetPathway,
+                        srcPathway,
+                        srcDiagram, tx);
+            }
+        } else {
             GKInstance predictedDiagram = generatePredictedDiagram(targetPathway,
                     srcPathway,
-                    srcDiagram, tx);
+                    srcDiagram, null);
         }
         long time2 = System.currentTimeMillis();
         System.out.println("Time to predict: " + (time2 - time1));
@@ -847,32 +904,32 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
 //        long time3 = System.currentTimeMillis();
 //        System.out.println("Time for output: " + (time3 - time2));
     }
-    
+
     @Test
     public void testGenerateDiagramsForOtherSpecies() throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            "gk_current_ver32", 
-                                            "root", 
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_current_ver32",
+                "root",
+                "macmysql01");
         Long defaultPerson = 140537L; // For myself
         long time1 = System.currentTimeMillis();
-        generateDiagramsForOtherSpecies(dba, 
-                                        defaultPerson,
-                                        48887L);
+        generateDiagramsForOtherSpecies(dba,
+                defaultPerson,
+                48887L);
         long time2 = System.currentTimeMillis();
         System.out.println("Total time: " + (time2 - time1));
     }
-    
+
     @Test
     public void testGenerateImageFiles() throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca", 
-                                            "test_reactome_34_brie8_diagrams",
-                                            "authortool", 
-                                            "T001test");
+        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                "test_reactome_34_brie8_diagrams",
+                "authortool",
+                "T001test");
         PredictedPathwayDiagramGeneratorFromDB generator = new PredictedPathwayDiagramGeneratorFromDB();
-        generator.setNeo4JAdaptor(dba);
+        generator.setPersistenceAdaptor(dba);
         generator.setImageBaseDir("tmp");
         generator.setNeedInfo(false);
         generator.setDefaultPersonId(140537L);
@@ -882,32 +939,43 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             generator.generateImages(dbId);
         }
     }
-    
+
     /**
      * Main method that can be invoked from a command line. The main method expects the following arguments in order:
      * dbHost dbName dbUser dbPwd dbPort imageBaseDir. Two things have been done here: 1). Predicted diagrams for other
-     * species based on human manual diagrams; 2). Generate needed files and instances for both predicted and manual 
+     * species based on human manual diagrams; 2). Generate needed files and instances for both predicted and manual
      * diagrams to serve the web application.
      * imagebaseDir: the top directory name for all static files used by Web ELV
+     *
      * @param args Command-line arguments
      */
     public static void main(String[] args) {
-        if (args.length < 6) {
+        if (args.length < 7) {
             System.err.println("Usage: java -Xmx1024m PredictedPathwayDiagramGeneratorFromDB dbHost dbName dbUser dbPwd dbPort "
-                    + "dbIdForDefaultPerson {dbIdForSpeciesBasis needStaticFiles(optional, true or false, default false, for old web site) imageBaseDir}\n");
+                    + "dbIdForDefaultPerson {dbIdForSpeciesBasis needStaticFiles(optional, true or false, default false, for old web site) imageBaseDir use_neo4j}\n");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(1);
         }
         try {
             // Set the logging
             PropertyConfigurator.configure("resources/log4j.properties");
             //logger.info("Log4j is configured!");
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
-                                                args[1],
-                                                args[2],
-                                                args[3],
-                                                Integer.parseInt(args[4]));
+            PersistenceAdaptor dba = null;
+            boolean useNeo4J = Boolean.parseBoolean(args[5]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        Integer.parseInt(args[4]));
+            else
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        Integer.parseInt(args[4]));
             PredictedPathwayDiagramGeneratorFromDB generator = new PredictedPathwayDiagramGeneratorFromDB();
-            generator.setNeo4JAdaptor(dba);
+            generator.setPersistenceAdaptor(dba);
             logger.info("Used database: " + dba.getDBName());
             Long defaultPerson = new Long(args[5]);
             logger.info("Default person: " + defaultPerson);
@@ -916,14 +984,13 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
             if (args.length >= 7) {
                 // Get the DB_ID for species as the basis
                 Long speciesId = new Long(args[6]);
-                generator.generateDiagramsForOtherSpecies(dba, 
-                                                          defaultPerson,
-                                                          speciesId);
-            }
-            else {
-                generator.generateDiagramsForOtherSpecies(dba, 
-                                                          defaultPerson,
-                                                          48887L);
+                generator.generateDiagramsForOtherSpecies(dba,
+                        defaultPerson,
+                        speciesId);
+            } else {
+                generator.generateDiagramsForOtherSpecies(dba,
+                        defaultPerson,
+                        48887L);
             }
             // As of November 1, 2018, the following generation has been turned off.
 //            if (args.length > 7 && args[7].equalsIgnoreCase("true")) {
@@ -944,11 +1011,10 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
 //                    generator.handleVertex(dbId);
 //            }
             logger.info("Finish the whole process!");
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             logger.error("Error in main(): ", e);
             e.printStackTrace();
         }
     }
-                             
+
 }

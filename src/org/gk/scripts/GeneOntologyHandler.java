@@ -13,7 +13,9 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 import org.neo4j.driver.Driver;
@@ -33,20 +35,29 @@ public class GeneOntologyHandler {
     }
     
     public static void main(String[] args) throws Exception {
-        if (args.length < 4) {
-            System.out.println("Usage java org.gk.scripts.GeneOntologyHandler dbHost dbName dbUser dbPwd");
+        if (args.length < 5) {
+            System.out.println("Usage java org.gk.scripts.GeneOntologyHandler dbHost dbName dbUser dbPwd use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             return;
         }
-        Neo4JAdaptor dba = new Neo4JAdaptor(args[0],
+        PersistenceAdaptor dba = null;
+        boolean useNeo4J = Boolean.parseBoolean(args[5]);
+        if (useNeo4J)
+         dba = new Neo4JAdaptor(args[0],
                                             args[1],
                                             args[2], 
                                             args[3]);
+        else
+            dba = new MySQLAdaptor(args[0],
+                    args[1],
+                    args[2],
+                    args[3]);
         GeneOntologyHandler handler = new GeneOntologyHandler();
-//        Neo4JAdaptor dba = handler.getDBA();
+//        MySQLAdaptor dba = handler.getDBA();
         handler.fillSurroundedBySlots(dba);
     }
     
-    public void fillSurroundedBySlots(Neo4JAdaptor dba) throws Exception {
+    public void fillSurroundedBySlots(PersistenceAdaptor dba) throws Exception {
         Map<String, Set<String>> idToSurrounedByIds = loadGOSurrounedBy();
         List<GKInstance> toBeUpdated = new ArrayList<>();
         for (String id : idToSurrounedByIds.keySet()) {
@@ -62,19 +73,43 @@ public class GeneOntologyHandler {
             }
             toBeUpdated.add(compartment);
         }
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
-                    ScriptUtilities.GUANMING_WU_DB_ID,
-                    true, tx);
-            for (GKInstance comp : toBeUpdated) {
-                System.out.println("Updating " + comp + "...");
-                dba.updateInstanceAttribute(comp, ReactomeJavaConstants.surroundedBy, tx);
-                ScriptUtilities.addIEToModified(comp, defaultIE, dba, tx);
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, tx);
+                for (GKInstance comp : toBeUpdated) {
+                    System.out.println("Updating " + comp + "...");
+                    dba.updateInstanceAttribute(comp, ReactomeJavaConstants.surroundedBy, tx);
+                    ScriptUtilities.addIEToModified(comp, defaultIE, dba, tx);
+                }
+                tx.commit();
+                System.out.println("Total updated: " + toBeUpdated.size());
             }
-            tx.commit();
-            System.out.println("Total updated: " + toBeUpdated.size());
+        } else {
+            // MySQL
+            try {
+                if (((MySQLAdaptor) dba).supportsTransactions())
+                    ((MySQLAdaptor) dba).startTransaction();
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, null);
+                for (GKInstance comp : toBeUpdated) {
+                    System.out.println("Updating " + comp + "...");
+                    dba.updateInstanceAttribute(comp, ReactomeJavaConstants.surroundedBy, null);
+                    ScriptUtilities.addIEToModified(comp, defaultIE, dba, null);
+                }
+                if (((MySQLAdaptor) dba).supportsTransactions())
+                    ((MySQLAdaptor) dba).commit();
+                System.out.println("Total updated: " + toBeUpdated.size());
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
     
@@ -86,7 +121,7 @@ public class GeneOntologyHandler {
         return dba;
     }
     
-    private GKInstance fetchInstanceById(String id, Neo4JAdaptor dba) throws Exception {
+    private GKInstance fetchInstanceById(String id, PersistenceAdaptor dba) throws Exception {
         if (id.startsWith("GO:")) {
             id = id.substring(3);
         }

@@ -34,7 +34,9 @@ import org.gk.database.EventTreeBuildHelper;
 import org.gk.database.HierarchicalEventPane;
 import org.gk.database.SynchronizationManager;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.neo4j.driver.Driver;
@@ -55,7 +57,7 @@ public class EventReleaseWizard extends JFrame {
     private JButton backBtn;
     private JButton cancelBtn;
     // Database DBA
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
     // selected top event to be released
     private GKInstance topEvent;
     // cache all panes to speed up the process and keep the user's selection
@@ -63,7 +65,7 @@ public class EventReleaseWizard extends JFrame {
     private EventReleaseCheckPane checkDNRPane;
     private PreviewPanel previewPane;
     
-    public EventReleaseWizard(Neo4JAdaptor dba) {
+    public EventReleaseWizard(PersistenceAdaptor dba) {
         // dba should not be null
         if (dba == null)
             throw new IllegalArgumentException("EventReleasedWizard: null database adaptor");
@@ -239,32 +241,62 @@ public class EventReleaseWizard extends JFrame {
         if (defaultIE == null)
             throw new IllegalStateException("EventReleaseWizard.checkInChanges(): Cannot get default InstanceEdit.");
         DefaultInstanceEditHelper ieHelper = SynchronizationManager.getManager().getDefaultIEHelper();
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance ieClone = ieHelper.attachDefaultIEToDBInstances(changedInstances, defaultIE);
-            if (ieClone == null) {
-                throw new IllegalStateException("Cannot attach default InstanceEdit.");
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance ieClone = ieHelper.attachDefaultIEToDBInstances(changedInstances, defaultIE);
+                if (ieClone == null) {
+                    throw new IllegalStateException("Cannot attach default InstanceEdit.");
+                }
+                // ieClose should be stored first to get the db id
+                // Have to make sure all local instances can also be saved.
+                dba.storeInstance(ieClone, tx);
+                progressBar.setIndeterminate(false);
+                progressBar.setMinimum(0);
+                progressBar.setMaximum(changedInstances.size());
+                int c = 0;
+                for (Iterator it = changedInstances.iterator(); it.hasNext(); ) {
+                    GKInstance event = (GKInstance) it.next();
+                    dba.updateInstanceAttribute(event, "_doNotRelease", tx);
+                    dba.updateInstanceAttribute(event, "modified", tx);
+                    progressBar.setValue(++c);
+                }
+                tx.commit();
+            } catch (Exception e) {
+                System.err.println("EventReleaseWizard.checkInChanges(): " + e);
+                e.printStackTrace();
+                throw e;
             }
-            // ieClose should be stored first to get the db id
-            // Have to make sure all local instances can also be saved.
-            dba.storeInstance(ieClone, tx);
-            progressBar.setIndeterminate(false);
-            progressBar.setMinimum(0);
-            progressBar.setMaximum(changedInstances.size());
-            int c = 0;
-            for (Iterator it = changedInstances.iterator(); it.hasNext();) {
-                GKInstance event = (GKInstance) it.next();
-                dba.updateInstanceAttribute(event, "_doNotRelease", tx);
-                dba.updateInstanceAttribute(event, "modified", tx);
-                progressBar.setValue(++c);
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                GKInstance ieClone = ieHelper.attachDefaultIEToDBInstances(changedInstances, defaultIE);
+                if (ieClone == null) {
+                    throw new IllegalStateException("Cannot attach default InstanceEdit.");
+                }
+                // ieClose should be stored first to get the db id
+                // Have to make sure all local instances can also be saved.
+                dba.storeInstance(ieClone, null);
+                progressBar.setIndeterminate(false);
+                progressBar.setMinimum(0);
+                progressBar.setMaximum(changedInstances.size());
+                int c = 0;
+                for (Iterator it = changedInstances.iterator(); it.hasNext();) {
+                    GKInstance event = (GKInstance) it.next();
+                    dba.updateInstanceAttribute(event, "_doNotRelease", null);
+                    dba.updateInstanceAttribute(event, "modified", null);
+                    progressBar.setValue(++c);
+                }
+                ((MySQLAdaptor) dba).commit();
             }
-            tx.commit();
-        }
-        catch (Exception e) {
-            System.err.println("EventReleaseWizard.checkInChanges(): " + e);
-            e.printStackTrace();
-            throw e;
+            catch (Exception e) {
+                System.err.println("EventReleaseWizard.checkInChanges(): " + e);
+                e.printStackTrace();
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
     

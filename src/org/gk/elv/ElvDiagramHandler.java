@@ -19,13 +19,9 @@ import javax.swing.JOptionPane;
 import org.gk.database.AttributeEditManager;
 import org.gk.gkCurator.authorTool.InstanceHandler;
 import org.gk.gkCurator.authorTool.InstanceHandlerFactory;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.*;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.persistence.XMLFileAdaptor;
@@ -257,15 +253,6 @@ public class ElvDiagramHandler {
                                       message,
                                       "Check Diagram",
                                       JOptionPane.INFORMATION_MESSAGE);
-        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComp);
-        if (dba == null) {
-            // Show error message
-            JOptionPane.showMessageDialog(parentComp,
-                                          "Database cannot be connected. Please use the diagram cautiously!",
-                                          "Database Connection Error",
-                                          JOptionPane.ERROR_MESSAGE);
-            return;
-        }
         // Sort based on DB_ID
         Map<Long, List<Renderable>> idToObjects = new HashMap<Long, List<Renderable>>();
         for (Renderable r : dbObjects) {
@@ -278,6 +265,15 @@ public class ElvDiagramHandler {
             list.add(r);
         }
         try {
+            PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(parentComp);
+            if (dba == null) {
+                // Show error message
+                JOptionPane.showMessageDialog(parentComp,
+                        "Database cannot be connected. Please use the diagram cautiously!",
+                        "Database Connection Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             List<Long> deleted = new ArrayList<Long>();
             for (Long dbId : idToObjects.keySet()) {
                 GKInstance dbInstance = dba.fetchInstance(dbId);

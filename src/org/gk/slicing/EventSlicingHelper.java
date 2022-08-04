@@ -14,8 +14,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.QueryRequest;
+import org.gk.persistence.ReverseAttributeQueryRequest;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 
@@ -35,7 +37,7 @@ public class EventSlicingHelper {
         return this.referrersMap;
     }
  
-    public Map extractEvents(List pathwayIDs, Neo4JAdaptor sourceDBA) throws Exception {
+    public Map extractEvents(List pathwayIDs, PersistenceAdaptor sourceDBA) throws Exception {
         Map eventMap = new HashMap();
         // To speed up the performance, get all events and their "hasComponent"
         // and "hasInstance" values first
@@ -135,7 +137,7 @@ public class EventSlicingHelper {
      * reactions are from floating pathways whose DNR are false. 
      * @throws Exception
      */
-    public Map extractFloatingEvents(List topLevelIDs, Neo4JAdaptor sourceDBA) throws Exception {
+    public Map extractFloatingEvents(List topLevelIDs, PersistenceAdaptor sourceDBA) throws Exception {
         Map floatingEventMap = new HashMap();
         Set events = new HashSet();
 		extractFloatingReactions(events, sourceDBA);
@@ -158,14 +160,14 @@ public class EventSlicingHelper {
      * Extract reactions that are contained by floating pathways whose DNRs are false. 
      * @param events
      */
-    private void extractFloatingPathwaysAndReactions(Set events, Neo4JAdaptor sourceDBA, List topLevelIDs) throws Exception {
-		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList(3);
+    private void extractFloatingPathwaysAndReactions(Set events, PersistenceAdaptor sourceDBA, List topLevelIDs) throws Exception {
+		ArrayList<QueryRequest> qr = new ArrayList(3);
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
 		SchemaAttribute hasCompAtt = pathwayCls.getAttribute(ReactomeJavaConstants.hasEvent);
-		qr.add(sourceDBA.createReverseAttributeQueryRequest(pathwayCls, hasCompAtt, "IS NULL", null));
+		qr.add(new ReverseAttributeQueryRequest(pathwayCls, hasCompAtt, "IS NULL", null));
 		SchemaClass genericEventCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent);
 		SchemaAttribute hasInstanceAtt = genericEventCls.getAttribute(ReactomeJavaConstants.hasMember);
-		qr.add(sourceDBA.createReverseAttributeQueryRequest(pathwayCls, hasInstanceAtt, "IS NULL", null));
+		qr.add(new ReverseAttributeQueryRequest(pathwayCls, hasInstanceAtt, "IS NULL", null));
 		// It seems that the following is not correct. It is more like a bug in the database. In pre_ver12,
 		// the value will be empty if it is set to false explicitly.
 		//SchemaAttribute dnrAtt = pathwayCls.getAttribute("_doNotRelease");
@@ -218,19 +220,19 @@ public class EventSlicingHelper {
         }
     }
     
-    private void extractFloatingReactions(Set reactions, Neo4JAdaptor sourceDBA) throws Exception {
-		ArrayList<Neo4JAdaptor.QueryRequest> qr = new ArrayList(1);
+    private void extractFloatingReactions(Set reactions, PersistenceAdaptor sourceDBA) throws Exception {
+		ArrayList<QueryRequest> qr = new ArrayList(1);
 		SchemaClass reactionCls = sourceDBA.getSchema().getClassByName("Reaction");
 		SchemaClass pathwayCls = sourceDBA.getSchema().getClassByName("Pathway");
 		SchemaAttribute hasCompAtt = pathwayCls.getAttribute(ReactomeJavaConstants.hasEvent);
-		qr.add(sourceDBA.createReverseAttributeQueryRequest(reactionCls, hasCompAtt, "IS NULL", null));
+		qr.add(new ReverseAttributeQueryRequest(reactionCls, hasCompAtt, "IS NULL", null));
 		// This is the first list: Reaction is not a component for any Pathway
 		Collection reactions1 = sourceDBA.fetchInstance(qr);
 		// Get the second list: Reaction is not an instance for any GenericEvent and
 		// reaction is not a component for any Pathway.
 		SchemaClass genericEventCls = sourceDBA.getSchema().getClassByName(ReactomeJavaConstants.hasMember);
 		SchemaAttribute hasInstanceAtt = genericEventCls.getAttribute(ReactomeJavaConstants.hasMember);
-		qr.add(sourceDBA.createReverseAttributeQueryRequest(reactionCls, hasInstanceAtt, "IS NULL", null));
+		qr.add(new ReverseAttributeQueryRequest(reactionCls, hasInstanceAtt, "IS NULL", null));
 		Collection reactions2 = sourceDBA.fetchInstance(qr);
 		if (reactions2 == null || reactions2.size() == 0)
 		    return ; 
@@ -275,7 +277,7 @@ public class EventSlicingHelper {
      * @return map key: Longs values: GKInstances
      * @throws Exception
      */
-    public Map extractAllEvents(List topLevelEvents, Neo4JAdaptor sourceDBA) throws Exception {
+    public Map extractAllEvents(List topLevelEvents, PersistenceAdaptor sourceDBA) throws Exception {
         Map eventMap = extractEvents(topLevelEvents, sourceDBA);
         Map floatingEventMap = extractFloatingEvents(topLevelEvents, sourceDBA);
         Map allEventsMap = new HashMap();

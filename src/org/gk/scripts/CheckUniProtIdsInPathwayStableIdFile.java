@@ -10,8 +10,9 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class CheckUniProtIdsInPathwayStableIdFile {
         fu.close();
         System.out.println("Total ids in file: " + targetIds.size());
         // Get ids from the released database
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_current_ver35",
                                             "root", 
                                             "macmysql01");

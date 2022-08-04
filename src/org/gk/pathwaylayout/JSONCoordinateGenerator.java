@@ -15,8 +15,8 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This class is used to help generate JSON coordinate. This is basically proted from
@@ -30,7 +30,7 @@ public class JSONCoordinateGenerator {
     }
     
     public String generateCoordinateJSON(GKInstance diagram,
-                                         Neo4JAdaptor dba) throws Exception {
+                                         PersistenceAdaptor dba) throws Exception {
         StringBuilder builder = new StringBuilder();
         builder.append("({");
         int height = (Integer) diagram.getAttributeValue(ReactomeJavaConstants.height);
@@ -46,7 +46,7 @@ public class JSONCoordinateGenerator {
     
     private void generateJSON(StringBuilder builder,
                               GKInstance diagram,
-                              Neo4JAdaptor dba) throws Exception {
+                              PersistenceAdaptor dba) throws Exception {
         Collection vertices = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, 
                                                            ReactomeJavaConstants.pathwayDiagram,
                                                            "=",

@@ -29,10 +29,6 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.*;
 import java.util.List;
 
@@ -49,8 +45,10 @@ import javax.swing.tree.TreeSelectionModel;
 import org.gk.database.FrameManager;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DBConnectionPane;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
@@ -107,7 +105,7 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	private GKInstance locationContext;
 	private JLabel contextLabel;
 	private ActionCollection actionCollection;
-	private Neo4JAdaptor dba;
+	private PersistenceAdaptor dba;
 	private Schema schema;
 	private boolean ignoreTreeSelectionEvents = false;
 	public static int WIDTH_HEIGHT_RATIO = 6;
@@ -147,12 +145,12 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	public GKVisualizationPane() {
 	}
 
-	public GKVisualizationPane(Neo4JAdaptor dba) {
+	public GKVisualizationPane(PersistenceAdaptor dba) {
         setDba(dba);
         setSchema(dba.getSchema());
 		init();
 		try {
-            hierarchyPanel.setNeo4JAdaptor(dba, true);
+            hierarchyPanel.setPersistenceAdaptor(dba, true);
 			loadEventLocations();
 		}
         catch (Exception e) {
@@ -1821,12 +1819,22 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	        System.exit(0);
 	    }
 	    try {
-	        Neo4JAdaptor dba =
-	            new Neo4JAdaptor(prop.getProperty("dbHost"),
-	                             prop.getProperty("dbName"),
-	                             prop.getProperty("dbUser"),
-	                             prop.getProperty("dbPwd"),
-	                             Integer.parseInt(prop.getProperty("dbPort")));
+			PersistenceAdaptor dba;
+			if (args.length > 0 && args[0].equals("neo4j")) {
+				dba =
+						new Neo4JAdaptor(prop.getProperty("dbHost"),
+								prop.getProperty("dbName"),
+								prop.getProperty("dbUser"),
+								prop.getProperty("dbPwd"),
+								Integer.parseInt(prop.getProperty("dbPort")));
+			} else {
+				dba =
+						new MySQLAdaptor(prop.getProperty("dbHost"),
+								prop.getProperty("dbName"),
+								prop.getProperty("dbUser"),
+								prop.getProperty("dbPwd"),
+								Integer.parseInt(prop.getProperty("dbPort")));
+			}
 	        //dba.debug = true;
 	        GKVisualizationPane app = new GKVisualizationPane(dba);
 	        String writable = prop.getProperty(COOR_WRITE_ENABLE_KEY);
@@ -1915,16 +1923,16 @@ public class GKVisualizationPane extends JComponent implements Runnable, Visuali
 	}
 
 	/**
-	 * @return Neo4JAdaptor instance
+	 * @return PersistenceAdaptor instance
 	 */
-	public Neo4JAdaptor getDba() {
+	public PersistenceAdaptor getDba() {
 		return dba;
 	}
 
 	/**
-	 * @param adaptor Neo4JAdaptor instance to set
+	 * @param adaptor PersistenceAdaptor instance to set
 	 */
-	public void setDba(Neo4JAdaptor adaptor) {
+	public void setDba(PersistenceAdaptor adaptor) {
 		dba = adaptor;
 	}
 

@@ -17,12 +17,12 @@ import java.util.stream.Stream;
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
-import org.gk.schema.InvalidAttributeException;
 import org.junit.Test;
 
 /**
@@ -79,7 +79,7 @@ public class PathwayELVCheck extends ReactionELVCheck {
      * @throws Exception
      */
     @Override
-    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(Neo4JAdaptor dba) throws Exception {
+    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(PersistenceAdaptor dba) throws Exception {
         Map<GKInstance, Set<GKInstance>> pathwayToDiagrams = new HashMap<GKInstance, Set<GKInstance>>();
         // Load all PathwayDiagrams in the database
         Collection<?> diagrams = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
@@ -174,7 +174,7 @@ public class PathwayELVCheck extends ReactionELVCheck {
         
     @Test
     public void testCheckPathwaysInELVs() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_122118",
                                             "root",
                                             "macmysql01");

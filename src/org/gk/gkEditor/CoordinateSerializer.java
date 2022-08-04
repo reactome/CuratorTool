@@ -21,9 +21,9 @@ import javax.swing.SwingUtilities;
 import org.gk.database.SynchronizationManager;
 import org.gk.model.DBIDNotSetException;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.persistence.XMLFileAdaptor;
@@ -45,7 +45,7 @@ import org.gk.util.GKApplicationUtilities;
  *
  */
 public class CoordinateSerializer {
-    private Neo4JAdaptor dbAdaptor;
+    private PersistenceAdaptor dbAdaptor;
     private XMLFileAdaptor fileAdaptor;
     // Map from Renderable to Instance to create Edges
     private Map<Renderable, GKInstance> rToIMap;
@@ -87,7 +87,7 @@ public class CoordinateSerializer {
             throw new IllegalStateException("Cannot connect to the specified database.");
         }
         this.parentComp = comp;
-        dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor();
+        dbAdaptor = PersistenceManager.getManager().getActivePersistenceAdaptor();
         fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
         if (fileAdaptor == null) {
             fileAdaptor = new XMLFileAdaptor();
@@ -374,7 +374,7 @@ public class CoordinateSerializer {
     
     public GKInstance convertNodeToInstance(Node node,
                                             GKInstance pathwayDiagram,
-                                            Neo4JAdaptor dba) throws Exception {
+                                            PersistenceAdaptor dba) throws Exception {
         String cls = null;
         if (node instanceof ProcessNode)
             cls = ReactomeJavaConstants.PathwayVertex;
@@ -407,7 +407,7 @@ public class CoordinateSerializer {
     private GKInstance createInstance(Renderable r,
                                       String clsName,
                                       GKInstance pathwayDiagram,
-                                      Neo4JAdaptor dba) throws Exception {
+                                      PersistenceAdaptor dba) throws Exception {
         GKInstance instance = createInstance(clsName, dba);
         GKInstance wrapped = getWrappedDbInstance(r, dba);
         instance.setAttributeValue(ReactomeJavaConstants.representedInstance, wrapped);
@@ -446,7 +446,7 @@ public class CoordinateSerializer {
     
     public List<GKInstance> convertEdgeToInstances(HyperEdge edge,
                                                    GKInstance pathwayDiagram,
-                                                   Neo4JAdaptor dba,
+                                                   PersistenceAdaptor dba,
                                                    Map<Renderable, GKInstance> rToIMap) throws Exception {
         // This type of edge will not be processed
         if (edge instanceof FlowLine || 
@@ -501,7 +501,7 @@ public class CoordinateSerializer {
     private void convertReactionToEdges(HyperEdge reaction,
                                         GKInstance reactionVertex,
                                         GKInstance pathwayDiagram,
-                                        Neo4JAdaptor dba,
+                                        PersistenceAdaptor dba,
                                         Map<Renderable, GKInstance> rToIMap,
                                         List<GKInstance> list) throws Exception {
         List widgets = reaction.getConnectInfo().getConnectWidgets();
@@ -550,7 +550,7 @@ public class CoordinateSerializer {
                                             int type,
                                             List points,
                                             GKInstance pathwayDiagram,
-                                            Neo4JAdaptor dba)  throws Exception {
+                                            PersistenceAdaptor dba)  throws Exception {
         GKInstance edgeInstance = null;
         if (dba != null) 
             edgeInstance = createInstance(ReactomeJavaConstants.Edge, 
@@ -613,7 +613,7 @@ public class CoordinateSerializer {
      * @return
      */
     private GKInstance createInstance(String clsName,
-                                      Neo4JAdaptor dba) {
+                                      PersistenceAdaptor dba) {
         SchemaClass cls = dba.getSchema().getClassByName(clsName);
         GKInstance instance = new GKInstance(cls);
         instance.setDbAdaptor(dba);
@@ -621,7 +621,7 @@ public class CoordinateSerializer {
     }
     
     private GKInstance getWrappedDbInstance(Renderable r,
-                                            Neo4JAdaptor dba) throws Exception {
+                                            PersistenceAdaptor dba) throws Exception {
         Long dbId = r.getReactomeId();
         if (dbId == null)
             throw new DBIDNotSetException(r.getType() + ": " + r.getDisplayName() + " doesn't have DB_ID.");

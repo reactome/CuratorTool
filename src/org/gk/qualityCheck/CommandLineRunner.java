@@ -14,6 +14,8 @@ import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -72,11 +74,18 @@ public class CommandLineRunner {
         }
         // Augment or override the auth file values.
         authProps.putAll(cmdLineProps);
-
-        Neo4JAdaptor dba = new Neo4JAdaptor(authProps.getProperty("dbHost"),
-                authProps.getProperty("dbName"),
-                authProps.getProperty("dbUser"),
-                authProps.getProperty("dbPwd"));
+        PersistenceAdaptor dba;
+        if (Boolean.parseBoolean(authProps.getProperty("neo4j"))) {
+            dba = new Neo4JAdaptor(authProps.getProperty("dbHost"),
+                    authProps.getProperty("dbName"),
+                    authProps.getProperty("dbUser"),
+                    authProps.getProperty("dbPwd"));
+        } else {
+            dba = new MySQLAdaptor(authProps.getProperty("dbHost"),
+                    authProps.getProperty("dbName"),
+                    authProps.getProperty("dbUser"),
+                    authProps.getProperty("dbPwd"));
+        }
         
         List<QualityCheck> checks = getAllQAChecks();
         File dir = getOutputDir();

@@ -30,7 +30,9 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.Schema;
@@ -58,7 +60,7 @@ public class ReactionCoordinatebasedLayout implements Runnable {
 	protected Map<GKInstance, Vertex> entityInstance2NodeMap = Collections.synchronizedMap(new HashMap<GKInstance, Vertex>());
 	protected Map<GKInstance, Set> reaction2output = new HashMap<GKInstance, Set>();
 	protected Map<GKInstance, Set> reaction2input = new HashMap<GKInstance, Set>();
-	protected Neo4JAdaptor dba;
+	protected PersistenceAdaptor dba;
 	protected GraphModel model = new DefaultGraphModel();
 	protected JGraph graph = new JGraph(model);
 
@@ -80,8 +82,8 @@ public class ReactionCoordinatebasedLayout implements Runnable {
 	public GKInstance focusSpecies = null;
 	
 /*	public ReactionCoordinatebasedLayout() throws Exception {
-		//this.dba = new Neo4JAdaptor("localhost","test_gk_central_20070531","ro","loe",3306);
-		this.dba = new Neo4JAdaptor("localhost","test_reactome_23_entity_level_view","ro","loe",3306);
+		//this.dba = new MySQLAdaptor("localhost","test_gk_central_20070531","ro","loe",3306);
+		this.dba = new MySQLAdaptor("localhost","test_reactome_23_entity_level_view","ro","loe",3306);
 		//String speciesName = "Homo sapiens";
 		String speciesName = "Mus musculus";
 		this.focusSpecies =  (GKInstance)dba.fetchInstanceByAttribute(ReactomeJavaConstants.Species,ReactomeJavaConstants.name,"=",speciesName).iterator().next();
@@ -92,13 +94,13 @@ public class ReactionCoordinatebasedLayout implements Runnable {
 
 	}
 	
-	public ReactionCoordinatebasedLayout(Neo4JAdaptor dba) throws Exception {
+	public ReactionCoordinatebasedLayout(PersistenceAdaptor dba) throws Exception {
 		this.dba = dba;
 		init();
 	}
 	
-	public ReactionCoordinatebasedLayout(GKInstance species) throws Exception {
-		this.dba = (Neo4JAdaptor) species.getDbAdaptor();
+	public ReactionCoordinatebasedLayout(GKInstance species) {
+		this.dba = species.getDbAdaptor();
 		this.focusSpecies = species;
 	}
 
@@ -2906,22 +2908,42 @@ public class ReactionCoordinatebasedLayout implements Runnable {
 	
 	public void storeGraphInDb () throws InvalidAttributeException, Exception {
 		System.out.println("Starting storeGraphInDb");
-		Driver driver = dba.getConnection();
-		try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-			Transaction tx = session.beginTransaction();
+		if (dba instanceof Neo4JAdaptor) {
+			Driver driver = ((Neo4JAdaptor) dba).getConnection();
+			try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+				Transaction tx = session.beginTransaction();
+				GKInstance pathwayDiagram = createInstance();
+				dba.storeInstance(pathwayDiagram, tx);
+				for (Vertex v : verteces) {
+					GKInstance i = createInstance(v);
+					i.setAttributeValue(ReactomeJavaConstants.pathwayDiagram, pathwayDiagram);
+					dba.storeInstance(i, tx);
+				}
+				for (Edge e : edges) {
+					GKInstance i = createInstance(e);
+					i.setAttributeValue(ReactomeJavaConstants.pathwayDiagram, pathwayDiagram);
+					dba.storeInstance(i, tx);
+				}
+				tx.commit();
+			}
+		} else {
+			// MySQL
+			if (((MySQLAdaptor) dba).supportsTransactions())
+				((MySQLAdaptor) dba).startTransaction();
 			GKInstance pathwayDiagram = createInstance();
-			dba.storeInstance(pathwayDiagram, tx);
+			dba.storeInstance(pathwayDiagram, null);
 			for (Vertex v : verteces) {
 				GKInstance i = createInstance(v);
 				i.setAttributeValue(ReactomeJavaConstants.pathwayDiagram, pathwayDiagram);
-				dba.storeInstance(i, tx);
+				dba.storeInstance(i, null);
 			}
 			for (Edge e : edges) {
 				GKInstance i = createInstance(e);
 				i.setAttributeValue(ReactomeJavaConstants.pathwayDiagram, pathwayDiagram);
-				dba.storeInstance(i, tx);
+				dba.storeInstance(i, null);
 			}
-			tx.commit();
+			if (((MySQLAdaptor) dba).supportsTransactions())
+				((MySQLAdaptor) dba).commit();
 		}
 		System.out.println("Finished storeGraphInDb");
 	}

@@ -35,7 +35,7 @@ import org.gk.database.FrameManager;
 import org.gk.database.SingleEventTreeView;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.gk.util.TreeUtilities;
@@ -51,7 +51,7 @@ public class PathwayBrowserPanel extends JPanel {
 	private JLabel dbLabel;
 	private Map node2icon = new HashMap();
 	private TreeSelectionListener treeSelectionListener;
-	private Neo4JAdaptor dba;
+	private PersistenceAdaptor dba;
 	// For display selected instance
 	private SingleEventTreeView treeView;
 	private JSplitPane jsp;
@@ -60,21 +60,21 @@ public class PathwayBrowserPanel extends JPanel {
 		init();
 	}
 	
-	public Neo4JAdaptor getNeo4JAdaptor() {
+	public PersistenceAdaptor getPersistenceAdaptor() {
 		return this.dba;
 	}
 	
-	public void setNeo4JAdaptor(Neo4JAdaptor dba) {
-		setNeo4JAdaptor(dba, false);
+	public void setPersistenceAdaptor(PersistenceAdaptor dba) {
+		setPersistenceAdaptor(dba, false);
 	}
 	
-	public void setNeo4JAdaptor(Neo4JAdaptor adaptor, boolean updateTree) {
+	public void setPersistenceAdaptor(PersistenceAdaptor adaptor, boolean updateTree) {
 		this.dba = adaptor;
 		dbLabel.setText(dba.toString());
 		if (!updateTree)
 			return;
 		try {
-			dba.refresh(); // In case the tree is loaded before.
+			dba.refreshCaches(); // In case the tree is loaded before.
 			EventTreeBuildHelper treeHelper = new EventTreeBuildHelper(dba);
 			Collection topEvents = treeHelper.getTopLevelEvents();
 			// Only "homo sapiens" is needed
@@ -109,7 +109,7 @@ public class PathwayBrowserPanel extends JPanel {
 			//buildTree(humanTopEvents);
 		}
 		catch (Exception e) {
-			System.err.println("PathwayBrowserPanel.setNeo4JAdaptor(): " + e);
+			System.err.println("PathwayBrowserPanel.setPersistenceAdaptor(): " + e);
 			e.printStackTrace();
 		}
 	}

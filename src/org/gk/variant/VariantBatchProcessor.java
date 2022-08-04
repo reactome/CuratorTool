@@ -16,8 +16,8 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.GKApplicationUtilities;
@@ -41,8 +41,8 @@ public class VariantBatchProcessor {
         if (file == null)
             return;
         setSrc(file.getAbsolutePath());
-        // We also need an active Neo4JAdaptor
-        Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parent);
+        // We also need an active PersistenceManager
+        PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(parent);
         if (dba == null)
             return; // Cannot do anything
         progressPane = new ProgressPane();

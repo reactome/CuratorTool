@@ -10,8 +10,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.junit.Test;
 
 /**
@@ -31,7 +32,7 @@ public class DisplayNameInELVTester {
     
     @Test
     public void checkPathwayDiagrams() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "test_slice_37b",
                                             "authortool",
                                             "T001test");

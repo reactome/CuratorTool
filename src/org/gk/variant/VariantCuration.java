@@ -1,13 +1,9 @@
 package org.gk.variant;
 
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.XMLFileAdaptor;
-import org.gk.persistence.Neo4JAdaptor.AttributeQueryRequest;
+import org.gk.model.*;
+import org.gk.persistence.*;
 import org.gk.property.PMIDXMLInfoFetcher2;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
+import org.gk.schema.Schema;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,9 +12,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.model.Reference;
 
 public abstract class VariantCuration {
 			
@@ -133,8 +126,8 @@ public abstract class VariantCuration {
 		if (wtEwases != null && !wtEwases.isEmpty())
 			return wtEwases;
 		
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();	
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		
 		GKInstance referenceEntity = getReferenceGeneProduct(gene);
 		
@@ -205,8 +198,8 @@ public abstract class VariantCuration {
 			return reactions.get(entity);
 		}
 		
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		
 		Set<GKInstance> reactionSet = new HashSet<>();
 		
@@ -302,8 +295,8 @@ public abstract class VariantCuration {
 	
 	@SuppressWarnings("unchecked")
 	protected Set<GKInstance> getContainingPhysicalEntities(GKInstance physicalEntity) throws Exception {
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		
 		Set<GKInstance> containingComplexAndEntitySets = new HashSet<>();
 		
@@ -352,23 +345,25 @@ public abstract class VariantCuration {
 	}
 	
 	protected List<GKInstance> getReferenceGeneProducts(String gene) throws Exception {		
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();		
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		
         GKInstance human = dba.fetchInstance(speciesId);
-        AttributeQueryRequest request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
+		Schema schema = dba.getSchema();
+        AttributeQueryRequest request =
+				new AttributeQueryRequest(schema, ReactomeJavaConstants.ReferenceGeneProduct,
                                                                         ReactomeJavaConstants.geneName,
                                                                         "=",
                                                                         gene);
         List<AttributeQueryRequest> queryList = new ArrayList<>();
         queryList.add(request);
-        request = dba.createAttributeQueryRequest(ReactomeJavaConstants.ReferenceGeneProduct, 
+        request = new AttributeQueryRequest(schema, ReactomeJavaConstants.ReferenceGeneProduct,
                                                   ReactomeJavaConstants.species,
                                                   "=",
                                                   human);
         queryList.add(request);
         @SuppressWarnings("unchecked")
-		Set<GKInstance> referenceEntities = (Set<GKInstance>) dba.fetchInstance((Neo4JAdaptor.QueryRequest) queryList);
+		Set<GKInstance> referenceEntities = (Set<GKInstance>) dba.fetchInstance((QueryRequest) queryList);
         
         List<GKInstance> referenceEntitiesList = new ArrayList<>(referenceEntities);
         
@@ -381,8 +376,8 @@ public abstract class VariantCuration {
 	
 	@SuppressWarnings("unchecked")
 	protected GKInstance createEwas(int start, int end, String gene) throws Exception {  
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		XMLFileAdaptor fileAdaptor = mngr.getActiveFileAdaptor();
         
 		GKInstance ewas = fileAdaptor.createNewInstance(ReactomeJavaConstants.EntityWithAccessionedSequence);
@@ -470,8 +465,8 @@ public abstract class VariantCuration {
 		if (aaCode == null || aaCode.isEmpty())
 			throw new Exception("Amino acid code is empty.");
 		
-		PersistenceManager mngr = PersistenceManager.getManager(); 
-		Neo4JAdaptor dba = mngr.getActiveNeo4JAdaptor();
+		PersistenceManager mngr = PersistenceManager.getManager();
+		PersistenceAdaptor dba = mngr.getActivePersistenceAdaptor();
 		
 		String aa = aaDict.get(aaCode);
 		

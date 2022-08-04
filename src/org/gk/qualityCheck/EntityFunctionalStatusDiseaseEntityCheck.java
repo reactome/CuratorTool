@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * QA check which detects <em>diseaseEntity</em> instances which
@@ -56,7 +56,7 @@ public class EntityFunctionalStatusDiseaseEntityCheck extends EntityFunctionalSt
         return model;
     }
     
-    protected Collection<GKInstance> loadReactions(Neo4JAdaptor dba) throws Exception {
+    protected Collection<GKInstance> loadReactions(PersistenceAdaptor dba) throws Exception {
         // We will start with RLEs for quick performance
         Collection<GKInstance> rles = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                                                                    ReactomeJavaConstants.entityFunctionalStatus,

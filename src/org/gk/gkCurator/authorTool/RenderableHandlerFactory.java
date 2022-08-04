@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.render.ReactionNode;
 import org.gk.render.Renderable;
@@ -63,7 +63,7 @@ public class RenderableHandlerFactory {
         }
     }
     
-    public void setDBAdaptor(Neo4JAdaptor dbAdaptor) {
+    public void setDBAdaptor(PersistenceAdaptor dbAdaptor) {
         Collection values = typeToHandlers.values();
         for (Iterator it = values.iterator(); it.hasNext();) {
             RenderableHandler handler = (RenderableHandler) it.next();

@@ -12,11 +12,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.*;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.junit.Test;
 
@@ -28,25 +25,25 @@ import org.junit.Test;
  */
 @SuppressWarnings("unchecked")
 public class DisplayNameScripts {
-    private Neo4JAdaptor dba = null;
+    private PersistenceAdaptor dba = null;
     
     public DisplayNameScripts() {
     }
     
-    public void setNeo4JAdaptor(Neo4JAdaptor dba) {
+    public void setPersistenceAdaptor(PersistenceAdaptor dba) {
         this.dba = dba;
     }
     
-    private Neo4JAdaptor getDba() throws Exception {
+    private PersistenceAdaptor getDba() throws Exception {
         if (dba != null)
             return dba;
-        dba = PersistenceManager.getManager().getActiveNeo4JAdaptor();
+        dba = PersistenceManager.getManager().getActivePersistenceAdaptor();
         return dba;
     }
     
     @Test
     public void updateDisplayNamesInFragmentModification() throws Exception {
-        Neo4JAdaptor dba = getDba();
+        PersistenceAdaptor dba = getDba();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FragmentModification);
         int total = 0;
         List<GKInstance> toBeUpdated = new ArrayList<GKInstance>();
@@ -68,7 +65,7 @@ public class DisplayNameScripts {
      */
     @Test
     public void updateDisplayNamesInIEs() throws Exception {
-        Neo4JAdaptor dba = getDba();
+        PersistenceAdaptor dba = getDba();
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.InstanceEdit,
                                                                 ReactomeJavaConstants._displayName, 
                                                                 "like",
@@ -121,13 +118,13 @@ public class DisplayNameScripts {
     
     public static void main(String[] args) {
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor("brie8.cshl.edu",
+            PersistenceAdaptor dba = new MySQLAdaptor("brie8.cshl.edu",
                                                 "gk_central",
                                                 "authortool",
                                                 "T001test",
                                                 3306);
             DisplayNameScripts extractor = new DisplayNameScripts();
-            extractor.setNeo4JAdaptor(dba);
+            extractor.setPersistenceAdaptor(dba);
             extractor.extract("resources");
         } 
         catch (Exception e) {

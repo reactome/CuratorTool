@@ -16,7 +16,6 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 
@@ -97,7 +96,7 @@ public abstract class AbstractAttributeAutoFiller implements AttributeAutoFiller
         if (refDb == null) {
             if (adaptor instanceof XMLFileAdaptor) {
                 // Try to get it from the database
-                Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComponent);
+                PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(parentComponent);
                 if (dba != null) {
                     list = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceDatabase,
                                                         ReactomeJavaConstants._displayName,

@@ -179,7 +179,7 @@ public class HierarchicalEventPane extends JPanel {
 	
 	/**
 	 * This method is called for FileAdaptor usually. The toplevel events will be extracted out
-	 * from the list of events. For Neo4JAdaptor, it is not needed since they can be queried directly
+	 * from the list of events. For Neo4JAdaptor or MySQLAdaptor, it is not needed since they can be queried directly
 	 * from the database.
 	 * @param events List of events from which to extract top-level events
 	 */

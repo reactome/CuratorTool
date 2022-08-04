@@ -5,14 +5,12 @@
 package org.gk.scripts;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
@@ -29,8 +27,8 @@ import org.neo4j.driver.Transaction;
  */
 @SuppressWarnings("unchecked")
 public class DatabaseFixViaCopy {
-    private Neo4JAdaptor targetDBA;
-    private Neo4JAdaptor sourceDBA;
+    private PersistenceAdaptor targetDBA;
+    private PersistenceAdaptor sourceDBA;
     // Keep only one copy of InstanceEdit for modification
     private GKInstance instanceEdit;
     
@@ -53,28 +51,50 @@ public class DatabaseFixViaCopy {
     @Test
     public void fix() throws Exception {
         List<GKInstance> instances = loadTouchedInstances();
-        Neo4JAdaptor targetDBA = getTargetDBA();
-        Neo4JAdaptor sourceDBA = getSourceDBA();
+        PersistenceAdaptor targetDBA = getTargetDBA();
+        PersistenceAdaptor sourceDBA = getSourceDBA();
         int count = 0;
         System.out.println("Total instances to be fixed: " + instances.size());
         System.out.println("Perform fix...");
-        Driver driver = targetDBA.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (GKInstance targetInst : instances) {
-                GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
-                targetDBA.loadInstanceAttributeValues(targetInst);
-                sourceDBA.loadInstanceAttributeValues(sourceInst);
-                fix(targetInst, sourceInst);
-                targetDBA.updateInstance(targetInst, tx);
-                count ++;
+        if (targetDBA instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) targetDBA).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (GKInstance targetInst : instances) {
+                    GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
+                    ((Neo4JAdaptor) targetDBA).loadInstanceAttributeValues(targetInst);
+                    ((Neo4JAdaptor) sourceDBA).loadInstanceAttributeValues(sourceInst);
+                    fix(targetInst, sourceInst);
+                    ((Neo4JAdaptor) targetDBA).updateInstance(targetInst, tx);
+                    count++;
 //                if (count == 10)
 //                    break;
+                }
+                tx.commit();
+            } catch (Exception e) {
+                throw e;
             }
-            tx.commit();
-        }
-        catch(Exception e) {
-            throw e;
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) targetDBA).startTransaction();
+                for (GKInstance targetInst : instances) {
+                    GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
+                    ((MySQLAdaptor) targetDBA).fastLoadInstanceAttributeValues(targetInst);
+                    ((MySQLAdaptor) sourceDBA).fastLoadInstanceAttributeValues(sourceInst);
+                    fix(targetInst, sourceInst);
+                    ((MySQLAdaptor) targetDBA).updateInstance(targetInst);
+                    count ++;
+//                if (count == 10)
+//                    break;
+                }
+                ((MySQLAdaptor) targetDBA).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) targetDBA).rollback();
+                throw e;
+            }
         }
     }
     
@@ -113,7 +133,7 @@ public class DatabaseFixViaCopy {
             throw new IllegalStateException(targetInst + " has value in " + att.getName());
         }
         if (att.isInstanceTypeAttribute()) {
-            Neo4JAdaptor targetDBA = getTargetDBA();
+            PersistenceAdaptor targetDBA = getTargetDBA();
             for (Object obj : srcValues) {
                 GKInstance srcValue = (GKInstance) obj;
                 GKInstance targetValue = targetDBA.fetchInstance(srcValue.getDBID());
@@ -147,13 +167,13 @@ public class DatabaseFixViaCopy {
     @Test
     public void compare() throws Exception {
         List<GKInstance> instances = loadTouchedInstances();
-        Neo4JAdaptor targetDBA = getTargetDBA();
-        Neo4JAdaptor sourceDBA = getSourceDBA();
+        PersistenceAdaptor targetDBA = getTargetDBA();
+        PersistenceAdaptor sourceDBA = getSourceDBA();
         int count = 0;
         for (GKInstance targetInst : instances) {
             GKInstance sourceInst = sourceDBA.fetchInstance(targetInst.getDBID());
-            targetDBA.loadInstanceAttributeValues(targetInst);
-            sourceDBA.loadInstanceAttributeValues(sourceInst);
+            targetDBA.loadInstanceAttributeValues(Collections.singleton(targetInst));
+            sourceDBA.loadInstanceAttributeValues(Collections.singleton(sourceInst));
             compare(targetInst, sourceInst);
             count ++;
             if (count == 100)
@@ -176,7 +196,7 @@ public class DatabaseFixViaCopy {
     private List<GKInstance> loadTouchedInstances() throws Exception {
         List<Long> dbIds = loadTouchedInstancesIds();
         System.out.println("Total DB_IDs for touched instances: " + dbIds.size());
-        Neo4JAdaptor targetDBA = getTargetDBA();
+        PersistenceAdaptor targetDBA = getTargetDBA();
         List<GKInstance> instances = new ArrayList<>();
         Set<Long> dbIdsSet = new HashSet<Long>(dbIds);
         Collection<GKInstance> events = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.Event);
@@ -202,7 +222,7 @@ public class DatabaseFixViaCopy {
     @Test
     public void check() throws Exception {
         List<GKInstance> instances = loadTouchedInstances();
-        Neo4JAdaptor targetDBA = getTargetDBA();
+        PersistenceAdaptor targetDBA = getTargetDBA();
         targetDBA.loadInstanceAttributeValues(instances, new String[] {
                 ReactomeJavaConstants.edited,
                 ReactomeJavaConstants.modified
@@ -230,9 +250,9 @@ public class DatabaseFixViaCopy {
         return dbIds;
     }
     
-    private Neo4JAdaptor getTargetDBA() throws Exception {
+    private PersistenceAdaptor getTargetDBA() throws Exception {
         if (targetDBA == null) {
-            targetDBA = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+            targetDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                          "gk_central",
                                          "{}",
                                          "{}");
@@ -240,9 +260,9 @@ public class DatabaseFixViaCopy {
         return targetDBA;
     }
     
-    private Neo4JAdaptor getSourceDBA() throws Exception {
+    private PersistenceAdaptor getSourceDBA() throws Exception {
         if (sourceDBA == null) {
-            sourceDBA = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+            sourceDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                          "test_gk_central_before_releasedate",
                                          "{}",
                                          "{}");

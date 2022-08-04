@@ -29,12 +29,9 @@ import org.gk.gkEditor.AuthorToolActionCollection;
 import org.gk.gkEditor.CoordinateSerializer;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.GKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.PersistenceManager;
-import org.gk.persistence.Project;
-import org.gk.persistence.XMLFileAdaptor;
+import org.gk.persistence.*;
 import org.gk.render.HyperEdge;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
@@ -49,7 +46,7 @@ import org.junit.Test;
  *
  */
 public class PathwayDiagramGeneratorViaAT {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
     private Long defaultPersonId;
     private static Logger logger = Logger.getLogger(PathwayDiagramGeneratorViaAT.class);
     
@@ -60,9 +57,9 @@ public class PathwayDiagramGeneratorViaAT {
         this.defaultPersonId = id;
     }
     
-    public Neo4JAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA() throws Exception {
         if (dba == null) {
-            dba = new Neo4JAdaptor("localhost",
+            dba = new MySQLAdaptor("localhost",
                                    "pathway_diagram_072908_2", //"reactome_25_pathway_diagram",
                                    "root",
                                    "macmysql01",
@@ -71,7 +68,7 @@ public class PathwayDiagramGeneratorViaAT {
         return dba;
     }
     
-    public void setNeo4JAdaptor(Neo4JAdaptor dba) {
+    public void setPersistenceAdaptor(PersistenceAdaptor dba) {
         this.dba = dba;
     }
     
@@ -225,7 +222,7 @@ public class PathwayDiagramGeneratorViaAT {
     	editor.setScale(1.0d, 1.0d);
         Dimension size = editor.getPreferredSize();
         // Initialize some requirements
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(getDBA());
+        PersistenceManager.getManager().setActivePersistenceAdaptor(getDBA());
         // Reset the XMLFileAdaptor in case to overwrite the instances for other pathways
         XMLFileAdaptor fileAdpator = PersistenceManager.getManager().getActiveFileAdaptor();
         if (fileAdpator == null) {
@@ -357,8 +354,8 @@ public class PathwayDiagramGeneratorViaAT {
     }
 
     private GKInstance getTestPathway() throws Exception {
-        Neo4JAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;
         GKInstance pathway = dba.fetchInstance(dbId);
@@ -366,7 +363,7 @@ public class PathwayDiagramGeneratorViaAT {
     }
 
     public void exportIntoATProjectViaKnownCoordinates(GKInstance pathway) throws Exception {
-        Neo4JAdaptor dba = (Neo4JAdaptor) pathway.getDbAdaptor();
+        MySQLAdaptor dba = (MySQLAdaptor) pathway.getDbAdaptor();
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=", 
@@ -453,7 +450,7 @@ public class PathwayDiagramGeneratorViaAT {
     }
     
     private Map<Long, GKInstance> loadVertex(GKInstance pathwayDiagram,
-                                             Neo4JAdaptor dba) throws Exception {
+                                             MySQLAdaptor dba) throws Exception {
         // This is used to test human apoptosis
         // Need to get vertex
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Vertex, 
@@ -474,8 +471,8 @@ public class PathwayDiagramGeneratorViaAT {
     }
     
     public void regenerateDiagram (GKInstance pathway) throws Exception {
-        Neo4JAdaptor dba = getDBA();
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceAdaptor dba = getDBA();
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                                              ReactomeJavaConstants.representedPathway,
                                                              "=", 

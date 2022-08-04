@@ -16,8 +16,9 @@ import javax.swing.JFileChooser;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.FileUtilities;
 import org.gk.util.StringUtils;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public class ReactionToGeneNamesDumper {
         Set<String> proteins = getGenes();
         System.out.println("Total proteins: " + proteins.size());
         
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "test_slice_59",
                                             "root", 
                                             "macmysql01");
@@ -95,7 +96,7 @@ public class ReactionToGeneNamesDumper {
     @SuppressWarnings("unchecked")
     @Test
     public void dump() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_current_ver41",
                                             "root", 
                                             "macmysql01");

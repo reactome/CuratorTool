@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 
 /**
@@ -50,11 +52,19 @@ public class FindEmptyEvents {
 				}
 			}
 			
-			Neo4JAdaptor targetAdaptor;
-			if (port == 0) {
-				targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password);
+			PersistenceAdaptor targetAdaptor;
+			if (dbName.equals("graph.db")) {
+				if (port == 0) {
+					targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password);
+				} else {
+					targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password, port);
+				}
 			} else {
-				targetAdaptor = new Neo4JAdaptor(hostname, dbName, username, password, port);
+				if (port == 0) {
+					targetAdaptor = new MySQLAdaptor(hostname, dbName, username, password);
+				} else {
+					targetAdaptor = new MySQLAdaptor(hostname, dbName, username, password, port);
+				}
 			}
 			
 			GKInstance speciesInstance = null;

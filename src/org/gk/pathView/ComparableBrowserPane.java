@@ -16,7 +16,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionListener;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 
 /**
  * A customized JPanel that can be used to compare events from two reactome
@@ -69,7 +69,7 @@ public class ComparableBrowserPane extends JPanel {
 				newPane.highliteNodes(selection);
 				// Have to fetch the corresponding reactions
 				java.util.List oldInstances = new ArrayList(selection.size());
-				Neo4JAdaptor oldDBA = oldPane.getNeo4JAdaptor();
+				PersistenceAdaptor oldDBA = oldPane.getPersistenceAdaptor();
 				for (Iterator it = selection.iterator(); it.hasNext();) {
 					GKInstance instance = (GKInstance) it.next();
 					try {
@@ -89,14 +89,14 @@ public class ComparableBrowserPane extends JPanel {
 	}
 	
 	/**
-	 * Set Neo4JAdaptors that connect to the reactome databases.
+	 * Set PersistenceAdaptors that connect to the reactome databases.
 	 * @param oldAdaptor connects to the old database.
 	 * @param newAdaptor connects to the new database.
 	 */
-	public void setNeo4JAdaptors(Neo4JAdaptor oldAdaptor, Neo4JAdaptor newAdaptor) {
-		oldPane.setNeo4JAdaptor(oldAdaptor);
-		newPane.setNeo4JAdaptor(newAdaptor);
-		comparisonPane.setNeo4JAdaptors(oldAdaptor, newAdaptor);
+	public void setPersistenceAdaptors(PersistenceAdaptor oldAdaptor, PersistenceAdaptor newAdaptor) {
+		oldPane.setPersistenceAdaptor(oldAdaptor);
+		newPane.setPersistenceAdaptor(newAdaptor);
+		comparisonPane.setPersistenceAdaptors(oldAdaptor, newAdaptor);
 	}
 	
 	public void select(Collection selection) {
@@ -105,8 +105,8 @@ public class ComparableBrowserPane extends JPanel {
 		// Have to convert GKInstances since dba is refreshed
 		java.util.List newList = new ArrayList(selection.size());
 		java.util.List oldList = new ArrayList(selection.size());
-		Neo4JAdaptor newDBA = newPane.getNeo4JAdaptor();
-		Neo4JAdaptor oldDBA = oldPane.getNeo4JAdaptor();
+		PersistenceAdaptor newDBA = newPane.getPersistenceAdaptor();
+		PersistenceAdaptor oldDBA = oldPane.getPersistenceAdaptor();
 		GKInstance instance = null;
 		GKInstance newCopy = null;
 		GKInstance oldCopy = null;

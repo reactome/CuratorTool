@@ -14,7 +14,9 @@ import java.util.Set;
 
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -173,13 +175,13 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
      * @throws Exception
      */
     private void commitChanges(Long personId,
-                               Neo4JAdaptor dba) throws Exception {
+                               PersistenceAdaptor dba) throws Exception {
         if (changedInstances == null || changedInstances.size() == 0)
             return; // Nothing to be changed.
         // Prepare a local environment
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);
-        PersistenceManager.getManager().setActiveNeo4JAdaptor(dba);
+        PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
         ieHelper.setDefaultPerson(personId);
         GKInstance ie = ieHelper.getDefaultInstanceEdit(null);
@@ -190,17 +192,37 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
         // An InstanceEdit has been cloned in the following call
         ie = ieHelper.attachDefaultIEToDBInstances(changedInstances, ie);
         // First commit ie
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            dba.storeInstance(ie, tx);
-            for (GKInstance inst : changedInstances) {
-                // Update the compartment value
-                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.compartment, tx);
-                // Update IEs
-                dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                dba.storeInstance(ie, tx);
+                for (GKInstance inst : changedInstances) {
+                    // Update the compartment value
+                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.compartment, tx);
+                    // Update IEs
+                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                dba.storeInstance(ie, null);
+                for (GKInstance inst : changedInstances) {
+                    // Update the compartment value
+                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.compartment, null);
+                    // Update IEs
+                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, null);
+                }
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e; // Re-thrown exception
+            }
         }
     }
 
@@ -221,7 +243,7 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
         //            System.exit(1);
         //        }
         //        try {
-        //            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
+        //            MySQLAdaptor dba = new MySQLAdaptor(args[0],
         //                                                args[1],
         //                                                args[2],
         //                                                args[3]);
@@ -257,11 +279,11 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
 
     @Test
     public void testCheckReactions() throws Exception {
-//        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
 //                                            "gk_central_110410",
 //                                            "root",
 //                                            "macmysql01");
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                 "graph.db",
                 "neo4j",
                 "reactome");
@@ -319,11 +341,11 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
 
     @Test
     public void fixModifiedSlotForReactions() throws Exception {
-        Neo4JAdaptor targetDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor targetDBA = new MySQLAdaptor("localhost",
                 "gk_central",
                 "wgm",
                 "zhe10jiang23");
-        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor sourceDBA = new MySQLAdaptor("localhost",
                 "test_gk_central_111910_before_fix",
                 "wgm",
                 "zhe10jiang23");
@@ -356,13 +378,29 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
             changed.add(inst);
         }
         System.out.println("Total changed instances to be stored into db: " + changed.size());
-        Driver driver = targetDBA.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (GKInstance inst : changed) {
-                targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+        if (targetDBA instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) targetDBA).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (GKInstance inst : changed) {
+                    targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) targetDBA).startTransaction();
+                for (GKInstance inst : changed) {
+                    targetDBA.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, null);
+                }
+                ((MySQLAdaptor) targetDBA).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) targetDBA).rollback();
+                throw e;
+            }
         }
     }
 }

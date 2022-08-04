@@ -34,11 +34,7 @@ import org.gk.database.InstanceSelectDialog;
 import org.gk.database.NewInstanceDialog;
 import org.gk.database.SynchronizationManager;
 import org.gk.elv.InstanceCloneHelper;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.*;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -663,8 +659,9 @@ public class EntitySetDeepCloneDialog extends NewInstanceDialog {
     }
     
     private boolean downloadShellInstance(GKInstance shellInstance) {
-        // Get the Neo4JAdaptor
-        Neo4JAdaptor adaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(getOwner());
+        try {
+        // Get the PersistenceAdaptor
+        PersistenceAdaptor adaptor = PersistenceManager.getManager().getActivePersistenceAdaptor(getOwner());
         if (adaptor == null) {
             JOptionPane.showMessageDialog(getOwner(),
                                           "Cannot connect to the database",
@@ -672,7 +669,7 @@ public class EntitySetDeepCloneDialog extends NewInstanceDialog {
                                           JOptionPane.ERROR_MESSAGE);
             return false;
         }
-        try {
+
             GKInstance dbInstance = adaptor.fetchInstance(shellInstance.getSchemClass().getName(),
                                                           shellInstance.getDBID());
             if (dbInstance == null) {

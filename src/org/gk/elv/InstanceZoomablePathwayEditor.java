@@ -51,11 +51,7 @@ import org.gk.graphEditor.GraphEditorActionListener;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.graphEditor.Selectable;
 import org.gk.graphEditor.SelectionMediator;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.*;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.qualityCheck.DiagramNodeAttachmentCheck;
@@ -976,10 +972,10 @@ public class InstanceZoomablePathwayEditor extends ZoomablePathwayEditor impleme
         if (approve != JOptionPane.OK_OPTION)
             return false;
         PersistenceManager manager = PersistenceManager.getManager();
-        Neo4JAdaptor dba = manager.getActiveNeo4JAdaptor(pathwayEditor);
-        if (dba == null)
-            return false;
         try {
+            PersistenceAdaptor dba = manager.getActivePersistenceAdaptor(pathwayEditor);
+            if (dba == null)
+                return false;
             Collection<GKInstance> psiMods = fileAdaptor.fetchInstancesByClass(ReactomeJavaConstants.PsiMod);
             for (GKInstance psiMod : psiMods) {
                 Long dbId = psiMod.getDBID();

@@ -17,7 +17,9 @@ import org.gk.database.AttributeEditConfig;
 import org.gk.database.DefaultInstanceEditHelper;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.GKApplicationUtilities;
 import org.neo4j.driver.Driver;
@@ -33,7 +35,7 @@ import org.w3c.dom.Document;
 public class ScriptUtilities {
     public static final Long GUANMING_WU_DB_ID = 140537L; // For Guanming Wu at CSHL
     
-    public static GKInstance getHomoSapiens(Neo4JAdaptor dba) throws Exception {
+    public static GKInstance getHomoSapiens(PersistenceAdaptor dba) throws Exception {
         Long dbId = 48887L;
         GKInstance inst = dba.fetchInstance(dbId);
         return inst;
@@ -62,26 +64,53 @@ public class ScriptUtilities {
      * @throws SQLException
      * @throws Exception
      */
-    public static void updateInstanceNames(Neo4JAdaptor dba, List<GKInstance> toBeUpdated) throws Exception {
+    public static void updateInstanceNames(PersistenceAdaptor dba, List<GKInstance> toBeUpdated) throws Exception {
         // Update instances to the database
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance newIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
-            int count = 0;
-            for (GKInstance instance : toBeUpdated) {
-                System.out.println(count + ": " + instance);
-                // Have to call this first to get the list
-                instance.getAttributeValue(ReactomeJavaConstants.modified);
-                instance.addAttributeValue(ReactomeJavaConstants.modified, newIE);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.modified, tx);
-                if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.name))
-                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.name, tx);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
-                count ++;
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance newIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
+                int count = 0;
+                for (GKInstance instance : toBeUpdated) {
+                    System.out.println(count + ": " + instance);
+                    // Have to call this first to get the list
+                    instance.getAttributeValue(ReactomeJavaConstants.modified);
+                    instance.addAttributeValue(ReactomeJavaConstants.modified, newIE);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.modified, tx);
+                    if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.name))
+                        dba.updateInstanceAttribute(instance, ReactomeJavaConstants.name, tx);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
+                    count++;
+                }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance newIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, null);
+                int count = 0;
+                for (GKInstance instance : toBeUpdated) {
+                    System.out.println(count + ": " + instance);
+                    // Have to call this first to get the list
+                    instance.getAttributeValue(ReactomeJavaConstants.modified);
+                    instance.addAttributeValue(ReactomeJavaConstants.modified, newIE);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.modified, null);
+                    if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.name))
+                        dba.updateInstanceAttribute(instance, ReactomeJavaConstants.name, null);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, null);
+                    count ++;
+                }
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
     
@@ -92,7 +121,7 @@ public class ScriptUtilities {
     
     public static void addIEToModified(GKInstance inst,
                                        GKInstance ie,
-                                       Neo4JAdaptor dba,
+                                       PersistenceAdaptor dba,
                                        Transaction tx) throws Exception {
         inst.getAttributeValuesList(ReactomeJavaConstants.modified);
         inst.addAttributeValue(ReactomeJavaConstants.modified, 
@@ -101,7 +130,7 @@ public class ScriptUtilities {
                                     ReactomeJavaConstants.modified, tx);
     }
     
-    public static GKInstance createDefaultIE(Neo4JAdaptor dba,
+    public static GKInstance createDefaultIE(PersistenceAdaptor dba,
                                              Long defaultPersonId,
                                              boolean needStore,
                                              Transaction tx) throws Exception {

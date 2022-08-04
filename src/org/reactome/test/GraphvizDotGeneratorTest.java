@@ -21,11 +21,12 @@ import junit.framework.TestCase;
 
 import org.gk.gkCurator.GraphvizDotGenerator;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 
 public class GraphvizDotGeneratorTest extends TestCase {
-    private Neo4JAdaptor dba = null;
+    private PersistenceAdaptor dba = null;
     private String dirName = "/Users/guanming/Documents/tmp/svgexporter/";
     
     public GraphvizDotGeneratorTest() {   
@@ -33,7 +34,7 @@ public class GraphvizDotGeneratorTest extends TestCase {
     
     protected void setUp() throws Exception {
         super.setUp();
-        dba = new Neo4JAdaptor("localhost",
+        dba = new MySQLAdaptor("localhost",
                                "gk_current_ver22",
                                "root",
                                "macmysql01",

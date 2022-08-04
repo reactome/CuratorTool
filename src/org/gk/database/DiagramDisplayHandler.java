@@ -36,6 +36,7 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.pathwaylayout.DiseasePathwayImageEditor;
 import org.gk.pathwaylayout.DiseasePathwayImageEditorViaEFS;
 import org.gk.persistence.DiagramGKBReader;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
@@ -258,7 +259,7 @@ public class DiagramDisplayHandler {
             GKInstance inst = dbAdaptor.fetchInstance(r.getReactomeId());
             if (inst == null)
                 return;
-            FrameManager.getManager().showInstance(inst, !(dbAdaptor instanceof Neo4JAdaptor));
+            FrameManager.getManager().showInstance(inst, !(dbAdaptor instanceof Neo4JAdaptor || dbAdaptor instanceof MySQLAdaptor));
         }
         catch(Exception e1) {
             // Don't popup any dialog. Just silently printout exception

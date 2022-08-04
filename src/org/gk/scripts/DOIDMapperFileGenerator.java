@@ -3,8 +3,9 @@ package org.gk.scripts;
 import java.util.Collection;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ public class DOIDMapperFileGenerator {
     
     @Test
     public void generateFile() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                 "test_slice_64",
                 "root",
                 "macmysql01");

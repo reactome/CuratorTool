@@ -10,10 +10,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.*;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
@@ -31,24 +29,25 @@ import org.neo4j.driver.Transaction;
  * 2). Figure out the possible values for normalEntity when a normalReaction is filled in
  * 3). For convenience, the main() method in the class also call split of Drug into three subclasses:
  * ProteinDrug, ChemicalDrug, and RNADrug.
- * @author wug
  *
+ * @author wug
  */
 @SuppressWarnings("unchecked")
 public class EntityFunctionalStatusUpdate {
     private FileUtilities fu;
     private final String fileName = "EntityFunctionalStatusUpdate_Output.txt";
-    
+
     public EntityFunctionalStatusUpdate() {
     }
-    
+
     /**
      * Perform the actual update in this method as described in the description for the
      * class.
+     *
      * @param dba
      * @throws Exception
      */
-    public void update(Neo4JAdaptor dba) throws Exception {
+    public void update(PersistenceAdaptor dba) throws Exception {
         fu = new FileUtilities();
         fu.setOutput(fileName);
         fu.printLine("SchemaClass\tDB_ID\tDisplayName\tLastAuthor\tActionOrIssue");
@@ -60,56 +59,95 @@ public class EntityFunctionalStatusUpdate {
         Set<GKInstance> caUpdatedRLEs = new HashSet<>();
         Set<GKInstance> regulationUpdatedRLEs = new HashSet<>();
         fixDiseaseEntityNotInRLE(efs,
-                                 newInstances,
-                                 caUpdatedRLEs,
-                                 regulationUpdatedRLEs);
-        commit(efs, 
-               newInstances,
-               caUpdatedRLEs,
-               regulationUpdatedRLEs,
-               dba);
+                newInstances,
+                caUpdatedRLEs,
+                regulationUpdatedRLEs);
+        commit(efs,
+                newInstances,
+                caUpdatedRLEs,
+                regulationUpdatedRLEs,
+                dba);
         fu.close();
     }
-    
-    private void commit(Collection<GKInstance> efs, 
+
+    private void commit(Collection<GKInstance> efs,
                         Set<GKInstance> newInstances,
                         Set<GKInstance> caUpdatedRLEs,
                         Set<GKInstance> regulationUpdatedRLEs,
-                        Neo4JAdaptor dba) throws Exception {
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            GKInstance ie = ScriptUtilities.createDefaultIE(dba, 
-                                                            ScriptUtilities.GUANMING_WU_DB_ID,
-                                                            true, tx);
-            // Need to store all new instances first to get correct created
-            // Make the following two steps so that all new instances can have created.
-            // Otherwise, some of them may not because of the check in storeInstance()
-            for (GKInstance ca : newInstances) {
-                ca.setAttributeValue(ReactomeJavaConstants.created, ie);
+                        PersistenceAdaptor dba) throws Exception {
+        if (dba instanceof Neo4JAdaptor) {
+            // Neo4J
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                GKInstance ie = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, tx);
+                // Need to store all new instances first to get correct created
+                // Make the following two steps so that all new instances can have created.
+                // Otherwise, some of them may not because of the check in storeInstance()
+                for (GKInstance ca : newInstances) {
+                    ca.setAttributeValue(ReactomeJavaConstants.created, ie);
+                }
+                for (GKInstance ca : newInstances) {
+                    dba.storeInstance(ca, tx);
+                }
+                for (GKInstance instance : efs) {
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.diseaseEntity, tx);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.normalEntity, tx);
+                    // Just in case some of _displayName may be changed
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
+                    ScriptUtilities.addIEToModified(instance, ie, dba, tx);
+                }
+                for (GKInstance rle : caUpdatedRLEs) {
+                    dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivity, tx);
+                    ScriptUtilities.addIEToModified(rle, ie, dba, tx);
+                }
+                for (GKInstance rle : regulationUpdatedRLEs) {
+                    dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulatedBy, tx);
+                    ScriptUtilities.addIEToModified(rle, ie, dba, tx);
+                }
+                tx.commit();
             }
-            for (GKInstance ca : newInstances) {
-                dba.storeInstance(ca, tx);
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                GKInstance ie = ScriptUtilities.createDefaultIE(dba,
+                        ScriptUtilities.GUANMING_WU_DB_ID,
+                        true, null);
+                // Need to store all new instances first to get correct created
+                // Make the following two steps so that all new instances can have created.
+                // Otherwise, some of them may not because of the check in storeInstance()
+                for (GKInstance ca : newInstances) {
+                    ca.setAttributeValue(ReactomeJavaConstants.created, ie);
+                }
+                for (GKInstance ca : newInstances) {
+                    dba.storeInstance(ca, null);
+                }
+                for (GKInstance instance : efs) {
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.diseaseEntity, null);
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants.normalEntity, null);
+                    // Just in case some of _displayName may be changed
+                    dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, null);
+                    ScriptUtilities.addIEToModified(instance, ie, dba, null);
+                }
+                for (GKInstance rle : caUpdatedRLEs) {
+                    dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivity, null);
+                    ScriptUtilities.addIEToModified(rle, ie, dba, null);
+                }
+                for (GKInstance rle : regulationUpdatedRLEs) {
+                    dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulatedBy, null);
+                    ScriptUtilities.addIEToModified(rle, ie, dba, null);
+                }
+                ((MySQLAdaptor) dba).commit();
+            } catch (Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
             }
-            for (GKInstance instance : efs) {
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.diseaseEntity, tx);
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants.normalEntity, tx);
-                // Just in case some of _displayName may be changed
-                dba.updateInstanceAttribute(instance, ReactomeJavaConstants._displayName, tx);
-                ScriptUtilities.addIEToModified(instance, ie, dba, tx);
-            }
-            for (GKInstance rle : caUpdatedRLEs) {
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.catalystActivity, tx);
-                ScriptUtilities.addIEToModified(rle, ie, dba, tx);
-            }
-            for (GKInstance rle : regulationUpdatedRLEs) {
-                dba.updateInstanceAttribute(rle, ReactomeJavaConstants.regulatedBy, tx);
-                ScriptUtilities.addIEToModified(rle, ie, dba, tx);
-            }
-            tx.commit();
         }
     }
-    
+
     private void moveToDiseaseEntity(Collection<GKInstance> efs) throws Exception {
         for (GKInstance inst : efs) {
             GKInstance pe = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.physicalEntity);
@@ -120,7 +158,7 @@ public class EntityFunctionalStatusUpdate {
             inst.setAttributeValue(ReactomeJavaConstants.diseaseEntity, pe);
         }
     }
-    
+
     private void fixDiseaseEntityNotInRLE(Collection<GKInstance> efses,
                                           Set<GKInstance> newInstances,
                                           Set<GKInstance> caUpdatedRLEs,
@@ -140,17 +178,17 @@ public class EntityFunctionalStatusUpdate {
                 Set<GKInstance> participants = grepLFSReactionParticipants(diseaseRLE);
                 if (participants.contains(pe))
                     continue;
-                NormalEntityMapResult result = guessNormalEntity(pe, 
-                                                                 normalReaction);
+                NormalEntityMapResult result = guessNormalEntity(pe,
+                        normalReaction);
                 String action = getFixDiseaseEntityAction(result, pe, diseaseRLE, normalReaction);
-                if (!action.startsWith("auto fix:")) 
+                if (!action.startsWith("auto fix:"))
                     continue;
                 if (result.role.equals("catalyst")) {
                     GKInstance diseaseCAS = null;
                     if (action.endsWith("replaced complex")) {
                         diseaseCAS = createComplexDiseaseCA(normalReaction,
-                                                            pe,
-                                                            keyToNewDiseaseComplex);
+                                pe,
+                                keyToNewDiseaseComplex);
                         // Need to replace EFS's PE with the current one
                         if (diseaseCAS != null) {
                             GKInstance diseaseEntity = (GKInstance) diseaseCAS.getAttributeValue(ReactomeJavaConstants.physicalEntity);
@@ -158,23 +196,21 @@ public class EntityFunctionalStatusUpdate {
                             InstanceDisplayNameGenerator.setDisplayName(efs);
                             newInstances.add(diseaseEntity);
                         }
-                    }
-                    else {
+                    } else {
                         diseaseCAS = createDiseaseCA(normalReaction,
-                                                     pe);
+                                pe);
                     }
                     if (diseaseCAS != null) {
                         diseaseRLE.setAttributeValue(ReactomeJavaConstants.catalystActivity, diseaseCAS);
                         caUpdatedRLEs.add(diseaseRLE);
                         newInstances.add(diseaseCAS);
-                        fu.printLine(diseaseRLE.getSchemClass().getName() + "\t" + 
-                                diseaseRLE.getDBID() + "\t" + 
-                                diseaseRLE.getDisplayName() + "\t" + 
-                                getLastAuthor(diseaseRLE).getDisplayName() + "\t" + 
+                        fu.printLine(diseaseRLE.getSchemClass().getName() + "\t" +
+                                diseaseRLE.getDBID() + "\t" +
+                                diseaseRLE.getDisplayName() + "\t" +
+                                getLastAuthor(diseaseRLE).getDisplayName() + "\t" +
                                 action);
                     }
-                }
-                else if (result.role.equals("regulator")) {
+                } else if (result.role.equals("regulator")) {
                     GKInstance diseaseRegulation = createDiseaseRegulation(normalReaction, pe);
                     if (diseaseRegulation != null) {
                         // Just in case there are other values
@@ -182,19 +218,19 @@ public class EntityFunctionalStatusUpdate {
                         diseaseRLE.addAttributeValue(ReactomeJavaConstants.regulatedBy, diseaseRegulation);
                         regulationUpdatedRLEs.add(diseaseRLE);
                         newInstances.add(diseaseRegulation);
-                        fu.printLine(diseaseRLE.getSchemClass().getName() + "\t" + 
-                                diseaseRLE.getDBID() + "\t" + 
-                                diseaseRLE.getDisplayName() + "\t" + 
-                                getLastAuthor(diseaseRLE).getDisplayName() + "\t" + 
+                        fu.printLine(diseaseRLE.getSchemClass().getName() + "\t" +
+                                diseaseRLE.getDBID() + "\t" +
+                                diseaseRLE.getDisplayName() + "\t" +
+                                getLastAuthor(diseaseRLE).getDisplayName() + "\t" +
                                 action);
                     }
                 }
             }
         }
     }
-    
+
     private void fillInNormalEntity(Collection<GKInstance> efses,
-                                    Neo4JAdaptor dba) throws Exception {
+                                    PersistenceAdaptor dba) throws Exception {
         Map<Long, Long> hardcodedMap = getHardcodedMap();
         for (GKInstance efs : efses) {
             GKInstance pe = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.physicalEntity);
@@ -219,13 +255,12 @@ public class EntityFunctionalStatusUpdate {
                     Set<GKInstance> participants = grepLFSReactionParticipants(diseaseRLE);
                     NormalEntityMapResult result = null;
                     if (!participants.contains(pe)) {
-                        result = guessNormalEntity(pe, 
-                                                   normalReaction);
-                    }
-                    else {
-                        result = guessNormalEntity(pe, 
-                                                   diseaseRLE, 
-                                                   normalReaction);
+                        result = guessNormalEntity(pe,
+                                normalReaction);
+                    } else {
+                        result = guessNormalEntity(pe,
+                                diseaseRLE,
+                                normalReaction);
                     }
                     if (result.normalEntity != null) {
                         normalEntitySet.add(result.normalEntity);
@@ -236,20 +271,20 @@ public class EntityFunctionalStatusUpdate {
                 else if (normalEntitySet.size() > 1) {
                     GKInstance ie = getLastAuthor(efs);
                     fu.printLine(efs.getSchemClass().getName() + "\t" +
-                                 efs.getDBID() + "\t" + 
-                                 efs.getDisplayName() + "\t" + 
-                                 ie.getDisplayName() + "\t" +
-                                 "PE can be mapped to more than one normalEntity: " + 
-                                 normalEntitySet.stream().map(e -> e.toString()).collect(Collectors.joining(";")));
+                            efs.getDBID() + "\t" +
+                            efs.getDisplayName() + "\t" +
+                            ie.getDisplayName() + "\t" +
+                            "PE can be mapped to more than one normalEntity: " +
+                            normalEntitySet.stream().map(e -> e.toString()).collect(Collectors.joining(";")));
                 }
             }
             if (normalEntity != null)
                 efs.setAttributeValue(ReactomeJavaConstants.normalEntity, normalEntity);
         }
     }
-    
+
     private Map<Long, Long> getHardcodedMap() {
-        String[] text = new String[] {
+        String[] text = new String[]{
                 "6802617 5672718",
                 "6802642 5672718",
                 "6802633 5672718",
@@ -264,7 +299,7 @@ public class EntityFunctionalStatusUpdate {
         });
         return map;
     }
-    
+
     private GKInstance createDiseaseCA(GKInstance normalRLE,
                                        GKInstance efsPE) throws Exception {
         GKInstance normalCA = (GKInstance) normalRLE.getAttributeValue(ReactomeJavaConstants.catalystActivity);
@@ -272,7 +307,7 @@ public class EntityFunctionalStatusUpdate {
             return null;
         return _createDiseaseCA(efsPE, normalCA);
     }
-    
+
     private GKInstance createComplexDiseaseCA(GKInstance normalRLE,
                                               GKInstance efsPE,
                                               Map<String, GKInstance> keyToNewDiseaseComplex) throws Exception {
@@ -297,8 +332,7 @@ public class EntityFunctionalStatusUpdate {
                 if (builder.length() > 0)
                     builder.append(":");
                 builder.append(efsPE.getAttributeValue(ReactomeJavaConstants.name));
-            }
-            else {
+            } else {
                 diseaseComps.add(normalComp);
                 if (builder.length() > 0)
                     builder.append(":");
@@ -322,14 +356,14 @@ public class EntityFunctionalStatusUpdate {
         // Copy other values now
         Collection<SchemaAttribute> atts = normalCatalyst.getSchemaAttributes();
         Set<String> neededNames = Stream.of(ReactomeJavaConstants.cellType,
-                                            ReactomeJavaConstants.compartment,
-                                            ReactomeJavaConstants.isChimeric,
-                                            ReactomeJavaConstants.inferredFrom,
-                                            ReactomeJavaConstants.includedLocation,
-                                            ReactomeJavaConstants.literatureReference,
-                                            ReactomeJavaConstants.relatedSpecies,
-                                            ReactomeJavaConstants.species
-                                            ).collect(Collectors.toSet());
+                ReactomeJavaConstants.compartment,
+                ReactomeJavaConstants.isChimeric,
+                ReactomeJavaConstants.inferredFrom,
+                ReactomeJavaConstants.includedLocation,
+                ReactomeJavaConstants.literatureReference,
+                ReactomeJavaConstants.relatedSpecies,
+                ReactomeJavaConstants.species
+        ).collect(Collectors.toSet());
         // Copy original values
         for (SchemaAttribute att : atts) {
             String attName = att.getName();
@@ -347,7 +381,7 @@ public class EntityFunctionalStatusUpdate {
         InstanceDisplayNameGenerator.setDisplayName(diseaseComplex);
         return _createDiseaseCA(diseaseComplex, normalCA);
     }
-    
+
     private String createComplexKey(List<GKInstance> diseaseComps,
                                     GKInstance normalComplex) throws Exception {
         StringBuilder builder = new StringBuilder();
@@ -382,7 +416,7 @@ public class EntityFunctionalStatusUpdate {
         InstanceDisplayNameGenerator.setDisplayName(diseaseCA);
         return diseaseCA;
     }
-    
+
     private GKInstance createDiseaseRegulation(GKInstance normalRLE,
                                                GKInstance efsPE) throws Exception {
         GKInstance normalRegulation = (GKInstance) normalRLE.getAttributeValue(ReactomeJavaConstants.regulatedBy);
@@ -393,15 +427,15 @@ public class EntityFunctionalStatusUpdate {
         InstanceDisplayNameGenerator.setDisplayName(diseaseRegulation);
         return diseaseRegulation;
     }
-    
+
     @Test
     public void checkEFSes() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            "test_gk_central_efs_new",
-                                            "root",
-                                            "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "test_gk_central_efs_new",
+                "root",
+                "macmysql01");
         Collection<GKInstance> efses = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityFunctionalStatus);
-        
+
 //        Set<String> lastNames = new HashSet<>();
 //        for (GKInstance efs : efses) {
 //            GKInstance ie = getLastAuthor(efs);
@@ -449,14 +483,14 @@ public class EntityFunctionalStatusUpdate {
                 "physicalEntity_DisplayName\t" +
                 "Last_Author\t" +
                 "diseaseRLE_DB_ID\tdiseaseRLE_DisplayName\t" +
-                "normalRLE_DB_ID\tnormalRLE_DisplayName\t" + 
-                "normalEntity_DB_ID\tnormalEntity_DisplayName\t"  +
+                "normalRLE_DB_ID\tnormalRLE_DisplayName\t" +
+                "normalEntity_DB_ID\tnormalEntity_DisplayName\t" +
                 "basedOn\tRole\tAction");
-        for (GKInstance efs: efses) {
+        for (GKInstance efs : efses) {
             fillDiseaseEntity(efs);
         }
     }
-    
+
     private void fillDiseaseEntity(GKInstance efs) throws Exception {
         GKInstance pe = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.physicalEntity);
         if (pe == null)
@@ -472,26 +506,26 @@ public class EntityFunctionalStatusUpdate {
             Set<GKInstance> participants = grepLFSReactionParticipants(diseaseRLE);
             if (participants.contains(pe))
                 continue;
-            NormalEntityMapResult result = guessNormalEntity(pe, 
-                                                             normalReaction);
+            NormalEntityMapResult result = guessNormalEntity(pe,
+                    normalReaction);
             String action = getFixDiseaseEntityAction(result, pe, diseaseRLE, normalReaction);
             System.out.println(efs.getDBID() + "\t" +
-                               efs.getDisplayName() + "\t" +
-                               pe.getDBID() + "\t" + 
-                               pe.getDisplayName() + "\t" + 
-                               ie.getDisplayName() + "\t" + 
-                               diseaseRLE.getDBID() + "\t" + 
-                               diseaseRLE.getDisplayName() + "\t" + 
-                               (normalReaction == null ? "" : normalReaction.getDBID()) + "\t" + 
-                               (normalReaction == null ? "" : normalReaction.getDisplayName()) + "\t" + 
-                               ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDBID()) + "\t" + 
-                               ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDisplayName()) + "\t" + 
-                               ((result == null || result.reason == null) ? "" : result.reason) + "\t" + 
-                               ((result == null || result.role == null) ? "" : result.role) + "\t" +
-                               action);
+                    efs.getDisplayName() + "\t" +
+                    pe.getDBID() + "\t" +
+                    pe.getDisplayName() + "\t" +
+                    ie.getDisplayName() + "\t" +
+                    diseaseRLE.getDBID() + "\t" +
+                    diseaseRLE.getDisplayName() + "\t" +
+                    (normalReaction == null ? "" : normalReaction.getDBID()) + "\t" +
+                    (normalReaction == null ? "" : normalReaction.getDisplayName()) + "\t" +
+                    ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDBID()) + "\t" +
+                    ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDisplayName()) + "\t" +
+                    ((result == null || result.reason == null) ? "" : result.reason) + "\t" +
+                    ((result == null || result.role == null) ? "" : result.role) + "\t" +
+                    action);
         }
     }
-    
+
     private String getFixDiseaseEntityAction(NormalEntityMapResult result,
                                              GKInstance efsPE,
                                              GKInstance diseaseRLE,
@@ -545,7 +579,7 @@ public class EntityFunctionalStatusUpdate {
         }
         return "manual fix: unknown";
     }
-    
+
     private GKInstance getLastAuthor(GKInstance efs) throws Exception {
         List<GKInstance> ies = efs.getAttributeValuesList(ReactomeJavaConstants.modified);
         for (int i = ies.size() - 1; i <= 0; i--) {
@@ -559,25 +593,25 @@ public class EntityFunctionalStatusUpdate {
         GKInstance created = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.created);
         return created;
     }
-    
+
     private void checkEFS(GKInstance efs) throws Exception {
         GKInstance pe = (GKInstance) efs.getAttributeValue(ReactomeJavaConstants.physicalEntity);
         GKInstance ie = getLastAuthor(efs);
         if (pe == null) { // Cannot do anything in this case
-            System.out.println(efs.getDBID() + "\t" + 
-                    efs.getDisplayName() + "\t" + 
-                    "\t" + 
-                    "\t" + 
+            System.out.println(efs.getDBID() + "\t" +
+                    efs.getDisplayName() + "\t" +
+                    "\t" +
+                    "\t" +
                     "No physicalEntity in EFS\t" + ie.getDisplayName());
             return;
         }
         Collection<GKInstance> rles = efs.getReferers(ReactomeJavaConstants.entityFunctionalStatus);
         if (rles == null || rles.size() == 0) {
-            System.out.println(efs.getDBID() + "\t" + 
-                               efs.getDisplayName() + "\t" + 
-                               pe.getDBID() + "\t" + 
-                               pe.getDisplayName() + "\t" + 
-                               "Not used\t" + ie.getDisplayName());
+            System.out.println(efs.getDBID() + "\t" +
+                    efs.getDisplayName() + "\t" +
+                    pe.getDBID() + "\t" +
+                    pe.getDisplayName() + "\t" +
+                    "Not used\t" + ie.getDisplayName());
             return;
         }
         StringBuilder issues = new StringBuilder();
@@ -589,39 +623,39 @@ public class EntityFunctionalStatusUpdate {
             NormalEntityMapResult result = null;
             if (!participants.contains(pe)) {
                 issues.append("physicalEntity not a diseaseRLE's participant");
-                result = guessNormalEntity(pe, 
-                                           normalReaction);
-            }
-            else {
+                result = guessNormalEntity(pe,
+                        normalReaction);
+            } else {
                 diseaseEntity = pe;
-                result = guessNormalEntity(diseaseEntity, 
-                                           diseaseRLE, 
-                                           normalReaction);
+                result = guessNormalEntity(diseaseEntity,
+                        diseaseRLE,
+                        normalReaction);
             }
             System.out.println(efs.getDBID() + "\t" +
-                               efs.getDisplayName() + "\t" +
-                               pe.getDBID() + "\t" + 
-                               pe.getDisplayName() + "\t" + 
-                               issues.toString() + "\t" + 
-                               ie.getDisplayName() + "\t" + 
-                               diseaseRLE.getDBID() + "\t" + 
-                               diseaseRLE.getDisplayName() + "\t" + 
-                               (diseaseEntity == null ? "" : diseaseEntity.getDBID()) + "\t" + 
-                               (diseaseEntity == null ? "" : diseaseEntity.getDisplayName()) + "\t" +
-                               (normalReaction == null ? "" : normalReaction.getDBID()) + "\t" + 
-                               (normalReaction == null ? "" : normalReaction.getDisplayName()) + "\t" + 
-                               ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDBID()) + "\t" + 
-                               ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDisplayName()) + "\t" + 
-                               ((result == null || result.reason == null) ? "" : result.reason) + "\t" + 
-                               ((result == null || result.role == null) ? "" : result.role));
+                    efs.getDisplayName() + "\t" +
+                    pe.getDBID() + "\t" +
+                    pe.getDisplayName() + "\t" +
+                    issues.toString() + "\t" +
+                    ie.getDisplayName() + "\t" +
+                    diseaseRLE.getDBID() + "\t" +
+                    diseaseRLE.getDisplayName() + "\t" +
+                    (diseaseEntity == null ? "" : diseaseEntity.getDBID()) + "\t" +
+                    (diseaseEntity == null ? "" : diseaseEntity.getDisplayName()) + "\t" +
+                    (normalReaction == null ? "" : normalReaction.getDBID()) + "\t" +
+                    (normalReaction == null ? "" : normalReaction.getDisplayName()) + "\t" +
+                    ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDBID()) + "\t" +
+                    ((result == null || result.normalEntity == null) ? "" : result.normalEntity.getDisplayName()) + "\t" +
+                    ((result == null || result.reason == null) ? "" : result.reason) + "\t" +
+                    ((result == null || result.role == null) ? "" : result.role));
             issues.setLength(0);
         }
     }
-    
+
     /**
      * This method works for dieaseEntity is a participant of the passed diseaseRLE. The guess
      * is based on the role of diseaseEntity in the dieaseRLE and then based on ReferenceEntity.
      * Only exactly match is performed. Otherwise, a manual mapping is needed.
+     *
      * @param diseaseEntity
      * @param diseaseRLE
      * @param normalRLE
@@ -641,31 +675,32 @@ public class EntityFunctionalStatusUpdate {
         }
         // Try CAS first since this is the most common case
         checkCAS(diseaseEntity,
-                 diseaseRLE,
-                 normalRLE, 
-                 diseaseEntityRefEnts,
-                 result);
+                diseaseRLE,
+                normalRLE,
+                diseaseEntityRefEnts,
+                result);
         if (result.normalEntity != null)
             return result; // Found the normalEntity from cas
         // Try Regulators
         checkRegulations(diseaseEntity,
-                         diseaseRLE,
-                         normalRLE,
-                         diseaseEntityRefEnts,
-                         result);
+                diseaseRLE,
+                normalRLE,
+                diseaseEntityRefEnts,
+                result);
         if (result.normalEntity != null)
             return result;
         // Try Inputs
         checkInputs(diseaseEntity,
-                    diseaseRLE,
-                    normalRLE,
-                    diseaseEntityRefEnts, 
-                    result);
+                diseaseRLE,
+                normalRLE,
+                diseaseEntityRefEnts,
+                result);
         return result;
     }
-    
+
     /**
      * We will remove ReferenceIsoform in our mapping.
+     *
      * @param refEnts
      * @return
      * @throws Exception
@@ -678,19 +713,18 @@ public class EntityFunctionalStatusUpdate {
                 if (parent == null)
                     throw new IllegalStateException(ref + " doesn't have a parent!");
                 rtn.add(parent);
-            }
-            else
+            } else
                 rtn.add(ref);
         }
         return rtn;
     }
-    
+
     private Set<GKInstance> grepReferenceEntitiesForPE(GKInstance pe) throws Exception {
         Set<GKInstance> refs = InstanceUtilities.grepReferenceEntitiesForPE(pe);
         refs = normalizeReferenceEntities(refs);
         return refs;
     }
-    
+
     private void checkInputs(GKInstance diseaseEntity,
                              GKInstance diseaseRLE,
                              GKInstance normalRLE,
@@ -702,13 +736,14 @@ public class EntityFunctionalStatusUpdate {
         inputs = normalRLE.getAttributeValuesList(ReactomeJavaConstants.input);
         Set<GKInstance> inputSet = new HashSet<>(inputs);
         guessNormalEntity(inputSet,
-                          diseaseEntityRefEnts, 
-                          "input",
-                          result);
+                diseaseEntityRefEnts,
+                "input",
+                result);
     }
-    
+
     /**
      * When a PE is not a diseaseReaction's participant. Try this method.
+     *
      * @param pe
      * @param normalRLE
      * @throws Exception
@@ -762,7 +797,7 @@ public class EntityFunctionalStatusUpdate {
             return result;
         return result;
     }
-                                   
+
 
     private void guessNormalEntity(Set<GKInstance> normalSet,
                                    Set<GKInstance> diseaseEntityRefEnts,
@@ -789,7 +824,7 @@ public class EntityFunctionalStatusUpdate {
             count = 0;
             for (GKInstance diseaseRef : diseaseEntityRefEnts) {
                 if (inputRefs.contains(diseaseRef)) {
-                    count ++;
+                    count++;
                 }
             }
             if (count > maxCount) {
@@ -837,8 +872,8 @@ public class EntityFunctionalStatusUpdate {
             if (!pe.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
                 continue;
             Set<GKInstance> members = InstanceUtilities.getContainedInstances(pe,
-                                                                              ReactomeJavaConstants.hasMember,
-                                                                              ReactomeJavaConstants.hasCandidate);
+                    ReactomeJavaConstants.hasMember,
+                    ReactomeJavaConstants.hasCandidate);
             for (GKInstance member : members) {
                 Set<GKInstance> inputRefs = grepReferenceEntitiesForPE(member);
                 if (inputRefs.equals(diseaseEntityRefEnts)) {
@@ -851,8 +886,8 @@ public class EntityFunctionalStatusUpdate {
         }
     }
 
-    private void checkRegulations(GKInstance diseaseEntity, 
-                                  GKInstance diseaseRLE, 
+    private void checkRegulations(GKInstance diseaseEntity,
+                                  GKInstance diseaseRLE,
                                   GKInstance normalRLE,
                                   Set<GKInstance> diseaseEntityRefEnts,
                                   NormalEntityMapResult result) throws Exception {
@@ -884,10 +919,10 @@ public class EntityFunctionalStatusUpdate {
         if (!diseaseParticipants.contains(diseaseEntity))
             return;
         Set<GKInstance> normalSet = getCatalysts(normalRLE);
-        guessNormalEntity(normalSet, 
-                          diseaseEntityRefEnts, 
-                          "catalyst", 
-                          result);
+        guessNormalEntity(normalSet,
+                diseaseEntityRefEnts,
+                "catalyst",
+                result);
     }
 
     private Set<GKInstance> getCatalysts(GKInstance diseaseRLE) throws InvalidAttributeException, Exception {
@@ -901,7 +936,7 @@ public class EntityFunctionalStatusUpdate {
         }
         return diseaseParticipants;
     }
-    
+
     private Set<GKInstance> grepLFSReactionParticipants(GKInstance reaction) throws Exception {
         Set<GKInstance> set = new HashSet<GKInstance>();
         List<GKInstance> inputs = reaction.getAttributeValuesList(ReactomeJavaConstants.input);
@@ -910,28 +945,36 @@ public class EntityFunctionalStatusUpdate {
         set.addAll(getRegulators(reaction));
         return set;
     }
-    
+
     public static void main(String[] args) throws Exception {
         // Need database name and user account
-        if (args.length < 4) {
-            System.err.println("java -Xmx8G EntityFunctionalStatusUpdate dbName user pass {drug|efs}");
+        if (args.length < 5) {
+            System.err.println("java -Xmx8G EntityFunctionalStatusUpdate dbName user pass {drug|efs} use_neo4j");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             return;
         }
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            args[0],
-                                            args[1],
-                                            args[2]);
+        PersistenceAdaptor dba = null;
+        boolean useNeo4J = Boolean.parseBoolean(args[4]);
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    args[0],
+                    args[1],
+                    args[2]);
+        else
+            dba = new MySQLAdaptor("localhost",
+                    args[0],
+                    args[1],
+                    args[2]);
         if (args[3].equals("drug")) {
             // Split the drugs into their individual subclasses
             DrugConsolidation drugHandler = new DrugConsolidation();
             drugHandler.split(dba);
-        }
-        else if (args[3].equals("efs")) {
+        } else if (args[3].equals("efs")) {
             EntityFunctionalStatusUpdate updater = new EntityFunctionalStatusUpdate();
             updater.update(dba);
         }
     }
-    
+
     private class NormalEntityMapResult {
         GKInstance normalEntity;
         String role;

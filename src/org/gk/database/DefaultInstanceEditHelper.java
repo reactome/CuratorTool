@@ -19,7 +19,6 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.InvalidAttributeException;
@@ -214,7 +213,7 @@ public class DefaultInstanceEditHelper {
 			if (person == null) {
 				// Try db
 				if (personID.longValue() > -1) {
-					Neo4JAdaptor dbAdaptor = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentWindow);
+					PersistenceAdaptor dbAdaptor = PersistenceManager.getManager().getActivePersistenceAdaptor(parentWindow);
 					person = (GKInstance) dbAdaptor.fetchInstance("Person", personID);
 					if (person != null) {
 						GKInstance localCopy = PersistenceManager.getManager().getLocalReference(person);

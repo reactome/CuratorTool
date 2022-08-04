@@ -28,7 +28,6 @@ import javax.swing.table.TableRowSorter;
 import org.gk.database.AttributeEditConfig;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
@@ -98,7 +97,7 @@ public class ServletBasedQACheck extends AbstractQualityCheck {
             t.start();
         }
 
-    private void displayResults(InputStream is) throws IOException {
+    private void displayResults(InputStream is) throws Exception {
         TabTextTableModel tableModel = new TabTextTableModel();
         tableModel.readContent(is);
         resultTable = new JTable();
@@ -265,9 +264,9 @@ public class ServletBasedQACheck extends AbstractQualityCheck {
         String key = connectInfo[1];
         if (qaUrl == null)
             qaUrl = AttributeEditConfig.getConfig().getPDUrl();
-        // dataSource should be Neo4JAdaptor only
-        String dbName = ((Neo4JAdaptor)dataSource).getDBName();
-        String dbHost = ((Neo4JAdaptor)dataSource).getDBHost();
+        // dataSource should be PersistenceAdaptor only
+        String dbName = dataSource.getDBName();
+        String dbHost = dataSource.getDBHost();
         return qaUrl + "?action=" + actionName + 
                 "&dbHost=" + dbHost + 
                 "&dbName=" + dbName + 

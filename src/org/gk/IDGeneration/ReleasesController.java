@@ -7,8 +7,6 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Properties;
 
 import javax.swing.AbstractAction;
@@ -21,11 +19,10 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
-import org.gk.schema.SchemaClass;
 import org.gk.util.GKApplicationUtilities;
 
 /** 
@@ -51,7 +48,7 @@ public class ReleasesController {
 	public ReleasesController(ReleasesPane releasesPane) {
 		this.releasesPane = releasesPane;
 		refreshModel();
-    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
+    	IdentifierDatabase.setDba(IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.IDENTIFIER_MANAGER));
 	}
 	
 	/** 
@@ -276,9 +273,9 @@ public class ReleasesController {
 	 * database schema.
 	 **/
 	public void updateSchemaDisplayPane() {
-		Neo4JAdaptor dba = null;
+		PersistenceAdaptor dba = null;
 		try {
-			dba = IDGenerationPersistenceManagers.getManager().getDatabaseAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
+			dba = IDGenerationPersistenceManagers.getManager().getPersistenceAdaptor(IDGenerationPersistenceManagers.CURRENT_MANAGER);
 		} catch (Exception e) {
             JOptionPane.showMessageDialog(releasesPane,
                     "Could not access database",

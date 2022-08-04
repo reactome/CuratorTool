@@ -1,26 +1,18 @@
 package org.gk.slicing;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.Transaction;
 
 /**
@@ -38,9 +30,9 @@ public class RevisionDetector {
         this.sliceEngine = engine;
     }
 
-    public void handleRevisions(Neo4JAdaptor sourceDBA, // This is usually gk_central
-                                Neo4JAdaptor currentSliceDBA,
-                                Neo4JAdaptor previousSliceDBA,
+    public void handleRevisions(PersistenceAdaptor sourceDBA, // This is usually gk_central
+                                PersistenceAdaptor currentSliceDBA,
+                                PersistenceAdaptor previousSliceDBA,
                                 boolean uploadUpdateTrackersToSource,
                                 Transaction tx) throws Exception {
         // Make sure we have _UpdateTracker class in the currentSliceDBA
@@ -66,8 +58,8 @@ public class RevisionDetector {
      * @param tx
      * @throws Exception
      */
-    private void uploadUpdateTrackers(Neo4JAdaptor sourceDBA,
-                                      Neo4JAdaptor currentSliceDBA,
+    private void uploadUpdateTrackers(PersistenceAdaptor sourceDBA,
+                                      PersistenceAdaptor currentSliceDBA,
                                       List<GKInstance> updateTrackers,
                                       Transaction tx) throws Exception {
         logger.info("Uploading UpdateTracker to the source database...");
@@ -86,7 +78,7 @@ public class RevisionDetector {
         // To copy that, we need to fully load the release instances
         // so that all values should be in the instance. Otherwise, some value may
         // not be there since the instance is loaded directly by DBA.
-        currentSliceDBA.loadInstanceAttributeValues(release);
+        currentSliceDBA.loadInstanceAttributeValues(Collections.singleton(release));
         release.setSchemaClass(releaseCls);
         release.setDbAdaptor(sourceDBA);
         release.setDBID(null);
@@ -124,15 +116,15 @@ public class RevisionDetector {
         PropertyConfigurator.configure("SliceLog4j.properties");
         this.sliceEngine = new SlicingEngine();
         sliceEngine.setDefaultPersonId(140537L);
-        Neo4JAdaptor sourceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor sourceDBA = new MySQLAdaptor("localhost",
                                                   "gk_central_02_05_20_update_tracker",
                                                   "root",
                 "macmysql01");
-        Neo4JAdaptor currentSliceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
                                                         "test_ver73_slice_update_tracker",
                                                         "root",
                 "macmysql01");
-        Neo4JAdaptor previousSliceDBA = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor previousSliceDBA = new MySQLAdaptor("localhost",
                                                          "test_slice_ver71",
                                                          "root",
                                                          "macmysql01");
@@ -158,12 +150,12 @@ public class RevisionDetector {
     @Test
     public void testGetEventActions() throws Exception {
         Long dbId = 4608870L;
-        Neo4JAdaptor currentSliceDBA = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor currentSliceDBA = new MySQLAdaptor("localhost",
                                                         "test_ver73_slice_update_tracker",
                                                         "root",
                 "macmysql01");
         GKInstance event = currentSliceDBA.fetchInstance(dbId);
-        Neo4JAdaptor previousSliceDBA = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor previousSliceDBA = new MySQLAdaptor("localhost",
                                                          "test_slice_ver71",
                                                          "root",
                 "macmysql01");
@@ -181,7 +173,7 @@ public class RevisionDetector {
      * @param tx
      * @throws Exception
      */
-    private void dumpUpdateTrackers(Neo4JAdaptor currentSliceDBA, List<GKInstance> updateTrackers, Transaction tx) throws Exception {
+    private void dumpUpdateTrackers(PersistenceAdaptor currentSliceDBA, List<GKInstance> updateTrackers, Transaction tx) throws Exception {
         logger.info("Dumping UpdateTrackers into the slice database...");
         // This is not committed
         GKInstance defaultIE = sliceEngine.createDefaultIE(currentSliceDBA);
@@ -198,7 +190,7 @@ public class RevisionDetector {
         logger.info("Dumping UpdateTrackers done: " + (time2 - time1) / 1000.0d + " seconds.");
     }
 
-    private GKInstance getReleaseInstance(Neo4JAdaptor targetDBA) throws Exception {
+    private GKInstance getReleaseInstance(PersistenceAdaptor targetDBA) throws Exception {
         Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants._Release);
         if (c == null | c.size() == 0)
             throw new IllegalStateException("Cannot find any _Release instance in the slice database!");
@@ -240,10 +232,10 @@ public class RevisionDetector {
      * @return List
      * @throws InvalidAttributeException
      * @throws Exception
-     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, Neo4JAdapter)}
+     * @see {@link org.gk.database.SynchronizationManager#isInstanceClassSameInDb(GKInstance, PersistenceAdaptor)}
      */
-    private List<GKInstance> createAllUpdateTrackers(Neo4JAdaptor currentSliceDBA,
-                                                     Neo4JAdaptor previousSliceDBA) throws Exception {
+    private List<GKInstance> createAllUpdateTrackers(PersistenceAdaptor currentSliceDBA,
+                                                     PersistenceAdaptor previousSliceDBA) throws Exception {
         if (previousSliceDBA == null)
             return null;
         logger.info("Create _UpdateTracker instances...");
@@ -274,7 +266,7 @@ public class RevisionDetector {
     }
 
     private void getEventActions(GKInstance event,  // The event in the current slice database
-                                 Neo4JAdaptor preSliceDBA, // DBA for the previous slice database
+                                 PersistenceAdaptor preSliceDBA, // DBA for the previous slice database
                                  Map<GKInstance, Set<String>> eventToActions) throws Exception {
         if (eventToActions.containsKey(event))
             return;
@@ -335,7 +327,7 @@ public class RevisionDetector {
      * @return GKInstance
      * @throws Exception
      */
-    private GKInstance createUpdateTracker(Neo4JAdaptor dba,
+    private GKInstance createUpdateTracker(PersistenceAdaptor dba,
                                            GKInstance updatedEvent,
                                            Set<String> actions,
                                            GKInstance release,

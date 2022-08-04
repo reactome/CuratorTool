@@ -5,12 +5,10 @@ package org.gk.IDGeneration;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.schema.GKSchemaClass;
+import org.gk.model.PersistenceAdaptor;
 
 /** 
  *  Stores the results of all known tests.
@@ -34,7 +32,7 @@ public class IDGeneratorTests {
 		createTest(IDGeneratorTest.MULTIPLE_STABLE_IDS_FOR_SINGLE_DB_ID);
 	}
 	
-	public void setCurrentDba(Neo4JAdaptor currentDba) {		
+	public void setCurrentDba(PersistenceAdaptor currentDba) {
 		IDGeneratorTest.setCurrentDba(currentDba);		
 	}
 	

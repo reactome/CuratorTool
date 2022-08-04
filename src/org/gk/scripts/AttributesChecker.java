@@ -18,10 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.*;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaClass;
@@ -62,7 +60,7 @@ public class AttributesChecker {
      */
     @Test
     public void checkEntityFunctionalStatusName() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central", 
                                             "authortool", 
                                             "T001test");
@@ -90,11 +88,11 @@ public class AttributesChecker {
     @Test
     @SuppressWarnings("unchecked")
     public void fixEWASDuplicatedNames() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central", 
                                             "authortool", 
                                             "T001test");
-//        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
+//        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
 //                                            "gk_central_050313", 
 //                                            "root", 
 //                                            "macmysql01");
@@ -142,7 +140,7 @@ public class AttributesChecker {
         }
 //        ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
         System.out.println("Total updated: " + total);
-//        dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+//        dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                             "gk_central", 
 //                             "authortool", 
 //                             "T001test");
@@ -153,7 +151,7 @@ public class AttributesChecker {
 //            System.out.println(dbId);
     }
 
-    private List<Long> fetchIDsForNameDuplicatedEWASes(Neo4JAdaptor dba) throws Exception, InvalidAttributeException {
+    private List<Long> fetchIDsForNameDuplicatedEWASes(PersistenceAdaptor dba) throws Exception, InvalidAttributeException {
         // For human proteins only
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
@@ -183,7 +181,7 @@ public class AttributesChecker {
      */
     @Test
     public void checkRegulatorInRegulations() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                                             "gk_central", 
                                             "authortool", 
                                             "T001test");
@@ -213,21 +211,42 @@ public class AttributesChecker {
      */
     @Test
     public void checkEWASModifications() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                 "gk_central",
                 "authortool",
                 "T001test");
-        List<List<Long>> mods = dba.fetchEWASModifications();
         Map<Long, List<Long>> ewasIdToModIds = new HashMap<Long, List<Long>>();
-        for (List<Long> mod: mods) {
-            Long ewasId = mod.get(0);
-            Long modId = mod.get(1);
-            List<Long> list = ewasIdToModIds.get(ewasId);
-            if (list == null) {
-                list = new ArrayList<Long>();
-                ewasIdToModIds.put(ewasId, list);
+        if (dba instanceof Neo4JAdaptor) {
+            List<List<Long>> mods = ((Neo4JAdaptor) dba).fetchEWASModifications();
+            for (List<Long> mod : mods) {
+                Long ewasId = mod.get(0);
+                Long modId = mod.get(1);
+                List<Long> list = ewasIdToModIds.get(ewasId);
+                if (list == null) {
+                    list = new ArrayList<Long>();
+                    ewasIdToModIds.put(ewasId, list);
+                }
+                list.add(modId);
             }
-            list.add(modId);
+        } else {
+            // MySQL
+            Connection connection = ((MySQLAdaptor) dba).getConnection();
+            String query = "SELECT DB_ID, hasModifiedResidue FROM EntityWithAccessionedSequence_2_hasModifiedResidue";
+            Statement stat = connection.createStatement();
+            ResultSet result = stat.executeQuery(query);
+            while (result.next()) {
+                Long ewasId = result.getLong(1);
+                Long modId = result.getLong(2);
+                List<Long> list = ewasIdToModIds.get(ewasId);
+                if (list == null) {
+                    list = new ArrayList<Long>();
+                    ewasIdToModIds.put(ewasId, list);
+                }
+                list.add(modId);
+            }
+            result.close();
+            stat.close();
+            connection.close();
         }
         int total = 0;
         for (Long ewasId : ewasIdToModIds.keySet()) {
@@ -239,13 +258,12 @@ public class AttributesChecker {
             total ++;
         }
         System.out.println("Total: " + total);
-
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void updateEWASCoordiantes() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                 "gk_central",
                 "authortool",
                 "T001test");
@@ -263,66 +281,126 @@ public class AttributesChecker {
         Map<String, int[]> uniIdToChain = loadUniProtToChain();
         int noChainCase = 0;
         int needChangeCase = 0;
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            FileUtilities fu = new FileUtilities();
-            fu.setOutput("EWASCoordinateUpdateLogging.txt");
-            fu.printLine("DB_ID\tDisplayName\tOld_Start\tOld_End\tNew_Start\tNew_End");
-            Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
-            GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
-            for (GKInstance ewas : c) {
-                boolean isChanged = false;
-                GKInstance refEntity = (GKInstance) ewas.getAttributeValue(ReactomeJavaConstants.referenceEntity);
-                if (refEntity == null)
-                    continue; // Don't need to do anything
-                String identifier = (String) refEntity.getAttributeValue(ReactomeJavaConstants.identifier);
-                if (identifier == null)
-                    continue;
-                int[] chain = uniIdToChain.get(identifier);
-                if (chain == null) {
-                    noChainCase++;
-                    //                System.err.println(identifier + " doesn't have a chain!");
-                    continue;
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                FileUtilities fu = new FileUtilities();
+                fu.setOutput("EWASCoordinateUpdateLogging.txt");
+                fu.printLine("DB_ID\tDisplayName\tOld_Start\tOld_End\tNew_Start\tNew_End");
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, tx);
+                for (GKInstance ewas : c) {
+                    boolean isChanged = false;
+                    GKInstance refEntity = (GKInstance) ewas.getAttributeValue(ReactomeJavaConstants.referenceEntity);
+                    if (refEntity == null)
+                        continue; // Don't need to do anything
+                    String identifier = (String) refEntity.getAttributeValue(ReactomeJavaConstants.identifier);
+                    if (identifier == null)
+                        continue;
+                    int[] chain = uniIdToChain.get(identifier);
+                    if (chain == null) {
+                        noChainCase++;
+                        //                System.err.println(identifier + " doesn't have a chain!");
+                        continue;
+                    }
+                    Integer start = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.startCoordinate);
+                    Integer end = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.endCoordinate);
+                    if (start == null)
+                        isChanged = true;
+                    if (end == null)
+                        isChanged = true;
+                    if (start != null && end != null && start == 1 && end == -1)
+                        isChanged = true;
+                    if (start != null && end != null && start == -1 && end == -1)
+                        isChanged = true;
+                    if (isChanged) {
+                        ewas.setAttributeValue(ReactomeJavaConstants.startCoordinate,
+                                chain[0]);
+                        ewas.setAttributeValue(ReactomeJavaConstants.endCoordinate,
+                                chain[1]);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.startCoordinate, tx);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.endCoordinate, tx);
+                        List<GKInstance> modified = ewas.getAttributeValuesList(ReactomeJavaConstants.modified);
+                        ewas.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.modified, tx);
+                        fu.printLine(ewas.getDBID() + "\t" + ewas.getDisplayName() + "\t" +
+                                start + "\t" + end + "\t" +
+                                chain[0] + "\t" + chain[1]);
+                        needChangeCase++;
+                    }
                 }
-                Integer start = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.startCoordinate);
-                Integer end = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.endCoordinate);
-                if (start == null)
-                    isChanged = true;
-                if (end == null)
-                    isChanged = true;
-                if (start != null && end != null && start == 1 && end == -1)
-                    isChanged = true;
-                if (start != null && end != null && start == -1 && end == -1)
-                    isChanged = true;
-                if (isChanged) {
-                    ewas.setAttributeValue(ReactomeJavaConstants.startCoordinate,
-                            chain[0]);
-                    ewas.setAttributeValue(ReactomeJavaConstants.endCoordinate,
-                            chain[1]);
-                    dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.startCoordinate, tx);
-                    dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.endCoordinate, tx);
-                    List<GKInstance> modified = ewas.getAttributeValuesList(ReactomeJavaConstants.modified);
-                    ewas.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
-                    dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.modified, tx);
-                    fu.printLine(ewas.getDBID() + "\t" + ewas.getDisplayName() + "\t" +
-                            start + "\t" + end + "\t" +
-                            chain[0] + "\t" + chain[1]);
-                    needChangeCase++;
-                }
+                fu.printLine("No chain available: " + noChainCase);
+                fu.printLine("Total changed: " + needChangeCase);
+                fu.close();
+                tx.commit();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            fu.printLine("No chain available: " + noChainCase);
-            fu.printLine("Total changed: " + needChangeCase);
-            fu.close();
-            tx.commit();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                FileUtilities fu = new FileUtilities();
+                fu.setOutput("EWASCoordinateUpdateLogging.txt");
+                fu.printLine("DB_ID\tDisplayName\tOld_Start\tOld_End\tNew_Start\tNew_End");
+                Long defaultPersonId = 140537L; // For Guanming Wu at CSHL
+                GKInstance defaultIE = ScriptUtilities.createDefaultIE(dba, defaultPersonId, true, null);
+                for (GKInstance ewas : c) {
+                    boolean isChanged = false;
+                    GKInstance refEntity = (GKInstance) ewas.getAttributeValue(ReactomeJavaConstants.referenceEntity);
+                    if (refEntity == null)
+                        continue; // Don't need to do anything
+                    String identifier = (String) refEntity.getAttributeValue(ReactomeJavaConstants.identifier);
+                    if (identifier == null)
+                        continue;
+                    int[] chain = uniIdToChain.get(identifier);
+                    if (chain == null) {
+                        noChainCase ++;
+                        //                System.err.println(identifier + " doesn't have a chain!");
+                        continue;
+                    }
+                    Integer start = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.startCoordinate);
+                    Integer end = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.endCoordinate);
+                    if (start == null)
+                        isChanged = true;
+                    if (end == null)
+                        isChanged = true;
+                    if (start != null && end != null && start == 1 && end == -1)
+                        isChanged = true;
+                    if (start != null && end != null && start == -1 && end == -1)
+                        isChanged = true;
+                    if (isChanged) {
+                        ewas.setAttributeValue(ReactomeJavaConstants.startCoordinate,
+                                chain[0]);
+                        ewas.setAttributeValue(ReactomeJavaConstants.endCoordinate,
+                                chain[1]);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.startCoordinate, null);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.endCoordinate, null);
+                        List<GKInstance> modified = ewas.getAttributeValuesList(ReactomeJavaConstants.modified);
+                        ewas.addAttributeValue(ReactomeJavaConstants.modified, defaultIE);
+                        dba.updateInstanceAttribute(ewas, ReactomeJavaConstants.modified, null);
+                        fu.printLine(ewas.getDBID() + "\t" + ewas.getDisplayName() + "\t" +
+                                start + "\t" + end + "\t" +
+                                chain[0] + "\t" + chain[1]);
+                        needChangeCase ++;
+                    }
+                }
+                fu.printLine("No chain available: " + noChainCase);
+                fu.printLine("Total changed: " + needChangeCase);
+                fu.close();
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                e.printStackTrace();
+            }
         }
     }
     
     @Test
     public void checkEWASCoordinates() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_021213", 
                                             "root", 
                                             "macmysql01");
@@ -360,7 +438,7 @@ public class AttributesChecker {
     
     @Test
     public void checkComplexCompartments() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_121511",
                                             "root",
                                             "macmysql01");
@@ -382,7 +460,7 @@ public class AttributesChecker {
     
     @Test
     public void grepReactionsWithMultipleSpecies() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");

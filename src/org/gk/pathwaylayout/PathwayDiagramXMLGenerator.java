@@ -14,12 +14,9 @@ import java.util.List;
 
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.DiagramGKBWriter;
-import org.gk.persistence.GKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.Project;
+import org.gk.persistence.*;
 import org.gk.render.Node;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
@@ -215,7 +212,7 @@ public class PathwayDiagramXMLGenerator {
     
     @Test
     public void testGenerateXMLForPathwayDigram() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_110818",
                                             "",
                                             "");

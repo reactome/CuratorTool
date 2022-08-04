@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.gk.model.DBIDNotSetException;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
@@ -286,7 +287,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * Reload everything from the database. The saved Schema will be not re-loaded.
 	 * The InstanceCache will be cleared.
 	 */
-	public void refresh() {
+	public void refreshCaches() {
 		instanceCache.clear();
 	}
 	
@@ -921,7 +922,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 
 	public Collection fetchInstanceByAttribute(String cls, String att, String operator, Object value) throws Exception {
-		AttributeQueryRequest aqr = new AttributeQueryRequest(cls, att, operator, value);
+		AttributeQueryRequest aqr = new AttributeQueryRequest(schema, cls, att, operator, value);
 		return fetchInstance(aqr);
 	}
 
@@ -1329,209 +1330,6 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 		out.append("\nWHERE\n" + StringUtils.join("\nAND ", where));
 		return out.toString();
-	}
-	
-	public AttributeQueryRequest createAttributeQueryRequest(String clsName, String attName, String operator, Object value) throws InvalidClassException, InvalidAttributeException {
-		return new AttributeQueryRequest(clsName, attName, operator, value);
-	}
-
-	public AttributeQueryRequest createAttributeQueryRequest(SchemaAttribute attribute, String operator, Object value) throws InvalidAttributeException {
-		return new AttributeQueryRequest(attribute, operator, value);
-	}
-
-	public ReverseAttributeQueryRequest createReverseAttributeQueryRequest(String clsName, String attName, String operator, Object value) throws Exception {
-		return new ReverseAttributeQueryRequest(clsName, attName, operator, value);
-	}
-	
-	public ReverseAttributeQueryRequest createReverseAttributeQueryRequest(SchemaClass cls,
-	                                                                      SchemaAttribute att,
-	                                                                      String operator,
-	                                                                      Object value) throws InvalidAttributeException {
-	    return new ReverseAttributeQueryRequest(cls, att, operator, value);
-	}
-	                                    
-
-	public class QueryRequestList extends ArrayList {
-		
-	}
-
-	public abstract class QueryRequest {
-		protected SchemaClass cls;
-		protected SchemaAttribute attribute;
-		protected String operator;
-		protected Object value;
-		
-		/**
-		 * Returns the SchemaAttribute object of the query request which defines which
-		 * instance attribute of a class to search
-		 * 
-		 * @return SchemaAttribute of the query request
-		 */
-		public SchemaAttribute getAttribute() {
-			return attribute;
-		}
-
-		/**
-		 * Returns the SchemaClass object of the query request which defines which
-		 * class to search
-		 * 
-		 * @return SchemaClass of the query request
-		 */
-		public SchemaClass getCls() {
-			return cls;
-		}
-
-		/**
-		 * Returns a String value of the operator of the query request which defines how
-		 * the search is restricted
-		 * 
-		 * @return Operator of the query request
-		 */
-		public String getOperator() {
-			return operator;
-		}
-
-		/**
-		 * Returns the value of the search to check given the class, attribute and operator
-		 * restrictions defined
-		 * 
-		 * @return Value of the query request
-		 */
-		public Object getValue() {
-			return value;
-		}
-
-		/**
-		 * Set the SchemaAttribute object of the query request which defines which
-		 * instance attribute of a class to search
-		 * 
-		 * @param attribute SchemaAttribute of the query request
-		 */
-		public void setAttribute(SchemaAttribute attribute) {
-			this.attribute = attribute;
-		}
-
-		/**
-		 * The SchemaClass object of the query request which defines which class to search
-		 * 
-		 * @param class1 SchemaClass of the query request
-		 */
-		public void setCls(SchemaClass class1) {
-			cls = class1;
-		}
-
-		/**
-		 * A String value of the operator of the query request which defines how the search is restricted
-		 * 
-		 * @param string Operator of the query request
-		 */
-		public void setOperator(String string) {
-			operator = string;
-		}
-
-		/**
-		 * The value of the search to check given the class, attribute and operator restrictions
-		 * defined
-		 * 
-		 * @param object Values of the query request
-		 */
-		public void setValue(Object object) {
-			value = object;
-		}
-	}
-
-	public class ReverseAttributeQueryRequest extends QueryRequest {
-		
-		public ReverseAttributeQueryRequest(SchemaAttribute attribute, String operator, Long dbID) throws InvalidAttributeException {
-			cls = attribute.getOrigin();
-			//this.attribute = attribute;
-			this.attribute = attribute.getOrigin().getAttribute(attribute.getName());
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = dbID;
-		}
-		
-		public ReverseAttributeQueryRequest(String clsName, String attName, String operator, Object value) throws Exception {
-			schema.isValidClassOrThrow(clsName);
-			cls = schema.getClassByName(clsName);
-			Collection<GKSchemaAttribute> reverseAttributes = ((GKSchemaClass) cls).getReferersByName(attName);
-			Set<GKSchemaClass> origins = new HashSet<GKSchemaClass>();
-			for (GKSchemaAttribute revAtt : reverseAttributes) {
-				origins.add((GKSchemaClass) revAtt.getOrigin());
-			}
-			//System.out.println(origins);
-			if (origins.size() > 1) {
-				throw new Exception("Class '" + clsName + "' has many referers with attribute '" + attName  + 
-						"' - don't know which one to use. Use ReverseAttributeQueryRequest(SchemaClass cls, " + 
-						"SchemaAttribute att, String operator, Object value) to construct this query.");
-			}
-			attribute = origins.iterator().next().getAttribute(attName);
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = value;
-		}
-		
-		/**
-		 * An overloaded constructor with class and attributes specified so no checking is needed.
-		 * 
-		 * @param cls SchemaClass to query
-		 * @param att SchemaAttribute to query
-		 * @param operator Operator to use in query
-		 * @param value Attribute value to query
-		 * @throws InvalidAttributeException Thrown if the SchemaAttribute is invalid
-		 */
-		public ReverseAttributeQueryRequest(SchemaClass cls, SchemaAttribute att, String operator, Object value) 
-		                                    throws InvalidAttributeException {
-		    this.cls = cls;
-		    attribute = att.getOrigin().getAttribute(att.getName());
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = value;
-		}
-		
-	}
-
-	public class AttributeQueryRequest extends QueryRequest {
-		
-		public AttributeQueryRequest(String clsName, String attName, String operator, Object value) throws InvalidClassException, InvalidAttributeException {
-			schema.isValidClassOrThrow(clsName);
-			cls = schema.getClassByName(clsName);
-			// getAttribute checks for the validity
-			attribute = cls.getAttribute(attName).getOrigin().getAttribute(attName);
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = value;
-		}
-		
-		public AttributeQueryRequest(SchemaAttribute attribute, String operator, Object value) throws InvalidAttributeException {
-			cls = attribute.getOrigin();
-			//this.attribute = attribute;
-			this.attribute = attribute.getOrigin().getAttribute(attribute.getName());
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = value;
-		}
-
-		public AttributeQueryRequest(SchemaClass cls, SchemaAttribute attribute, String operator, Object value) throws InvalidAttributeException {
-			this.cls = cls;
-			this.attribute = attribute.getOrigin().getAttribute(attribute.getName());
-			if (operator == null || operator.equals("")) {
-				operator = "=";
-			}
-			this.operator = operator.toUpperCase();
-			this.value = value;
-		}
-		
 	}
 
 	class ResultSetWithHandlers {
@@ -2084,7 +1882,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 		}
 	}
 	
-	private void validateExistence(java.util.List instances) {
+	private void validateExistence(java.util.List instances) throws NotImplementedException {
 	    if (instances == null)
 	        return;
 	    if (instances != null) {
@@ -2373,7 +2171,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	 * @param dbID db id value to check to see if it exists in the database
 	 * @return true if existing; false otherwise
 	 */
-	public boolean exist(Long dbID) {
+	public boolean exist(Long dbID) throws NotImplementedException {
 		SchemaClass root = ((GKSchema)schema).getRootClass();
 		boolean rtn = false;
 		Statement stat = null;
@@ -2803,7 +2601,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				if (matchingDBIDs == null) {
 					return null;
 				} else {
-					aqrList.add(new AttributeQueryRequest(rootClassName, Schema.DB_ID_NAME,"=",matchingDBIDs));
+					aqrList.add(new AttributeQueryRequest(schema, rootClassName, Schema.DB_ID_NAME,"=",matchingDBIDs));
 				}
 			}
 		} else {
@@ -2815,7 +2613,7 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 				if (matchingDBIDs == null) {
 					return null;
 				} else {
-					aqrList.add(new AttributeQueryRequest(rootClassName, Schema.DB_ID_NAME,"=",matchingDBIDs));
+					aqrList.add(new AttributeQueryRequest(schema, rootClassName, Schema.DB_ID_NAME,"=",matchingDBIDs));
 				}
 			}
 		}

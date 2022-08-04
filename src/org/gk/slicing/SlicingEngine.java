@@ -24,24 +24,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.gk.database.DefaultInstanceEditHelper;
-import org.gk.model.GKInstance;
-import org.gk.model.InstanceDisplayNameGenerator;
-import org.gk.model.InstanceUtilities;
-import org.gk.model.ReactomeJavaConstants;
+import org.gk.model.*;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchema;
 import org.gk.schema.GKSchemaAttribute;
@@ -72,6 +61,7 @@ import org.neo4j.driver.Transaction;
  * 8). All attributes referred by instances in the slice should be in the slice. If not, these references will
  * be removed from attributes.
  * 9). If a species list file is provided, all species and their references will be in the slice (recursively).
+ *
  * @author wgm
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -85,15 +75,15 @@ public class SlicingEngine {
     private final String ONTOLOGY_FILE_NAME = "slicingOntology.sql";
     protected final static String REFERRER_ATTRIBUTE_KEY = "referrers";
     // Source
-    protected Neo4JAdaptor sourceDBA;
+    protected PersistenceAdaptor sourceDBA;
     // target
     private String targetDbHost;
     private String targetDbName;
     private String targetDbUser;
     private String targetDbPwd;
     private int targetDbPort = 3306;
-    private Neo4JAdaptor targetDBA;
-    private Neo4JAdaptor previousSliceDBA;
+    private PersistenceAdaptor targetDBA;
+    private PersistenceAdaptor previousSliceDBA;
     // All instances should be in slicing: key DB_ID value: GKInstance
     protected Map eventMap;
     protected Map<Long, GKInstance> sliceMap;
@@ -122,7 +112,7 @@ public class SlicingEngine {
     // Control UpdateTracker instance creation and writing back to gk_central
     private boolean needUpdateTrackers = false;
     private boolean uploadUpdateTrackersToSource = false;
-    
+
     /**
      * Default constructor
      */
@@ -130,52 +120,54 @@ public class SlicingEngine {
         sliceMap = new HashMap();
         checkedIDs = new HashSet();
     }
-    
+
     public void setDefaultPersonId(Long id) {
         this.defaultPersonId = id;
     }
-    
+
     /**
      * Set the data source for slicing. Usually this should be gk_central.
+     *
      * @param dba
      */
-    public void setSource(Neo4JAdaptor dba) {
+    public void setSource(PersistenceAdaptor dba) {
         this.sourceDBA = dba;
     }
-    
+
     /**
      * The name of the target database. This database will be created at the same host
      * as the data source.
+     *
      * @param DbName
      */
     public void setTargetDbName(String DbName) {
         this.targetDbName = DbName;
     }
-    
+
     public void setTargetDbHost(String host) {
         this.targetDbHost = host;
     }
-    
+
     public void setTargetDbUser(String dbUser) {
         this.targetDbUser = dbUser;
     }
-    
+
     public void setTargetDbPwd(String pwd) {
         this.targetDbPwd = pwd;
     }
-    
+
     public void setTargetDbPort(int dbPort) {
         this.targetDbPort = dbPort;
     }
-    
+
     public void setProcessFileName(String fileName) {
         this.processFileName = fileName;
     }
-    
+
     public void setSpeciesFileName(String fileName) {
         this.speciesFileName = fileName;
     }
-    
+
     public void setLogFileName(String fileName) {
         this.logFileName = fileName;
     }
@@ -183,40 +175,41 @@ public class SlicingEngine {
     public void setReleaseNumber(String number) {
         this.releaseNumber = number;
     }
-    
+
     public String getReleaseNumber() {
         return this.releaseNumber;
     }
-    
+
     public void setReleaseDate(String releaseDate) {
         this.releaseDate = releaseDate;
     }
-    
+
     public String getReleaseDate() {
         return this.releaseDate;
     }
-    
+
     public void setLastReleaseDate(String lastReleaseDate) {
         this.lastReleaseDate = lastReleaseDate;
     }
-    
+
     public String getLastReleaseDate() {
         return this.lastReleaseDate;
     }
 
-    public void setPreviousSlice(Neo4JAdaptor previousSliceDBA) {
+    public void setPreviousSlice(PersistenceAdaptor previousSliceDBA) {
         this.previousSliceDBA = previousSliceDBA;
     }
 
     /**
      * The entry point for slicing. A client to this class should call this method.
+     *
      * @throws Exception
      */
-    public void slice() throws Exception {
+    public void slice(boolean useNeo4J) throws Exception {
         validateConditions();
         topLevelIDs = getReleasedProcesses();
         speciesIDs = getSpeciesIDs();
-        if(!prepareTargetDatabase())
+        if (!prepareTargetDatabase())
             throw new IllegalStateException("SlicingEngine.slice(): " +
                     "target database cannot be set up.");
         eventMap = extractEvents();
@@ -238,7 +231,7 @@ public class SlicingEngine {
         qa.setSourceDBA(sourceDBA);
         qa.validateExistence(output);
         qa.validateEventsInHierarchy(topLevelIDs,
-                                     output);
+                output);
         qa.validateAttributes(output);
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
         if (logFileName != null)
@@ -249,17 +242,26 @@ public class SlicingEngine {
         fillIncludedLocationForComplex();
         fillAttributeValuesForEntitySets();
         cleanUpPathwayFigures();
-        Driver driver = targetDBA.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            dumpInstances(tx);
-            addFrontPage(tx);
-            addReleaseNumber(tx);
-            setStableIdReleased(tx);
-            handleRevisions(tx);
-            tx.commit();
-        } catch (Exception e) {
-            logger.error("slice() error: " + e, e);
+        if (targetDBA instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) targetDBA).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(targetDBA.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                dumpInstances(tx, useNeo4J);
+                addFrontPage(tx, useNeo4J);
+                addReleaseNumber(tx, useNeo4J);
+                setStableIdReleased(tx, useNeo4J);
+                handleRevisions(tx, useNeo4J);
+                tx.commit();
+            } catch (Exception e) {
+                logger.error("slice() error: " + e, e);
+            }
+        } else {
+            // MySQL
+            dumpInstances(null, false);
+            addFrontPage(null, false);
+            addReleaseNumber(null, false);
+            setStableIdReleased(null, false);
+            handleRevisions(null, false);
         }
     }
 
@@ -275,7 +277,7 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws Exception
      */
-    private void handleRevisions(Transaction tx) throws Exception {
+    private void handleRevisions(Transaction tx, boolean useNeo4J) throws Exception {
         if (!needUpdateTrackers)
             return; // Do nothing
         logger.info("Revision checking...");
@@ -283,14 +285,14 @@ public class SlicingEngine {
         RevisionDetector revisonHandler = new RevisionDetector();
         revisonHandler.setSlicingEngine(this);
         revisonHandler.handleRevisions(sourceDBA,
-                                       getTargetDBA(),
-                                       previousSliceDBA,
-                                       uploadUpdateTrackersToSource, tx);
+                getTargetDBA(useNeo4J),
+                previousSliceDBA,
+                uploadUpdateTrackersToSource, tx);
     }
 
     /**
      * <p>Frontend for {@link SlicingEngine#populateEntitySet(GKInstance, String)}.</p>
-     * 
+     *
      * <p>Integration Testing Notes:</p>
      * <ul>
      *   <li>zofenopril (9619010) is a member of ACEI pro-drugs [endoplasmic reticulum] (9619052).</li>
@@ -298,25 +300,26 @@ public class SlicingEngine {
      *   <li>By changing the compartment of zofenopril (9619010) from endoplasmic reticulum to cytoplasm, ACEI-pro drugs
      *       [endoplasmic reticulum] compartment included both endoplasmic reticulum and cytoplasm.</li>
      * </ul>
-     * 
+     *
      * @param attributeName
      * @throws Exception
      */
     private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
-    	for (Long dbId : sliceMap.keySet()) {
-    		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-    			continue;
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance inst = sliceMap.get(dbId);
+            if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+                continue;
 
-			logger.info(String.format("Populating %s in %s", attributeName, inst));
-    		populateEntitySet(inst, attributeName);
-    	}
+            logger.info(String.format("Populating %s in %s", attributeName, inst));
+            populateEntitySet(inst, attributeName);
+        }
     }
-    
+
     /**
      * EntitySet's compartment slot will be auto-populated by from its members and candidates
      * recursively. This addresses https://reactome.atlassian.net/browse/DEV-1812 (Note: The
      * disease part will not be handled.).
+     *
      * @throws Exception
      */
     private void fillAttributeValuesForEntitySets() throws Exception {
@@ -328,6 +331,7 @@ public class SlicingEngine {
     /**
      * This method is used to take only the first figure attribute listed for
      * a pathway instance (https://reactome.atlassian.net/browse/DEV-1810).
+     *
      * @throws Exception
      */
     private void cleanUpPathwayFigures() throws Exception {
@@ -351,11 +355,10 @@ public class SlicingEngine {
 
     /**
      * Iterate through EntitySet instances and populate each instance's compartment attributes.
-     *
+     * <p>
      * The recursive iteration takes place in the
      * {@link InstanceUtilities#getContainedInstances(GKInstance, String...)} method.
      *
-
      * @param instance
      * @throws Exception
      */
@@ -365,15 +368,15 @@ public class SlicingEngine {
             return;
         // If EntitySet has a "hasMember" or "hasCandidate" attribute then recursively iterate over them.
         Set<GKInstance> members = InstanceUtilities.getContainedInstances(instance,
-                                                                          ReactomeJavaConstants.hasMember,
-                                                                          ReactomeJavaConstants.hasCandidate);
+                ReactomeJavaConstants.hasMember,
+                ReactomeJavaConstants.hasCandidate);
         Set<GKInstance> memberAttributeValues = new HashSet<>();
         for (GKInstance member : members) {
-			if (!member.getSchemClass().isValidAttribute(attributeName))
-				continue;
-			List<GKInstance> list = member.getAttributeValuesList(attributeName);
-			if (list != null && list.size() != 0)
-				memberAttributeValues.addAll(list);
+            if (!member.getSchemClass().isValidAttribute(attributeName))
+                continue;
+            List<GKInstance> list = member.getAttributeValuesList(attributeName);
+            if (list != null && list.size() != 0)
+                memberAttributeValues.addAll(list);
         }
 
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
@@ -381,13 +384,13 @@ public class SlicingEngine {
         instance.setAttributeValue(attributeName, memberList);
     }
 
-    private void setStableIdReleased(Transaction tx) throws Exception {
+    private void setStableIdReleased(Transaction tx, boolean useNeo4J) throws Exception {
         if (!setReleasedInStableIdentifier)
             return; // There is no need to do this.
         // Make sure released attribute in StableIdentifiers are true in
         // the target database
         logger.info("set released = true for target database...");
-        Neo4JAdaptor targetDBA = getTargetDBA();
+        PersistenceAdaptor targetDBA = getTargetDBA(useNeo4J);
         Collection<GKInstance> c = targetDBA.fetchInstancesByClass(ReactomeJavaConstants.StableIdentifier);
         for (GKInstance inst : c) {
             Boolean released = (Boolean) inst.getAttributeValue(ReactomeJavaConstants.released);
@@ -430,16 +433,16 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws InvalidAttributeValueException
      */
-    GKInstance createDefaultIE(Neo4JAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
+    GKInstance createDefaultIE(PersistenceAdaptor dba) throws Exception, InvalidAttributeException, InvalidAttributeValueException {
         DefaultInstanceEditHelper ieHelper = new DefaultInstanceEditHelper();
         GKInstance person = dba.fetchInstance(defaultPersonId);
         GKInstance defaultIE = ieHelper.createDefaultInstanceEdit(person);
-        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,  
-                                    GKApplicationUtilities.getDateTime());
+        defaultIE.addAttributeValue(ReactomeJavaConstants.dateTime,
+                GKApplicationUtilities.getDateTime());
         InstanceDisplayNameGenerator.setDisplayName(defaultIE);
         return defaultIE;
     }
-    
+
     private void fillIncludedLocationForComplex() throws Exception {
         // This is just a sanity check so that this method will not work
         // for some old schema
@@ -448,7 +451,7 @@ public class SlicingEngine {
             return;
         for (Long dbId : sliceMap.keySet()) {
             GKInstance inst = sliceMap.get(dbId);
-            if (!inst.getSchemClass().isa(ReactomeJavaConstants.Complex)) 
+            if (!inst.getSchemClass().isa(ReactomeJavaConstants.Complex))
                 continue;
             // Check if there is any value in the includedLocation. If true,
             // throw exception
@@ -458,7 +461,7 @@ public class SlicingEngine {
             Set<GKInstance> components = InstanceUtilities.getContainedComponents(inst);
             Set<GKInstance> compartments = new HashSet<GKInstance>();
             for (GKInstance component : components) {
-                if (!component.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment)) 
+                if (!component.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment))
                     continue;
                 List<GKInstance> componentCompartments = component.getAttributeValuesList(ReactomeJavaConstants.compartment);
                 if (componentCompartments != null)
@@ -469,10 +472,10 @@ public class SlicingEngine {
             List<GKInstance> list = new ArrayList<GKInstance>(compartments);
             InstanceUtilities.sortInstances(list);
             inst.setAttributeValue(ReactomeJavaConstants.includedLocation,
-                                   list);
+                    list);
         }
     }
-    
+
     protected void extractPathwayDiagrams() throws Exception {
         PathwayDiagramSlicingHelper diagramHelper = new PathwayDiagramSlicingHelper();
         diagramHelper.isInDev = isInDev;
@@ -502,7 +505,7 @@ public class SlicingEngine {
         }
         logger.info("extractPathwayDiagrams(): " + sliceMap.size());
     }
-    
+
     public Map extractEvents() throws Exception {
         Map eventMap = new HashMap();
         // To speed up the performance, get all events and their "hasEvent"
@@ -523,14 +526,14 @@ public class SlicingEngine {
             sourceDBA.loadInstanceAttributeValues(events, cls.getAttribute("hasMember"));
         // Get the list of events based on _doRelease
         GKInstance event = null;
-        for (Iterator it = events.iterator(); it.hasNext();) {
+        for (Iterator it = events.iterator(); it.hasNext(); ) {
             event = (GKInstance) it.next();
             if (shouldEventInSlice(event))
                 eventMap.put(event.getDBID(), event);
         }
-        return eventMap;        
+        return eventMap;
     }
-    
+
     protected boolean shouldEventInSlice(GKInstance event) throws Exception {
         if (event.getSchemClass().isValidAttribute(ReactomeJavaConstants._doRelease)) {
             Boolean dr = (Boolean) event.getAttributeValue(ReactomeJavaConstants._doRelease);
@@ -539,13 +542,13 @@ public class SlicingEngine {
         }
         return false;
     }
-    
+
     /**
      * A new FrontPage instance should be created and saved into the database.
      */
-    private void addFrontPage(Transaction tx) {
+    private void addFrontPage(Transaction tx, boolean useNeo4J) {
         try {
-            Neo4JAdaptor targetDBA = getTargetDBA();
+            PersistenceAdaptor targetDBA = getTargetDBA(useNeo4J);
             Schema schema = targetDBA.getSchema();
             SchemaClass cls = schema.getClassByName("FrontPage");
             GKInstance frontPage = new GKInstance(cls);
@@ -556,13 +559,11 @@ public class SlicingEngine {
                 process = targetDBA.fetchInstance(dbID);
                 if (process != null) {
                     frontPage.addAttributeValue("frontPageItem", process);
-                }
-                else
+                } else
                     logger.error("Specified top-level event is not in the slice: " + dbID);
             }
             targetDBA.storeInstance(frontPage, tx);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             logger.error("SlicingEngine.addFrontPage(): " + e, e);
         }
     }
@@ -571,20 +572,19 @@ public class SlicingEngine {
      * Add release number into the database: a new table will be created to store the release number
      * information.
      */
-    private void addReleaseNumber(Transaction tx) {
+    private void addReleaseNumber(Transaction tx, boolean useNeo4J) {
         try {
-            Neo4JAdaptor targetDBA = getTargetDBA();
+            PersistenceAdaptor targetDBA = getTargetDBA(useNeo4J);
             SchemaClass releaseCls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants._Release);
             if (releaseCls == null)
                 return; // This is an old schema
             GKInstance release = createReleaseInstance(targetDBA, Integer.valueOf(releaseNumber), releaseDate);
             targetDBA.storeInstance(release, tx);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             logger.error("SlicingEngine.addReleaseNumber(): " + e, e);
         }
     }
-    
+
     /**
      * Create a release instance for a given database adaptor, release number, and release date.
      *
@@ -595,14 +595,14 @@ public class SlicingEngine {
      * @throws InvalidAttributeException
      * @throws InvalidAttributeValueException
      */
-    private GKInstance createReleaseInstance(Neo4JAdaptor dba, 
-                                     Integer releaseNumber, 
-                                     String releaseDate) throws InvalidAttributeException, InvalidAttributeValueException {
+    private GKInstance createReleaseInstance(PersistenceAdaptor dba,
+                                             Integer releaseNumber,
+                                             String releaseDate) throws InvalidAttributeException, InvalidAttributeValueException {
         SchemaClass releaseCls = dba.getSchema().getClassByName(ReactomeJavaConstants._Release);
         if (releaseCls == null)
             return null;
         GKInstance release = new GKInstance(releaseCls);
-        release.setDbAdaptor(dba); 
+        release.setDbAdaptor(dba);
         release.setAttributeValue(ReactomeJavaConstants.releaseNumber, releaseNumber);
         release.setAttributeValue(ReactomeJavaConstants.releaseDate, releaseDate);
         InstanceDisplayNameGenerator.setDisplayName(release);
@@ -656,9 +656,10 @@ public class SlicingEngine {
                 instance.setAttributeValue(ReactomeJavaConstants.releaseStatus, "UPDATED");
         }
     }
-    
+
     /**
      * This recursive method can be used for an Event instance that has no releastStatus assigned yet.
+     *
      * @param event
      * @return
      * @throws Exception
@@ -668,11 +669,11 @@ public class SlicingEngine {
             List<?> hasEvents = event.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
             if (hasEvents == null || hasEvents.size() == 0)
                 return false;
-            for (Iterator<?> it = hasEvents.iterator(); it.hasNext();) {
+            for (Iterator<?> it = hasEvents.iterator(); it.hasNext(); ) {
                 GKInstance subEvent = (GKInstance) it.next();
                 String subReleaseStatus = (String) subEvent.getAttributeValue(ReactomeJavaConstants.releaseStatus);
-                if (subReleaseStatus != null && 
-                   (subReleaseStatus.equals("NEW") || subReleaseStatus.equals("UPDATED")))
+                if (subReleaseStatus != null &&
+                        (subReleaseStatus.equals("NEW") || subReleaseStatus.equals("UPDATED")))
                     return true;
                 boolean subReturned = checkIsUpdated(subEvent);
                 if (subReturned)
@@ -681,47 +682,197 @@ public class SlicingEngine {
         }
         return false;
     }
-    
+
     /**
      * Make sure all conditions are correct.
-     *
      */
     private void validateConditions() {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		"source database is not specified.");
+                    "source database is not specified.");
         if (targetDbName == null)
             throw new IllegalStateException("SlicingEngine.validateCondition(): " +
-            		"target database is not specified.");
+                    "target database is not specified.");
         // Target database should not the the same as source database
         if (targetDbHost.equals(sourceDBA.getDBHost()) &&
-            targetDbName.equals(sourceDBA.getDBName()))
+                targetDbName.equals(sourceDBA.getDBName()))
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		"source and target database are the same. This is not allowed.");
+                    "source and target database are the same. This is not allowed.");
         // FronPageID should not be null
         if (processFileName == null)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		                        "File for the list of releasing events is not specified.");
+                    "File for the list of releasing events is not specified.");
         if (releaseNumber == null || releaseNumber.length() == 0)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-                                            "releaseNumber is not specified.");
+                    "releaseNumber is not specified.");
     }
-    
+
     /**
      * Save GKInstances in the slice to the target database.
-     * 
+     *
      * @throws Exception
      */
-    private void dumpInstances(Transaction tx) throws Exception {
+    private void dumpInstances(Transaction tx, boolean useNeo4J) throws Exception {
         logger.info("dumpInstances()...");
         long time1 = System.currentTimeMillis();
-        Neo4JAdaptor targetDBA = getTargetDBA();
-        for (Long dbId : sliceMap.keySet()) {
-            GKInstance instance = (GKInstance) sliceMap.get(dbId);
-            targetDBA.storeInstance(instance, false, tx, false);
+        PersistenceAdaptor targetDBA = getTargetDBA(useNeo4J);
+        if (targetDBA instanceof Neo4JAdaptor) {
+            for (Long dbId : sliceMap.keySet()) {
+                GKInstance instance = (GKInstance) sliceMap.get(dbId);
+                ((Neo4JAdaptor) targetDBA).storeInstance(instance, false, tx, false);
+            }
+        } else {
+            // MySQL
+            // Try to use transaction
+            boolean isTnSupported = ((MySQLAdaptor) targetDBA).supportsTransactions();
+            if (isTnSupported)
+                ((MySQLAdaptor) targetDBA).startTransaction();
+            try {
+                for (Long dbId : sliceMap.keySet()) {
+                    GKInstance instance = (GKInstance) sliceMap.get(dbId);
+                    storeInstance(instance, ((MySQLAdaptor) targetDBA));
+                }
+                if (isTnSupported)
+                    ((MySQLAdaptor) targetDBA).commit();
+            } catch (Exception e) {
+                if (isTnSupported)
+                    ((MySQLAdaptor) targetDBA).rollback();
+                logger.error("SlicingEngine.dumpInstances(): " + e, e);
+            }
         }
         long time2 = System.currentTimeMillis();
         logger.info("Time for dumpInstances(): " + (time2 - time1));
+    }
+
+    /**
+     * This method is copied from MySQLAdaptor.storeInstance(GKInstance, boolean). However, storing is done
+     * without recursiveness here.
+     *
+     * @param instance
+     * @throws Exception
+     */
+    public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
+        Long dbID = instance.getDBID();
+        SchemaClass cls = instance.getSchemClass();
+        GKSchema schema = (GKSchema) targetDBA.getSchema();
+        // Change class to the target
+        cls = schema.getClassByName(cls.getName());
+        SchemaClass rootCls = schema.getRootClass();
+        List classHierarchy = new ArrayList();
+        classHierarchy.addAll(cls.getOrderedAncestors());
+        classHierarchy.add(cls);
+        Collection later = new ArrayList();
+        for (Iterator ancI = classHierarchy.iterator(); ancI.hasNext(); ) {
+            GKSchemaClass ancestor = (GKSchemaClass) ancI.next();
+            StringBuffer statement = new StringBuffer("INSERT INTO " + ancestor.getName()
+                    + " SET DB_ID=?");
+            List values = new ArrayList();
+            values.add(dbID);
+            if (ancestor == rootCls) {
+                statement.append(",_class=?");
+                values.add(cls.getName());
+            }
+            Collection multiAtts = new ArrayList();
+            for (Iterator attI = ancestor.getOwnAttributes().iterator(); attI.hasNext(); ) {
+                GKSchemaAttribute att = (GKSchemaAttribute) attI.next();
+                if (att.getName().equals("DB_ID"))
+                    continue;
+                List attVals = instance.getAttributeValuesList(att.getName());
+                if ((attVals == null) || (attVals.isEmpty()))
+                    continue;
+                if (att.isMultiple()) {
+                    multiAtts.add(att);
+                } else {
+                    if (att.isInstanceTypeAttribute()) {
+                        if (ancestor == rootCls) {
+                            later.add(att);
+                        } else {
+                            GKInstance val = (GKInstance) attVals.get(0);
+                            statement.append("," + att.getName() + "=?");
+                            values.add(val.getDBID());
+                            statement.append("," + att.getName() + "_class=?");
+                            values.add(val.getSchemClass().getName());
+                        }
+                    } else {
+                        statement.append("," + att.getName() + "=?");
+                        values.add(instance.getAttributeValue(att.getName()));
+                    }
+                }
+            }
+            //System.out.println(instance + ": " + statement.toString() + "\n");
+            PreparedStatement ps = targetDBA.getConnection().prepareStatement(statement.toString());
+            for (int i = 0; i < values.size(); i++) {
+                Object value = values.get(i);
+                // Boolean is a special case.  It maps on to enum('TRUE','FALSE')
+                // in the database, but MYSQL doesn't make a very good job of
+                // generating these values.  Boolean.TRUE maps on to 'TRUE' in
+                // the database, which is fine, but Boolean.FALSE maps onto
+                // an empty cell, which is not nice.  This behaviour has been
+                // observed in both MYSQL 4.0.24 and MYSQL 4.1.9.  The fix here
+                // is to supply the strings "TRUE" or "FALSE" instead of a
+                // Boolean value.  This has been tested and works for both of
+                // the abovementioned MYSQL versions.
+                if (value instanceof Boolean)
+                    value = ((Boolean) value).booleanValue() ? "TRUE" : "FALSE";
+                ps.setObject(i + 1, value);
+            }
+            ps.executeUpdate();
+            if (dbID == null) {
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    dbID = new Long(rs.getLong(1));
+                    instance.setDBID(dbID);
+                } else {
+                    throw (new Exception("Unable to get autoincremented value."));
+                }
+            }
+            for (Iterator attI = multiAtts.iterator(); attI.hasNext(); ) {
+                GKSchemaAttribute att = (GKSchemaAttribute) attI.next();
+                List attVals = instance.getAttributeValuesList(att.getName());
+                StringBuffer statement2 = new StringBuffer("INSERT INTO " + ancestor.getName()
+                        + "_2_" + att.getName() + " SET DB_ID=?," + att.getName() + "=?,"
+                        + att.getName() + "_rank=?");
+                if (att.isInstanceTypeAttribute()) {
+                    statement2.append("," + att.getName() + "_class=?");
+                }
+                //System.out.println(statement2.toString() + "\n");
+                PreparedStatement ps2 = targetDBA.getConnection().prepareStatement(
+                        statement2.toString());
+                for (int i = 0; i < attVals.size(); i++) {
+                    ps2.setObject(1, dbID);
+                    ps2.setInt(3, i);
+                    if (att.isInstanceTypeAttribute()) {
+                        GKInstance attVal = (GKInstance) attVals.get(i);
+                        ps2.setObject(2, attVal.getDBID());
+                        ps2.setString(4, attVal.getSchemClass().getName());
+                    } else {
+                        ps2.setObject(2, attVals.get(i));
+                    }
+                    ps2.executeUpdate();
+                }
+            }
+        }
+        if (!later.isEmpty()) {
+            StringBuffer statement = new StringBuffer("UPDATE " + rootCls.getName() + " SET ");
+            List values = new ArrayList();
+            for (Iterator li = later.iterator(); li.hasNext(); ) {
+                GKSchemaAttribute att = (GKSchemaAttribute) li.next();
+                statement.append(att.getName() + "=?, " + att.getName() + "_class=?");
+                if (li.hasNext())
+                    statement.append(",");
+                GKInstance value = (GKInstance) instance.getAttributeValue(att.getName());
+                values.add(value.getDBID());
+                values.add(value.getSchemClass().getName());
+            }
+            statement.append(" WHERE DB_ID=?");
+            values.add(dbID);
+            //System.out.println(statement.toString() + "\n");
+            PreparedStatement ps = targetDBA.getConnection().prepareStatement(statement.toString());
+            for (int i = 0; i < values.size(); i++) {
+                ps.setObject(i + 1, values.get(i));
+            }
+            ps.executeUpdate();
+        }
     }
 
     public List getSpeciesIDs() throws IOException {
@@ -730,13 +881,14 @@ public class SlicingEngine {
         File file = new File(speciesFileName);
         if (!file.exists()) {
             throw new IllegalStateException("SlicingEngine.getSpeciesIDs(): " +
-                                            "specified file for species doesn't exist!");
+                    "specified file for species doesn't exist!");
         }
         return extractIDsFromFile(file);
     }
-    
+
     /**
      * Get the species list provided by an external file and extract species if they are not in.
+     *
      * @throws Exception
      */
     private void extractSpecies() throws Exception {
@@ -744,16 +896,17 @@ public class SlicingEngine {
             return; // Nothing to do
         GKInstance species = null;
         Long dbId = null;
-        for (Iterator it = speciesIDs.iterator(); it.hasNext();) {
+        for (Iterator it = speciesIDs.iterator(); it.hasNext(); ) {
             dbId = (Long) it.next();
-            species = sourceDBA.fetchInstance(dbId);;
+            species = sourceDBA.fetchInstance(dbId);
+            ;
             if (species != null)
                 extractReferencesToInstance(species);
         }
     }
-    
+
     /**
-     * Go through the whole list of Regulation instances to see if any instances 
+     * Go through the whole list of Regulation instances to see if any instances
      * whose regulatedEntity values are in the slice. If true, those instances
      * should be in the slice.
      */
@@ -765,7 +918,7 @@ public class SlicingEngine {
         sourceDBA.loadInstanceAttributeValues(regulations, cls.getAttribute(ReactomeJavaConstants.regulatedEntity));
         GKInstance regulation = null;
         GKInstance regulatedEntity = null;
-        for (Iterator it = regulations.iterator(); it.hasNext();) {
+        for (Iterator it = regulations.iterator(); it.hasNext(); ) {
             regulation = (GKInstance) it.next();
             regulatedEntity = (GKInstance) regulation.getAttributeValue(ReactomeJavaConstants.regulatedEntity);
             if (regulatedEntity == null)
@@ -782,7 +935,7 @@ public class SlicingEngine {
         GKInstance instance = null;
         Long dbID = null;
         long time1 = System.currentTimeMillis();
-        for (Iterator it = eventMap.keySet().iterator(); it.hasNext();) {
+        for (Iterator it = eventMap.keySet().iterator(); it.hasNext(); ) {
             dbID = (Long) it.next();
             instance = (GKInstance) eventMap.get(dbID);
             extractReferencesToInstance(instance);
@@ -791,7 +944,7 @@ public class SlicingEngine {
         logger.info("extractReferences(): " + sliceMap.size() + " instances");
         logger.info("Time for extractReferences: " + (System.currentTimeMillis() - time1));
     }
-    
+
     protected void extractReferencesToInstance(GKInstance instance) throws Exception {
         Set current = new HashSet();
         Set next = new HashSet();
@@ -801,7 +954,7 @@ public class SlicingEngine {
         GKSchemaAttribute att = null;
 //        logger.info("Instance: " + instance);
         while (current.size() > 0) {
-            for (Iterator it = current.iterator(); it.hasNext();) {
+            for (Iterator it = current.iterator(); it.hasNext(); ) {
                 tmp = (GKInstance) it.next();
                 if (checkedIDs.contains(tmp.getDBID()))
                     continue; // It has been checked
@@ -810,21 +963,21 @@ public class SlicingEngine {
                     logger.error("Current event: " + tmp.getDBID() + " has no SchemaClass assigned!");
                 // Check if an event should be in a slice
                 if (tmp.getSchemClass().isa("Event") &&
-                    !eventMap.containsKey(tmp.getDBID())) 
-                        continue;
+                        !eventMap.containsKey(tmp.getDBID()))
+                    continue;
                 pushToMap(tmp, sliceMap);
                 // Load all instances
-                sourceDBA.loadInstanceAttributeValues(tmp);
+                sourceDBA.loadInstanceAttributeValues(Collections.singleton(tmp));
 
-                
-                for (Iterator it1 = tmp.getSchemaAttributes().iterator(); it1.hasNext();) {
+
+                for (Iterator it1 = tmp.getSchemaAttributes().iterator(); it1.hasNext(); ) {
                     att = (GKSchemaAttribute) it1.next();
                     if (!att.isInstanceTypeAttribute())
                         continue;
                     values = tmp.getAttributeValuesList(att);
                     if (values == null || values.size() == 0)
                         continue;
-                    for (Iterator it2 = values.iterator(); it2.hasNext();) {
+                    for (Iterator it2 = values.iterator(); it2.hasNext(); ) {
                         GKInstance reference = (GKInstance) it2.next();
                         if (reference.getSchemClass() == null)
                             logger.error("reference is wrong: " + reference + ". No SchemaClass is assigned to it!");
@@ -840,29 +993,30 @@ public class SlicingEngine {
 //            logger.info("Current: " + current.size());
         }
     }
-    
+
     protected void pushToMap(GKInstance instance, Map map) {
         if (map.containsKey(instance.getDBID()))
             return;
         map.put(instance.getDBID(), instance);
     }
-    
+
     /**
      * Get the list of top-level process names for slicing.
-     * @return a list of DB_IDs 
+     *
+     * @return a list of DB_IDs
      */
     protected List getReleasedProcesses() throws Exception {
         if (processFileName == null)
             throw new IllegalStateException("SlicingEngine.getReleasedProcesses(): " +
-            		                        "releasing processes file is not specified.");
+                    "releasing processes file is not specified.");
         File file = new File(processFileName);
         if (!file.exists()) {
             throw new IllegalStateException("SlicingEngine.getReleasedProcesses(): " +
-            		                        "Specified file, " + file.getAbsolutePath() + ", for releasing processes doesn't exist!");
+                    "Specified file, " + file.getAbsolutePath() + ", for releasing processes doesn't exist!");
         }
         return extractIDsFromFile(file);
     }
-    
+
     private List<Long> extractIDsFromFile(File file) throws IOException {
         List<Long> ids = new ArrayList<Long>();
         FileReader fileReader = new FileReader(file);
@@ -878,7 +1032,7 @@ public class SlicingEngine {
         bufferedReader.close();
         return ids;
     }
-    
+
     private boolean prepareTargetDatabase() throws Exception {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.prepareTargetDatabase(): source database is not specified.");
@@ -898,16 +1052,16 @@ public class SlicingEngine {
             return false;
         return true;
     }
-    
+
     private boolean runImport(String fileName) throws Exception {
         StringBuilder importCommand = new StringBuilder();
         if (isInDev && path != null)
             importCommand.append(path);
         importCommand.append("mysql ");
         attachConnectInfo(importCommand,
-                          targetDbHost,
-                          targetDbUser,
-                          targetDbPwd);
+                targetDbHost,
+                targetDbUser,
+                targetDbPwd);
         importCommand.append(" ");
         importCommand.append(targetDbName);
         logger.info("runImport: " + importCommand.toString());
@@ -919,18 +1073,25 @@ public class SlicingEngine {
         process.destroy();
         return checkErrorMessage(errorMessage);
     }
-    
-    private Neo4JAdaptor getTargetDBA() throws Exception {
+
+    private PersistenceAdaptor getTargetDBA(boolean useNeo4J) throws Exception {
         if (targetDBA != null)
             return targetDBA;
-        targetDBA = new Neo4JAdaptor(targetDbHost,
-                                     targetDbName, 
-                                     targetDbUser, 
-                                     targetDbPwd, 
-                                     targetDbPort);
+        if (useNeo4J)
+            targetDBA = new Neo4JAdaptor(targetDbHost,
+                    targetDbName,
+                    targetDbUser,
+                    targetDbPwd,
+                    targetDbPort);
+        else
+            targetDBA = new MySQLAdaptor(targetDbHost,
+                    targetDbName,
+                    targetDbUser,
+                    targetDbPwd,
+                    targetDbPort);
         return targetDBA;
     }
-    
+
     private boolean checkErrorMessage(String error) {
         if (error == null || error.length() == 0)
             return true;
@@ -942,7 +1103,7 @@ public class SlicingEngine {
         logger.error(error);
         return false;
     }
-    
+
     private String getErrorMessage(Process process) throws Exception {
         InputStream is = process.getErrorStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -957,15 +1118,15 @@ public class SlicingEngine {
         logger.error(buffer.toString());
         return buffer.toString();
     }
-    
+
     private void attachConnectInfo(StringBuilder buffer,
-                                   Neo4JAdaptor dba) {
-        attachConnectInfo(buffer, 
-                          dba.getDBHost(),
-                          dba.getDBUser(),
-                          dba.getDBPwd());
+                                   PersistenceAdaptor dba) {
+        attachConnectInfo(buffer,
+                dba.getDBHost(),
+                dba.getDBUser(),
+                dba.getDBPwd());
     }
-    
+
     private void attachConnectInfo(StringBuilder buffer,
                                    String dbHost,
                                    String dbUser,
@@ -977,16 +1138,16 @@ public class SlicingEngine {
         buffer.append(" -p");
         buffer.append(dbPwd);
     }
-    
+
     private boolean createTargetDatabase() throws Exception {
         StringBuilder createDB = new StringBuilder();
         if (isInDev && path != null)
             createDB.append(path);
         createDB.append("mysqladmin ");
-        attachConnectInfo(createDB, 
-                          targetDbHost,
-                          targetDbUser,
-                          targetDbPwd);
+        attachConnectInfo(createDB,
+                targetDbHost,
+                targetDbUser,
+                targetDbPwd);
         createDB.append(" create ");
         createDB.append(targetDbName);
         logger.info("createTargetDatabase: " + createDB.toString());
@@ -996,7 +1157,7 @@ public class SlicingEngine {
         process.destroy();
         return checkErrorMessage(message);
     }
-    
+
     private void pipe(InputStream input, OutputStream output) throws Exception {
         // Reader and writer should not be used here since ad hoc bytes might be
         // in the database (e.g. Ontology table).
@@ -1015,7 +1176,7 @@ public class SlicingEngine {
         source.close();
         input.close();
     }
-     
+
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
         if (isInDev && path != null)
@@ -1067,11 +1228,11 @@ public class SlicingEngine {
         try {
             long time1 = System.currentTimeMillis();
             Properties properties = loadProperties();
-            
+
             Map<String, String> cmdLineProps = parsePropertiesInArgs(args);
             // Augment or override the auth.properties values.
             properties.putAll(cmdLineProps);
-            
+
             // Check if it is in development mode
             String isInDev = properties.getProperty("isInDev");
             if (isInDev != null && isInDev.equals("true"))
@@ -1079,11 +1240,11 @@ public class SlicingEngine {
             // Check if use for species is set
             String useForSpecies = properties.getProperty("useForSpecies");
             if (useForSpecies != null && useForSpecies.equals("true"))
-                ((ProjectBasedSlicingEngine)engine).setUseForSpecies(true);
+                ((ProjectBasedSlicingEngine) engine).setUseForSpecies(true);
             // Check if use for hierarchy is set
             String useForHierarchy = properties.getProperty("useForHierarchy");
             if (useForHierarchy != null && useForHierarchy.equals("true"))
-                ((ProjectBasedSlicingEngine)engine).setUseforHierarchy(true);
+                ((ProjectBasedSlicingEngine) engine).setUseforHierarchy(true);
             String dbHost = properties.getProperty("dbHost");
             if (dbHost == null || dbHost.trim().length() == 0)
                 dbHost = getInput("Please input the database host");
@@ -1099,7 +1260,7 @@ public class SlicingEngine {
             String pwd = properties.getProperty("dbPwd");
             if (pwd == null || pwd.trim().length() == 0)
                 pwd = getInput("Please input the password");
-            
+
             // Target database.
             String targetDbHost = properties.getProperty("slicingDbHost");
             if (targetDbHost == null || targetDbHost.trim().length() == 0)
@@ -1116,7 +1277,7 @@ public class SlicingEngine {
             String targetDbPort = properties.getProperty("slicingDbPort");
             if (targetDbPort == null || targetDbPort.trim().length() == 0)
                 targetDbPort = getInput("Please input the slice database port");
-            
+
             String fileName = properties.getProperty("releaseTopicsFileName");
             if (fileName == null || fileName.trim().length() == 0)
                 fileName = getInput("Please input the file name for releasing processes");
@@ -1132,13 +1293,13 @@ public class SlicingEngine {
             String speciesFileName = properties.getProperty("speciesFileName");
             if (speciesFileName == null || speciesFileName.trim().length() == 0)
                 speciesFileName = getInput("If you want to extract species, please input file name for the species list. " +
-                    "Otherwise, please input \"p\" to pass");
+                        "Otherwise, please input \"p\" to pass");
             if (speciesFileName.equalsIgnoreCase("p"))
                 speciesFileName = null;
             String logFileName = properties.getProperty("logFileName");
             if (logFileName == null || logFileName.trim().length() == 0)
                 logFileName = getInput("Please input the file name for logging validation results. " +
-                    "Please input \"c\" to direct the validation results to the console");
+                        "Please input \"c\" to direct the validation results to the console");
             if (logFileName.equalsIgnoreCase("c"))
                 logFileName = null;
             // Set released in StableIdentifier instances
@@ -1151,25 +1312,42 @@ public class SlicingEngine {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
             // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
-            Neo4JAdaptor previousSliceDBA = null;
+            PersistenceAdaptor previousSliceDBA = null;
             boolean needUpdateTrackers = false;
             if (properties.getProperty("needUpdateTrackers").toLowerCase().equals("true")) {
                 needUpdateTrackers = true;
                 logger.info("Revision detection requested.");
-                previousSliceDBA = new Neo4JAdaptor(properties.getProperty("previousSliceDbHost"),
-                                                    properties.getProperty("previousSliceDbName"),
-                                                    properties.getProperty("previousSliceDbUser"),
-                                                    properties.getProperty("previousSliceDbPwd"),
-                                                    Integer.parseInt(properties.getProperty("previousSliceDbPort")));
+                boolean useNeo4J = dbName.equals("graph.db");
+                if (useNeo4J)
+                    previousSliceDBA = new Neo4JAdaptor(properties.getProperty("previousSliceDbHost"),
+                            properties.getProperty("previousSliceDbName"),
+                            properties.getProperty("previousSliceDbUser"),
+                            properties.getProperty("previousSliceDbPwd"),
+                            Integer.parseInt(properties.getProperty("previousSliceDbPort")));
+                else
+                    previousSliceDBA = new MySQLAdaptor(properties.getProperty("previousSliceDbHost"),
+                            properties.getProperty("previousSliceDbName"),
+                            properties.getProperty("previousSliceDbUser"),
+                            properties.getProperty("previousSliceDbPwd"),
+                            Integer.parseInt(properties.getProperty("previousSliceDbPort")));
                 String text = properties.getProperty("uploadUpdateTrackersToSource");
                 if (text != null && text.equals("true"))
                     engine.uploadUpdateTrackersToSource = true;
             }
-            Neo4JAdaptor sourceDBA = new Neo4JAdaptor(dbHost,
-                                                      dbName,
-                                                      user,
-                                                      pwd,
-                                                      Integer.parseInt(dbPort));
+            PersistenceAdaptor sourceDBA;
+            boolean useNeo4J = dbName.equals("graph.db");
+            if (useNeo4J)
+                sourceDBA = new Neo4JAdaptor(dbHost,
+                        dbName,
+                        user,
+                        pwd,
+                        Integer.parseInt(dbPort));
+            else
+                sourceDBA = new MySQLAdaptor(dbHost,
+                        dbName,
+                        user,
+                        pwd,
+                        Integer.parseInt(dbPort));
             engine.setSource(sourceDBA);
             engine.setTargetDbName(targetDbName);
             engine.setTargetDbHost(targetDbHost);
@@ -1186,12 +1364,11 @@ public class SlicingEngine {
             engine.setPreviousSlice(previousSliceDBA);
             engine.setReleasedInStableIdentifier = new Boolean(setReleasedInStableIdentifier);
             engine.defaultPersonId = new Long(defaultPersonId);
-            engine.slice();
+            engine.slice(useNeo4J);
             long time2 = System.currentTimeMillis();
             logger.info("Total time for slicing: " + (time2 - time1) / (1000 * 60.0d) + " minutes");
             System.exit(0); // We have a background thread running from sourceDBA. Need to call this method to close it!
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error("SlicingEngine.main(): " + e, e);
             System.exit(1); // Need to call this since we have a background thread running
         }
@@ -1203,7 +1380,7 @@ public class SlicingEngine {
         if (args == null || args.length == 0)
             return cmdLineProps; // There is nothing to be parsed
         String option = null;
-        for (String arg: args) {
+        for (String arg : args) {
             if (arg.startsWith("--")) {
                 // An option without an argument has value true.
                 if (option != null) { // Consume the previous option
@@ -1224,7 +1401,7 @@ public class SlicingEngine {
         }
         return cmdLineProps;
     }
-    
+
     private static Properties loadProperties() throws IOException {
         FileInputStream fis = new FileInputStream("slicingTool.prop");
         Properties properties = new Properties();
@@ -1232,7 +1409,7 @@ public class SlicingEngine {
         fis.close();
         return properties;
     }
-    
+
     private static String getInput(String message) throws Exception {
         System.out.println(message + ": ");
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));

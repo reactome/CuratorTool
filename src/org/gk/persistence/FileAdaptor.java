@@ -11,13 +11,7 @@ import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +22,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.gk.model.Bookmark;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
@@ -2219,5 +2214,104 @@ public class FileAdaptor implements PersistenceAdaptor {
 			this.pos = pos;
 			this.length = length;
 		}
+	}
+
+	public Collection fetchInstance(QueryRequest aqr) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Set fetchInstance(List<QueryRequest> aqrList) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Set fetchIdenticalInstances(GKInstance instance) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public boolean exist(List dbIds) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public boolean exist(Long dbID) throws NotImplementedException {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void loadInstanceAttributeValues(Collection instances) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void loadInstanceAttributeValues(Collection instances, SchemaAttribute attribute) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void loadInstanceAttributeValues(Collection instances, Collection attributes) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void loadInstanceAttributeValues(Collection instances, String[] attNames) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public String getDBName() {
+		return null;
+	}
+
+	public String getDBHost() {
+		return null;
+	}
+
+	public String getDBUser() {
+		return null;
+	}
+
+	public String getDBPwd() {
+		return null;
+	}
+
+	public void setUseCache(boolean useInstanceCache) {
+	}
+
+	public void refreshCaches() throws NotImplementedException {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void txDeleteInstance(GKInstance instance) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void txStoreOrUpdate(Collection instances) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public long fetchMaxDbId() throws NotImplementedException {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Long txStoreInstance(GKInstance instance) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void txUpdateInstanceAttribute (GKInstance instance, String attributeName) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void cleanUp() throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Collection fetchInstances(String className, List<Long> dbIds) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public void loadInstanceReverseAttributeValues(Collection instances, String[] attNames) throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Integer getReleaseNumber() throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
+	}
+
+	public Map getAllInstanceCounts() throws Exception {
+		throw new NotImplementedException(new Object(){}.getClass().getEnclosingMethod().getName());
 	}
 }

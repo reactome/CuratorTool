@@ -53,9 +53,9 @@ import javax.swing.tree.TreeSelectionModel;
 
 import org.gk.graphEditor.ProcessTree;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.GKBWriter;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.Project;
 import org.gk.render.FlowLine;
 import org.gk.render.ReactionNode;
@@ -319,7 +319,7 @@ public class GKDBBrowserPopupManager {
 		for (Iterator it = selection.iterator(); it.hasNext();) {
 			GKInstance instance = (GKInstance) it.next();
 			try {
-				Neo4JAdaptor dba = browser.getNeo4JAdaptor();
+				PersistenceAdaptor dba = browser.getPersistenceAdaptor();
 				dba.txDeleteInstance(instance);
 				browser.getSchemaView().deleteInstance(instance);
 			}

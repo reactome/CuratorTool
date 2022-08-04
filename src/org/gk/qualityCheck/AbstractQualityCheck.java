@@ -46,11 +46,11 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaClass;
-import org.gk.util.FileUtilities;
 import org.gk.util.GKApplicationUtilities;
 import org.gk.util.ProgressPane;
 import org.jdom.Document;
@@ -144,7 +144,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         return words;
     }
 
-    protected void testCheckInCommand(Neo4JAdaptor dba) throws Exception {
+    protected void testCheckInCommand(PersistenceAdaptor dba) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
         setDatasource(dba);
         QAReport report = checkInCommand();
@@ -163,7 +163,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
      */
     @Override
     public QAReport checkInCommand() throws Exception {
-        if (dataSource == null || !(dataSource instanceof Neo4JAdaptor))
+        if (dataSource == null || !(dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor))
             return null; // This check will be run for a database only.
         // Load escape if any
         File file = new File("QA_SkipList" + File.separator + getSkipListFileName());
@@ -270,19 +270,28 @@ public abstract class AbstractQualityCheck implements QualityCheck {
     protected Action createCheckOutAction(final JFrame frame) {
         Action checkOutAction = new AbstractAction("Check Out") {
             public void actionPerformed(ActionEvent e) {
-                checkOutSelectedInstances(frame);
+                try {
+                    checkOutSelectedInstances(frame);
+                } catch (Exception ex) {
+                    System.err.println("AbstractQualityChecker.createCheckOutAction(): " + ex);
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(frame,
+                            "Cannot create checkout action from the central database: " + ex,
+                            "Error in checkout action",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         };
         return checkOutAction;
     }
 
-    protected void checkOutSelectedInstances(JFrame frame) {
+    protected void checkOutSelectedInstances(JFrame frame){
         List selected = getDisplayedList().getSelection();
         if (selected == null || selected.size() == 0)
             return;
         // First need to ask if the user wants to switch to gk_central database if the current
-        // active Neo4JAdaptor is not.
-        Neo4JAdaptor current = PersistenceManager.getManager().getActiveNeo4JAdaptor();
+        // active PersistenceAdaptor is not.
+        PersistenceAdaptor current = PersistenceManager.getManager().getActivePersistenceAdaptor();
         String[] centralDbInfo = getCentralDatabaseInfo();
         if (centralDbInfo != null) {
             String currentHost = current.getDBHost();
@@ -317,11 +326,11 @@ public abstract class AbstractQualityCheck implements QualityCheck {
                     prop.put("dbName", centralDb);
                     prop.remove("dbPwd"); // To force the connection dialog to appear
                     // Force to null
-                    PersistenceManager.getManager().setActiveNeo4JAdaptor(null);
-                    Neo4JAdaptor centralDBA = PersistenceManager.getManager().getActiveNeo4JAdaptor(frame);
+                    PersistenceManager.getManager().setActivePersistenceAdaptor(null);
+                    PersistenceAdaptor centralDBA = PersistenceManager.getManager().getActivePersistenceAdaptor(frame);
                     // If the user wants to switch, try to popup the connecting dialog information for confirmation
                     if (centralDBA == null) {// canceled 
-                        PersistenceManager.getManager().setActiveNeo4JAdaptor(current);
+                        PersistenceManager.getManager().setActivePersistenceAdaptor(current);
                         return;
                     }
                     FrameManager.getManager().closeBrowser();
@@ -357,7 +366,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
 
     protected void checkOutSelectedInstances(JFrame frame,
                                              List<GKInstance> selected) {
-        // Check out instances from the active Neo4JAdaptor
+        // Check out instances from the active PersistenceAdaptor
         Window parentDialog = (Window) SwingUtilities.getRoot(frame);
         try {
             checkOut(selected, parentDialog);
@@ -442,7 +451,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
             QualityCheck checker = (QualityCheck) Class.forName(checkerClsName).newInstance();
             checker.setDatasource(dataSource);
             // Only database can escape a set of instances.
-            checker.setIsInstancesEscapeNeeded(dataSource instanceof Neo4JAdaptor);
+            checker.setIsInstancesEscapeNeeded(dataSource instanceof MySQLAdaptor || dataSource instanceof Neo4JAdaptor);
             checker.setParentComponent(schemaView != null ? schemaView : eventView);
             checker.setSystemProperties(properties);
             if (schemaView != null) {
@@ -592,14 +601,14 @@ public abstract class AbstractQualityCheck implements QualityCheck {
      * @throws Exception
      */
     protected boolean loadAttributesForQAEscape(Collection<GKInstance> instances) throws Exception {
-        if (escapeHelper.isNeedEscape() && dataSource instanceof Neo4JAdaptor) {
+        if (escapeHelper.isNeedEscape() && (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor)) {
             // Load instances attribute
             if (progressPane != null)
                 progressPane.setText("Load created and modified values...");
-            Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+            PersistenceAdaptor dba = dataSource;
             SchemaClass dbcls = dba.getSchema().getClassByName(ReactomeJavaConstants.DatabaseObject);
-            dba.loadInstanceAttributeValues(instances,dbcls.getAttribute(ReactomeJavaConstants.created));
-            dba.loadInstanceAttributeValues(instances,dbcls.getAttribute(ReactomeJavaConstants.modified));
+            dba.loadInstanceAttributeValues(instances, dbcls.getAttribute(ReactomeJavaConstants.created));
+            dba.loadInstanceAttributeValues(instances, dbcls.getAttribute(ReactomeJavaConstants.modified));
             // Want to load all dateTime for instances
             Set ies = new HashSet();
             for (GKInstance inst : instances) {
@@ -685,7 +694,7 @@ public abstract class AbstractQualityCheck implements QualityCheck {
             add(checkOutBtn);
             checkOutBtn.setEnabled(false); // Default should be disabled
             // Don't need checkout for a local project
-            checkOutBtn.setVisible(dataSource instanceof Neo4JAdaptor);
+            checkOutBtn.setVisible(dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor);
             add(dumpToFileBtn);
             add(closeBtn);
         }

@@ -21,7 +21,9 @@ import java.util.stream.Collectors;
 
 import org.gk.database.ReverseAttributePane;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.util.FileUtilities;
@@ -43,7 +45,7 @@ public class DatabasesCleaning {
     
     @Test
     public void checkCatalystActivities() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "test_gk_central_efs_new",
                                             "root",
                                             "macmysql01");
@@ -74,7 +76,7 @@ public class DatabasesCleaning {
     
     @Test
     public void countRNAGenes() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                 "gk_central_091218",
                 "root",
                 "macmysql01");
@@ -103,7 +105,7 @@ public class DatabasesCleaning {
     
     @Test
     public void checkReferenceMoleculeDuplications() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca",
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
                 "gk_central",
                 "authortool", 
                 "T001test");
@@ -150,7 +152,7 @@ public class DatabasesCleaning {
     
     @Test
     public void checkComplexInferred() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_current_ver50",
                                             "root", 
                                             "macmysql01");
@@ -174,7 +176,7 @@ public class DatabasesCleaning {
     
     @Test
     public void checkInstancesInClasses() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_092412",
                                             "root", 
                                             "macmysql01");
@@ -362,7 +364,7 @@ public class DatabasesCleaning {
      */
     @Test
     public void deleteUnwantedSOInstances() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortool",
                                             "T001test");
@@ -380,13 +382,27 @@ public class DatabasesCleaning {
             if (referrers != null && referrers.size() > 0)
                 throw new IllegalStateException(inst + " has referrers: " + referrers.size());
         }
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            for (GKInstance inst : soInstances) {
-                dba.deleteInstance(inst, tx);
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                for (GKInstance inst : soInstances) {
+                    ((Neo4JAdaptor) dba).deleteInstance(inst, tx);
+                }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                for (GKInstance inst : soInstances) {
+                    ((MySQLAdaptor) dba).deleteInstance(inst);
+                }
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+            }
         }
         dba.cleanUp();
     }

@@ -35,6 +35,8 @@ import org.gk.database.SchemaDisplayPane;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchema;
@@ -100,7 +102,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return null; 
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource; // This should be enforced in the super method.
+        PersistenceAdaptor dba = dataSource; // This should be enforced in the super method.
         // The following statements are basically modified from check() by removing
         // all GUIs related stuff.
         Schema schema = dba.getSchema();
@@ -158,8 +160,8 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
                         if (instances == null || instances.size() == 0)
                             continue;
                         progressPane.setText("Loading attributes ...");
-                        if (dataSource instanceof Neo4JAdaptor) {
-                            loadAttributes(instances, (Neo4JAdaptor)dataSource);
+                        if (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor) {
+                            loadAttributes(instances, dataSource);
                             if (progressPane.isCancelled())
                                 break;
                         }
@@ -228,7 +230,7 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         return escaped;
     }
 
-    private void loadAttributes(Collection instances, Neo4JAdaptor dba) {
+    private void loadAttributes(Collection instances, PersistenceAdaptor dba) {
         // Sorting instances based on classes
         Map clsMap = new HashMap();
         GKInstance instance = null;
@@ -401,8 +403,8 @@ public class RequiredAttributesCheck extends AbstractQualityCheck {
         progressPane.setMaximum(instances.size());
         progressPane.setValue(0);
         progressPane.setText("Loading attributes ...");
-        if (dataSource instanceof Neo4JAdaptor) {
-            loadAttributes(instances, (Neo4JAdaptor)dataSource);
+        if (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor) {
+            loadAttributes(instances, dataSource);
         }
         progressPane.setText("Checking instances...");
         int c = 0;

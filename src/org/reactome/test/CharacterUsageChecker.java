@@ -11,8 +11,9 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
@@ -30,7 +31,7 @@ public class CharacterUsageChecker {
     
     @Test
     public void checkPersonSurname() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("reactomedev.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
                                             "gk_central",
                                             "authortool", 
                                             "T001test");

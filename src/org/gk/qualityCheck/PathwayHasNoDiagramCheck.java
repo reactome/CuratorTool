@@ -13,7 +13,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.junit.Test;
 
 /**
@@ -56,7 +56,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
     
     /**
      * Overrides the superclass
-     * {@link PathwayELVCheck#checkEventUsageInELV(Neo4JAdaptor)}
+     * {@link PathwayELVCheck#checkEventUsageInELV(MySQLAdaptor)}
      * method to collect offended pathways to report. The report issue
      * is retained in a {subpathway: detail} map for subsequent
      * reporting in {@link #addEventToDiagramMapToReport(QAReport, Map)}.
@@ -70,7 +70,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(Neo4JAdaptor dba) throws Exception {
+    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(PersistenceAdaptor dba) throws Exception {
         Map<GKInstance, Set<GKInstance>> rtn = new HashMap<>();
         // The {pathway: diagrams} map of all subpathway diagrams contained in the
         // event hierarchy of the key.
@@ -166,7 +166,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
 
     @Test
     public void testCheckInCommand() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "test_slice",
                                             "root",
                                             "macmysql01");

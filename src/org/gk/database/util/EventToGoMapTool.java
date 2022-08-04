@@ -14,8 +14,7 @@ import javax.swing.JFileChooser;
 import org.gk.database.FrameManager;
 import org.gk.database.GKDatabaseBrowser;
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
-
+import org.gk.model.PersistenceAdaptor;
 /**
  * 
  * @author wugm
@@ -36,7 +35,7 @@ public class EventToGoMapTool implements DBTool {
 		if (reply != JFileChooser.APPROVE_OPTION)
 			return;
 		File file = dialog.getSelectedFile();
-		Neo4JAdaptor adaptor = browser.getNeo4JAdaptor();
+		PersistenceAdaptor adaptor = browser.getPersistenceAdaptor();
 		try {
 			Collection events = adaptor.fetchInstancesByClass("Event");
 			processEvents(events, file);

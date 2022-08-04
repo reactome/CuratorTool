@@ -5,10 +5,12 @@ import java.util.*;
 import org.gk.model.ClassAttributeFollowingInstruction;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
+import org.gk.persistence.*;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.Schema;
 
-public class ReactionCoordinates {
+ public class ReactionCoordinates {
 
 	/*
 	 * Please note that this script will not run in release 15 db.
@@ -16,19 +18,32 @@ public class ReactionCoordinates {
 	 */
 	
 	public static void main(String[] args) throws Exception {
-		if (args.length != 5) {
-			System.err.println("java ReactionCoordinates host database user password port");
+		if (args.length != 6) {
+			System.err.println("java ReactionCoordinates host database user password port use_neo4j");
+			System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
 			System.exit(0);
 		}
 		
 		// Connect to the "main" db
-		Neo4JAdaptor dba =
-			new Neo4JAdaptor(
-				args[0],
-				args[1],
-				args[2],
-				args[3],
-				Integer.parseInt(args[4]));
+		PersistenceAdaptor dba;
+		boolean useNeo4J = Boolean.parseBoolean(args[6]);
+		if (useNeo4J) {
+			dba =
+					new Neo4JAdaptor(
+							args[0],
+							args[1],
+							args[2],
+							args[3],
+							Integer.parseInt(args[4]));
+		} else {
+			dba =
+					new MySQLAdaptor(
+							args[0],
+							args[1],
+							args[2],
+							args[3],
+							Integer.parseInt(args[4]));
+		}
 		
 		/*
 		 * Fetch instances of class "Pathway" having attribute "name" value equal to "Apoptosis"
@@ -37,11 +52,12 @@ public class ReactionCoordinates {
 		 */
 		System.out.println("\nHuman pathway(s) with name 'Apoptosis':");
 		// Construct the query
-		List<Neo4JAdaptor.QueryRequest> query = new ArrayList();
-		query.add(dba.createAttributeQueryRequest("Pathway","name","=","Apoptosis"));
-		Neo4JAdaptor.QueryRequestList subquery = dba.new QueryRequestList();
-		subquery.add(dba.createAttributeQueryRequest("Species","name","=","Homo sapiens"));
-		query.add(dba.createAttributeQueryRequest("Pathway","taxon","=",subquery));
+		List<QueryRequest> query = new ArrayList();
+		Schema schema = dba.getSchema();
+		query.add(new AttributeQueryRequest(schema, "Pathway","name","=","Apoptosis"));
+		QueryRequestList subquery = new QueryRequestList();
+		subquery.add(new AttributeQueryRequest(schema, "Species","name","=","Homo sapiens"));
+		query.add(new AttributeQueryRequest(schema, "Pathway","taxon","=",subquery));
 		// Execute the query
 		Set pathways2 = new HashSet(dba.fetchInstance(query));
 		// Loop over results

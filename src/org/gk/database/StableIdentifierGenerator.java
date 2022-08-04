@@ -294,7 +294,7 @@ public class StableIdentifierGenerator {
 		PersistenceManager persistenceManager = PersistenceManager.getManager();
 		// To avoid null exception
 		persistenceManager.setDBConnectInfo(new Properties());
-		Neo4JAdaptor dbAdaptor = persistenceManager.getActiveNeo4JAdaptor(null);
+		PersistenceAdaptor dbAdaptor = persistenceManager.getActivePersistenceAdaptor(null);
 		Set<GKInstance> speciesInstances = (Set<GKInstance>) dbAdaptor.fetchInstancesByClass(ReactomeJavaConstants.Species);
 		System.out.println("Species\tAbbrevitaion");
 		for (GKInstance speciesInstance : speciesInstances) {
@@ -309,7 +309,7 @@ public class StableIdentifierGenerator {
 		}
 		if (species.isShell()) {
 		    // We need to query the database to get the abbreviation
-		    Neo4JAdaptor dba = PersistenceManager.getManager().getActiveNeo4JAdaptor(parentComponent);
+		    PersistenceAdaptor dba = PersistenceManager.getManager().getActivePersistenceAdaptor(parentComponent);
 		    // Want to replace species with the db copy
 		    species = dba.fetchInstance(species.getDBID());
 		    if (species == null)

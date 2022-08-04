@@ -41,7 +41,9 @@ import org.gk.database.AttributePane;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
@@ -85,7 +87,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
         QAReport report = super.checkInCommand();
         if (report == null)
             return report;
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         Collection<GKInstance> reactions = dba.fetchInstancesByClass(ReactomeJavaConstants.Reaction);
         escapeInstances(reactions);
         loadAttributes(reactions, reactions.iterator().next());
@@ -124,7 +126,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
                     progressPane.setIndeterminate(true);
                     Collection reactions = dataSource.fetchInstancesByClass(cls);
                     checkReactions(reactions,
-                                   dataSource instanceof Neo4JAdaptor);
+                                   dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor);
                 }
                 catch(Exception e) {
                     hideProgressPane();
@@ -153,7 +155,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
                             reactions.add(event);
                     }
                     checkReactions(reactions, 
-                                   dataSource instanceof Neo4JAdaptor);
+                                   dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor);
                 }
                 catch(Exception e) {
                     hideProgressPane();
@@ -182,7 +184,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
      */
     private void loadAttributes(Collection<GKInstance> reactions,
                                 GKInstance reaction) throws Exception {
-        Neo4JAdaptor dba = (Neo4JAdaptor) reaction.getDbAdaptor();
+        PersistenceAdaptor dba = reaction.getDbAdaptor();
         Schema schema = dba.getSchema();
         SchemaClass cls = reaction.getSchemClass();
         if (progressPane != null)
@@ -494,7 +496,7 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
     @Override
     protected void checkOutSelectedInstances(JFrame parentFrame,
                                              List selected) {
-        // Check out instances from the active Neo4JAdaptor
+        // Check out instances from the active PersistenceAdaptor
         Window parentDialog = (Window) SwingUtilities.getRoot(parentFrame);
         try {
             GKInstance instance = (GKInstance) selected.iterator().next();
@@ -513,8 +515,8 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
             // load all values first before checking out
             for (Iterator it = checkOutInstances.iterator(); it.hasNext();) {
                 instance = (GKInstance) it.next();
-                Neo4JAdaptor dba = (Neo4JAdaptor) instance.getDbAdaptor();
-                dba.loadInstanceAttributeValues(instance);
+                PersistenceAdaptor dba = instance.getDbAdaptor();
+                dba.loadInstanceAttributeValues(Collections.singleton(instance));
             }
             // Want to do a full check out: get all participants for reactions
             checkOut(new ArrayList(checkOutInstances), parentDialog);
@@ -659,8 +661,9 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
                 try {
                     initProgressPane("Check Reaction Imbalance");
                     // If reactions size less than 20, use a simple way to load attributes
-                    checkReactions(reactions, 
-                                   dataSource instanceof Neo4JAdaptor && reactions.size() > SIZE_TO_LOAD_ATTS);
+                    checkReactions(reactions,
+                            (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor)
+                                    && reactions.size() > SIZE_TO_LOAD_ATTS);
                 }
                 catch(Exception e) {
                     hideProgressPane();
@@ -823,8 +826,8 @@ public class ImbalanceCheck extends ClassBasedQualityCheck {
 	            results = getImbalanceRefPepSeqMap(reaction);
 	            // Don't forget keys
 	            refPepSeqs = new ArrayList<GKInstance>(results.keySet());
-	            if (dataSource instanceof Neo4JAdaptor) {
-	                Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+	            if (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor) {
+	                PersistenceAdaptor dba = dataSource;
 	                // TO use new schema with ReferenceGeneProuct class
 	                String clsName = null;
 	                if (dba.getSchema().isValidClass(ReactomeJavaConstants.ReferenceGeneProduct))

@@ -22,7 +22,7 @@ import javax.swing.event.TreeSelectionListener;
 
 import org.gk.database.SearchPane;
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.GKSchemaClass;
 import org.gk.schema.SchemaAttribute;
@@ -127,7 +127,7 @@ public class ReactomeGOComparisonPane extends JPanel {
 		else {
 			searchDialog = new SearchDialog((Dialog)window, "Search");
 		}
-		Neo4JAdaptor dba = goPane.getNeo4JAdaptor();
+		PersistenceAdaptor dba = goPane.getPersistenceAdaptor();
 		java.util.List clses = new ArrayList();
 		clses.add(dba.getSchema().getClassByName("Event"));
 		clses.add(dba.getSchema().getClassByName("GO_BiologicalProcess"));
@@ -146,7 +146,7 @@ public class ReactomeGOComparisonPane extends JPanel {
 		String operator = searchPane.getOperator();
 		GKSchemaAttribute att = searchPane.getAttribute();
 		String value = searchPane.getText();
-		Neo4JAdaptor adaptor = goPane.getNeo4JAdaptor();
+		PersistenceAdaptor adaptor = goPane.getPersistenceAdaptor();
 		GKSchemaClass cls = searchPane.getSchemaClass();
 		try {
 			if (!(operator.equals("IS NULL"))
@@ -275,13 +275,13 @@ public class ReactomeGOComparisonPane extends JPanel {
 		goPane.addSelectionListener(goListener);
 	}
 	
-	public void setNeo4JAdaptor(Neo4JAdaptor adaptor) {
-		eventPane.setNeo4JAdaptor(adaptor);
-		goPane.setNeo4JAdaptor(adaptor);
+	public void setPersistenceAdaptor(PersistenceAdaptor adaptor) {
+		eventPane.setPersistenceAdaptor(adaptor);
+		goPane.setPersistenceAdaptor(adaptor);
 	}
 	
 	public void cleanUp() {
-		Neo4JAdaptor adaptor = goPane.getNeo4JAdaptor();
+		PersistenceAdaptor adaptor = goPane.getPersistenceAdaptor();
 		try {
 			adaptor.cleanUp();
 		}

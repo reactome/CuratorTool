@@ -17,7 +17,9 @@ import java.util.Set;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaClass;
 import org.jdom.Document;
@@ -665,18 +667,28 @@ public class GraphvizDotGenerator {
     }
     
     public static void main(String[] args) {
-        if (args.length < 8) {
+        if (args.length < 9) {
             System.out.println("Usage java org.reactome.gkCurator.GraphvizDotGenerator " +
                                "dbHost dbName dbUser dbPwd dbPort eventID dotPath reactomeUrl");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
             System.exit(0);
         }
         try {
             GraphvizDotGenerator generator = new GraphvizDotGenerator();
-            Neo4JAdaptor adaptor = new Neo4JAdaptor(args[0],
+            PersistenceAdaptor adaptor = null;
+            boolean useNeo4J = Boolean.parseBoolean(args[8]);
+            if (useNeo4J)
+             adaptor = new Neo4JAdaptor(args[0],
                     args[1],
                     args[2],
                     args[3],
                     Integer.parseInt(args[4]));
+            else
+                adaptor = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3],
+                        Integer.parseInt(args[4]));
             GKInstance pathway = adaptor.fetchInstance(new Long(args[5]));
             if (pathway != null) {
                 String svg = generator.generatePathwayDiagramInSVGForId(pathway, args[7], args[6]);

@@ -17,6 +17,7 @@ import javax.swing.JOptionPane;
 
 import org.gk.model.GKInstance;
 import org.gk.model.PathwayDiagramInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.Schema;
@@ -40,8 +41,8 @@ public class PersistenceManager {
     private static PersistenceManager manager;
     // MySQL connection
     private Map adaptorMap;
-    // The active Neo4JAdaptor
-    private Neo4JAdaptor activeDBAdaptor;
+    // The active DB Adaptor
+    private PersistenceAdaptor activeDBAdaptor;
     // The active file adaptor
     private XMLFileAdaptor activeFileAdaptor;
     //DB connecting info
@@ -57,11 +58,11 @@ public class PersistenceManager {
         return manager;
     }
 
-    public Neo4JAdaptor getActiveNeo4JAdaptor() {
+    public PersistenceAdaptor getActivePersistenceAdaptor() {
         return activeDBAdaptor;
     }
 
-    public void setActiveNeo4JAdaptor(Neo4JAdaptor adaptor) {
+    public void setActivePersistenceAdaptor(PersistenceAdaptor adaptor) {
         this.activeDBAdaptor = adaptor;
     }
 
@@ -74,29 +75,44 @@ public class PersistenceManager {
     }
 
     /**
-     * Return a Neo4JAdaptor for a specified Neo4J db. Calling this method will
-     * automatically set the active Neo4JAdaptor to the returned one.
+     * Return a PersistenceAdaptor for a specified Neo4J db. Calling this method will
+     * automatically set the active PersistenceAdaptor to the returned one.
      *
      * @param host   Database host
      * @param dbName Database name
      * @param user   User name to connect to the database
      * @param pwd    Password for the specified user name to connect to the database
      * @param port   Database port
-     * @return Neo4JAdaptor object connected to the specified database
+     * @return PersistenceAdaptor object connected to the specified database
      */
-    public Neo4JAdaptor getNeo4JAdaptor(String host,
-                                        String dbName,
-                                        String user,
-                                        String pwd,
-                                        int port) {
+    public PersistenceAdaptor getPersistenceAdaptor(String host,
+                                                    String dbName,
+                                                    String user,
+                                                    String pwd,
+                                                    int port){
         // Check if there is already one adaptor existence.
         ConnectInfo info = new ConnectInfo(host, dbName, user, pwd, port);
-        Neo4JAdaptor adaptor = (Neo4JAdaptor) adaptorMap.get(info);
-        if (adaptor == null) {
-            adaptor = new Neo4JAdaptor(host, dbName, user, pwd, port);
-            adaptorMap.put(info, adaptor);
+        Properties prop = getDBConnectInfo();
+        PersistenceAdaptor adaptor = null;
+        if (prop.get("dbName").equals("graph.db")) {
+            adaptor = (Neo4JAdaptor) adaptorMap.get(info);
+            if (adaptor == null) {
+                adaptor = new Neo4JAdaptor(host, dbName, user, pwd, port);
+                adaptorMap.put(info, adaptor);
+            }
+        } else {
+            try {
+                adaptor = (MySQLAdaptor) adaptorMap.get(info);
+                if (adaptor == null) {
+                    adaptor = new MySQLAdaptor(host, dbName, user, pwd, port);
+                    adaptorMap.put(info, adaptor);
+                }
+            } catch (SQLException e) {
+                System.err.println("PersistenceAdaptor.getMySQLAdaptor(): " + e);
+                e.printStackTrace();
+            }
         }
-        setActiveNeo4JAdaptor(adaptor);
+        setActivePersistenceAdaptor(adaptor);
         return adaptor;
     }
 
@@ -127,18 +143,18 @@ public class PersistenceManager {
     }
 
     /**
-     * An overloaded method to get the active Neo4JAdaptor. If no active Neo4JAdaptor,
+     * An overloaded method to get the active PersistenceAdaptor. If no active PersistenceAdaptor,
      * this method will try to initiate one automatically.
      *
      * @param comp Component GUI to display messages to the user
-     * @return the active Neo4JAdaptor.
-     * @see #getActiveNeo4JAdaptor()
+     * @return the active PersistenceAdaptor.
+     * @see #getActivePersistenceAdaptor()
      */
-    public Neo4JAdaptor getActiveNeo4JAdaptor(Component comp) {
-        Neo4JAdaptor dba = getActiveNeo4JAdaptor();
+    public PersistenceAdaptor getActivePersistenceAdaptor(Component comp){
+        PersistenceAdaptor dba = getActivePersistenceAdaptor();
         if (dba != null)
             return dba;
-        dba = initNeo4JAdaptor(comp);
+        dba = initDBAdaptor(comp);
         if (dba != null) {
             boolean compare = compareLocalAndDbSchema(dba);
             if (!compare) {
@@ -151,7 +167,7 @@ public class PersistenceManager {
                         "DB and Local Schema Not Same",
                         JOptionPane.YES_NO_OPTION);
                 if (reply == JOptionPane.NO_OPTION) {
-                    setActiveNeo4JAdaptor(null);
+                    setActivePersistenceAdaptor(null);
                     dba = null;
                 }
             }
@@ -172,7 +188,7 @@ public class PersistenceManager {
      * schemas).
      * @throws Exception
      */
-    private boolean compareLocalAndDbSchema(Neo4JAdaptor dba) {
+    private boolean compareLocalAndDbSchema(PersistenceAdaptor dba) {
         if (getActiveFileAdaptor() == null)
             return true; // No need to compare
         String dbTS = dba.getSchema().getTimestamp();
@@ -185,13 +201,13 @@ public class PersistenceManager {
     }
 
     /**
-     * Set up a Neo4JAdaptor and set it as the active Neo4JAdaptor based on the cached
+     * Set up a PersistenceAdaptor and set it as the active PersistenceAdaptor based on the cached
      * connecting information. Method setDBConnectInfo() should be called first. Otherwise,
      * the call to this method is deemed to fail.
      *
-     * @return the initilized Neo4JAdaptor.
+     * @return the initilized PersistenceAdaptor.
      */
-    private Neo4JAdaptor initNeo4JAdaptor(Component comp) {
+    private PersistenceAdaptor initDBAdaptor(Component comp) {
         String dbHost = dbConnectInfo.getProperty("dbHost");
         String dbName = dbConnectInfo.getProperty("dbName");
         String dbPort = dbConnectInfo.getProperty("dbPort");
@@ -215,7 +231,7 @@ public class PersistenceManager {
             } else
                 return null;
         }
-        return getNeo4JAdaptor(dbHost, dbName, dbUser, dbPwd, Integer.parseInt(dbPort));
+        return getPersistenceAdaptor(dbHost, dbName, dbUser, dbPwd, Integer.parseInt(dbPort));
     }
 
     public boolean initDatabaseConnection(Component comp) {
@@ -233,7 +249,7 @@ public class PersistenceManager {
                 dbConnectInfo = new Properties();
             }
         }
-        Neo4JAdaptor dbAdaptor = getActiveNeo4JAdaptor(comp);
+        PersistenceAdaptor dbAdaptor = getActivePersistenceAdaptor(comp);
         return dbAdaptor != null;
     }
 
@@ -263,7 +279,7 @@ public class PersistenceManager {
         if (activeFileAdaptor == null)
             throw new IllegalArgumentException("PersistenceManager.updateLocalSchema(): No local file adaptor defined.");
         if (activeDBAdaptor == null)
-            activeDBAdaptor = initNeo4JAdaptor(comp);
+            activeDBAdaptor = initDBAdaptor(comp);
         if (activeDBAdaptor == null) {
             throw new IllegalStateException("PersistenceManager.updateLocalSchema(): Cannot connect to the database.");
         }

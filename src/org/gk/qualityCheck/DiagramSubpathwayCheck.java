@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This QA check reports human subpathways which do not have a
@@ -65,7 +65,7 @@ public class DiagramSubpathwayCheck extends PathwayELVCheck {
     
     /**
      * Overrides the superclass
-     * {@link PathwayELVCheck#checkEventUsageInELV(Neo4JAdaptor)}
+     * {@link PathwayELVCheck#checkEventUsageInELV(PersistenceAdaptor)}
      * method to collect the subpathways to report. The report issue
      * is retained in a {subpathway: detail} map for subsequent
      * reporting in {@link #addEventToDiagramMapToReport(QAReport, Map)}.
@@ -79,7 +79,7 @@ public class DiagramSubpathwayCheck extends PathwayELVCheck {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(Neo4JAdaptor dba)
+    public Map<GKInstance, Set<GKInstance>> checkEventUsageInELV(PersistenceAdaptor dba)
             throws Exception {
         // Clear the details map.
         details.clear();

@@ -14,8 +14,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -37,7 +38,7 @@ import org.gk.schema.SchemaClass;
  * @author wgm
  */
 public class GeneInPathwayExtracter {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
     private Map pathwayMap;
     private Map pathwayEntitiesMap;
     private Map reactionMap; // To catch reaction result
@@ -411,7 +412,7 @@ public class GeneInPathwayExtracter {
     
     public static void main(String[] args) {
         try {
-            Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+            PersistenceAdaptor dba = new MySQLAdaptor("localhost",
                                                 "gk_current_ver17",
                                                 "root",
                                                 "macmysql01",

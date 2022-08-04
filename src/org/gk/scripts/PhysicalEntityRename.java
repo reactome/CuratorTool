@@ -12,7 +12,9 @@ import java.util.regex.Pattern;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.util.FileUtilities;
@@ -24,53 +26,62 @@ import org.neo4j.driver.Transaction;
 
 /**
  * This class is used to rename PhysicalEntity instances.
- * @author gwu
  *
+ * @author gwu
  */
 @SuppressWarnings("unchecked")
 public class PhysicalEntityRename {
     protected final String DIR_NAME = "resources/rename/";
-//    protected final String DIR_NAME = "";
+    //    protected final String DIR_NAME = "";
     private List<String> positionablePrefixes;
-    private Neo4JAdaptor dba;
-    
+    private PersistenceAdaptor dba;
+
     public static void main(String[] args) {
         try {
             // Need to get the database connection information
-            if (args.length < 4) {
-                System.err.println("Usage: java org.gk.scripts.PhysicalEntityRename dbHost dbName dbUser dbPwd");
+            if (args.length < 5) {
+                System.err.println("Usage: java org.gk.scripts.PhysicalEntityRename dbHost dbName dbUser dbPwd use_neo4j");
+                System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
                 System.exit(1);
             }
-            Neo4JAdaptor dba = new Neo4JAdaptor(args[0], 
-                                                args[1], 
-                                                args[2], 
-                                                args[3]);
+            PersistenceAdaptor dba = null;
+            boolean useNeo4J = Boolean.parseBoolean(args[4]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
+            else
+                dba = new MySQLAdaptor(args[0],
+                        args[1],
+                        args[2],
+                        args[3]);
             PhysicalEntityRename renamer = new PhysicalEntityRename();
             renamer.setDBA(dba);
             renamer.checkRenameEWASInstances();
             //renamer.renameEWASesInDb();
 //            renamer.fixEWASNamesInDb();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * This method is used to check renamed EWASes in gk_central in order to validate
      * the new names are correct without issues reported by Marija.
+     *
      * @throws Exception
      */
     @Test
     public void checkRenamedEWASesInDb() throws Exception {
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         // Read the logging file to get the list of DB_IDs for renamed EWASes
         String fileName = DIR_NAME + "EWASRename_gk_central_.txt";
         Map<Long, String> dbIdToNewName = loadDbIdToName(fileName);
         System.out.println("Total Renamed EWASes: " + dbIdToNewName.size());
         List<Long> dbIds = new ArrayList<Long>(dbIdToNewName.keySet());
-        Collection<GKInstance> renamedEWASes = dba.fetchInstances(ReactomeJavaConstants.PhysicalEntity, 
-                                                                  dbIds);
+        Collection<GKInstance> renamedEWASes = dba.fetchInstances(ReactomeJavaConstants.PhysicalEntity,
+                dbIds);
         System.out.println("In current gk_central: " + renamedEWASes.size());
         if (renamedEWASes.size() < dbIds.size()) {
             // Check what instances have been deleted
@@ -83,10 +94,10 @@ public class PhysicalEntityRename {
             for (Long id : copy)
                 System.out.println("\t" + id);
         }
-        
+
         // Load attributes for quick performance
-        dba.loadInstanceAttributeValues(renamedEWASes, 
-                                        new String[]{ReactomeJavaConstants.referenceEntity});
+        dba.loadInstanceAttributeValues(renamedEWASes,
+                new String[]{ReactomeJavaConstants.referenceEntity});
         // Check referenceEntities to make sure they refer to ReferenceGeneProduct instances only
         System.out.println("\nReferenceEntity value is not ReferenceGeneProduct:");
         int total = 0;
@@ -95,7 +106,7 @@ public class PhysicalEntityRename {
             if (refEntity.getSchemClass().isa(ReactomeJavaConstants.ReferenceGeneProduct))
                 continue;
             if (outputOffendedEWAS(inst, dbIdToNewName))
-                total ++;
+                total++;
         }
         System.out.println("Total: " + total);
         // Check if any isoforms are used
@@ -111,23 +122,23 @@ public class PhysicalEntityRename {
                 continue;
             // If the new name has been fixed, don't count it
             String newName = dbIdToNewName.get(inst.getDBID());
-            if (!newName.equals(inst.getDisplayName())) 
+            if (!newName.equals(inst.getDisplayName()))
                 continue;
             // Want to get the isoform id in name
             int index = variantIdentifier.lastIndexOf("-");
             String isoformId = variantIdentifier.substring(index);
-            String name = inst.getDisplayName(); 
+            String name = inst.getDisplayName();
             index = name.indexOf("[");
-            if (index > 0) 
+            if (index > 0)
                 name = name.substring(0, index).trim() + isoformId + " " + name.substring(index);
             else
                 name = name + isoformId;
             GKInstance ie = ScriptUtilities.getAuthor(inst);
-            System.out.println("\t" + inst.getDBID() + "\t" + 
-                               inst.getDisplayName() + "\t" +
-                               name + "\t" + 
-                               ie);
-            total ++;
+            System.out.println("\t" + inst.getDBID() + "\t" +
+                    inst.getDisplayName() + "\t" +
+                    name + "\t" +
+                    ie);
+            total++;
         }
         System.out.println("Total: " + total);
         // Check if there is any duplication in the name slot
@@ -137,7 +148,7 @@ public class PhysicalEntityRename {
         for (GKInstance inst : renamedEWASes) {
             List<String> names = inst.getAttributeValuesList(ReactomeJavaConstants.name);
             Set<String> nameSet = new HashSet<String>(names);
-            if (nameSet.size() == names.size()) 
+            if (nameSet.size() == names.size())
                 continue;
 //            // Check if the new name has been duplicated
 //            int count = 0;
@@ -147,8 +158,8 @@ public class PhysicalEntityRename {
 //                    count ++;
 //            }
 //            if (count > 1) {
-                if(outputOffendedEWAS(inst, dbIdToNewName))
-                    total ++;
+            if (outputOffendedEWAS(inst, dbIdToNewName))
+                total++;
 //            }
         }
         System.out.println("Total: " + total);
@@ -161,7 +172,7 @@ public class PhysicalEntityRename {
             if (disease == null)
                 continue;
             if (outputOffendedEWAS(inst, dbIdToNewName))
-                total ++;
+                total++;
         }
         System.out.println("Total: " + total);
         // Check if phosphorylation positions should be ordered based on coordiantes
@@ -174,14 +185,14 @@ public class PhysicalEntityRename {
             String fixName = dbIdToFixName.get(inst.getDBID());
             if (newName.equals(fixName))
                 continue;
-            if (!newName.equals(inst.getDisplayName())) 
+            if (!newName.equals(inst.getDisplayName()))
                 continue;
             GKInstance ie = ScriptUtilities.getAuthor(inst);
-            System.out.println("\t" + inst.getDBID() + "\t" + 
+            System.out.println("\t" + inst.getDBID() + "\t" +
                     inst.getDisplayName() + "\t" +
-                    fixName + "\t" + 
+                    fixName + "\t" +
                     ie);
-            total ++;
+            total++;
         }
         System.out.println("Total: " + total);
     }
@@ -199,52 +210,52 @@ public class PhysicalEntityRename {
             String newName = tokens[tokens.length - 1];
             int index = newName.lastIndexOf("[");
             if (index > 0)
-                newName = newName.substring(0, index).trim() + " " + newName.substring(index); 
+                newName = newName.substring(0, index).trim() + " " + newName.substring(index);
             dbIdToNewName.put(dbId,
-                              newName);
+                    newName);
         }
         fu.close();
         return dbIdToNewName;
     }
-    
+
     private boolean outputOffendedEWAS(GKInstance inst,
                                        Map<Long, String> dbIdToNewName) throws Exception {
         // If the new name has been fixed, don't count it
         String newName = dbIdToNewName.get(inst.getDBID());
-        if (!newName.equals(inst.getDisplayName())) 
+        if (!newName.equals(inst.getDisplayName()))
             return false;
         GKInstance ie = ScriptUtilities.getAuthor(inst);
-        System.out.println("\t" + inst.getDBID() + "\t" + 
-                            inst.getDisplayName() + "\t" +
-                            ie);
+        System.out.println("\t" + inst.getDBID() + "\t" +
+                inst.getDisplayName() + "\t" +
+                ie);
         return true;
     }
-    
+
     public PhysicalEntityRename() {
         positionablePrefixes = new ArrayList<String>();
         positionablePrefixes.add("Ub-");
         positionablePrefixes.add("Me2K-");
         positionablePrefixes.add("Me3K-");
     }
-    
-    protected Neo4JAdaptor getDBA() throws Exception {
+
+    protected PersistenceAdaptor getDBA() throws Exception {
         if (dba != null)
             return dba;
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost", 
-                                            "gk_central_062713",
-                                            "root",
-                                            "macmysql01");
-//        Neo4JAdaptor dba = new Neo4JAdaptor("reactomecurator.oicr.on.ca", 
+        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_central_062713",
+                "root",
+                "macmysql01");
+//        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                                            "gk_central",
 //                                            "authortool",
 //                                            "T001test");
         return dba;
     }
-    
-    public void setDBA(Neo4JAdaptor dba) {
+
+    public void setDBA(PersistenceAdaptor dba) {
         this.dba = dba;
     }
-    
+
     private Set<Long> getEWASDBIDsForChecking() throws IOException {
         String fileName = DIR_NAME + "CompartmentLessEWASNames.txt";
         FileUtilities fu = new FileUtilities();
@@ -258,9 +269,10 @@ public class PhysicalEntityRename {
         fu.close();
         return dbIds;
     }
-    
+
     /**
      * Reported by Steve, some instances were missed in renaming.
+     *
      * @throws IOException
      */
     @Test
@@ -279,13 +291,13 @@ public class PhysicalEntityRename {
         System.out.println("Total checked: " + checkingIds.size());
         missedIds.retainAll(checkingIds);
         System.out.println("Missed in checking: " + missedIds.size());
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         for (Long dbId : missedIds) {
             GKInstance inst = dba.fetchInstance(dbId);
             System.out.println(inst);
         }
     }
-    
+
     private Map<String, MODMapper> loadModMapper() throws IOException {
         Map<String, MODMapper> mapper = new HashMap<String, PhysicalEntityRename.MODMapper>();
         String fileName = DIR_NAME + "ptm_lookup.txt";
@@ -307,7 +319,7 @@ public class PhysicalEntityRename {
         fu.close();
         return mapper;
     }
-    
+
     private List<Long> loadDBIds(String fileName,
                                  boolean hasHeaders) throws IOException {
         List<Long> dbIds = new ArrayList<Long>();
@@ -319,10 +331,10 @@ public class PhysicalEntityRename {
         int count = 0;
         int emptyLine = 0;
         while ((line = fu.readLine()) != null) {
-            count ++;
+            count++;
             line = line.trim();
             if (line.length() == 0) {
-                emptyLine ++;
+                emptyLine++;
                 continue;
             }
             String[] tokens = line.split("\t");
@@ -335,10 +347,11 @@ public class PhysicalEntityRename {
 //        System.out.println("Empty lines: " + emptyLine);
         return dbIds;
     }
-    
+
     /**
      * About 5,000 human EWASes are missed from the first time renaming effor.
      * This method is used to rename those missed EWASes.
+     *
      * @throws Exception
      */
     @Test
@@ -351,7 +364,7 @@ public class PhysicalEntityRename {
         List<Long> renamedList = loadDBIds(DIR_NAME + "EWASRename_gk_central_.txt", true);
         System.out.println("Total renamed in the first time: " + renamedList.size());
         List<Long> newEscapeList = loadDBIds(DIR_NAME + "exemptions_.txt", true);
-        
+
         Set<Long> escapedIds = new HashSet<Long>();
 //        escapedIds.addAll(escapeList1);
 //        escapedIds.addAll(escapeList2);
@@ -363,12 +376,12 @@ public class PhysicalEntityRename {
 //        for (Long dbId : escapedIds)
 //            System.out.println(dbId);
         // Load all human EWASes in the database
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> ewases = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
-                                                                     ReactomeJavaConstants.species,
-                                                                     "=",
-                                                                     human);
+                ReactomeJavaConstants.species,
+                "=",
+                human);
         System.out.println("Total human ewases: " + ewases.size());
         preloadAttributes(dba, ewases);
         // This is IE used for last-renaming. Any EWASes containing this IE should be
@@ -378,7 +391,7 @@ public class PhysicalEntityRename {
         for (GKInstance ewas : ewases) {
             List<GKInstance> ies = ewas.getAttributeValuesList(ReactomeJavaConstants.modified);
             if (ies.contains(markedIE))
-                lastRenamed ++;
+                lastRenamed++;
         }
         // It should be 4647 or less if some of them have been deleted!
         System.out.println("Total of renamed EWASes last time in gk_central: " + lastRenamed);
@@ -400,16 +413,16 @@ public class PhysicalEntityRename {
 //            if (!ewas.getDBID().equals(3009350L))
 //                continue;
             if (escapedIds.contains(ewas.getDBID())) {
-                escapedBasedOnList ++;
-                continue; 
-            }
-            if (shouldEscape(ewas)) {
-                escapedBasedOnFeatures ++;
+                escapedBasedOnList++;
                 continue;
             }
-            String newDisplayName = createNewDisplayName(ewas, 
-                                                         modAccToMapper, 
-                                                         uniprotToChains);
+            if (shouldEscape(ewas)) {
+                escapedBasedOnFeatures++;
+                continue;
+            }
+            String newDisplayName = createNewDisplayName(ewas,
+                    modAccToMapper,
+                    uniprotToChains);
             // Get new name from newDisplayName by removing the compartment part
             String newName = null;
             int index = newDisplayName.indexOf("[");
@@ -421,14 +434,13 @@ public class PhysicalEntityRename {
             List<String> nameList = ewas.getAttributeValuesList(ReactomeJavaConstants.name);
             index = nameList.indexOf(newName);
             if (index == 0) {
-                escapedOnCorrectName ++;
+                escapedOnCorrectName++;
                 continue; // No need to rename
             }
             if (index > 0) {
                 nameList.remove(index);
                 nameList.add(0, newName);
-            }
-            else { // No in the list
+            } else { // No in the list
                 nameList.add(0, newName);
             }
             ewas.setAttributeValue(ReactomeJavaConstants.name, nameList);
@@ -447,11 +459,11 @@ public class PhysicalEntityRename {
             GKInstance ie = ScriptUtilities.getAuthor(ewas);
             // Reorder author so that it can be sorted in Excel
             String author = ie.getDisplayName() + " [DB_ID: " + ie.getDBID() + "]";
-            fu.printLine(ewas.getDBID() + "\t" + 
+            fu.printLine(ewas.getDBID() + "\t" +
                     startCoord + "\t" +
                     endCoord + "\t" +
-                    oldDisplayName + "\t" + 
-                    ewas.getDisplayName() + "\t" + 
+                    oldDisplayName + "\t" +
+                    ewas.getDisplayName() + "\t" +
                     author);
         }
         fu.close();
@@ -461,22 +473,22 @@ public class PhysicalEntityRename {
         System.out.println("Total updated: " + toBeUpdated.size());
     }
 
-    private void preloadAttributes(Neo4JAdaptor dba,
+    private void preloadAttributes(PersistenceAdaptor dba,
                                    Collection<GKInstance> ewases)
             throws Exception, InvalidAttributeException {
         // Load some attribtues to be used
         dba.loadInstanceAttributeValues(ewases,
-                                        new String[]{ReactomeJavaConstants._displayName,
-                                                     ReactomeJavaConstants.name,
-                                                     ReactomeJavaConstants.modified,
-                                                     ReactomeJavaConstants.disease,
-                                                     ReactomeJavaConstants.startCoordinate,
-                                                     ReactomeJavaConstants.endCoordinate,
-                                                     ReactomeJavaConstants.hasModifiedResidue,
-                                                     ReactomeJavaConstants.compartment, // For DisplayName generation
-                                                     ReactomeJavaConstants.modified, // These two attributes for pulling out author information
-                                                     ReactomeJavaConstants.created,
-                                                     ReactomeJavaConstants.referenceEntity});
+                new String[]{ReactomeJavaConstants._displayName,
+                        ReactomeJavaConstants.name,
+                        ReactomeJavaConstants.modified,
+                        ReactomeJavaConstants.disease,
+                        ReactomeJavaConstants.startCoordinate,
+                        ReactomeJavaConstants.endCoordinate,
+                        ReactomeJavaConstants.hasModifiedResidue,
+                        ReactomeJavaConstants.compartment, // For DisplayName generation
+                        ReactomeJavaConstants.modified, // These two attributes for pulling out author information
+                        ReactomeJavaConstants.created,
+                        ReactomeJavaConstants.referenceEntity});
         // Want to load all related ReferenceGeneProduct for quick performance
         Set<GKInstance> refEntities = new HashSet<GKInstance>();
         for (GKInstance ewas : ewases) {
@@ -485,10 +497,10 @@ public class PhysicalEntityRename {
                 continue;
             refEntities.add(refEntity);
         }
-        dba.loadInstanceAttributeValues(refEntities, 
-                                        new String[]{ReactomeJavaConstants.geneName, 
-                                                     ReactomeJavaConstants.identifier,
-                                                     ReactomeJavaConstants.variantIdentifier});
+        dba.loadInstanceAttributeValues(refEntities,
+                new String[]{ReactomeJavaConstants.geneName,
+                        ReactomeJavaConstants.identifier,
+                        ReactomeJavaConstants.variantIdentifier});
         // Modification
         Set<GKInstance> modifications = new HashSet<GKInstance>();
         for (GKInstance ewas : ewases) {
@@ -497,8 +509,8 @@ public class PhysicalEntityRename {
                 modifications.addAll(mods);
         }
         dba.loadInstanceAttributeValues(modifications,
-                                        new String[]{ReactomeJavaConstants.psiMod,
-                                                     ReactomeJavaConstants.coordinate});
+                new String[]{ReactomeJavaConstants.psiMod,
+                        ReactomeJavaConstants.coordinate});
         // Needs PsiMod identifier
         Set<GKInstance> psiMods = new HashSet<GKInstance>();
         for (GKInstance mod : modifications) {
@@ -509,18 +521,19 @@ public class PhysicalEntityRename {
                 psiMods.addAll(psi);
         }
         dba.loadInstanceAttributeValues(psiMods,
-                                        new String[]{ReactomeJavaConstants.identifier});
+                new String[]{ReactomeJavaConstants.identifier});
     }
-    
+
     /**
      * Check the results using gene names as EWAS instances' display names.
+     *
      * @throws Exception
      */
     @Test
     public void checkRenameEWASInstances() throws Exception {
         Set<Long> checkingDbIds = getEWASDBIDsForChecking();
         Map<String, MODMapper> modAccToMapper = loadModMapper();
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         // A list of escapes
         List<Long> escapeIds = loadDBIds(DIR_NAME + "exceptions.txt", false);
         new AttributesChecker().extraUniprotToChain();
@@ -528,13 +541,13 @@ public class PhysicalEntityRename {
         // For human proteins only
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
-                                                                ReactomeJavaConstants.species, 
-                                                                "=",
-                                                                human);
+                ReactomeJavaConstants.species,
+                "=",
+                human);
         dba.loadInstanceAttributeValues(c, new String[]{ReactomeJavaConstants.name,
-                                                        ReactomeJavaConstants.referenceEntity,
-                                                        ReactomeJavaConstants.startCoordinate,
-                                                        ReactomeJavaConstants.endCoordinate});
+                ReactomeJavaConstants.referenceEntity,
+                ReactomeJavaConstants.startCoordinate,
+                ReactomeJavaConstants.endCoordinate});
 //        String fileName = DIR_NAME + "EWASRename_111312.txt";
         //String fileName = DIR_NAME + "EWASRename_120412.txt";
 //        String fileName = DIR_NAME + "EWASRename_120612.txt";
@@ -556,18 +569,18 @@ public class PhysicalEntityRename {
                 continue;
             String newDisplayName = createNewDisplayName(inst, modAccToMapper, uniprotToChains);
             String name = (String) inst.getAttributeValuesList(ReactomeJavaConstants.name).get(0);
-            
+
             if (name.equalsIgnoreCase(newDisplayName))
-            	continue;
-            
+                continue;
+
             fu.printLine(inst.getDBID() + "\t" +
-                         inst.getAttributeValue(ReactomeJavaConstants.created) + "\t" + 
-                         name + "\t" + 
-                         newDisplayName);
+                    inst.getAttributeValue(ReactomeJavaConstants.created) + "\t" +
+                    name + "\t" +
+                    newDisplayName);
         }
         fu.close();
     }
-    
+
     private String createNewDisplayName(GKInstance inst,
                                         Map<String, MODMapper> modAccToMapper,
                                         Map<String, List<Point>> uniprotToChains) throws Exception {
@@ -604,7 +617,7 @@ public class PhysicalEntityRename {
         //names.remove(0); // Get back to the original one
         return newDisplayName;
     }
-    
+
     private String getCoordinateText(GKInstance ewas,
                                      Map<String, List<Point>> uniprotToChains) throws Exception {
         Integer start = (Integer) ewas.getAttributeValue(ReactomeJavaConstants.startCoordinate);
@@ -644,7 +657,7 @@ public class PhysicalEntityRename {
             return "(" + start + "-?)";
         return "";
     }
-    
+
     private boolean shouldEscape(GKInstance ewas) throws Exception {
         // Don't need to handle any mutated EWASes
         if (ewas.getDisplayName().toLowerCase().contains("mutant")) {
@@ -685,7 +698,7 @@ public class PhysicalEntityRename {
         }
         return false;
     }
-    
+
     private String getPrefixForModication(Map<String, MODMapper> idToMapper,
                                           GKInstance ewas) throws Exception {
         List<GKInstance> modifications = ewas.getAttributeValuesList(ReactomeJavaConstants.hasModifiedResidue);
@@ -707,8 +720,7 @@ public class PhysicalEntityRename {
             MODMapper mapper = idToMapper.get("MOD:" + identifier);
             if (mapper == null) {
                 type = (String) psiMod.getAttributeValue(ReactomeJavaConstants.name);
-            }
-            else {
+            } else {
                 type = mapper.prefix;
             }
             List<String> list = typeToResidue.get(type);
@@ -721,8 +733,7 @@ public class PhysicalEntityRename {
                 residue = mapper.letter;
                 if (coordinate != null)
                     residue += coordinate;
-            }
-            else if (coordinate != null) {
+            } else if (coordinate != null) {
                 residue += coordinate;
             }
             list.add(residue);
@@ -746,35 +757,31 @@ public class PhysicalEntityRename {
             if (!type.equals("p-") && !positionablePrefixes.contains(type)) {
                 if (residues.size() == 1) {
                     builder.append(type);
-                }
-                else { // Should greater than 1
+                } else { // Should greater than 1
                     builder.append(residues.size()).append("x").append(type);
                 }
-            }
-            else { // For phosphorylation
+            } else { // For phosphorylation
                 int emptyCount = 0;
-                for (Iterator<String> it = residues.iterator(); it.hasNext();) {
+                for (Iterator<String> it = residues.iterator(); it.hasNext(); ) {
                     String residue = it.next();
                     if (residue.length() == 0) {
-                        emptyCount ++;
+                        emptyCount++;
                         it.remove();
                     }
                 }
                 String tmp = joinResidules(type,
-                                           residues);
+                        residues);
                 if (emptyCount == 0) {
                     if (tmp.matches("(\\d)+") && residues.size() > 4) // Just simple number
                         builder.append(tmp).append("x").append(type);
                     else
                         builder.append(type).append(tmp);
-                }
-                else if (residues.size() == 0) { // All are empty
+                } else if (residues.size() == 0) { // All are empty
                     if (emptyCount == 1)
                         builder.append(type);
                     else
                         builder.append(emptyCount).append("x").append(type);
-                }
-                else {
+                } else {
                     if (tmp.matches("(\\d)+")) // Just simple number
                         builder.append(tmp).append("x").append(type);
                     else
@@ -791,7 +798,7 @@ public class PhysicalEntityRename {
         }
         return builder.toString();
     }
-    
+
     private String joinResiduesForP(List<String> residues) {
 //        if (residues.size() > 4) {
 //            String aa = residues.get(0).substring(0, 1);
@@ -805,8 +812,7 @@ public class PhysicalEntityRename {
             Integer number = residueToNumber.get(residue);
             if (number == null) {
                 residueToNumber.put(residue, 1);
-            }
-            else
+            } else
                 residueToNumber.put(residue, ++number);
         }
         List<String> keys = new ArrayList<String>(residueToNumber.keySet());
@@ -870,7 +876,7 @@ public class PhysicalEntityRename {
         builder.deleteCharAt(builder.length() - 1); // Remove the last ","
         return builder.toString();
     }
-    
+
     //TODO: limit the number of coordinate to 4 (see Steve's email on Nov 8, 2012) 
     private String joinResidules(String type,
                                  List<String> residues) {
@@ -887,8 +893,7 @@ public class PhysicalEntityRename {
             Integer number = residueToNumber.get(residue);
             if (number == null) {
                 residueToNumber.put(residue, 1);
-            }
-            else
+            } else
                 residueToNumber.put(residue, ++number);
         }
         StringBuilder builder = new StringBuilder();
@@ -898,23 +903,24 @@ public class PhysicalEntityRename {
             Integer number = residueToNumber.get(key);
             if (number == 1)
                 builder.append(key);
-            else 
+            else
                 builder.append(number).append("x").append(key);
             builder.append(",");
         }
         builder.deleteCharAt(builder.length() - 1); // Remove the last ","
         return builder.toString();
     }
-    
+
     /**
      * There is an extra space at the end of new names. Have to run this
      * fix to remove it.
+     *
      * @throws Exception
      */
     @Test
     public void fixEWASNamesInDb() throws Exception {
         String fileName = DIR_NAME + "EWASRename_.txt";
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -929,28 +935,28 @@ public class PhysicalEntityRename {
                 firstName = firstName.trim();
                 currentNames.remove(0);
                 currentNames.add(0, firstName);
-                instance.setAttributeValue(ReactomeJavaConstants.name, 
-                                           currentNames);
+                instance.setAttributeValue(ReactomeJavaConstants.name,
+                        currentNames);
                 InstanceDisplayNameGenerator.setDisplayName(instance);
                 toBeUpdated.add(instance);
-            }
-            else
+            } else
                 System.out.println("No need to fix: " + instance);
         }
         fu.close();
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
     }
-    
+
     /**
      * Commit short names generated from method checkRenameEWASInstances() into
      * the database.
+     *
      * @throws Exception
      */
     @Test
     public void renameEWASesInDb() throws Exception {
 //        String fileName = DIR_NAME + "EWASRename_050313.txt";
         String fileName = DIR_NAME + "Missed_First_EWASes_.txt";
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -979,30 +985,30 @@ public class PhysicalEntityRename {
                     currentNames.add(0, newName);
                     needUpdate = true;
                 }
-            }
-            else {
+            } else {
                 currentNames.add(0, newName);
                 needUpdate = true;
             }
             if (needUpdate) {
                 instance.setAttributeValue(ReactomeJavaConstants.name,
-                                           currentNames);
+                        currentNames);
                 String oldDisplayName = instance.getDisplayName();
                 InstanceDisplayNameGenerator.setDisplayName(instance);
                 // Commit to the database
-                System.out.println(instance.getDBID() + "\t" + 
-                                   oldDisplayName + "\t" +
-                                   instance.getDisplayName());
+                System.out.println(instance.getDBID() + "\t" +
+                        oldDisplayName + "\t" +
+                        instance.getDisplayName());
                 toBeUpdated.add(instance);
             }
         }
         fu.close();
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
     }
-    
+
     /**
      * Because of a bug in method "renameSmallMolecules", an extra IE has been added for SimpleEntity
      * that should not be changed. Remove this IE if nothing has been updated there.
+     *
      * @throws Exception
      */
     @Test
@@ -1020,32 +1026,56 @@ public class PhysicalEntityRename {
         }
         fu.close();
         System.out.println("Total updated instances: " + dbIds.size());
-        
-        Neo4JAdaptor dba = getDBA();
+
+        PersistenceAdaptor dba = getDBA();
         // My IE
 //        GKInstance newIE = dba.fetchInstance(2534102L);
         GKInstance newIE = dba.fetchInstance(2537470L);
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SimpleEntity);
         dba.loadInstanceAttributeValues(instances, new String[]{ReactomeJavaConstants.modified});
-        Driver driver = dba.getConnection();
-        try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
-            Transaction tx = session.beginTransaction();
-            int index = 0;
-            for (GKInstance inst : instances) {
-                if (dbIds.contains(inst.getDBID()))
-                    continue;
-                List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
-                if (modified.contains(newIE)) {
-                    modified.remove(newIE);
-                    dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
-                    System.out.println(index + ": " + inst);
-                    index ++;
+        if (dba instanceof Neo4JAdaptor) {
+            Driver driver = ((Neo4JAdaptor) dba).getConnection();
+            try (Session session = driver.session(SessionConfig.forDatabase(dba.getDBName()))) {
+                Transaction tx = session.beginTransaction();
+                int index = 0;
+                for (GKInstance inst : instances) {
+                    if (dbIds.contains(inst.getDBID()))
+                        continue;
+                    List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    if (modified.contains(newIE)) {
+                        modified.remove(newIE);
+                        dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, tx);
+                        System.out.println(index + ": " + inst);
+                        index++;
+                    }
                 }
+                tx.commit();
             }
-            tx.commit();
+        } else {
+            // MySQL
+            try {
+                ((MySQLAdaptor) dba).startTransaction();
+                int index = 0;
+                for (GKInstance inst : instances) {
+                    if (dbIds.contains(inst.getDBID()))
+                        continue;
+                    List<GKInstance> modified = inst.getAttributeValuesList(ReactomeJavaConstants.modified);
+                    if (modified.contains(newIE)) {
+                        modified.remove(newIE);
+                        dba.updateInstanceAttribute(inst, ReactomeJavaConstants.modified, null);
+                        System.out.println(index + ": " + inst);
+                        index ++;
+                    }
+                }
+                ((MySQLAdaptor) dba).commit();
+            }
+            catch(Exception e) {
+                ((MySQLAdaptor) dba).rollback();
+                throw e;
+            }
         }
     }
-    
+
     @Test
     public void renameSmallMolecules() throws Exception {
         String fileName = "rename/small_mol_renaming.txt";
@@ -1071,7 +1101,7 @@ public class PhysicalEntityRename {
         }
         fu.close();
         System.out.println("Total name to short name mappings: " + nameToShort.size());
-        Neo4JAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA();
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SimpleEntity);
         dba.loadInstanceAttributeValues(instances, new String[]{ReactomeJavaConstants.name});
         int totalChanged = 0;
@@ -1088,27 +1118,28 @@ public class PhysicalEntityRename {
             // just re-order it.
             if (names.contains(shortName)) {
                 names.remove(shortName);
-                inTheList ++;
+                inTheList++;
             }
             names.add(0, shortName);
             String oldName = instance.getDisplayName();
             InstanceDisplayNameGenerator.setDisplayName(instance);
-            System.out.println(instance.getDBID() + "\t" + 
-                               instance.getSchemClass().getName() + "\t" + 
-                               oldName + "\t" + 
-                               instance.getDisplayName());
-            totalChanged ++;
+            System.out.println(instance.getDBID() + "\t" +
+                    instance.getSchemClass().getName() + "\t" +
+                    oldName + "\t" +
+                    instance.getDisplayName());
+            totalChanged++;
             toBeUpdated.add(instance);
         }
         System.out.println("Total changed instances: " + totalChanged);
         System.out.println("Short name in the name list: " + inTheList);
-        
+
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
     }
-    
+
     /**
      * Use this method to check if renaming results from two runs are the same. This method can
      * be used to make sure bug fixes or improvements don't bring in un-expected changes.
+     *
      * @throws IOException
      */
     @Test
@@ -1138,16 +1169,16 @@ public class PhysicalEntityRename {
             String newName1 = dbIdToNewName1.get(dbId);
             if (newName1 != null && !newName1.equals(newName2)) {
                 System.out.println(dbId + "\t" + newName1 + "\t" + newName2);
-                count ++;
+                count++;
             }
         }
         System.out.println("Total: " + count);
     }
-    
+
     private Map<Long, String> loadDbIdToNewName(String fileName) throws IOException {
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
-        String line = fu.readLine(); 
+        String line = fu.readLine();
         Map<Long, String> dbIdToNewName = new HashMap<Long, String>();
         while ((line = fu.readLine()) != null) {
             String[] tokens = line.split("\t");
@@ -1155,18 +1186,18 @@ public class PhysicalEntityRename {
         }
         return dbIdToNewName;
     }
-    
+
     private class MODMapper {
         private String accession;
         private String prefix;
         private String letter;
-        
+
         /**
-         * 
+         *
          */
         public MODMapper() {
-            
+
         }
     }
-    
+
 }

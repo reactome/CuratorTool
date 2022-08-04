@@ -6,12 +6,7 @@ package org.gk.qualityCheck;
 
 import java.awt.BorderLayout;
 import java.awt.Window;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -24,7 +19,9 @@ import org.gk.database.InstanceListAttributePane;
 import org.gk.database.InstanceListPane;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.GKSchemaClass;
@@ -129,7 +126,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         escapeInstances(instances);
         if (instances.size() == 0) // Check instances after escape QAs
             return; // Nothing to be checked 
-        if (dataSource instanceof Neo4JAdaptor && instances.size() > SIZE_TO_LOAD_ATTS) 
+        if ((dataSource instanceof MySQLAdaptor || dataSource instanceof Neo4JAdaptor) && instances.size() > SIZE_TO_LOAD_ATTS)
             loadAttributes(instances);
         if (progressPane.isCancelled())
             return;
@@ -166,7 +163,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
         QAReport report = super.checkInCommand();
         if (report == null)
             return report;
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         Collection<GKInstance> instances = dba.fetchInstancesByClass(checkClsName);
         // Do an escape
         escapeInstances(instances);
@@ -373,7 +370,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             return;
         }
         // Check if it is editable
-        boolean isEditable = dataSource instanceof Neo4JAdaptor ? false : true;
+        boolean isEditable = (dataSource instanceof Neo4JAdaptor || dataSource instanceof MySQLAdaptor) ? false : true;
         // Construct a JFrame for results
         final JFrame frame = new JFrame(checkClsName + " " + checkAttribute + " Check Result");
         // Add another pane to display the checking result for the selected GKInstance
@@ -487,7 +484,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     @Override
     protected void checkOutSelectedInstances(JFrame parentFrame,
                                              List<GKInstance> selected) {
-        // Check out instances from the active Neo4JAdaptor
+        // Check out instances from the active PersistenceAdaptor
         Window parentDialog = (Window) SwingUtilities.getRoot(parentFrame);
         try {
             GKInstance instance = (GKInstance) selected.iterator().next();
@@ -505,8 +502,8 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
             }
             // load all values first before checking out
             for (GKInstance tmp : checkOutInstances) {
-                Neo4JAdaptor dba = (Neo4JAdaptor) tmp.getDbAdaptor();
-                dba.loadInstanceAttributeValues(tmp);
+                PersistenceAdaptor dba = tmp.getDbAdaptor();
+                dba.loadInstanceAttributeValues(Collections.singleton(tmp));
             }
             // Want to do a full check out: get all participants for reactions
             checkOut(new ArrayList<GKInstance>(checkOutInstances), parentDialog);
@@ -522,7 +519,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     protected Set<GKInstance> loadComplexHasComponent(Collection<GKInstance> instances,
-                                                      Neo4JAdaptor dba) throws Exception {
+                                                      PersistenceAdaptor dba) throws Exception {
         // Need to load all complexes in case some complexes are used by complexes for checking
         if (progressPane != null)
             progressPane.setText("Load Complex hasComponent...");
@@ -545,7 +542,7 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     }
 
     protected Set<GKInstance> loadEntitySetMembers(Collection<GKInstance> instances,
-                                                   Neo4JAdaptor dba) throws Exception {
+                                                   PersistenceAdaptor dba) throws Exception {
         // Need to load all constituent members and candidates in case
         // constituents are used for checking.
         if (progressPane != null)

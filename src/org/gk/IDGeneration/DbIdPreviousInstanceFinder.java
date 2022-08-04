@@ -4,8 +4,7 @@
 package org.gk.IDGeneration;
 
 import org.gk.model.GKInstance;
-import org.gk.persistence.Neo4JAdaptor;
-
+import org.gk.model.PersistenceAdaptor;
 /** 
  * Determines if and how a previous instance should be found
  * 
@@ -13,7 +12,7 @@ import org.gk.persistence.Neo4JAdaptor;
  *
  */
 class DbIdPreviousInstanceFinder extends PreviousInstanceFinder {
-	public DbIdPreviousInstanceFinder(String currentReleaseNum, Neo4JAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
+	public DbIdPreviousInstanceFinder(String currentReleaseNum, PersistenceAdaptor previousDba, boolean allowIDsFromUnspecifiedReleases, IdentifierDatabase identifierDatabase) {
 		super(currentReleaseNum, previousDba, allowIDsFromUnspecifiedReleases, identifierDatabase);
 	}
 	
@@ -21,7 +20,7 @@ class DbIdPreviousInstanceFinder extends PreviousInstanceFinder {
 		return true;
 	}
 	
-	public GKInstance getPreviousInstance() {
+	public GKInstance getPreviousInstance(boolean neo4J) {
 		// Look to see if there is stable ID info in the previous
 		// release for the given instance (use DB_ID as key).
 		GKInstance previousInstance = null;
@@ -47,7 +46,7 @@ class DbIdPreviousInstanceFinder extends PreviousInstanceFinder {
 			// it did not exist in some other release.  So, check to
 			// see if it can be found in earlier databases.
 			if (allowIDsFromUnspecifiedReleases && previousDba!=null && previousInstance==null) {
-				previousInstance = generateIDsFromUnspecifiedReleases(dbId, projectName, currentReleaseNum);
+				previousInstance = generateIDsFromUnspecifiedReleases(dbId, projectName, currentReleaseNum, neo4J);
 			}
 		} catch (Exception e) {
 			System.err.println("PreviousInstanceFinder.getPreviousIdentifier: problem fetching instances");

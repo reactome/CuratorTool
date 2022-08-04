@@ -8,24 +8,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 
 /**
  * This model class is used to help process data for comparing reactions in the sky.
  * @author wgm
  */
 public class ComparingReactionsInSkyModel {
-    private Neo4JAdaptor dba;
+    private PersistenceAdaptor dba;
 
     public ComparingReactionsInSkyModel() {
     }
 
-    public ComparingReactionsInSkyModel(Neo4JAdaptor dba) {
+    public ComparingReactionsInSkyModel(PersistenceAdaptor dba) {
         this.dba = dba;
     }
 
-    public void setNeo4JAdaptor(Neo4JAdaptor adapter) {
+    public void setPersistenceAdaptor(PersistenceAdaptor adapter) {
         this.dba = adapter;
     }
 

@@ -9,8 +9,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaClass;
 
 /**
@@ -76,7 +76,7 @@ public class EntitySetTypeCheck extends SingleAttributeClassBasedCheck {
     @Override
     protected void loadAttributes(Collection<GKInstance> instances)
             throws Exception {
-        Neo4JAdaptor dba = (Neo4JAdaptor) dataSource;
+        PersistenceAdaptor dba = dataSource;
         loadEntitySetMembers(instances, dba);
     }
 
