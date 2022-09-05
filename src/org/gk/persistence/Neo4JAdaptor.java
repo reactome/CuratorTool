@@ -47,6 +47,9 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     // Pause between each attempt to allow the other transaction to finish before trying again.
     int BACKOFF = 3000;
 
+    private static final List<String> META_CYPHER_CHARS =
+            Arrays.asList("\\[","\\]","\\(" ,"\\)", "\\?" ,"\\+" , "\\*" ,"\\.");
+
     /**
      * This default constructor is used for subclassing.
      */
@@ -681,6 +684,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             SchemaAttribute att = aqr.getAttribute();
             String attName = att.getName();
             Object value = aqr.getValue();
+            if (Arrays.asList("LIKE", "NOT LIKE", "REGEXP").contains(aqr.getOperator())) {
+                value = escapeMetaCypherCharactersForRegexQuery((String) value);
+            }
+
             if (att.isInstanceTypeAttribute()) {
                 // Instance attribute
                 List<String> operands = getQueryOperands(att.getOrigin().getName(), att.getName(), aqr);
@@ -2150,5 +2157,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     return null;
                 })
                 .filter(x -> x != null).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private static String escapeMetaCypherCharactersForRegexQuery(String str) {
+        for (String metaCh : META_CYPHER_CHARS) {
+            str = str.replaceAll(metaCh, "\\" + metaCh);
+        }
+        return str;
     }
 }

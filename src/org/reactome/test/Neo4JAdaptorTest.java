@@ -653,7 +653,7 @@ public class Neo4JAdaptorTest {
         assumeTrue(instances.size() > 0);
         // Test ReverseAttributeQueryRequest for a combination of "IS NOT NULL" and "IN"
         species = (GKInstance) neo4jAdaptor.fetchInstanceByAttribute(ReactomeJavaConstants.Species, ReactomeJavaConstants.name, "=", Arrays.asList("Homo sapiens", "H. sapiens")).iterator().next();
-        aqr1 = new AttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.species, "IN", species); // TODO: &&&&
+        aqr1 = new AttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.species, "IN", species);
         aqr2 = new ReverseAttributeQueryRequest(schema, "Pathway", ReactomeJavaConstants.hasEvent, "IS NOT NULL", null);
         instances = neo4jAdaptor.fetchInstance(Arrays.asList(aqr1, aqr2));
         assumeTrue(instances.size() > 0);
@@ -685,6 +685,11 @@ public class Neo4JAdaptorTest {
             Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
             assumeTrue(instances.size() > 0);
         }
+
+        AttributeQueryRequest aqr = new AttributeQueryRequest(schema, "BlackBoxEvent", "_displayName", "LIKE",
+                "MMADHC targets transport of cytosolic cob(II)alamin to mitochondria");
+        Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
     }
 
     @Test
