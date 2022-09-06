@@ -694,6 +694,11 @@ public class Neo4JAdaptorTest {
                 "D'Eustachio");
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "stableIdentifier", "=",
+                "R-HSA-450658.1");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
     }
 
     @Test
