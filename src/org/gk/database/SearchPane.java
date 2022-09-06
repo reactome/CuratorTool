@@ -10,14 +10,7 @@ import java.awt.Insets;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -52,6 +45,10 @@ public class SearchPane extends JPanel {
 	protected JButton searchBtn;
 	protected JButton searchMoreBtn;
 	protected JLabel classLabel;
+
+	private static final List<String> META_CYPHER_CHARS =
+			Arrays.asList("\\[","\\]","\\(" ,"\\)", "\\?" ,"\\+" , "\\*" ,"\\.");
+
 
 	public SearchPane() {
 		init();
@@ -263,6 +260,7 @@ public class SearchPane extends JPanel {
 	    String text = valueField.getText().trim();
 	    String operator = getOperator(operatorBox);
 	    if (operator.equals("LIKE") || operator.contentEquals("NOT LIKE"))
+			text = escapeMetaCypherCharactersForRegexQuery(text);
 	        text = ".*" + text + ".*";
 	    return text;
 	}
@@ -406,5 +404,12 @@ public class SearchPane extends JPanel {
 					setText(attribute.getName());
 				return comp;		
 		}
+	}
+
+	private static String escapeMetaCypherCharactersForRegexQuery(String str) {
+		for (String metaCh : META_CYPHER_CHARS) {
+			str = str.replaceAll(metaCh, "\\" + metaCh);
+		}
+		return str;
 	}
 }

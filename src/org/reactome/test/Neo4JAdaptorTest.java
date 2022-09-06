@@ -687,8 +687,12 @@ public class Neo4JAdaptorTest {
         }
 
         AttributeQueryRequest aqr = new AttributeQueryRequest(schema, "BlackBoxEvent", "_displayName", "LIKE",
-                "MMADHC targets transport of cytosolic cob(II)alamin to mitochondria");
+                "MMADHC targets transport of cytosolic cob\\(II\\)alamin to mitochondria");
         Collection<Instance> instances = neo4jAdaptor.fetchInstance(aqr);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "created", "LIKE",
+                "D'Eustachio");
+        instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
     }
 
