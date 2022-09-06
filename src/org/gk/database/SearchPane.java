@@ -258,11 +258,6 @@ public class SearchPane extends JPanel {
 	protected String getValue(JTextField valueField,
 	                          JComboBox operatorBox) {
 	    String text = valueField.getText().trim();
-	    String operator = getOperator(operatorBox);
-	    if (operator.equals("LIKE") || operator.contentEquals("NOT LIKE")) {
-			text = escapeMetaCypherCharactersForRegexQuery(text);
-			text = ".*" + text + ".*";
-		}
 	    return text;
 	}
 	

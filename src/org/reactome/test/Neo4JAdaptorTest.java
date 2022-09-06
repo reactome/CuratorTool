@@ -699,6 +699,11 @@ public class Neo4JAdaptorTest {
                 "R-HSA-450658.1");
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "DB_ID", "LIKE",
+                "111109");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 1);
     }
 
     @Test
