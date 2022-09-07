@@ -704,6 +704,16 @@ public class Neo4JAdaptorTest {
                 "111109");
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 1);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "_timestamp", "LIKE",
+                "2015-05-13");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 1);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "_timestamp", "REGEXP",
+                "201[5|6]-05-13.*");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 1);
     }
 
     @Test
