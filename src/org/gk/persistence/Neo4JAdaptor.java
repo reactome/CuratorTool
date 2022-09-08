@@ -759,7 +759,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             } else {
                 // Primitive attribute
                 whereClause.append(whereClauseKeyWord);
-                if (att.isMultiple()) {
+                if (att.isMultiple() && !aqr.getOperator().equals("IS NOT NULL")) {
                     // E.g. Species.name
                     whereClause.append(" ANY(x IN n.").append(attName);
                 } else {
@@ -884,7 +884,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     } else {
                         whereClause.append(" ").append(aqr.getOperator());
                     }
-                    if (att.isMultiple()) {
+                    if (att.isMultiple() && !aqr.getOperator().equals("IS NOT NULL")) {
                         whereClause.append(")");
                     }
                 }

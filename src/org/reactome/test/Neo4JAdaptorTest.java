@@ -723,6 +723,16 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0);
         assumeTrue(instances.size() < allInstances.size());
+
+        aqr = new AttributeQueryRequest(schema, "CellType", "synonym", "LIKE",
+                "hepatic");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+
+        aqr = new AttributeQueryRequest(schema, "CellType", "synonym", "IS NOT NULL",
+                "");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
     }
 
     @Test
