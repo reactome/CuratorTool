@@ -714,6 +714,15 @@ public class Neo4JAdaptorTest {
                 "201[5|6]-05-13.*");
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 1);
+
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "DB_ID", "!=",
+                "0");
+        Collection<Instance> allInstances = neo4jAdaptor.fetchInstance(aqr);
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "stableIdentifier", "IS NULL",
+                "");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+        assumeTrue(instances.size() < allInstances.size());
     }
 
     @Test
