@@ -754,6 +754,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                     .append(subAqr.getCls().getName()).append(")")
                                     .append("<-[:").append(attName).append("]-()");
                         }
+                    } else if (value instanceof java.lang.String) {
+                        String operator = " = ";
+                        if (Arrays.asList("LIKE", "NOT LIKE", "REGEXP").contains(aqr.getOperator())) {
+                            operator = " =~ ";
+                        }
+                        whereClause.append(whereClauseKeyWord).append(" s").append(pos).append("._displayName");
+                        whereClause.append(operator).append("\"");
+                        if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator())) {
+                            whereClause.append(".*").append(value).append(".*");
+                        } else {
+                            whereClause.append(value);
+                        }
+                        whereClause.append("\"");
                     }
                 }
             } else {

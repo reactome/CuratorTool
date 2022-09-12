@@ -3,10 +3,7 @@ package org.reactome.test;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.ReactomeJavaConstants;
-import org.gk.persistence.AttributeQueryRequest;
-import org.gk.persistence.DiagramGKBReader;
-import org.gk.persistence.Neo4JAdaptor;
-import org.gk.persistence.ReverseAttributeQueryRequest;
+import org.gk.persistence.*;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.*;
@@ -732,6 +729,14 @@ public class Neo4JAdaptorTest {
         aqr = new AttributeQueryRequest(schema, "CellType", "synonym", "IS NOT NULL",
                 "");
         instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
+
+        List<QueryRequest> aqrs = new ArrayList<>();
+        aqrs.add(new AttributeQueryRequest(schema, "ReactionlikeEvent", "_displayName", "LIKE",
+        "phosphoenolpyruvate"));
+        aqrs.add(new AttributeQueryRequest(schema, "ReactionlikeEvent", "stableIdentifier", "=",
+                "R-HSA-70241.2"));
+        instances = neo4jAdaptor.fetchInstance(aqrs);
         assumeTrue(instances.size() > 0);
     }
 
