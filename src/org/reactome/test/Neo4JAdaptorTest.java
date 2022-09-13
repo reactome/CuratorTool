@@ -522,7 +522,7 @@ public class Neo4JAdaptorTest {
     public void testFetchIdenticalInstances() throws Exception {
         GKInstance instance =
                 (GKInstance) neo4jAdaptor.fetchInstancesByClass("Complex", Collections.singletonList(2247475L)).iterator().next();
-               //  (GKInstance) neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L)).iterator().next();
+        //  (GKInstance) neo4jAdaptor.fetchInstancesByClass("Pathway", Collections.singletonList(9612973L)).iterator().next();
         Set<Instance> identicals = neo4jAdaptor.fetchIdenticalInstances(instance);
         assumeTrue(identicals == null);
     }
@@ -675,7 +675,7 @@ public class Neo4JAdaptorTest {
     @Test
     public void testFetchInstanceByQueryRequest4() throws Exception {
 
-        for (String operator : Arrays.asList("LIKE","NOT LIKE","REGEXP")) {
+        for (String operator : Arrays.asList("LIKE", "NOT LIKE", "REGEXP")) {
             String value = "NFKbeta";
             AttributeQueryRequest aqr =
                     new AttributeQueryRequest(schema, "Pathway", "_displayName", "NOT LIKE", value);
@@ -733,11 +733,19 @@ public class Neo4JAdaptorTest {
 
         List<QueryRequest> aqrs = new ArrayList<>();
         aqrs.add(new AttributeQueryRequest(schema, "ReactionlikeEvent", "_displayName", "LIKE",
-        "phosphoenolpyruvate"));
+                "phosphoenolpyruvate"));
         aqrs.add(new AttributeQueryRequest(schema, "ReactionlikeEvent", "stableIdentifier", "=",
                 "R-HSA-70241.2"));
         instances = neo4jAdaptor.fetchInstance(aqrs);
         assumeTrue(instances.size() > 0);
+
+    }
+
+    @Test(expected = Exception.class)
+    public void testFetchInstanceByQueryRequest5() throws Exception {
+        AttributeQueryRequest aqr = new AttributeQueryRequest(schema, "Event", "DB_ID", "EQUALS",
+                "");
+        neo4jAdaptor.fetchInstance(aqr);
     }
 
     @Test
