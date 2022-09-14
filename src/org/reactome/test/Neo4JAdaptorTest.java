@@ -744,6 +744,15 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqrs);
         assumeTrue(instances.size() > 0);
 
+        // Test finding instances using multiple clauses for the same (List of primitive values) attribute, e.g. Event.name
+        aqrs = new ArrayList<>();
+        aqrs.add(new AttributeQueryRequest(schema, "Event", "name", "LIKE",
+                "react to form oxaloacetate"));
+        aqrs.add(new AttributeQueryRequest(schema, "Event", "name", "LIKE",
+                "orthophosphate"));
+        instances = neo4jAdaptor.fetchInstance(aqrs);
+        assumeTrue(instances.size() > 0);
+
     }
 
     @Test(expected = Exception.class)
