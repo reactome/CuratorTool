@@ -591,31 +591,35 @@ public class EventCentricViewPane extends JPanel {
 				PersistenceAdaptor persistenceAdaptor = eventPane.getPersistenceAdaptor();
 				try {		    
 				    c = searchPane.search(persistenceAdaptor);
+					if (c == null || c.size() == 0) {
+						JOptionPane.showMessageDialog(EventCentricViewPane.this,
+								"No " + searchPane.getSchemaClass().getName() + " found.",
+								"Search Result",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+					else {
+						// Check if there are too many instances to be displayed
+						if (c.size() > 500) { // 500 is arbitrary
+							JOptionPane.showMessageDialog(EventCentricViewPane.this,
+									c.size() + " instances have been found for this search. Only 500 instances will be selected\n" +
+											"in the tree view. You can use \"Search More\" feature to limit your search criteria.",
+									"Search Result",
+									JOptionPane.WARNING_MESSAGE);
+							List<GKInstance> list = new ArrayList<GKInstance>(c);
+							InstanceUtilities.sortInstances(list);
+							eventPane.select(list.subList(0, 500));
+						}
+						else
+							eventPane.select(c);
+					}
 				}
 				catch (Exception e) {
 				    System.err.println("EventCentricViewPane.search(): " + e);
 				    e.printStackTrace();
-				}
-				if (c == null || c.size() == 0) {
-				    JOptionPane.showMessageDialog(EventCentricViewPane.this,
-				                                  "No " + searchPane.getSchemaClass().getName() + " found.",
-				                                  "Search Result",
-				                                  JOptionPane.INFORMATION_MESSAGE);
-				}
-				else {
-					// Check if there are too many instances to be displayed
-				    if (c.size() > 500) { // 500 is arbitrary
-				        JOptionPane.showMessageDialog(EventCentricViewPane.this, 
-				                                      c.size() + " instances have been found for this search. Only 500 instances will be selected\n" + 
-				                                      "in the tree view. You can use \"Search More\" feature to limit your search criteria.",
-				                                      "Search Result",
-				                                      JOptionPane.WARNING_MESSAGE);
-				        List<GKInstance> list = new ArrayList<GKInstance>(c);
-				        InstanceUtilities.sortInstances(list);
-				        eventPane.select(list.subList(0, 500));
-				    }
-				    else
-				        eventPane.select(c);
+					JOptionPane.showMessageDialog(this,
+							"Error in search: " + e,
+							"Error in Search",
+							JOptionPane.ERROR_MESSAGE);
 				}
 				searchPane.setCursor(Cursor.getDefaultCursor());
 				searchLabel.setText("Search Events");

@@ -797,19 +797,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                 try {
                                     vals.add(Long.parseLong((String) val));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Long for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Long for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.INTEGER_TYPE) {
                                 try {
                                     vals.add(Integer.parseInt((String) val));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Integer for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Integer for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.FLOAT_TYPE) {
                                 try {
                                     vals.add(Float.parseFloat((String) val));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Float for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Float for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.BOOLEAN_TYPE) {
                                 try {
@@ -861,19 +861,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                 try {
                                     whereClause.append(operator).append(Long.parseLong((String) value));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Long for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Long for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.INTEGER_TYPE) {
                                 try {
                                     whereClause.append(operator).append(Integer.parseInt((String) value));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Integer for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Integer for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.FLOAT_TYPE) {
                                 try {
                                     whereClause.append(operator).append(Float.parseFloat((String) value));
                                 } catch (NumberFormatException nfe) {
-                                    throw new Exception("Please provide as value a number of type Float for attribute: " + attName);
+                                    throw new Exception("Please provide a number of type Float for attribute: " + attName);
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.BOOLEAN_TYPE) {
                                 try {
