@@ -854,7 +854,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         }
 
                         if (value instanceof String) {
-                            if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator()) && att.getTypeAsInt() != SchemaAttribute.STRING_TYPE) {
+                            if (Arrays.asList("LIKE", "NOT LIKE", "REGEXP").contains(aqr.getOperator()) && att.getTypeAsInt() != SchemaAttribute.STRING_TYPE) {
                                 // E.g. LIKE query for DB_ID
                                 whereClause.append(operator).append("\"").append(".*").append(value).append(".*").append("\"");
                             } else if (att.getTypeAsInt() == SchemaAttribute.LONG_TYPE) {

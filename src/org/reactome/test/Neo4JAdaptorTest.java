@@ -702,6 +702,11 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 1);
 
+        aqr = new AttributeQueryRequest(schema, "DatabaseObject", "DB_ID", "REGEXP",
+                "^.*11110.*$");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 1);
+
         aqr = new AttributeQueryRequest(schema, "DatabaseObject", "_timestamp", "LIKE",
                 "2015-05-13");
         instances = neo4jAdaptor.fetchInstance(aqr);
