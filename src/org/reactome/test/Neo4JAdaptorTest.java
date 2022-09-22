@@ -747,6 +747,11 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqr);
         assumeTrue(instances.size() > 0 && instances.size() > numInstancesWithEmptyDisplayName);
 
+        aqr = new AttributeQueryRequest(schema, "ReactionlikeEvent", "stableIdentifier", "=",
+                "");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() == 0);
+
         List<QueryRequest> aqrs = new ArrayList<>();
         aqrs.add(new AttributeQueryRequest(schema, "ReactionlikeEvent", "_displayName", "LIKE",
                 "phosphoenolpyruvate"));

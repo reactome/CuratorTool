@@ -733,8 +733,15 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     if (value == null || value.equals("") || value instanceof org.gk.model.Instance) {
                         if (!aqr.getOperator().equals("IS NOT NULL")) {
                             if (!aqr.getOperator().equals("IS NULL")) {
-                                whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID = ").append(((GKInstance) value).getDBID());
+                                if (value instanceof org.gk.model.Instance)
+                                    whereClause.append(whereClauseKeyWord).append(" s").append(pos).append(".DB_ID = ").append(((GKInstance) value).getDBID());
+                                else
+                                    // value == null || value.equals("") - we make it the same as IS NULL
+                                    whereClause.append(whereClauseKeyWord).append(" NOT ").append("(n)")
+                                            .append(operands.get(0)).append("[:").append(attName).append("]")
+                                            .append(operands.get(1)).append("() ");
                             } else {
+                                // aqr.getOperator().equals("IS NULL")
                                 whereClause.append(whereClauseKeyWord).append(" NOT ").append("(n)")
                                         .append(operands.get(0)).append("[:").append(attName).append("]")
                                         .append(operands.get(1)).append("() ");
