@@ -761,7 +761,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                         }
                         whereClause.append(whereClauseKeyWord).append(" s").append(pos).append("._displayName");
                         whereClause.append(operator).append("\"");
-                        if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator())) {
+                        if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator()) && !value.equals("")) {
                             whereClause.append(".*").append(value).append(".*");
                         } else {
                             whereClause.append(value);
@@ -883,7 +883,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                 }
                             } else if (att.getTypeAsInt() == SchemaAttribute.STRING_TYPE) {
                                 whereClause.append(operator).append("\"");
-                                if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator())) {
+                                if (Arrays.asList("LIKE", "NOT LIKE").contains(aqr.getOperator()) && !value.equals("")) {
                                     whereClause.append(".*").append(value).append(".*");
                                 } else {
                                     whereClause.append(value);
