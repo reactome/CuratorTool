@@ -48,7 +48,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     int BACKOFF = 3000;
 
     private static final List<String> META_CYPHER_CHARS =
-            Arrays.asList("\\[","\\]","\\(" ,"\\)", "\\?" ,"\\+" , "\\*" ,"\\.");
+            Arrays.asList("\\[", "\\]", "\\(", "\\)", "\\?", "\\+", "\\*", "\\.");
 
     /**
      * This default constructor is used for subclassing.
@@ -336,7 +336,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 List<GKSchemaAttribute> atts = cypherQueries.get(query);
                 try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
                     Result result = null;
-                    for (GKSchemaAttribute att: atts) {
+                    for (GKSchemaAttribute att : atts) {
                         loadAllAttributeValues(instanceClassName, att);
                     }
                     if (!useAttributeValuesCache) {
@@ -381,7 +381,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                                 String valueSchemaClass = resultsForAttr.get(0).get(1).asString();
                                                 if (val != NullValue.NULL) {
                                                     handleAttributeValue(ins, gkAtt,
-                                                            Collections.singletonList(new AttributeValueCache.AttValCacheRecord(val,valueSchemaClass)), recursive);
+                                                            Collections.singletonList(new AttributeValueCache.AttValCacheRecord(val, valueSchemaClass)), recursive);
                                                 }
                                             }
                                         }
@@ -847,7 +847,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                     }
                 } else {
                     // Single primitive value
-                    if (!Arrays.asList("IS NULL", "IS NOT NULL").contains(aqr.getOperator())) {
+                    if (!Arrays.asList("IS NOT NULL").contains(aqr.getOperator()) &&
+                            (!Arrays.asList("IS NULL").contains(aqr.getOperator()) || att.isMultiple())
+                    ) {
+                        // Any operator other than "IS NOT NULL", but if it's "IS NULL" it needs to be for a multiple-value attribute
                         String operator = " = ";
                         if (Arrays.asList("LIKE", "NOT LIKE", "REGEXP").contains(aqr.getOperator())) {
                             operator = " =~ ";

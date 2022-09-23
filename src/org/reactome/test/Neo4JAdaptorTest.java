@@ -769,6 +769,14 @@ public class Neo4JAdaptorTest {
         instances = neo4jAdaptor.fetchInstance(aqrs);
         assumeTrue(instances.size() > 0);
 
+        aqr = new AttributeQueryRequest(schema, "ControlledVocabulary", "name", "IS NULL",
+                "");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() == 0);
+        aqr = new AttributeQueryRequest(schema, "ControlledVocabulary", "definition", "IS NULL",
+                "");
+        instances = neo4jAdaptor.fetchInstance(aqr);
+        assumeTrue(instances.size() > 0);
     }
 
     @Test(expected = Exception.class)
