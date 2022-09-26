@@ -7,6 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * This class implements a cache of all values assigned to attributes of classes. The intention behind this cache is
+ * to speed-up loading (specifically from Neo4J) of Schema and Event view in CuratorTool.
+ * @author datasome
+ */
 public class AttributeValueCache {
     // Class Name -> Attribute Name -> DB_ID -> List<Value>
     private Map<String, Map<String, Map<Long, List<AttValCacheRecord>>>> cache = new ConcurrentHashMap<>();

@@ -27,6 +27,11 @@ import java.util.stream.StreamSupport;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/**
+ * This class implements PersistenceAdaptor for Neo4J
+ * @author datasome
+ */
+
 public class Neo4JAdaptor implements PersistenceAdaptor {
     private String host;
     private String database;
@@ -164,7 +169,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return ret;
     }
 
-    // Load all values for className and att and put them into attributeValuesCache
+    /**
+     * Load into attributeValuesCache all values for attribute att of instances of class className - see AttributeValuesCache
+     * @param className
+     * @param att GKSchemaAttribute
+     * @throws Exception
+     */
     public void loadAllAttributeValues(String className, SchemaAttribute att) throws Exception {
         if (useAttributeValuesCache == false || attributeValuesCache.inCacheAlready(className, att.getName())) {
             return;
@@ -248,6 +258,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         loadInstanceAttributeValues(instances, Collections.singleton(attribute));
     }
 
+    /**
+     *
+     * @param instances Collection of GKInstance objects for which to load attributes
+     * @param attributes Collection of GKSchemaAttribute
+     * @throws Exception
+     */
     public void loadInstanceAttributeValues(Collection instances, Collection attributes) throws Exception {
         loadInstanceAttributeValues(instances, attributes, true);
     }
@@ -460,6 +476,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    // Populate attribute att of instance ins with value(s) from attValCacheRecords, recursively - if recursive is set to true
     private void handleAttributeValue(GKInstance ins, GKSchemaAttribute att,
                                       List<AttributeValueCache.AttValCacheRecord> attValCacheRecords, Boolean recursive) throws Exception {
         Integer typeAsInt = att.getTypeAsInt();
@@ -526,6 +543,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    // Attempt to retrieve instance of class attributeClass from cache. If the instance was not in cache or is not inflated, inflate it
+    // (i.e. populate all its attributes recursively).
     private GKInstance getInflateInstance(Value value, SchemaClass attributeClass) throws Exception {
         Long dbID = value.asLong();
         // DEBUG: System.out.println("In list: " + ins.getSchemClass().getName() + " : " + attributeClass.getName() + " : " + dbID);
@@ -625,6 +644,14 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         loadInstanceAttributeValues(instances, attributes);
     }
 
+    /**
+     * Retrieve from the database instance(s) using a query constructed from AttributeQueryRequest(attribute, operator, value)
+     * @param attribute GKSchemaAttribute
+     * @param operator operator
+     * @param value Attribute value
+     * @return Collection of GKInstance
+     * @throws Exception if the values retrieved from the database are not of the type expected for the query's attribute
+     */
     public Collection fetchInstanceByAttribute(SchemaAttribute attribute, String operator, Object value) throws
             Exception {
         AttributeQueryRequest aqr = new AttributeQueryRequest(attribute, operator, value);
@@ -672,6 +699,13 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return true;
     }
 
+    /**
+     *
+     * @param aqrList
+     * @return Collection of instances matching a list of QueryRequest's.
+     * A Set is used because the results of different QueryRequest's may overlap.
+     * @throws Exception if the values retrieved from the database are not of the type expected for a given QueryRequest's attribute
+     */
     public Set fetchInstance(List<QueryRequest> aqrList) throws Exception {
         SchemaAttribute _displayName = ((GKSchema) schema).getRootClass().getAttribute("_displayName");
         StringBuilder query = new StringBuilder();
@@ -948,14 +982,33 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    /**
+     *
+     * @param schemaClass
+     * @return Collection of all GKInstances of class: schemaClass
+     * @throws Exception
+     */
     public Collection fetchInstancesByClass(SchemaClass schemaClass) throws Exception {
         return fetchInstancesByClass(schemaClass.getName(), null);
     }
 
+    /**
+     *
+     * @param schemaClass
+     * @return The number of instances of class: schemaClass that are in the database
+     * @throws Exception
+     */
     public long getClassInstanceCount(SchemaClass schemaClass) throws InvalidClassException {
         return getClassInstanceCount(schemaClass.getName());
     }
 
+    /**
+     *
+     * @param className
+     * @param dbID
+     * @return GKInstance of class: className and DB_ID = dbID
+     * @throws Exception
+     */
     public GKInstance fetchInstance(String className, Long dbID) throws Exception {
         Iterator<GKInstance> instancesIter = fetchInstancesByClass(className, Collections.singletonList(dbID)).iterator();
         if (instancesIter.hasNext()) {
@@ -964,6 +1017,12 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return null;
     }
 
+    /**
+     *
+     * @param dbID
+     * @return GKInstance of class: DatabaseObject and DB_ID = dbID
+     * @throws Exception
+     */
     public GKInstance fetchInstance(Long dbID) throws Exception {
         String rootClassName = ((GKSchema) schema).getRootClass().getName();
         return fetchInstance(rootClassName, dbID);
@@ -1032,7 +1091,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             //cachedInstance.setSchemaClass(instance.getSchemClass());
             cachedInstance.deflate();
             loadInstanceAttributeValues(cachedInstance);
-            //loadInstanceAttributeValues(cachedInstance);
             // A bug in schema: DB_ID is Long in GKInstance but Integer in schema
             // Manual reset it
             cachedInstance.setDBID(cachedInstance.getDBID());
@@ -1056,7 +1114,10 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
-    // Find all referrer instances a
+    // Find in database all referrer instances of instance passed as argument
+    // (Note that a referrer of instance's class C is a class whose attribute can take instance(s) of C as value(s))
+    // Returns a List of Lists, each sublist is a triple:
+    // the DB_ID, class name and attribute name (that can store values of instance's class) of each referrer instance.
     private List<List<Object>> findReferrers(GKInstance instance) throws Exception {
         List<List<Object>> ret = new ArrayList();
         SchemaClass schemaClass = instance.getSchemClass();
@@ -1083,6 +1144,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     // Find all referrer instances and then replace the previous instance as value of attName with
     // the call argument: instance
+    // Takes as the first argument the output of findReferrers
     private void updateReferrers(List<List<Object>> referrers, GKInstance instance, Transaction tx) throws
             Exception {
         for (List<Object> rec : referrers) {
@@ -1261,6 +1323,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    // Store in DB value(s) of instance's attribute att, recursively - if recursive argument is set
     private void storeAttribute(SchemaAttribute att, GKInstance instance, Transaction tx, boolean recursive) throws
             Exception {
         SchemaClass cls = instance.getSchemClass();
@@ -1317,6 +1380,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    // Delete from instance attribute: att (using tx as the transaction object)
     private void deleteFromDBInstanceAttributeValue(SchemaAttribute att, GKInstance instance, Transaction tx) throws
             Exception {
         SchemaClass cls = instance.getSchemClass();
@@ -1338,6 +1402,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @param instances
+     * @param attributes
+     * @throws Exception
+     */
     public void loadInstanceReverseAttributeValues(Collection instances, Collection attributes) throws
             Exception {
         for (Iterator ai = attributes.iterator(); ai.hasNext(); ) {
@@ -1356,11 +1425,19 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     }
 
     /*
+
+     */
+
+    /**
      * NOTE: this method may try to load reverse attribute values to instances which do not
      * have this attribute. This is fine, since if there aren't any values, they
      * can't be loaded. However, this also means that instances collection can be
      * heterogenous and the user does not need to worry about that all the instances
      * have the given reverse attribute.
+     * @param instances Collection of GKInstances (referrers)
+     * @param attribute (attribute of each instance I in instances) the GKInstance values of each should be loaded.
+     *                  Instance I will be set as the referrer of each retrieved GKInstance value.
+     * @throws Exception
      */
     public void loadInstanceReverseAttributeValues(Collection instances, SchemaAttribute attribute) throws
             Exception {
@@ -1418,7 +1495,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
 
     /**
      * A method for weeding out instances retrieved as identicals but which are not.
-     * E.g. a Complex with comonents (A:A:B:B) would also fetch a Complex with
+     * E.g. a Complex with components (A:A:B:B) would also fetch a Complex with
      * components (A:A:B:B:C) as an identical instance (although the reverse is not true).
      * As I don't kwno how to change the sql in a way that this wouldn't be a case it has
      * to be sorted out programmatically.
@@ -1954,6 +2031,13 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         return fetchInstancesByClass(className, null);
     }
 
+    /**
+     * Fetch instances from DB by className and optionally a list of DB_IDs
+     * @param className
+     * @param dbIds
+     * @return
+     * @throws Exception
+     */
     public Collection fetchInstancesByClass(String className, List dbIds) throws Exception {
         Set<Instance> instances = new HashSet();
         ((GKSchema) schema).isValidClassOrThrow(className);
@@ -2112,6 +2196,11 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         }
     }
 
+    /**
+     *
+     * @return A List stable identifier duplicates, where each duplicate is represented by a Map containing
+     * just three key-value pairs with keys: "identifier", "DB_ID" and "oldIdentifier"
+     */
     public List<Map<String, Object>> fetchStableIdentifiersWithDuplicateDBIds() {
         List<Map<String, Object>> ret = new ArrayList();
         StringBuilder query = new StringBuilder("CALL { MATCH (s1: StableIdentifier) with s1.oldIdentifier as oldId, count(s1.DB_ID) as dbIdCnt ")
