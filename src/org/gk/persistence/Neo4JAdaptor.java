@@ -1869,6 +1869,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      *
      * @param dbIds      the db ids to check
      * @param checkCache check cache (before checking the DB) if true
+     * @param inverse search for intersection (inverse = false) or disjunctive union (inverse = true) of existing DB_Ids with the list provided
      * @return the db ids which are in the database (or cache - of checkCache is true)
      * @throws Exception Thrown if there is a problem querying the database for the dbIds
      */
