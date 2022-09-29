@@ -22,6 +22,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Node;
 import org.gk.render.NodeAttachment;
 import org.gk.render.Renderable;
@@ -176,20 +177,32 @@ public class ModifiedResidueHandler {
         if (g != null)
             node.layoutNodeAttachemtns();
     }
-    
+
     @Test
-    public void checkPsiModMappings() throws Exception {
+    public void checkPsiModMappingsTest() throws Exception {
+        checkPsiModMappings(false);
+        checkPsiModMappings(true);
+    }
+
+    private void checkPsiModMappings(Boolean useNeo4J) throws Exception {
         AttributeEditConfig config = AttributeEditConfig.getConfig();
         InputStream metaConfig = GKApplicationUtilities.getConfig("curator.xml");
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = dbf.newDocumentBuilder();
         Document document = builder.parse(metaConfig);
         config.loadConfig(document);
-        
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_122118",
-                                            "root",
-                                            "macmysql01");
+
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_122118",
+                    "root",
+                    "macmysql01");
         Collection<GKInstance> psiMods = dba.fetchInstancesByClass(ReactomeJavaConstants.PsiMod);
         System.out.println("Total psimods: " + psiMods.size());
         

@@ -18,8 +18,10 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
+import org.junit.Test;
 
 /**
  * This test class is used to run MODReactomeAnalyzer class to generate a Reactome curator tool project that
@@ -92,18 +94,31 @@ public class MODReactomeMergetTest extends TestCase {
         }
         fileAdaptor.save(fixedFileName);
     }
-    
+
+    @Test
+    public void testCheckMODInstancesTest() throws Exception {
+        testCheckMODInstances(false);
+        testCheckMODInstances(true);
+    }
+
     /**
      * This method is used to count the instances from a curated Reactome MOD database.
      * @throws Exception
      */
-    public void testCheckMODInstances() throws Exception {
+    private void testCheckMODInstances(Boolean useNeo4J) throws Exception {
         // MOD database
-        PersistenceAdaptor mod = new MySQLAdaptor("localhost",
-                                            "drosophila_reactome",
-                                            "root",
-                                            "macmysql01",
-                                            3306);
+        PersistenceAdaptor mod;
+        if (useNeo4J)
+            mod = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            mod = new MySQLAdaptor("localhost",
+                    "drosophila_reactome",
+                    "root",
+                    "macmysql01",
+                    3306);
         MODReactomeAnalyzer merger = new MODReactomeAnalyzer();
         merger.setModReactome(mod);
         long time1 = System.currentTimeMillis();
@@ -143,22 +158,35 @@ public class MODReactomeMergetTest extends TestCase {
             count ++;
         }
     }
-    
+
+    @Test
+    public void testCheckOutAsProjectTest() throws Exception {
+        testCheckOutAsProject(false);
+        testCheckOutAsProject(true);
+    }
+
     /**
      * This method is used to generate a curator tool project from a curated MOD Reactome
      * database.
      * @throws Exception
      */
-    public void testCheckOutAsProject() throws Exception {
+    private void testCheckOutAsProject(Boolean useNeo4J) throws Exception {
         // Set up the local adaptor
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager.getManager().setActiveFileAdaptor(fileAdaptor);
         // MOD database
-        PersistenceAdaptor mod = new MySQLAdaptor("localhost",
-                                            "drosophila_reactome",
-                                            "root",
-                                            "macmysql01",
-                                            3306);
+        PersistenceAdaptor mod;
+        if (useNeo4J)
+            mod = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            mod = new MySQLAdaptor("localhost",
+                    "drosophila_reactome",
+                    "root",
+                    "macmysql01",
+                    3306);
         MODReactomeAnalyzer merger = new MODReactomeAnalyzer();
         merger.setModReactome(mod);
         long time1 = System.currentTimeMillis();

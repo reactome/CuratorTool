@@ -13,6 +13,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -25,14 +26,26 @@ public class ChemicalChecker {
     
     public ChemicalChecker() {
     }
-    
+
     @Test
+    public void listReactionsForChemicalsTest() throws Exception {
+        listReactionsForChemicals(false);
+        listReactionsForChemicals(true);
+    }
+
     @SuppressWarnings("unchecked")
-    public void listReactionsForChemicals() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_022113",
-                                            "root", 
-                                            "macmysql01");
+    public void listReactionsForChemicals(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_022113",
+                    "root",
+                    "macmysql01");
         // Get all human ReactionlikeEvent
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,

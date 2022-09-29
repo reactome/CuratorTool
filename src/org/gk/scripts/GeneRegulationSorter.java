@@ -40,17 +40,29 @@ public class GeneRegulationSorter {
     public GeneRegulationSorter() {
     }
 
+    @Test
+    public void countGeneRegulationsTest() throws Exception {
+        countGeneRegulations(false);
+        countGeneRegulations(true);
+    }
+
     /**
      * Use this method to generate some numbers for grant writing.
      *
      * @throws Exception
      */
-    @Test
-    public void countGeneRegulations() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_102319",
-                "root",
-                "macmysql01");
+    private void countGeneRegulations(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_102319",
+                    "root",
+                    "macmysql01");
         Set<String> tfs = new HashSet<>();
         Set<GKInstance> rles = new HashSet<>();
         Collection<GKInstance> geneRegulations = dba.fetchInstancesByClass(ReactomeJavaConstants.PositiveGeneExpressionRegulation);
@@ -107,7 +119,7 @@ public class GeneRegulationSorter {
         GeneRegulationSorter sorter = new GeneRegulationSorter();
         sorter.setDBA(dba);
         sorter.setFileName(args[4]);
-        sorter.updateRegulations();
+        sorter.updateRegulations(useNeo4J);
     }
 
     public void setFileName(String fileName) {
@@ -118,18 +130,25 @@ public class GeneRegulationSorter {
         this.dba = dba;
     }
 
-    public PersistenceAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
         if (dba != null)
             return dba;
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_063016_new_schema",
-                "root",
-                "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_063016_new_schema",
+                    "root",
+                    "macmysql01");
         return dba;
     }
 
-    public void updateRegulations() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void updateRegulations(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Map<GKInstance, String> regulationToNewType = sort(dba);
         // Update the database
         if (dba instanceof Neo4JAdaptor) {

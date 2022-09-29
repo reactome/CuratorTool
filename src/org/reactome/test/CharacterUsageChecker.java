@@ -14,6 +14,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
 import org.junit.Test;
@@ -28,13 +29,25 @@ public class CharacterUsageChecker {
     public CharacterUsageChecker() {
         
     }
-    
+
     @Test
-    public void checkPersonSurname() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool", 
-                                            "T001test");
+    public void checkPersonSurnameTest() throws Exception {
+        checkPersonSurname(false);
+        checkPersonSurname(true);
+    }
+
+    private void checkPersonSurname(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.Person);
         System.out.println("Total person instances: " + c.size());
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.Person);

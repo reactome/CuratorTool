@@ -13,6 +13,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 
 /**
@@ -29,13 +30,25 @@ public class DisplayNameInELVTester {
     public void checkWithShortestName() throws Exception {
         String dirName = "/Users/wgm/Documents/wgm/work/reactome/";
     }
-    
+
     @Test
-    public void checkPathwayDiagrams() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "test_slice_37b",
-                                            "authortool",
-                                            "T001test");
+    public void checkPathwayDiagramsTest() throws Exception {
+        checkPathwayDiagrams(false);
+        checkPathwayDiagrams(true);
+    }
+
+    private void checkPathwayDiagrams(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "test_slice_37b",
+                    "authortool",
+                    "T001test");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         dba.loadInstanceAttributeValues(c, new String[]{ReactomeJavaConstants.storedATXML});
         String regex = "reactomeId=\"((\\d)+)\"";

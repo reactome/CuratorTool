@@ -98,11 +98,23 @@ public class PathwayDiagramDumper {
     }
 
     @Test
-    public void testDumpDiagrams() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_current_ver43",
-                "root",
-                "macmysql01");
+    public void testDumpDiagramsTest() throws Exception {
+        testDumpDiagrams(false);
+        testDumpDiagrams(true);
+    }
+
+    private void testDumpDiagrams(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver43",
+                    "root",
+                    "macmysql01");
         File file = new File("tmp");
         dumpDiagrams(dba, file);
     }

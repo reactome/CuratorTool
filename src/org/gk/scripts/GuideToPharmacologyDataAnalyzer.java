@@ -22,6 +22,7 @@ import org.gk.database.util.LiteratureReferenceAttributeAutoFiller;
 import org.gk.elv.InstanceCloneHelper;
 import org.gk.model.*;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.util.FileUtilities;
@@ -59,20 +60,27 @@ public class GuideToPharmacologyDataAnalyzer {
     public GuideToPharmacologyDataAnalyzer() {
     }
 
-    private PersistenceAdaptor getDBA() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_042321",
-                                            "",
-                                            "");
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_042321",
+                    "",
+                    "");
         return dba;
     }
 
-    private void setUpPersisteneceManager() throws Exception {
+    private void setUpPersisteneceManager(Boolean useNeo4J) throws Exception {
         // Create EWAS from RefGeneProduct locally
         XMLFileAdaptor fileAdaptor = new XMLFileAdaptor();
         PersistenceManager manager = PersistenceManager.getManager();
         manager.setActiveFileAdaptor(fileAdaptor);
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         manager.setActivePersistenceAdaptor(dba);
     }
     
@@ -104,7 +112,12 @@ public class GuideToPharmacologyDataAnalyzer {
     }
 
     @Test
-    public void buildCuratorToolProject() throws Exception {
+    public void buildCuratorToolProjectTest() throws Exception {
+        buildCuratorToolProject(false);
+        buildCuratorToolProject(true);
+    }
+
+    public void buildCuratorToolProject(Boolean useNeo4J) throws Exception {
         Set<String> approvedDrugIds = getApprovedDrugIds();
         System.out.println("Total approved drug ids: " + approvedDrugIds.size());
 //        approvedDrugIds.forEach(System.out::println);
@@ -182,7 +195,7 @@ public class GuideToPharmacologyDataAnalyzer {
 //        if (true)
 //            return;
         
-        setUpPersisteneceManager();
+        setUpPersisteneceManager(useNeo4J);
         ScriptUtilities.setUpAttrinuteEditConfig();
 
         Map<String, GKInstance> proteinToEWAS = createEWASesForProteins(proteins);
@@ -906,10 +919,15 @@ public class GuideToPharmacologyDataAnalyzer {
         orderedCompartmentIds.add(7660L);
         return orderedCompartmentIds;
     }
-    
+
     @Test
-    public void generateUsedCompartmentsInDrugs() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void generateUsedCompartmentsInDrugsTest() throws Exception {
+        generateUsedCompartmentsInDrugs(false);
+        generateUsedCompartmentsInDrugs(true);
+    }
+
+    private void generateUsedCompartmentsInDrugs(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> drugs = dba.fetchInstancesByClass(ReactomeJavaConstants.Drug);
         Set<GKInstance> compartments = new HashSet<>();
         for (GKInstance drug : drugs) {

@@ -57,8 +57,14 @@ public class PathwayDiagramGeneratorViaAT {
         this.defaultPersonId = id;
     }
     
-    public PersistenceAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
         if (dba == null) {
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
             dba = new MySQLAdaptor("localhost",
                                    "pathway_diagram_072908_2", //"reactome_25_pathway_diagram",
                                    "root",
@@ -76,19 +82,24 @@ public class PathwayDiagramGeneratorViaAT {
         DoPathwayByPathwayNoGUI converter = new DoPathwayByPathwayNoGUI();
         return converter.convertToATProject(pathway);
     }
-    
+
+    @Test
+    public void testGenerateImageForATDiagramTest() throws Exception {
+        testGenerateImageForATDiagram(false);
+        testGenerateImageForATDiagram(true);
+    }
+
     /**
      * Test the method generateTilesForATDiagram
      * @throws Exception Thrown if unable to retrieve a test pathway or if unable to generate an image for the pathway
      */
-    @Test
-    public void testGenerateImageForATDiagram() throws Exception {
+    private void testGenerateImageForATDiagram(Boolean useNeo4J) throws Exception {
         //String fileName = "tmp/Apoptosis_tweaked.gkb";
         //GKBReader reader = new GKBReader();
         //Project project = reader.open(fileName);
-        GKInstance pathway = getTestPathway();
+        GKInstance pathway = getTestPathway(useNeo4J);
         setDefaultPersonId(140537L); // 140537 is for Wu, G.
-        generateImageForAT(pathway, true);
+        generateImageForAT(pathway, true, useNeo4J);
     }
     
     /**
@@ -98,8 +109,8 @@ public class PathwayDiagramGeneratorViaAT {
      * use the direct output from GKInstance.
      * @throws Exception Thrown if there is no defaultPersonId or if unable to generate the image
      */
-    public void generateImageForAT(GKInstance pathway,
-                                   boolean useSimpleView) throws Exception {
+    private void generateImageForAT(GKInstance pathway,
+                                   boolean useSimpleView, Boolean useNeo4J) throws Exception {
         if (defaultPersonId == null)
             throw new IllegalStateException("Please provide the default person id for InstanceEdit instances!");
         Project project = null;
@@ -112,7 +123,7 @@ public class PathwayDiagramGeneratorViaAT {
         }
         project.getProcess().setReactomeId(pathway.getDBID());
         GKInstance species = (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
-        generateImageForAT(project, species);
+        generateImageForAT(project, species, useNeo4J);
     }
     
     /**
@@ -177,8 +188,8 @@ public class PathwayDiagramGeneratorViaAT {
      * @param species Species instance used to find the location for saving the image
      * @throws Exception Thrown if unable to save image or store project coordinates to the database
      */
-    public void generateImageForAT(Project project,
-                                   GKInstance species) throws Exception {
+    private void generateImageForAT(Project project,
+                                   GKInstance species, Boolean useNeo4J) throws Exception {
         PathwayEditor editor = new PathwayEditor();
         editor.setRenderable(project.getProcess());
         // Remove compartment
@@ -196,7 +207,7 @@ public class PathwayDiagramGeneratorViaAT {
         // Output as tiles for the web applications
         saveAsTiles(editor, topDir);
         // save the coordinates into the database
-        storeCoordinatesToDB(project, editor);
+        storeCoordinatesToDB(project, editor, useNeo4J);
 /*        logger.info("Starting to save full image.");
         //File file = new File(topDir, project.getProcess().getDisplayName() + ".png");
         File file = new File(topDir, "img.png");
@@ -217,12 +228,12 @@ public class PathwayDiagramGeneratorViaAT {
      * @throws Exception
      */
     protected void storeCoordinatesToDB(Project project,
-                                      PathwayEditor editor) throws Exception {
+                                      PathwayEditor editor, Boolean useNeo4J) throws Exception {
     	logger.info("Starting storeCoordinatesToDB");
     	editor.setScale(1.0d, 1.0d);
         Dimension size = editor.getPreferredSize();
         // Initialize some requirements
-        PersistenceManager.getManager().setActivePersistenceAdaptor(getDBA());
+        PersistenceManager.getManager().setActivePersistenceAdaptor(getDBA(useNeo4J));
         // Reset the XMLFileAdaptor in case to overwrite the instances for other pathways
         XMLFileAdaptor fileAdpator = PersistenceManager.getManager().getActiveFileAdaptor();
         if (fileAdpator == null) {
@@ -346,15 +357,20 @@ public class PathwayDiagramGeneratorViaAT {
         GKBWriter writer = new GKBWriter();
         writer.save(project, new FileOutputStream(file));
     }
-    
+
     @Test
-    public void testExportIntoATProjectViaKnownCoordinates() throws Exception {
-        GKInstance pathway = getTestPathway();
+    public void testExportIntoATProjectViaKnownCoordinatesTest() throws Exception {
+        testExportIntoATProjectViaKnownCoordinates(false);
+        testExportIntoATProjectViaKnownCoordinates(true);
+    }
+
+    private void testExportIntoATProjectViaKnownCoordinates(Boolean useNeo4J) throws Exception {
+        GKInstance pathway = getTestPathway(useNeo4J);
         exportIntoATProjectViaKnownCoordinates(pathway);
     }
 
-    private GKInstance getTestPathway() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private GKInstance getTestPathway(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;
@@ -470,8 +486,8 @@ public class PathwayDiagramGeneratorViaAT {
         return idToVertex;
     }
     
-    public void regenerateDiagram (GKInstance pathway) throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void regenerateDiagram (GKInstance pathway, Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         Collection collection = dba.fetchInstanceByAttribute(ReactomeJavaConstants.PathwayDiagram, 
                                                              ReactomeJavaConstants.representedPathway,

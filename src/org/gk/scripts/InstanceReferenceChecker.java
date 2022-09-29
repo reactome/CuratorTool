@@ -27,26 +27,37 @@ import org.neo4j.driver.*;
  * A checker to see any instance reference has registered in DatabaseObject table
  * and its class in attribute table is the same as in DatabaseObject table.
  * @author wgm
- *
  */
 public class InstanceReferenceChecker {
     private StringBuffer errorMessage = new StringBuffer();
     private PersistenceAdaptor dba = null;
-    
+
     public InstanceReferenceChecker() {
-        
+
     }
-    
+
 //    public InstanceReferenceChecker(MySQLAdaptor dba) {
 //        this.dba = dba;
 //    }
-    
+
     @Test
-    public void checkReferenceMoleculeAndClassUsage() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+    public void checkReferenceMoleculeAndClassUsageTest() throws Exception {
+        checkReferenceMoleculeAndClassUsage(false);
+        checkReferenceMoleculeAndClassUsage(true);
+    }
+
+    private void checkReferenceMoleculeAndClassUsage(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
 //        Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceGroupCount);
 //        System.out.println("Total ReferenceMolecule: " + c.size());
         Collection<GKInstance> c1 = dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceMoleculeClass);
@@ -69,7 +80,7 @@ public class InstanceReferenceChecker {
             }
         }
     }
-    
+
     private String join(Set<GKInstance> instances) {
         StringBuilder builder = new StringBuilder();
         for (Iterator<GKInstance> it = instances.iterator(); it.hasNext();) {
@@ -281,21 +292,33 @@ public class InstanceReferenceChecker {
             return errorMessage.toString();
         }
     }
-    
+
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Provide use_neo4j argument");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+            return;
+        }
+        boolean useNeo4J = Boolean.parseBoolean(args[1]);
         try {
-            PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                                 "gk_central_050208",
-                                                 "wgm",
-                                                 "wgm",
-                                                 3310);
+            PersistenceAdaptor dba;
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                dba = new MySQLAdaptor("localhost",
+                    "gk_central_050208",
+                    "wgm",
+                    "wgm",
+                    3310);
             InstanceReferenceChecker checker = new InstanceReferenceChecker();
             checker.dba = dba;
             checker.check();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
 }

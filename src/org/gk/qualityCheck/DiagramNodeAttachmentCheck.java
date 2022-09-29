@@ -305,22 +305,46 @@ public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {
                 .collect(Collectors.toMap(GKInstance::getDBID, Function.identity()));
         return dbIdToInstMap;
     }
-    
+
     @Test
-    public void testCheckInCommand() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_040519",
-                                            "root",
-                                            "macmysql01");
+    public void testCheckInCommandTest() throws Exception {
+        testCheckInCommand(false);
+        testCheckInCommand(true);
+    }
+
+    private void testCheckInCommand(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_040519",
+                    "root",
+                    "macmysql01");
         super.testCheckInCommand(dba);
     }
 
     @Test
-    public void testCheckOneDiagram() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_040519",
-                                            "root",
-                                            "macmysql01");
+    public void testCheckOneDiagramTest() throws Exception {
+        testCheckOneDiagram(false);
+        testCheckOneDiagram(true);
+    }
+
+    private void testCheckOneDiagram(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_040519",
+                    "root",
+                    "macmysql01");
         setDatasource(dba);
         Long dbId = 9026069L;
         GKInstance instance = dba.fetchInstance(dbId);

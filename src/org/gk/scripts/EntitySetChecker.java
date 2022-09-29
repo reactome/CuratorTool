@@ -19,6 +19,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.StringUtils;
 import org.junit.Test;
 
@@ -33,17 +34,29 @@ public class EntitySetChecker {
         
     }
     
-    private PersistenceAdaptor getDBA() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_020912",
-                                            "root",
-                                            "macmysql01");
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_020912",
+                    "root",
+                    "macmysql01");
         return dba;
     }
-    
+
     @Test
-    public void checkEntitySets() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkEntitySetsTest() throws Exception {
+        checkEntitySets(false);
+        checkEntitySets(true);
+    }
+
+    private void checkEntitySets(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<?> sets = dba.fetchInstancesByClass(ReactomeJavaConstants.EntitySet);
         dba.loadInstanceAttributeValues(sets,
                                         new String[]{ReactomeJavaConstants.hasMember, ReactomeJavaConstants.hasCandidate});

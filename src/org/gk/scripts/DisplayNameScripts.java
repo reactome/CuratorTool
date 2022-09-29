@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.gk.model.*;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.junit.Test;
 
@@ -117,12 +118,25 @@ public class DisplayNameScripts {
     }
     
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Provide use_neo4j argument");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+            return;
+        }
+        boolean useNeo4J = Boolean.parseBoolean(args[1]);
         try {
-            PersistenceAdaptor dba = new MySQLAdaptor("brie8.cshl.edu",
-                                                "gk_central",
-                                                "authortool",
-                                                "T001test",
-                                                3306);
+            PersistenceAdaptor dba;
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+            else
+                dba = new MySQLAdaptor("brie8.cshl.edu",
+                        "gk_central",
+                        "authortool",
+                        "T001test",
+                        3306);
             DisplayNameScripts extractor = new DisplayNameScripts();
             extractor.setPersistenceAdaptor(dba);
             extractor.extract("resources");

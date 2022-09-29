@@ -36,10 +36,10 @@ import org.junit.Test;
  */
 public class UnusedUniProtLister {
     private PersistenceAdaptor dba;
-	
+
     public UnusedUniProtLister() {
     }
-    
+
     public static void main(String[] args) {
         try {
             // Need to get the database connection information
@@ -48,7 +48,7 @@ public class UnusedUniProtLister {
                 System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
                 System.exit(1);
             }
-            
+
             UnusedUniProtLister lister = new UnusedUniProtLister();
             boolean useNeo4J = Boolean.parseBoolean(args[4]);
             lister.setDBA(args[0], args[1], args[2], args[3], useNeo4J);
@@ -59,7 +59,7 @@ public class UnusedUniProtLister {
         }
     }
 
-    
+
     /**
      * Used to help Lisa to merge files.
      * @throws IOException
@@ -122,7 +122,7 @@ public class UnusedUniProtLister {
             String[] tokens = line.split("\t");
             String[] info = idToFIInfo.get(tokens[2]);
             if (info != null) {
-                outFu.printLine(line + "\t" + 
+                outFu.printLine(line + "\t" +
                                 info[0] + "\t" +
                                 info[1] + "\t" +
                                 info[2]);
@@ -132,16 +132,22 @@ public class UnusedUniProtLister {
         }
         fu.close();
         outFu.close();
-        
+
     }
-    
+
+    @Test
+    public void generateFIScoresForUnUsedUniProtIdsTest() throws Exception {
+        generateFIScoresForUnUsedUniProtIds(false);
+        generateFIScoresForUnUsedUniProtIds(true);
+    }
+
     /**
      * This method is used to generate scores for annotation candidates.
+     *
      * @throws Exception
      */
-    @Test
-    public void generateFIScoresForUnUsedUniProtIds() throws Exception {
-        setDBA();
+    public void generateFIScoresForUnUsedUniProtIds(Boolean useNeo4J) throws Exception {
+        setDBA(useNeo4J);
         // Check UniProt only
         GKInstance uniprot = dba.fetchInstance(2L);
         Collection refGeneProducts = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
@@ -190,7 +196,7 @@ public class UnusedUniProtLister {
         allIdentifiers.removeAll(usedIdentifiers);
         Set<String> notUsedIdentifiers = allIdentifiers;
         System.out.println("UniProt accessions have not be used: " + notUsedIdentifiers.size());
-        
+
 //        String outFileName = "/Users/wgm/Documents/gkteam/Lisa/UnUsedUniProts031110_FIScores.txt";
         String outFileName = "/Users/gwu/Documents/gkteam/Lisa/UnUsedUniProts042914_FIScores.txt";
         FileUtilities fu = new FileUtilities();
@@ -214,15 +220,15 @@ public class UnusedUniProtLister {
             Double ranker = geneToRanker.get(name);
             fu.printLine(id + "\t" +
                          name + "\t" +
-                         partners.size() + "\t" + 
-                         copy.size() + "\t" + 
+                         partners.size() + "\t" +
+                         copy.size() + "\t" +
                          (ranker == null ? "NA" : ranker));
         }
         fu.close();
     }
-    
+
     /**
-     * Load a list of genes ranked by MSKCC method (downloaded from 
+     * Load a list of genes ranked by MSKCC method (downloaded from
      * http://awabi.cbio.mskcc.org/tcga_gbm/jsp/index.jsp?filer_type=by_score&score_threshold=1).
      * @return
      * @throws IOException
@@ -267,7 +273,7 @@ public class UnusedUniProtLister {
         }
         return idToPartners;
     }
-    
+
     private Set<String> loadFIsFromFiles() throws IOException {
         Set<String> fis = new HashSet<String>();
         String dir = "/Users/gwu/Documents/EclipseWorkspace/FINetworkBuild/results/2013/";
@@ -292,7 +298,7 @@ public class UnusedUniProtLister {
         }
         return fis;
     }
-    
+
     @Test
     public void list() throws Exception {
         // Check UniProt only
@@ -356,9 +362,15 @@ public class UnusedUniProtLister {
         fu.close();
         System.out.println("Total accession not used: " + accessions.size());
     }
-    
-    private void setDBA() throws Exception {
-         dba = new MySQLAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
+
+    private void setDBA(Boolean useNeo4J) throws Exception {
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost", "gk_central_042914", "root", "macmysql01");
     }
 
     private void setDBA(String host, String db, String user, String pass, boolean useNeo4J) throws Exception {
@@ -366,5 +378,5 @@ public class UnusedUniProtLister {
             dba = new Neo4JAdaptor(host, db, user, pass);
         else
             dba = new MySQLAdaptor(host, db, user, pass);
-   }
+    }
 }

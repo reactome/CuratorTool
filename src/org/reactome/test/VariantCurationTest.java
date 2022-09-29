@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.variant.FragmentReplacedModificationVariantCuration;
@@ -15,15 +16,27 @@ import org.gk.variant.ReplacedResidueVariantCuration;
 import org.gk.variant.VariantBatchProcessor;
 import org.junit.Test;
 
-public class VariantCurationTest {	
-	
+public class VariantCurationTest {
+
 	@Test
-	public void testCreateReplacedResidueEwas() throws Exception {
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "authortool",
-                "T001test",
-                3306);
+	public void testCreateReplacedResidueEwasTest() throws Exception {
+		testCreateReplacedResidueEwas(false);
+		testCreateReplacedResidueEwas(true);
+	}
+
+	private void testCreateReplacedResidueEwas(Boolean useNeo4J) throws Exception {
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
@@ -52,14 +65,26 @@ public class VariantCurationTest {
         
         System.out.println(ewas);	
 	}
-	
+
 	@Test
-	public void testCreateNonsenseMutationEwas() throws Exception {
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "authortool",
-                "T001test",
-                3306);
+	public void testCreateNonsenseMutationEwasTest() throws Exception {
+		testCreateNonsenseMutationEwas(false);
+		testCreateNonsenseMutationEwas(true);
+	}
+
+	private void testCreateNonsenseMutationEwas(Boolean useNeo4J) throws Exception {
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
@@ -83,14 +108,26 @@ public class VariantCurationTest {
         
         System.out.println(ewas);	
 	}
-	
+
 	@Test
-	public void testCreateFrameShiftMutationEwas() throws Exception {
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "authortool",
-                "T001test",
-                3306);
+	public void testCreateFrameShiftMutationEwasTest() throws Exception {
+		testCreateFrameShiftMutationEwas(false);
+		testCreateFrameShiftMutationEwas(true);
+	}
+
+	private void testCreateFrameShiftMutationEwas(Boolean useNeo4J) throws Exception {
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
@@ -115,14 +152,26 @@ public class VariantCurationTest {
         
         System.out.println(ewas);		
 	}
-	
+
 	@Test
-	public void testCreateFusioneMutationEwas() throws Exception {
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "authortool",
-                "T001test",
-                3306);
+	public void testCreateFusioneMutationEwasTest() throws Exception {
+		testCreateFusioneMutationEwas(false);
+		testCreateFusioneMutationEwas(true);
+	}
+
+	private void testCreateFusioneMutationEwas(Boolean useNeo4J) throws Exception {
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
@@ -148,14 +197,26 @@ public class VariantCurationTest {
         System.out.println(ewas);		
 		
 	}
-	
+
 	@Test
-	public void testCreateFragmentInsertionEwas() throws Exception {
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "authortool",
-                "T001test",
-                3306);
+	public void testCreateFragmentInsertionEwasTest() throws Exception {
+		testCreateFragmentInsertionEwas(false);
+		testCreateFragmentInsertionEwas(true);
+	}
+
+	private void testCreateFragmentInsertionEwas(Boolean useNeo4J) throws Exception {
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
@@ -182,9 +243,14 @@ public class VariantCurationTest {
         System.out.println(ewas);		
 		
 	}
-	
+
 	@Test
-    public void testBatchProcessingVariousVariants() throws Exception {
+	public void testBatchProcessingVariousVariantsTest() throws Exception {
+		testBatchProcessingVariousVariants(false);
+		testBatchProcessingVariousVariants(true);
+	}
+
+    private void testBatchProcessingVariousVariants(Boolean useNeo4J) throws Exception {
     	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
     	LocalDateTime now = LocalDateTime.now();  
     	String dir = "/Users/wug/Documents/wgm/work/reactome/Marija/";
@@ -195,11 +261,18 @@ public class VariantCurationTest {
     	String src = dir + "TP53_frameshift_mutations.tsv";
     	String dest = dir + "TP53_frameshift_mutations_" + dtf.format(now) + ".rtpj";
     	
-		PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test",
-                                            3306);	
+		PersistenceAdaptor dba;
+		if (useNeo4J)
+			dba = new Neo4JAdaptor("localhost",
+					"graph.db",
+					"neo4j",
+					"reactome");
+		else
+			dba = new MySQLAdaptor("curator.reactome.org",
+					"gk_central",
+					"authortool",
+					"T001test",
+					3306);
 		
 		PersistenceManager mngr = PersistenceManager.getManager();
 		mngr.setActivePersistenceAdaptor(dba);

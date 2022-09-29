@@ -55,11 +55,23 @@ public class ModificationDisplayUpdate {
     }
 
     @Test
-    public void testFillPsiModLabels() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "test_gk_central_schema_update_gw",
-                "root",
-                "macmysql01");
+    public void testFillPsiModLabelsTest() throws Exception {
+        testFillPsiModLabels(false);
+        testFillPsiModLabels(true);
+    }
+
+    private void testFillPsiModLabels(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_schema_update_gw",
+                    "root",
+                    "macmysql01");
         fillPsiModLabels(dba);
     }
 

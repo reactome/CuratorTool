@@ -122,11 +122,23 @@ public class PathwayHierachyGenerator {
     }
 
     @Test
-    public void generateHierarchyInXML() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_current_ver39",
-                "root",
-                "macmysql01");
+    public void generateHierarchyInXMLTest(Boolean useNeo4J) throws Exception {
+        generateHierarchyInXML(false);
+        generateHierarchyInXML(true);
+    }
+
+    private void generateHierarchyInXML(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver39",
+                    "root",
+                    "macmysql01");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
         GKInstance frontPageItem = (GKInstance) c.iterator().next();
         List<?> items = frontPageItem.getAttributeValuesList(ReactomeJavaConstants.frontPageItem);

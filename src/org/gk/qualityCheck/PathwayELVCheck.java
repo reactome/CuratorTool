@@ -21,6 +21,7 @@ import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
 import org.junit.Test;
@@ -171,13 +172,26 @@ public class PathwayELVCheck extends ReactionELVCheck {
         }
         return true;
     }
-        
+
     @Test
-    public void testCheckPathwaysInELVs() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_122118",
-                                            "root",
-                                            "macmysql01");
+    public void testCheckPathwaysInELVsTest() throws Exception {
+        testCheckPathwaysInELVs(false);
+        testCheckPathwaysInELVs(true);
+    }
+
+    @Test
+    public void testCheckPathwaysInELVs(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_122118",
+                    "root",
+                    "macmysql01");
         long time1 = System.currentTimeMillis();
         Map<GKInstance, Set<GKInstance>> pathwayToDiagrams = checkEventUsageInELV(dba);
         long time2 = System.currentTimeMillis();
@@ -187,6 +201,6 @@ public class PathwayELVCheck extends ReactionELVCheck {
         System.out.println("\n\nOutput:");
         System.out.println(output);
     }
-    
+
     
 }

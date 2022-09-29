@@ -36,7 +36,7 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
     /**
      * Fix the compartment setting for a reaction.
      *
-     * @param inst
+     * @param reaction
      * @return
      * @throws Exception
      */
@@ -278,15 +278,23 @@ public class ReactionCompartmentFixer extends ReactionCompartmentCheck {
     }
 
     @Test
-    public void testCheckReactions() throws Exception {
-//        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-//                                            "gk_central_110410",
-//                                            "root",
-//                                            "macmysql01");
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "graph.db",
-                "neo4j",
-                "reactome");
+    public void testCheckReactionsTest() throws Exception {
+        testCheckReactions(false);
+        testCheckReactions(true);
+    }
+
+    private void testCheckReactions(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_110410",
+                    "root",
+                    "macmysql01");
         this.dataSource = dba;
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.Reaction);
         progressPane = new ProgressPane();

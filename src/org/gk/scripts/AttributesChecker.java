@@ -46,24 +46,42 @@ public class AttributesChecker {
     }
     
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Provide use_neo4j argument");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+            return;
+        }
+        boolean useNeo4J = Boolean.parseBoolean(args[1]);
         try {
-            new AttributesChecker().fixEWASDuplicatedNames();
+            new AttributesChecker().fixEWASDuplicatedNames(useNeo4J);
         }
         catch(Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void checkEntityFunctionalStatusNameTest() throws Exception {
+        checkEntityFunctionalStatusName(false);
+        checkEntityFunctionalStatusName(true);
     }
     
     /**
      * Update _displayNames for EntityFunctionalStatus instances
      * @throws Exception
      */
-    @Test
-    public void checkEntityFunctionalStatusName() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                                            "gk_central", 
-                                            "authortool", 
-                                            "T001test");
+    private void checkEntityFunctionalStatusName(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> efs = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityFunctionalStatus);
         System.out.println("Total EntityFunctionalStatus: " + efs.size());
         System.out.println("DB_ID\tCurrent\tCorrect");
@@ -80,18 +98,30 @@ public class AttributesChecker {
         System.out.println("toBeChanged: " + toBeChanged.size());
         ScriptUtilities.updateInstanceNames(dba, toBeChanged);
     }
-    
+
+    @Test
+    public void fixEWASDuplicatedNamesTest() throws Exception {
+        fixEWASDuplicatedNames(false);
+        fixEWASDuplicatedNames(true);
+    }
+
     /**
      * This method is used to check if there is any name duplication in EWASes in a database.
      * @throws Exception
      */
-    @Test
     @SuppressWarnings("unchecked")
-    public void fixEWASDuplicatedNames() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                                            "gk_central", 
-                                            "authortool", 
-                                            "T001test");
+    private void fixEWASDuplicatedNames(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
 //        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
 //                                            "gk_central_050313", 
 //                                            "root", 
@@ -174,17 +204,29 @@ public class AttributesChecker {
         System.out.println("Total EWASes having duplicated names: " + total);
         return dbIds;
     }
+
+    @Test
+    public void checkRegulatorInRegulationsTest() throws Exception {
+        checkRegulatorInRegulations(false);
+        checkRegulatorInRegulations(true);
+    }
     
     /**
      * Check the type of regulators in Regulation instances.
      * @throws Exception
      */
-    @Test
-    public void checkRegulatorInRegulations() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                                            "gk_central", 
-                                            "authortool", 
-                                            "T001test");
+    private void checkRegulatorInRegulations(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> regulations = dba.fetchInstancesByClass(ReactomeJavaConstants.Regulation);
         dba.loadInstanceAttributeValues(regulations, new String[]{ReactomeJavaConstants.regulator});
         System.out.println("Regulation_DBID\tRegulation_DisplayName\tRegulator_Class\tIE_DisplayName\tIE_DBID");
@@ -204,17 +246,29 @@ public class AttributesChecker {
             }
         }
     }
+
+    @Test
+    public void checkEWASModificationsTest() throws Exception {
+        checkEWASModifications(false);
+        checkEWASModifications(true);
+    }
     
     /**
      * Check if the same Modification is used multiple times in a EWAS.
      * @throws Exception
      */
-    @Test
-    public void checkEWASModifications() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                "gk_central",
-                "authortool",
-                "T001test");
+    private void checkEWASModifications(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Map<Long, List<Long>> ewasIdToModIds = new HashMap<Long, List<Long>>();
         if (dba instanceof Neo4JAdaptor) {
             List<List<Long>> mods = ((Neo4JAdaptor) dba).fetchEWASModifications();
@@ -261,12 +315,24 @@ public class AttributesChecker {
     }
 
     @Test
+    public void updateEWASCoordiantesTest() throws Exception {
+        updateEWASCoordiantes(false);
+        updateEWASCoordiantes(true);
+    }
+
     @SuppressWarnings("unchecked")
-    public void updateEWASCoordiantes() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                "gk_central",
-                "authortool",
-                "T001test");
+    private void updateEWASCoordiantes(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         // Homo sapiens
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
@@ -397,13 +463,25 @@ public class AttributesChecker {
             }
         }
     }
-    
+
     @Test
-    public void checkEWASCoordinates() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_021213", 
-                                            "root", 
-                                            "macmysql01");
+    public void checkEWASCoordinatesTest() throws Exception {
+        checkEWASCoordinates(false);
+        checkEWASCoordinates(true);
+    }
+
+    private void checkEWASCoordinates(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_021213",
+                    "root",
+                    "macmysql01");
         // Homo sapiens
         GKInstance human = dba.fetchInstance(48887L);
         Collection<?> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
@@ -435,13 +513,25 @@ public class AttributesChecker {
         System.out.println("Default cases: " + defaultCase);
         System.out.println("endCoordiante == -1: " + endDefaultCase);
     }
-    
+
     @Test
-    public void checkComplexCompartments() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_121511",
-                                            "root",
-                                            "macmysql01");
+    public void checkComplexCompartmentsTest() throws Exception {
+        checkComplexCompartments(false);
+        checkComplexCompartments(true);
+    }
+
+    private void checkComplexCompartments(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_121511",
+                    "root",
+                    "macmysql01");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.Complex);
         SchemaClass complexCls = dba.getSchema().getClassByName(ReactomeJavaConstants.Complex);
         dba.loadInstanceAttributeValues(c, complexCls.getAttribute(ReactomeJavaConstants.compartment));
@@ -457,13 +547,25 @@ public class AttributesChecker {
         for (GKInstance inst : list)
             System.out.println(inst);
     }
-    
+
     @Test
-    public void grepReactionsWithMultipleSpecies() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+    public void grepReactionsWithMultipleSpeciesTest() throws Exception {
+        grepReactionsWithMultipleSpecies(false);
+        grepReactionsWithMultipleSpecies(true);
+    }
+
+    private void grepReactionsWithMultipleSpecies(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.ReactionlikeEvent);
         SchemaClass cls = dba.getSchema().getClassByName(ReactomeJavaConstants.ReactionlikeEvent);
         dba.loadInstanceAttributeValues(c, cls.getAttribute(ReactomeJavaConstants.species));

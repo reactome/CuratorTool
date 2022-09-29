@@ -43,10 +43,10 @@ public class GeneOntologyHandler {
         PersistenceAdaptor dba = null;
         boolean useNeo4J = Boolean.parseBoolean(args[5]);
         if (useNeo4J)
-         dba = new Neo4JAdaptor(args[0],
-                                            args[1],
-                                            args[2], 
-                                            args[3]);
+            dba = new Neo4JAdaptor(args[0],
+                    args[1],
+                    args[2],
+                    args[3]);
         else
             dba = new MySQLAdaptor(args[0],
                     args[1],
@@ -113,8 +113,8 @@ public class GeneOntologyHandler {
         }
     }
     
-    private Neo4JAdaptor getDBA() throws Exception {
-        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+    private MySQLAdaptor getDBA() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "gk_central_041919",
                                             "root",
                                             "macmysql01");

@@ -42,13 +42,25 @@ public class DatabasesCleaning {
     
     public DatabasesCleaning() {
     }
-    
+
     @Test
-    public void checkCatalystActivities() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "test_gk_central_efs_new",
-                                            "root",
-                                            "macmysql01");
+    public void checkCatalystActivitiesTest() throws Exception {
+        checkCatalystActivities(false);
+        checkCatalystActivities(true);
+    }
+
+    private void checkCatalystActivities(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_efs_new",
+                    "root",
+                    "macmysql01");
         Collection<GKInstance> cas = dba.fetchInstancesByClass(ReactomeJavaConstants.CatalystActivity);
         dba.loadInstanceAttributeValues(cas, new String[] {
                 ReactomeJavaConstants.physicalEntity,
@@ -73,13 +85,25 @@ public class DatabasesCleaning {
         double ratio = casWithComplexAndActiveUnit / (double) casWithComplex;
         System.out.println("Ratio: " + ratio);
     }
-    
+
     @Test
-    public void countRNAGenes() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_091218",
-                "root",
-                "macmysql01");
+    public void countRNAGenesTest() throws Exception {
+        countRNAGenes(false);
+        countRNAGenes(true);
+    }
+
+    private void countRNAGenes(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_091218",
+                    "root",
+                    "macmysql01");
         Collection<GKInstance> ewases = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityWithAccessionedSequence);
         int count = 0;
         Set<GKInstance> refRNAs = new HashSet<>();
@@ -102,13 +126,25 @@ public class DatabasesCleaning {
         System.out.println("Total: " + count);
         System.out.println("Total ReferenceRNAs used: " + refRNAs.size());
     }
-    
+
     @Test
-    public void checkReferenceMoleculeDuplications() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                "gk_central",
-                "authortool", 
-                "T001test");
+    public void checkReferenceMoleculeDuplicationsTest() throws Exception {
+        checkReferenceMoleculeDuplications(false);
+        checkReferenceMoleculeDuplications(true);
+    }
+
+    private void checkReferenceMoleculeDuplications(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceMolecule);
         c.addAll(dba.fetchInstancesByClass(ReactomeJavaConstants.ReferenceGroup));
         System.out.println("Total instances: " + c.size());
@@ -149,13 +185,25 @@ public class DatabasesCleaning {
             }
         }
     }
-    
+
     @Test
-    public void checkComplexInferred() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_current_ver50",
-                                            "root", 
-                                            "macmysql01");
+    public void checkComplexInferredTest() throws Exception {
+        checkComplexInferred(false);
+        checkComplexInferred(true);
+    }
+
+    private void checkComplexInferred(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver50",
+                    "root",
+                    "macmysql01");
         Collection<GKInstance> complexes = dba.fetchInstancesByClass(ReactomeJavaConstants.PhysicalEntity);
         dba.loadInstanceAttributeValues(complexes, new String[]{ReactomeJavaConstants.inferredTo});
         int count = 0;
@@ -173,13 +221,25 @@ public class DatabasesCleaning {
         System.out.println(count);
         System.out.println("Total complexes that have been inferred: " + total);
     }
-    
+
     @Test
-    public void checkInstancesInClasses() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_092412",
-                                            "root", 
-                                            "macmysql01");
+    public void checkInstancesInClassesTest() throws Exception {
+        checkInstancesInClasses(false);
+        checkInstancesInClasses(true);
+    }
+
+    private void checkInstancesInClasses(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_092412",
+                    "root",
+                    "macmysql01");
         Map<String, Long> classToCounts = dba.getAllInstanceCounts();
         long total = 0;
         for (String clsName : classToCounts.keySet()) {
@@ -356,18 +416,30 @@ public class DatabasesCleaning {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void deleteUnwantedSOInstancesTest() throws Exception {
+        deleteUnwantedSOInstances(false);
+        deleteUnwantedSOInstances(true);
+    }
     
     /**
      * There are 393 instances starting with SO: which have not been used at all! These instances
      * will be deleted using this method.
      * @throws Exception
      */
-    @Test
-    public void deleteUnwantedSOInstances() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+    private void deleteUnwantedSOInstances(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> soInstances = dba.fetchInstanceByAttribute(ReactomeJavaConstants.DatabaseIdentifier,
                                                                           ReactomeJavaConstants._displayName, 
                                                                           "like", 

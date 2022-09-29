@@ -46,12 +46,18 @@ public class ELVMemberAndSetLinkTest {
     public ELVMemberAndSetLinkTest() {
     }
 
-    public PersistenceAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
         if (dba == null) {
-            dba = new MySQLAdaptor("localhost",
-                    "gk_central_071712",
-                    "root",
-                    "macmysql01");
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                dba = new MySQLAdaptor("localhost",
+                        "gk_central_071712",
+                        "root",
+                        "macmysql01");
         }
         return dba;
     }
@@ -82,7 +88,7 @@ public class ELVMemberAndSetLinkTest {
                         args[3]);
             runner.setDBA(dba);
 //            runner.updateDiagramsInDb();
-            runner.updateDiagramsForSetSetLinksInDb();
+            runner.updateDiagramsForSetSetLinksInDb(useNeo4J);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -231,9 +237,9 @@ public class ELVMemberAndSetLinkTest {
      *
      * @throws Exception
      */
-    public void updateDiagramsForSetSetLinksInDb() throws Exception {
+    private void updateDiagramsForSetSetLinksInDb(Boolean useNeo4J) throws Exception {
         // Get the database
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         InstanceUtilities.sortInstances(list);
@@ -347,14 +353,19 @@ public class ELVMemberAndSetLinkTest {
         dba.updateInstanceAttribute(pd, ReactomeJavaConstants.modified, tx);
     }
 
+    @Test
+    public void updateDiagramsInDbTest() throws Exception {
+        updateDiagramsInDb(false);
+        updateDiagramsInDb(true);
+    }
+
     /**
      * This method is used to add EntitySetAndMemberLinks directly to PathwayDiagram in
      * a database.
      *
      * @throws Exception
      */
-    @Test
-    public void updateDiagramsInDb() throws Exception {
+    private void updateDiagramsInDb(Boolean useNeo4J) throws Exception {
         // Provide a list of escaped PathwayDiagrams:
 //        Long dbIds[] = new Long[] {
 //                //34: [PathwayDiagram:500171] Diagram of Transport of glucose and other sugars, bile salts and organic acids, metal ions and amine compounds
@@ -368,7 +379,7 @@ public class ELVMemberAndSetLinkTest {
         Long dbIds[] = new Long[]{};
         List<Long> escapeList = Arrays.asList(dbIds);
         // Get the database
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<?> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         DiagramGKBWriter diagramWriter = new DiagramGKBWriter();
@@ -520,7 +531,12 @@ public class ELVMemberAndSetLinkTest {
     }
 
     @Test
-    public void checkDigramsForAddingSetSetLink() throws Exception {
+    public void checkDigramsForAddingSetSetLinkTest() throws Exception {
+        checkDigramsForAddingSetSetLink(false);
+        checkDigramsForAddingSetSetLink(true);
+    }
+
+    private void checkDigramsForAddingSetSetLink(Boolean useNeo4J) throws Exception {
         final PopupMenuManager manager = new PopupMenuManager(null);
         AddLinks addLinks = new AddLinks() {
             @Override
@@ -532,7 +548,7 @@ public class ELVMemberAndSetLinkTest {
                         diagram);
             }
         };
-        addLinksForEntitySets(addLinks, true);
+        addLinksForEntitySets(addLinks, true, useNeo4J);
     }
 
     private void addEntitySetEntitySetLink(GKInstance set1,
@@ -597,14 +613,19 @@ public class ELVMemberAndSetLinkTest {
         }
     }
 
+    @Test
+    public void checkDiagramsForAdding() throws Exception {
+        checkDiagramsForAdding(false);
+        checkDiagramsForAdding(true);
+    }
+
     /**
      * This method is used to check all PathwayDiagram to see if EntitySet and its members can be
      * linked together.
      *
      * @throws Exception
      */
-    @Test
-    public void checkDiagramsForAdding() throws Exception {
+    private void checkDiagramsForAdding(Boolean useNeo4J) throws Exception {
         AddLinks addLinks = new AddLinks() {
             @Override
             public int addLinks(Map<Long, List<Renderable>> idToNodes,
@@ -636,13 +657,13 @@ public class ELVMemberAndSetLinkTest {
                 return count;
             }
         };
-        addLinksForEntitySets(addLinks, false);
+        addLinksForEntitySets(addLinks, false, useNeo4J);
     }
 
     private void addLinksForEntitySets(AddLinks addLinks,
-                                       boolean needExportDiagram) throws Exception {
+                                       boolean needExportDiagram, Boolean useNeo4J) throws Exception {
         // Get the database
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader diagramReader = new DiagramGKBReader();
         Map<Long, List<Renderable>> dbIdToObject = new HashMap<Long, List<Renderable>>();
@@ -813,14 +834,19 @@ public class ELVMemberAndSetLinkTest {
 
     }
 
+    @Test
+    public void checkWrongSetAndSetLinksTest() throws Exception {
+        checkWrongSetAndSetLinks(false);
+        checkWrongSetAndSetLinks(true);
+    }
+
     /**
      * There is a bug in the curator tool so that a self-link is added for an EntitySet
      * in the ELV after a reaction is DnD to a pathway ELV panel. This method is used to check
      * how many PDs have been effected by this bug.
      */
-    @Test
-    public void checkWrongSetAndSetLinks() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void checkWrongSetAndSetLinks(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> pds = dba.fetchInstancesByClass(ReactomeJavaConstants.PathwayDiagram);
         DiagramGKBReader reader = new DiagramGKBReader();
         List<Long> dbIds = new ArrayList<Long>();

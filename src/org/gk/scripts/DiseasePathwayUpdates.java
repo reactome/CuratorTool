@@ -56,7 +56,7 @@ public class DiseasePathwayUpdates {
                     args[3]);
         DiseasePathwayUpdates updater = new DiseasePathwayUpdates();
         updater.setDBA(dba);
-        updater.useNewNormalPathwaySlot();
+        updater.useNewNormalPathwaySlot(useNeo4J);
     }
 
     /**
@@ -65,14 +65,20 @@ public class DiseasePathwayUpdates {
     public DiseasePathwayUpdates() {
     }
 
+    @Test
+    public void reOrganizeDiseaseEventsV3Test() throws Exception {
+        reOrganizeDiseaseEventsV3(false);
+        reOrganizeDiseaseEventsV3(true);
+    }
+
     /**
      * Revision based on Bijay feedbacks on results generated from V2.
      *
      * @throws Exception
      */
-    @Test
-    public void reOrganizeDiseaseEventsV3() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+
+    private void reOrganizeDiseaseEventsV3(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
 
         GKInstance disease = getDiseasePathway(dba);
 
@@ -315,7 +321,7 @@ public class DiseasePathwayUpdates {
                             defaultIE,
                             dba, null);
                     System.out.println(diseaseInst);
-                    count ++;
+                    count++;
                 }
                 System.out.println("Total: " + count);
                 // Just a sanity check
@@ -332,8 +338,7 @@ public class DiseasePathwayUpdates {
                 System.out.println(pathway + ": " + hasEvent);
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).commit();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).rollback();
                 e.printStackTrace();
@@ -341,17 +346,22 @@ public class DiseasePathwayUpdates {
         }
     }
 
+    @Test
+    public void reOrganizeDiseaseEventsV2Test() throws Exception {
+        reOrganizeDiseaseEventsV2(false);
+        reOrganizeDiseaseEventsV2(true);
+    }
+
     /**
      * This method is used to re-organize disease pathways as suggested by Bijay in document:
      * https://docs.google.com/document/d/1YxhvTqP1Lz2mOp5zaRHfKKs4Fyhn2Lx50W83TgtG9hY/edit.
-     * The code here basically is modified from method {@link reOrganizeDiseasePathwaysToNormals()
+     * The code here basically is modified from method {@link reOrganizeDiseasePathwaysToNormals
      * reOrganizeDiseasePathwaysToNormals}.
      *
      * @throws Exception
      */
-    @Test
-    public void reOrganizeDiseaseEventsV2() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void reOrganizeDiseaseEventsV2(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
 
         GKInstance disease = getDiseasePathway(dba);
 
@@ -563,7 +573,7 @@ public class DiseasePathwayUpdates {
                             defaultIE,
                             dba, null);
                     System.out.println(diseaseInst);
-                    count ++;
+                    count++;
                 }
                 System.out.println("Total: " + count);
                 // Just a sanity check
@@ -580,8 +590,7 @@ public class DiseasePathwayUpdates {
                 System.out.println(pathway + ": " + hasEvent);
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).commit();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).rollback();
                 e.printStackTrace();
@@ -913,15 +922,19 @@ public class DiseasePathwayUpdates {
         }
     }
 
+    @Test
+    public void reOrganizeDiseasePathwaysToNormalsTest() throws Exception {
+        reOrganizeDiseasePathwaysToNormals(false);
+        reOrganizeDiseasePathwaysToNormals(true);
+    }
     /**
      * This method is used to re-organize disease pathways to their appropriate places as
      * requested by Antonio.
      *
      * @throws Exception
      */
-    @Test
-    public void reOrganizeDiseasePathwaysToNormals() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void reOrganizeDiseasePathwaysToNormals(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
 
         GKInstance disease = getDiseasePathway(dba);
 
@@ -995,7 +1008,7 @@ public class DiseasePathwayUpdates {
 
                 // Delete re-organized disease pathways from top-most disease pathway.
                 List<GKInstance> hasEvent = disease.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
-                for (Iterator<GKInstance> it = hasEvent.iterator(); it.hasNext();) {
+                for (Iterator<GKInstance> it = hasEvent.iterator(); it.hasNext(); ) {
                     GKInstance inst = it.next();
                     String displayName = inst.getDisplayName();
                     if (displayName.equals("Infectious disease"))
@@ -1006,8 +1019,7 @@ public class DiseasePathwayUpdates {
                 ScriptUtilities.addIEToModified(disease, defaultIE, dba, null);
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).commit();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).rollback();
                 e.printStackTrace();
@@ -1254,8 +1266,13 @@ public class DiseasePathwayUpdates {
     }
 
     @Test
-    public void checkLinksFromDiseasePathway() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkLinksFromDiseasePathwayTest() throws Exception {
+        checkLinksFromDiseasePathway(false);
+        checkLinksFromDiseasePathway(true);
+    }
+
+    private void checkLinksFromDiseasePathway(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FrontPage);
         GKInstance frontPage = c.iterator().next();
         // Get pathways contained by non-disease top-level pathways
@@ -1403,11 +1420,16 @@ public class DiseasePathwayUpdates {
                             dba, null);
                 }
                 ((MySQLAdaptor) dba).commit();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 ((MySQLAdaptor) dba).rollback();
             }
         }
+    }
+
+    @Test
+    public void useNewNormalPathwaySlotTest() throws Exception {
+        useNewNormalPathwaySlot(false);
+        useNewNormalPathwaySlot(true);
     }
 
     /**
@@ -1415,9 +1437,8 @@ public class DiseasePathwayUpdates {
      *
      * @throws Exception
      */
-    @Test
-    public void useNewNormalPathwaySlot() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void useNewNormalPathwaySlot(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Get the disease pathway
         GKInstance disease = dba.fetchInstance(1643685L);
         List<GKInstance> otherDiseaes = disease.getAttributeValuesList(ReactomeJavaConstants.orthologousEvent);
@@ -1476,15 +1497,14 @@ public class DiseasePathwayUpdates {
                 }
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).commit();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (isTransactionSupported)
                     ((MySQLAdaptor) dba).rollback();
             }
         }
     }
 
-    private PersistenceAdaptor getDBA() throws SQLException {
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws SQLException {
         if (this.dba != null)
             return this.dba;
 //        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
@@ -1499,10 +1519,17 @@ public class DiseasePathwayUpdates {
 //                                            "test_gk_central_031317_new_disease",
 //                                            "root",
 //                                            "macmysql01");
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "test_gk_central_063017_new_disease",
-                "root",
-                "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_063017_new_disease",
+                    "root",
+                    "macmysql01");
         return dba;
     }
 

@@ -228,9 +228,14 @@ public class DiagramGeneratorFromDB {
         }
         return null;
     }
-    
+
     @Test
-    public void testGenerateImageOnly() throws Exception {
+    public void testGenerateImageOnlyTest() throws Exception {
+        testGenerateImageOnly(false);
+        testGenerateImageOnly(true);
+    }
+
+    private void testGenerateImageOnly(Boolean useNeo4J) throws Exception {
         // Signaling by NGF
 //        Long pathwayId = 166520L;
         Long pathwayId = 69620L; // Cell Cycle Checkpoints
@@ -252,10 +257,16 @@ public class DiagramGeneratorFromDB {
 //                               "gk_central", 
 //                               "authortool", 
 //                               "T001test");
-        dba = new MySQLAdaptor("localhost",
-                               "test_gk_central_efs_new",
-                               "root",
-                               "macmysql01");
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_efs_new",
+                    "root",
+                    "macmysql01");
         dba.setUseCache(true);
         imageBaseDir = "tmp";
         // Get the pathway diagram
@@ -734,8 +745,6 @@ public class DiagramGeneratorFromDB {
      * only objects related to normal pathways should be drawn.
      * @param diagram
      * @param pathwayDir
-     * @param isForDisease
-     * @param isNormalInDisease
      * @return
      * @throws Exception
      */
@@ -901,17 +910,28 @@ public class DiagramGeneratorFromDB {
         printWriter.close();
         writer.close();
     }
-        
+
     @Test
-    public void testGenerateImages() throws Exception {
+    public void testGenerateImagesTest() throws Exception {
+        testGenerateImages(false);
+        testGenerateImages(true);
+    }
+
+    private void testGenerateImages(Boolean useNeo4J) throws Exception {
 //        MySQLAdaptor dba = new MySQLAdaptor("localhost",
 //                                            "gk_current_ver44",
 //                                            "root",
 //                                            "macmysql01");
-        MySQLAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         setPersistenceAdaptor(dba);
         setImageBaseDir("tiles");
         //generateImages(69620L); // Cell Cycle Checkpoints

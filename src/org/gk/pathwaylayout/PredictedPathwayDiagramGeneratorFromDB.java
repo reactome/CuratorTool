@@ -854,11 +854,23 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     }
 
     @Test
-    public void testGeneratePredictedDiagram() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("test.oicr.on.ca",
-                "test",
-                "test",
-                "test");
+    public void testGeneratePredictedDiagramTest() throws Exception {
+        testGeneratePredictedDiagram(false);
+        testGeneratePredictedDiagram(true);
+    }
+
+    private void testGeneratePredictedDiagram(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("test.oicr.on.ca",
+                    "test",
+                    "test",
+                    "test");
         setPersistenceAdaptor(dba);
         setDefaultPersonId(140537L); // For myself
         // Cell cycle checkpoints
@@ -906,12 +918,24 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     }
 
     @Test
-    public void testGenerateDiagramsForOtherSpecies() throws Exception {
+    public void testGenerateDiagramsForOtherSpeciesTest() throws Exception {
+        testGenerateDiagramsForOtherSpecies(false);
+        testGenerateDiagramsForOtherSpecies(true);
+    }
+
+    private void testGenerateDiagramsForOtherSpecies(Boolean useNeo4J) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_current_ver32",
-                "root",
-                "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver32",
+                    "root",
+                    "macmysql01");
         Long defaultPerson = 140537L; // For myself
         long time1 = System.currentTimeMillis();
         generateDiagramsForOtherSpecies(dba,
@@ -922,12 +946,24 @@ public class PredictedPathwayDiagramGeneratorFromDB extends DiagramGeneratorFrom
     }
 
     @Test
-    public void testGenerateImageFiles() throws Exception {
+    public void testGenerateImageFilesTest() throws Exception {
+        testGenerateImageFiles(false);
+        testGenerateImageFiles(true);
+    }
+
+    private void testGenerateImageFiles(Boolean useNeo4J) throws Exception {
         PropertyConfigurator.configure("resources/log4j.properties");
-        MySQLAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                "test_reactome_34_brie8_diagrams",
-                "authortool",
-                "T001test");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "test_reactome_34_brie8_diagrams",
+                    "authortool",
+                    "T001test");
         PredictedPathwayDiagramGeneratorFromDB generator = new PredictedPathwayDiagramGeneratorFromDB();
         generator.setPersistenceAdaptor(dba);
         generator.setImageBaseDir("tmp");

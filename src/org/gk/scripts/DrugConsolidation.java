@@ -32,18 +32,31 @@ public class DrugConsolidation {
     public DrugConsolidation() {
     }
 
+    @Test
+    public void createDrugActionTypesTest() throws Exception {
+        createDrugActionTypes(true);
+        createDrugActionTypes(false);
+    }
+
     /**
      * Create DrugActionType instances as shown in the second slide of this file:
      * https://docs.google.com/presentation/d/1NllQLkNdOq2eaGem4vP1IWB-PsQirPF-8iuuRzJcpzM/edit#slide=id.gb953c97efd_0_0
      *
      * @throws Exception
      */
-    @Test
-    public void createDrugActionTypes() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("curator.reactome.org",
-                "gk_central",
-                "",
-                "");
+
+    private void createDrugActionTypes(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("curator.reactome.org",
+                    "gk_central",
+                    "",
+                    "");
         // This is the list
         String[] names = {
                 "Agonist",

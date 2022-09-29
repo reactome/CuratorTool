@@ -19,6 +19,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.gk.util.StringUtils;
 import org.junit.Test;
@@ -33,17 +34,29 @@ public class ReactionToGeneNamesDumper {
     public ReactionToGeneNamesDumper() {
         
     }
+
+    @Test
+    public void checkReactionsInProteinListTest() throws Exception {
+        checkReactionsInProteinList(false);
+        checkReactionsInProteinList(true);
+    }
     
     @Test
-    public void checkReactionsInProteinList() throws Exception {
+    private void checkReactionsInProteinList(Boolean useNeo4J) throws Exception {
         //Set<String> proteins = getProteins();
         Set<String> proteins = getGenes();
         System.out.println("Total proteins: " + proteins.size());
-        
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "test_slice_59",
-                                            "root", 
-                                            "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_slice_59",
+                    "root",
+                    "macmysql01");
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent, 
                                                                         ReactomeJavaConstants.species, 
@@ -92,14 +105,26 @@ public class ReactionToGeneNamesDumper {
         fu.close();
         return rtn;
     }
+
+    @Test
+    public void dumpTest() throws Exception {
+        dump(false);
+        dump(true);
+    }
     
     @SuppressWarnings("unchecked")
-    @Test
-    public void dump() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_current_ver41",
-                                            "root", 
-                                            "macmysql01");
+    private void dump(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver41",
+                    "root",
+                    "macmysql01");
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent, 
                                                                         ReactomeJavaConstants.species, 

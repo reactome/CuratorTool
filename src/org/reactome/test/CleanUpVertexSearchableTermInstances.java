@@ -14,6 +14,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 
 
@@ -24,18 +25,30 @@ import org.junit.Test;
  */
 public class CleanUpVertexSearchableTermInstances {
     
-    private PersistenceAdaptor getPersistenceAdaptor() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("brie8.cshl.edu",
-                                            "test_gk_central_121108",
-                                            "authortool",
-                                            "T001test",
-                                            3306);
+    private PersistenceAdaptor getPersistenceAdaptor(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("brie8.cshl.edu",
+                    "test_gk_central_121108",
+                    "authortool",
+                    "T001test",
+                    3306);
         return dba;
     }
-    
+
     @Test
-    public void checkVSTInstances() throws Exception {
-        PersistenceAdaptor dba = getPersistenceAdaptor();
+    public void checkVSTInstancesTest() throws Exception {
+        checkVSTInstances(false);
+        checkVSTInstances(true);
+    }
+
+    private void checkVSTInstances(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getPersistenceAdaptor(useNeo4J);
         Collection c = dba.fetchInstancesByClass(ReactomeJavaConstants.VertexSearchableTerm);
         List<GKInstance> list = new ArrayList<GKInstance>(c);
         Collections.sort(list, new Comparator<GKInstance>() {

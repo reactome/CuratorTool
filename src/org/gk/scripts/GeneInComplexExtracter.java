@@ -18,6 +18,8 @@ import java.util.Set;
 import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
+
 /**
  * @author wgm
  * A class to use a map from Gene to Complex in Reactome.
@@ -28,10 +30,10 @@ public class GeneInComplexExtracter {
 	private Map touchedComplex = new HashMap();
 	private Map proteinMap = new HashMap();
 	private Map geneMap = new HashMap();
-	
-	public GeneInComplexExtracter() {		
+
+	public GeneInComplexExtracter() {
 	}
-	
+
 	public void extractComplexList() {
 		try {
 			PersistenceAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
@@ -61,16 +63,16 @@ public class GeneInComplexExtracter {
 				}
 				if (it.hasNext())
 					buffer.append("\n");
-				
+
 			}
 			output(buffer, "complexList.txt");
 			System.out.println(buffer.toString());
-		} 
+		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * @param buffer
 	 * @throws IOException
@@ -83,10 +85,8 @@ public class GeneInComplexExtracter {
 		writer.close();
 	}
 
-	public void extract() {
+	public void extract(PersistenceAdaptor adaptor) {
 		try {
-			PersistenceAdaptor adaptor = new MySQLAdaptor("brie8.cshl.org",
-					"gk_central", "authortool", "T001test");
 			Collection instances = adaptor.fetchInstanceByAttribute("Species",
 					"_displayName", "=", "homo sapiens");
 			GKInstance human = (GKInstance) instances.iterator().next();
@@ -147,12 +147,12 @@ public class GeneInComplexExtracter {
 			}
 			output(buffer, "geneInComplex.txt");
 			System.out.println("Total genes: " + geneMap.size());
-		} 
+		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private GKInstance getENSEMLId(GKInstance protein) throws Exception {
 		GKInstance referenceEntity = (GKInstance) protein.getAttributeValue("referenceEntity");
 		if (referenceEntity == null)
@@ -171,7 +171,7 @@ public class GeneInComplexExtracter {
 		}
 		return null;
 	}
-	
+
 	private void extract(GKInstance complex) throws Exception {
 		// It has already extracted
 		if (touchedComplex.containsKey(complex))
@@ -180,11 +180,11 @@ public class GeneInComplexExtracter {
 		extract(complex, subunits);
 		touchedComplex.put(complex, subunits);
 	}
-	
+
 	private void extract(GKInstance complex, Set subunits) throws Exception {
 		List components = complex.getAttributeValuesList("hasComponent");
 		if (components == null || components.size() == 0)
-			return;		
+			return;
 		for (Iterator it = components.iterator(); it.hasNext();) {
 			GKInstance sub = (GKInstance) it.next();
 			if (sub.getSchemClass().isa("Complex")) {
@@ -196,11 +196,32 @@ public class GeneInComplexExtracter {
 				subunits.add(sub);
 		}
 	}
-	
-	public static void main(String[] args) {
-		GeneInComplexExtracter extracter = new GeneInComplexExtracter();
-		//extracter.extractComplexList();
-		extracter.extract();
-	}
-	
+
+    public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Provide use_neo4j argument");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+            return;
+        }
+        boolean useNeo4J = Boolean.parseBoolean(args[0]);
+        try {
+            PersistenceAdaptor adaptor;
+            if (useNeo4J)
+                adaptor = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                adaptor = new MySQLAdaptor("brie8.cshl.org",
+                        "gk_central",
+                        "authortool",
+                        "T001test");
+            GeneInComplexExtracter extracter = new GeneInComplexExtracter();
+            //extracter.extractComplexList(adaptor);
+            extracter.extract(adaptor);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

@@ -209,13 +209,25 @@ public class PathwayDiagramXMLGenerator {
             throw new IllegalStateException("Find more than one PathwayDigram for" + pathway);
         return c.stream().findAny().get();
     }
-    
+
     @Test
-    public void testGenerateXMLForPathwayDigram() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_110818",
-                                            "",
-                                            "");
+    public void testGenerateXMLForPathwayDigramTest() throws Exception {
+        testGenerateXMLForPathwayDigram(false);
+        testGenerateXMLForPathwayDigram(true);
+    }
+
+    private void testGenerateXMLForPathwayDigram(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_110818",
+                    "",
+                    "");
         // EGFR Pathway diagram
         Long pathwayId = 177929L;
         // PIP3 signaling

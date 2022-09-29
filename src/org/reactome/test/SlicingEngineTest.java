@@ -11,6 +11,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.GKSchemaAttribute;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -26,10 +27,22 @@ public class SlicingEngineTest {
 
     public SlicingEngineTest() {
     }
-    
+
     @Test
-    public void check() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost", "test_slice_54a", "root", "macmysql01");
+    public void checkTest() throws Exception {
+        check(false);
+        check(true);
+    }
+
+    private void check(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost", "test_slice_54a", "root", "macmysql01");
         SchemaClass eventCls = dba.fetchSchema().getClassByName(ReactomeJavaConstants.Event);
         Collection<?> events = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Event,
                                                             ReactomeJavaConstants.species,

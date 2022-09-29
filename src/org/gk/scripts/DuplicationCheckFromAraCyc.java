@@ -64,7 +64,7 @@ public class DuplicationCheckFromAraCyc {
                             args[3]);
                 DuplicationCheckFromAraCyc checker = new DuplicationCheckFromAraCyc();
                 checker.setPersistenceAdaptor(dba);
-                checker.fixDuplicationsInSimpleEntities();
+                checker.fixDuplicationsInSimpleEntities(useNeo4J);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -82,7 +82,7 @@ public class DuplicationCheckFromAraCyc {
                             args[3]);
                 DuplicationCheckFromAraCyc checker = new DuplicationCheckFromAraCyc();
                 checker.setPersistenceAdaptor(dba);
-                checker.checkDuplicationInSimpleEntities();
+                checker.checkDuplicationInSimpleEntities(useNeo4J);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -93,20 +93,31 @@ public class DuplicationCheckFromAraCyc {
         this.dba = dba;
     }
 
-    public PersistenceAdaptor getPersistenceAdaptor() throws Exception {
+    public PersistenceAdaptor getPersistenceAdaptor(Boolean useNeo4J) throws Exception {
         if (dba != null)
             return dba;
-        dba = new MySQLAdaptor("localhost",
-                "gk_central_103111",
-                "root",
-                "macmysql01");
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_103111",
+                    "root",
+                    "macmysql01");
         return dba;
     }
 
     @Test
-    public void fixDuplicationsInSimpleEntities() throws Exception {
+    public void fixDuplicationsInSimpleEntitiesTest() throws Exception {
+        fixDuplicationsInSimpleEntities(false);
+        fixDuplicationsInSimpleEntities(true);
+    }
+
+    private void fixDuplicationsInSimpleEntities(Boolean useNeo4J) throws Exception {
         long time1 = System.currentTimeMillis();
-        PersistenceAdaptor dba = getPersistenceAdaptor();
+        PersistenceAdaptor dba = getPersistenceAdaptor(useNeo4J);
         List<GKInstance> araSimpleEntities = fetchAraSimpleEntities(dba);
         ReverseAttributePane referrersHelper = new ReverseAttributePane();
         if (dba instanceof Neo4JAdaptor) {
@@ -245,7 +256,7 @@ public class DuplicationCheckFromAraCyc {
     /**
      * Get an instance with smallest DB_ID.
      *
-     * @param inst
+     * @param set
      * @return
      */
     private GKInstance getOlderInstance(Set<?> set) {
@@ -261,8 +272,13 @@ public class DuplicationCheckFromAraCyc {
     }
 
     @Test
-    public void checkDuplicationInSimpleEntities() throws Exception {
-        PersistenceAdaptor dba = getPersistenceAdaptor();
+    public void checkDuplicationInSimpleEntitiesTest() throws Exception {
+        checkDuplicationInSimpleEntities(false);
+        checkDuplicationInSimpleEntities(true);
+    }
+
+    private void checkDuplicationInSimpleEntities(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getPersistenceAdaptor(useNeo4J);
         List<GKInstance> araInsts = fetchAraSimpleEntities(dba);
         // Search for any duplication
         int total = 0;

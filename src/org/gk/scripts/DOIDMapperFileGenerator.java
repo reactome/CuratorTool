@@ -6,6 +6,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -22,13 +23,26 @@ public class DOIDMapperFileGenerator {
     public DOIDMapperFileGenerator() {
         
     }
-    
+
+
     @Test
-    public void generateFile() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "test_slice_64",
-                "root",
-                "macmysql01");
+    public void generateFileTest() throws Exception {
+        generateFile(false);
+        generateFile(true);
+    }
+
+    private void generateFile(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_slice_64",
+                    "root",
+                    "macmysql01");
         Collection<GKInstance> diseases = dba.fetchInstancesByClass(ReactomeJavaConstants.Disease);
         System.out.println("Total disease: " + diseases.size());
         FileUtilities fu = new FileUtilities();

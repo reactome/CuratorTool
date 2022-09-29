@@ -22,6 +22,7 @@ import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.render.HyperEdge;
 import org.gk.render.Renderable;
 import org.gk.render.RenderablePathway;
@@ -261,13 +262,25 @@ public class ReactionELVCheck extends AbstractQualityCheck {
     protected String[] getHeaders() {
         return HEADERS;
     }
-    
+
     @Test
-    public void testCheckReactionsInELVs() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_071712",
-                                            "root",
-                                            "macmysql01");
+    public void testCheckReactionsInELVsTest() throws Exception {
+        testCheckReactionsInELVs(false);
+        testCheckReactionsInELVs(true);
+    }
+
+    private void testCheckReactionsInELVs(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_071712",
+                    "root",
+                    "macmysql01");
         long time1 = System.currentTimeMillis();
         Map<GKInstance, Set<GKInstance>> reactionToDiagrams = checkEventUsageInELV(dba);
         long time2 = System.currentTimeMillis();
@@ -287,5 +300,5 @@ public class ReactionELVCheck extends AbstractQualityCheck {
         fu.printLine(output);
         fu.close();
     }
-    
+
 }

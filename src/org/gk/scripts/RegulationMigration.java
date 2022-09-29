@@ -36,11 +36,23 @@ public class RegulationMigration {
     }
 
     @Test
-    public void testHandleCAReferences() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "test_gk_central_schema_update_gw",
-                "",
-                "");
+    public void testHandleCAReferencesTest() throws Exception {
+        testHandleCAReferences(false);
+        testHandleCAReferences(true);
+    }
+
+    private void testHandleCAReferences(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_schema_update_gw",
+                    "",
+                    "");
         handleCatalystActivityRefereces(dba);
     }
 
@@ -128,11 +140,23 @@ public class RegulationMigration {
     }
 
     @Test
-    public void testHandleRegulationReferences() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "test_gk_central_schema_update_gw",
-                "root",
-                "macmysql01");
+    public void testHandleRegulationReferencesTest() throws Exception {
+        testHandleRegulationReferences(false);
+        testHandleRegulationReferences(true);
+    }
+
+    private void testHandleRegulationReferences(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "test_gk_central_schema_update_gw",
+                    "root",
+                    "macmysql01");
         handleRegulationReferences(dba);
     }
 
@@ -280,8 +304,13 @@ public class RegulationMigration {
     }
 
     @Test
-    public void checkRegulationSummtationTextForMerge() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkRegulationSummtationTextForMergeTest() throws Exception {
+        checkRegulationSummtationTextForMerge(false);
+        checkRegulationSummtationTextForMerge(true);
+    }
+
+    private void checkRegulationSummtationTextForMerge(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                 ReactomeJavaConstants.species,
@@ -411,15 +440,19 @@ public class RegulationMigration {
         builder.append("\t").append(summationText);
     }
 
+    @Test
+    public void dumpRegulationWithSummationTest() throws Exception {
+        dumpRegulationWithSummation(false);
+        dumpRegulationWithSummation(true);
+    }
 
     /**
      * This method is different from checkRegulationSummation() in that it focues on Regulation instances.
      *
      * @throws Exception
      */
-    @Test
-    public void dumpRegulationWithSummation() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void dumpRegulationWithSummation(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
                 ReactomeJavaConstants.summation,
                 "!=",
@@ -506,14 +539,19 @@ public class RegulationMigration {
         fu.close();
     }
 
+    @Test
+    public void deleteRegulationSummationForAllTest() throws Exception {
+        deleteRegulationSummationForAll(false);
+        deleteRegulationSummationForAll(true);
+    }
+
     /**
      * This should be the last step to remove summation from Regulation.
      *
      * @throws Exception
      */
-    @Test
-    public void deleteRegulationSummationForAll() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void deleteRegulationSummationForAll(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Get Regulations having summations
         Collection<GKInstance> regulations = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Regulation,
                 ReactomeJavaConstants.summation,
@@ -615,8 +653,13 @@ public class RegulationMigration {
     }
 
     @Test
-    public void checkRegulationSummation() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkRegulationSummationTest() throws Exception {
+        checkRegulationSummation(false);
+        checkRegulationSummation(true);
+    }
+
+    private void checkRegulationSummation(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                 ReactomeJavaConstants.species,
@@ -723,8 +766,13 @@ public class RegulationMigration {
     }
 
     @Test
-    public void checkRegulationLiteratureReference() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkRegulationLiteratureReferenceTest() throws Exception {
+        checkRegulationSummation(false);
+        checkRegulationSummation(true);
+    }
+
+    public void checkRegulationLiteratureReference(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Fetch all human RLEs
         Collection<GKInstance> humanRLEs = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                 ReactomeJavaConstants.species,
@@ -788,11 +836,18 @@ public class RegulationMigration {
         return shared;
     }
 
-    private PersistenceAdaptor getDBA() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_061121",
-                "root",
-                "macmysql01");
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_061121",
+                    "root",
+                    "macmysql01");
         return dba;
     }
 

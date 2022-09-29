@@ -14,6 +14,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.junit.Test;
 
 /**
@@ -165,7 +166,7 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
     }
 
     @Test
-    public void testCheckInCommand() throws Exception {
+    public void testCheckInCommandMySQL() throws Exception {
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
                                             "test_slice",
                                             "root",
@@ -173,4 +174,12 @@ public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
         super.testCheckInCommand(dba);
     }
 
+    @Test
+    public void testCheckInCommandNeo4J() throws Exception {
+        Neo4JAdaptor dba = new Neo4JAdaptor("localhost",
+                "graph.db",
+                "neo4j",
+                "reactome");
+        super.testCheckInCommand(dba);
+    }
 }

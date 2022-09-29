@@ -15,6 +15,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -28,13 +29,25 @@ public class ReactionRename {
     
     public ReactionRename() {
     }
-    
+
     @Test
-    public void processHumanReactions() throws Exception {
-    	PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_current_ver77",
-                "root",
-                "macmysql01");
+    public void processHumanReactionsTest() throws Exception {
+        processHumanReactions(false);
+        processHumanReactions(true);
+    }
+
+    private void processHumanReactions(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver77",
+                    "root",
+                    "macmysql01");
     	GKInstance human = dba.fetchInstance(ReactomeJavaConstants.humanID);
     	Collection<GKInstance> humanReactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
     			ReactomeJavaConstants.species,
@@ -60,18 +73,30 @@ public class ReactionRename {
     		System.out.println("One regulator: " + regulator);
     	}
     }
-    
-    private PersistenceAdaptor getDBA() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_central_102312",
-                                            "root",
-                                            "macmysql01");
+
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_102312",
+                    "root",
+                    "macmysql01");
         return dba;
     }
-    
+
     @Test
-    public void renameReactions() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void renameReactionsTest() throws Exception {
+        renameReactions(false);
+        renameReactions(true);
+    }
+
+    private void renameReactions(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Want to check human reactions only
         GKInstance homosapiens = dba.fetchInstance(48887L);
         Collection<GKInstance> reactions = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,

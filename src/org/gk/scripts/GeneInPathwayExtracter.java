@@ -17,6 +17,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -411,12 +412,25 @@ public class GeneInPathwayExtracter {
 //    }
     
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Provide use_neo4j argument");
+            System.err.println("use_neo4j = true, connect to Neo4J DB; otherwise connect to MySQL");
+            return;
+        }
         try {
-            PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                                "gk_current_ver17",
-                                                "root",
-                                                "macmysql01",
-                                                3306);
+            PersistenceAdaptor dba;
+            boolean useNeo4J = Boolean.parseBoolean(args[0]);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                dba = new MySQLAdaptor("localhost",
+                        "gk_current_ver17",
+                        "root",
+                        "macmysql01",
+                        3306);
             GeneInPathwayExtracter extracter = new GeneInPathwayExtracter();
             extracter.dba = dba;
             // This is for mouse

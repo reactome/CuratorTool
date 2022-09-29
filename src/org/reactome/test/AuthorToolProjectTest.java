@@ -35,20 +35,31 @@ public class AuthorToolProjectTest {
     public AuthorToolProjectTest() {
     }
     
-    public PersistenceAdaptor getDBA() throws Exception {
+    public PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
         if (dba == null) {
-            dba = new MySQLAdaptor("localhost",
-                                   "reactome_25_pathway_diagram",
-                                   "root",
-                                   "macmysql01",
-                                   3306);
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                dba = new MySQLAdaptor("localhost",
+                        "reactome_25_pathway_diagram",
+                        "root",
+                        "macmysql01",
+                        3306);
         }
         return dba;
     }
-    
+
     @Test
-    public void exportPathwayIntoATProject() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void exportPathwayIntoATProjectTest() throws Exception {
+        exportPathwayIntoATProject(false);
+        exportPathwayIntoATProject(true);
+    }
+
+    private void exportPathwayIntoATProject(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         PersistenceManager.getManager().setActivePersistenceAdaptor(dba);
         // This is used to test human apoptosis
         Long dbId = 109581L;

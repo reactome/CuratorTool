@@ -10,6 +10,7 @@ import org.gk.database.util.MODReactomeAnalyzer;
 import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
@@ -95,18 +96,30 @@ public class RiceReactomeNewProjectCreator extends MODReactomeAnalyzer {
         // Set the dirty flag
         fileAdaptor.markAsDirty(local);
     }
+
+    @Test
+    public void runGenerateProjectTest() throws Exception {
+        runGenerateProject(false);
+        runGenerateProject(true);
+    }
     
     /**
      * Use this method to generate a Curator Tool project from a specified database.
      * All object properties should  be specified before running.
      * @throws Exception
      */
-    @Test
-    public void runGenerateProject() throws Exception {
-        PersistenceAdaptor dbaAdaptor = new MySQLAdaptor("localhost",
-                                                   "test_rice_reactome_v2_111610", 
-                                                   "root", 
-                                                   "macmysql01");
+    private void runGenerateProject(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dbaAdaptor;
+        if (useNeo4J)
+            dbaAdaptor = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dbaAdaptor = new MySQLAdaptor("localhost",
+                    "test_rice_reactome_v2_111610",
+                    "root",
+                    "macmysql01");
         setModReactome(dbaAdaptor);
         setMaxOrignalDbId(981542L);
         setMaxDumpIEDbId(981538L);

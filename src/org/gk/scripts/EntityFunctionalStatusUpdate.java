@@ -429,11 +429,23 @@ public class EntityFunctionalStatusUpdate {
     }
 
     @Test
-    public void checkEFSes() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "test_gk_central_efs_new",
-                "root",
-                "macmysql01");
+    public void checkEFSesTest() throws Exception {
+        checkEFSes(false);
+        checkEFSes(true);
+    }
+
+    private void checkEFSes(Boolean useNeo4J) throws Exception {
+            PersistenceAdaptor dba;
+            if (useNeo4J)
+                dba = new Neo4JAdaptor("localhost",
+                        "graph.db",
+                        "neo4j",
+                        "reactome");
+            else
+                dba = new MySQLAdaptor("localhost",
+                        "test_gk_central_efs_new",
+                        "root",
+                        "macmysql01");
         Collection<GKInstance> efses = dba.fetchInstancesByClass(ReactomeJavaConstants.EntityFunctionalStatus);
 
 //        Set<String> lastNames = new HashSet<>();

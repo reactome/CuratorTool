@@ -95,13 +95,24 @@ public class DatabaseSchemaUpdates {
         }
     }
 
-
     @Test
-    public void copyAccessionToIdentifierForSO() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                "gk_central",
-                "authortool",
-                "T001test");
+    public void copyAccessionToIdentifierForSOTest() throws Exception {
+        copyAccessionToIdentifierForSO(false);
+        copyAccessionToIdentifierForSO(true);
+    }
+
+    private void copyAccessionToIdentifierForSO(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SequenceOntology);
         System.out.println("Total SequenceOntology instances: " + instances.size());
         if (dba instanceof Neo4JAdaptor) {

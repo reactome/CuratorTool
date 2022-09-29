@@ -13,13 +13,20 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
 public class CheckUniProtIdsInPathwayStableIdFile {
-    
+
+
     @Test
-    public void check() throws Exception {
+    public void checkTest() throws Exception {
+        check(false);
+        check(true);
+    }
+
+    private void check(Boolean useNeo4J) throws Exception {
         String targetFileName = "/Users/wgm/Desktop/uniprot_2_pathways.stid.txt";
         Set<String> targetIds = new HashSet<String>();
         FileUtilities fu = new FileUtilities();
@@ -32,10 +39,17 @@ public class CheckUniProtIdsInPathwayStableIdFile {
         fu.close();
         System.out.println("Total ids in file: " + targetIds.size());
         // Get ids from the released database
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                                            "gk_current_ver35",
-                                            "root", 
-                                            "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_current_ver35",
+                    "root",
+                    "macmysql01");
         GKInstance human = dba.fetchInstance(48887L);
         Collection<?> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReferenceGeneProduct,
                                                        ReactomeJavaConstants.species, 

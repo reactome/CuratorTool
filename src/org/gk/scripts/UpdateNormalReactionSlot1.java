@@ -12,6 +12,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.junit.Test;
@@ -29,17 +30,29 @@ public class UpdateNormalReactionSlot1 {
         
     }
     
-    public PersistenceAdaptor getDBA() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
-                                            "test_slice_64",
-                                            "",
-                                            "");
+    public PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomerelease.oicr.on.ca",
+                    "test_slice_64",
+                    "",
+                    "");
         return dba;
     }
-    
+
     @Test
-    public void generateProject() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void generateProjectTest() throws Exception {
+        generateProject(false);
+        generateProject(true);
+    }
+
+    private void generateProject(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> c = dba.fetchInstanceByAttribute(ReactomeJavaConstants.ReactionlikeEvent,
                                                                 ReactomeJavaConstants.normalReaction,
                                                                 "IS NOT NULL",

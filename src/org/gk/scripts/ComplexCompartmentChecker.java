@@ -16,6 +16,7 @@ import org.gk.model.InstanceUtilities;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.persistence.Neo4JAdaptor;
 import org.gk.util.FileUtilities;
 import org.junit.Test;
 
@@ -28,13 +29,25 @@ public class ComplexCompartmentChecker {
     
     public ComplexCompartmentChecker() {
     }
-    
+
     @Test
-    public void checkComplexes() throws Exception {
-        PersistenceAdaptor srcDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca",
-                                               "gk_central",
-                                               "authortool",
-                                               "T001test");
+    public void checkComplexesTest() throws Exception {
+        checkComplexes(false);
+        checkComplexes(true);
+    }
+
+    private void checkComplexes(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor srcDBA;
+        if (useNeo4J)
+            srcDBA = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            srcDBA = new MySQLAdaptor("reactomecurator.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         Collection<GKInstance> c = srcDBA.fetchInstancesByClass(ReactomeJavaConstants.Complex);
         srcDBA.loadInstanceAttributeValues(c, new String[]{
                 ReactomeJavaConstants.isChimeric,
@@ -122,18 +135,29 @@ public class ComplexCompartmentChecker {
         return builder.toString();
     }
     
-    private PersistenceAdaptor getDBA() throws Exception {
-        PersistenceAdaptor dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
-                                            "gk_central",
-                                            "authortool",
-                                            "T001test");
+    private PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("reactomedev.oicr.on.ca",
+                    "gk_central",
+                    "authortool",
+                    "T001test");
         return dba;
     }
-    
-    
+
     @Test
-    public void checkComplexCompartments() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    public void checkComplexCompartmentsTest() throws Exception {
+        checkComplexCompartments(false);
+        checkComplexCompartments(true);
+    }
+
+    private void checkComplexCompartments(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Map<Long, Boolean> complexIdToFix = loadCompartmentList();
         int total = 0;
         int toBeFixed = 0;

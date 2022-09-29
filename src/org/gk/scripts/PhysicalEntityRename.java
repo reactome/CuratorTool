@@ -58,12 +58,18 @@ public class PhysicalEntityRename {
                         args[3]);
             PhysicalEntityRename renamer = new PhysicalEntityRename();
             renamer.setDBA(dba);
-            renamer.checkRenameEWASInstances();
+            renamer.checkRenameEWASInstances(useNeo4J);
             //renamer.renameEWASesInDb();
 //            renamer.fixEWASNamesInDb();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void checkRenamedEWASesInDbTest() throws Exception {
+        checkRenamedEWASesInDb(false);
+        checkRenamedEWASesInDb(true);
     }
 
     /**
@@ -72,9 +78,8 @@ public class PhysicalEntityRename {
      *
      * @throws Exception
      */
-    @Test
-    public void checkRenamedEWASesInDb() throws Exception {
-        PersistenceAdaptor dba = getDBA();
+    private void checkRenamedEWASesInDb(Boolean useNeo4J) throws Exception {
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // Read the logging file to get the list of DB_IDs for renamed EWASes
         String fileName = DIR_NAME + "EWASRename_gk_central_.txt";
         Map<Long, String> dbIdToNewName = loadDbIdToName(fileName);
@@ -238,13 +243,20 @@ public class PhysicalEntityRename {
         positionablePrefixes.add("Me3K-");
     }
 
-    protected PersistenceAdaptor getDBA() throws Exception {
+    protected PersistenceAdaptor getDBA(Boolean useNeo4J) throws Exception {
         if (dba != null)
             return dba;
-        PersistenceAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_062713",
-                "root",
-                "macmysql01");
+        PersistenceAdaptor dba;
+        if (useNeo4J)
+            dba = new Neo4JAdaptor("localhost",
+                    "graph.db",
+                    "neo4j",
+                    "reactome");
+        else
+            dba = new MySQLAdaptor("localhost",
+                    "gk_central_062713",
+                    "root",
+                    "macmysql01");
 //        PersistenceAdaptor dba = new MySQLAdaptor("reactomecurator.oicr.on.ca",
 //                                            "gk_central",
 //                                            "authortool",
@@ -270,13 +282,18 @@ public class PhysicalEntityRename {
         return dbIds;
     }
 
+    @Test
+    public void checkMissedInstancesTest() throws Exception {
+        checkMissedInstances(false);
+        checkMissedInstances(true);
+    }
+
     /**
      * Reported by Steve, some instances were missed in renaming.
      *
      * @throws IOException
      */
-    @Test
-    public void checkMissedInstances() throws Exception {
+    private void checkMissedInstances(Boolean useNeo4J) throws Exception {
         Set<Long> checkingIds = getEWASDBIDsForChecking();
         String fileName = DIR_NAME + "unseen_isoforms.txt";
 //        String fileName = DIR_NAME + "missing_ids_051613.txt";
@@ -291,7 +308,7 @@ public class PhysicalEntityRename {
         System.out.println("Total checked: " + checkingIds.size());
         missedIds.retainAll(checkingIds);
         System.out.println("Missed in checking: " + missedIds.size());
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         for (Long dbId : missedIds) {
             GKInstance inst = dba.fetchInstance(dbId);
             System.out.println(inst);
@@ -348,14 +365,19 @@ public class PhysicalEntityRename {
         return dbIds;
     }
 
+    @Test
+    public void renameMissedEWASesTest() throws Exception {
+        renameMissedEWASes(false);
+        renameMissedEWASes(true);
+    }
+
     /**
      * About 5,000 human EWASes are missed from the first time renaming effor.
      * This method is used to rename those missed EWASes.
      *
      * @throws Exception
      */
-    @Test
-    public void renameMissedEWASes() throws Exception {
+    private void renameMissedEWASes(Boolean useNeo4J) throws Exception {
         List<Long> escapeList1 = loadDBIds(DIR_NAME + "exceptions.txt", false);
         System.out.println("Original escape list: " + escapeList1.size());
         List<Long> escapeList2 = loadDBIds(DIR_NAME + "isoform_derived_ewases.txt", true);
@@ -376,7 +398,7 @@ public class PhysicalEntityRename {
 //        for (Long dbId : escapedIds)
 //            System.out.println(dbId);
         // Load all human EWASes in the database
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> ewases = dba.fetchInstanceByAttribute(ReactomeJavaConstants.EntityWithAccessionedSequence,
                 ReactomeJavaConstants.species,
@@ -524,16 +546,21 @@ public class PhysicalEntityRename {
                 new String[]{ReactomeJavaConstants.identifier});
     }
 
+    @Test
+    public void checkRenameEWASInstancesTest() throws Exception {
+        checkRenameEWASInstances(false);
+        checkRenameEWASInstances(true);
+    }
+
     /**
      * Check the results using gene names as EWAS instances' display names.
      *
      * @throws Exception
      */
-    @Test
-    public void checkRenameEWASInstances() throws Exception {
+    private void checkRenameEWASInstances(Boolean useNeo4J) throws Exception {
         Set<Long> checkingDbIds = getEWASDBIDsForChecking();
         Map<String, MODMapper> modAccToMapper = loadModMapper();
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // A list of escapes
         List<Long> escapeIds = loadDBIds(DIR_NAME + "exceptions.txt", false);
         new AttributesChecker().extraUniprotToChain();
@@ -911,16 +938,21 @@ public class PhysicalEntityRename {
         return builder.toString();
     }
 
+    @Test
+    public void fixEWASNamesInDbTest() throws Exception {
+        fixEWASNamesInDb(false);
+        fixEWASNamesInDb(true);
+    }
+
     /**
      * There is an extra space at the end of new names. Have to run this
      * fix to remove it.
      *
      * @throws Exception
      */
-    @Test
-    public void fixEWASNamesInDb() throws Exception {
+    private void fixEWASNamesInDb(Boolean useNeo4J) throws Exception {
         String fileName = DIR_NAME + "EWASRename_.txt";
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -946,17 +978,22 @@ public class PhysicalEntityRename {
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
     }
 
+    @Test
+    public void renameEWASesInDbTest() throws Exception {
+        renameEWASesInDb(false);
+        renameEWASesInDb(true);
+    }
+
     /**
      * Commit short names generated from method checkRenameEWASInstances() into
      * the database.
      *
      * @throws Exception
      */
-    @Test
-    public void renameEWASesInDb() throws Exception {
+    private void renameEWASesInDb(Boolean useNeo4J) throws Exception {
 //        String fileName = DIR_NAME + "EWASRename_050313.txt";
         String fileName = DIR_NAME + "Missed_First_EWASes_.txt";
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
         String line = fu.readLine();
@@ -1005,14 +1042,19 @@ public class PhysicalEntityRename {
         ScriptUtilities.updateInstanceNames(dba, toBeUpdated);
     }
 
+    @Test
+    public void fixSimpleEntityInstancesTest() throws Exception {
+        fixSimpleEntityInstances(false);
+        fixSimpleEntityInstances(true);
+    }
+
     /**
      * Because of a bug in method "renameSmallMolecules", an extra IE has been added for SimpleEntity
      * that should not be changed. Remove this IE if nothing has been updated there.
      *
      * @throws Exception
      */
-    @Test
-    public void fixSimpleEntityInstances() throws Exception {
+    private void fixSimpleEntityInstances(Boolean useNeo4J) throws Exception {
         String fileName = "rename/SimpleEntityRenamedList_gk_central_.txt";
         Set<Long> dbIds = new HashSet<Long>();
         FileUtilities fu = new FileUtilities();
@@ -1027,7 +1069,7 @@ public class PhysicalEntityRename {
         fu.close();
         System.out.println("Total updated instances: " + dbIds.size());
 
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // My IE
 //        GKInstance newIE = dba.fetchInstance(2534102L);
         GKInstance newIE = dba.fetchInstance(2537470L);
@@ -1077,7 +1119,12 @@ public class PhysicalEntityRename {
     }
 
     @Test
-    public void renameSmallMolecules() throws Exception {
+    public void renameSmallMoleculesTest() throws Exception {
+        renameSmallMolecules(false);
+        renameSmallMolecules(true);
+    }
+
+    private void renameSmallMolecules(Boolean useNeo4J) throws Exception {
         String fileName = "rename/small_mol_renaming.txt";
         FileUtilities fu = new FileUtilities();
         fu.setInput(fileName);
@@ -1101,7 +1148,7 @@ public class PhysicalEntityRename {
         }
         fu.close();
         System.out.println("Total name to short name mappings: " + nameToShort.size());
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         Collection<GKInstance> instances = dba.fetchInstancesByClass(ReactomeJavaConstants.SimpleEntity);
         dba.loadInstanceAttributeValues(instances, new String[]{ReactomeJavaConstants.name});
         int totalChanged = 0;
