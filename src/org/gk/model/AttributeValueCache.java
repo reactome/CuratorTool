@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * This class implements a cache of all values assigned to attributes of classes. The intention behind this cache is
@@ -37,7 +38,7 @@ public class AttributeValueCache {
     public void addInstanceValue(String className, String attributeName, Long dbId, Value value, String valueSchemaClass) {
         addClassAttribute(className, attributeName);
         if (!cache.get(className).get(attributeName).containsKey(dbId)) {
-            cache.get(className).get(attributeName).put(dbId, new ArrayList<AttValCacheRecord>());
+            cache.get(className).get(attributeName).put(dbId, new CopyOnWriteArrayList<AttValCacheRecord>());
         }
         cache.get(className).get(attributeName).get(dbId).add(new AttValCacheRecord(value, valueSchemaClass));
     }
@@ -45,7 +46,7 @@ public class AttributeValueCache {
     public void addPrimitiveValue(String className, String attributeName, Long dbId, Value value) {
         addClassAttribute(className, attributeName);
         if (!cache.get(className).get(attributeName).containsKey(dbId)) {
-            cache.get(className).get(attributeName).put(dbId, new ArrayList<AttValCacheRecord>());
+            cache.get(className).get(attributeName).put(dbId, new CopyOnWriteArrayList<AttValCacheRecord>());
         }
         cache.get(className).get(attributeName).get(dbId).add(new AttValCacheRecord(value));
     }
