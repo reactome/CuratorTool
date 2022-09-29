@@ -56,16 +56,21 @@ public class ComplexAndEntitySetRename extends PhysicalEntityRename {
         }
         return true;
     }
-    
+
     @Test
-    public void checkComplexes() throws Exception {
+    public void checkComplexesTest() throws Exception {
+        checkComplexes(false);
+        checkComplexes(true);
+    }
+
+    private void checkComplexes(Boolean useNeo4J) throws Exception {
         peToNewName = new HashMap<GKInstance, String>();
 //        String fileName = DIR_NAME + "ComplexRename_061813.txt";
 //        String fileName = DIR_NAME + "ComplexRename_with_length_061813.txt";
 //        String fileName = DIR_NAME + "ComplexRename_062713.txt";
         String fileName = DIR_NAME + "ComplexRename_MaxLength_071113.txt";
 //        String fileName = DIR_NAME + "ComplexRename_MaxLength_FirstLevel_071113.txt";
-        PersistenceAdaptor dba = getDBA();
+        PersistenceAdaptor dba = getDBA(useNeo4J);
         // For human complexes only
         GKInstance human = dba.fetchInstance(48887L);
         Collection<GKInstance> complexes = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Complex,
