@@ -178,7 +178,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * Load into attributeValuesCache all values for attribute att of instances of class className - see AttributeValuesCache
      * @param className
      * @param att GKSchemaAttribute
-     * @return true once the method has completed - used in multi-threading to check that the task has completed
      * @throws Exception
      */
     public void loadAllAttributeValues(String className, SchemaAttribute att) throws Exception {
