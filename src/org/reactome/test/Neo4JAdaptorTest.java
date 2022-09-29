@@ -1,5 +1,6 @@
 package org.reactome.test;
 
+import org.gk.database.*;
 import org.gk.model.GKInstance;
 import org.gk.model.Instance;
 import org.gk.model.ReactomeJavaConstants;
@@ -818,6 +819,57 @@ public class Neo4JAdaptorTest {
         assumeTrue(dbID != null);
     }
 
+    // =============== Schema and Event View Timing tests
+
+    @Test
+    public void schemaViewTimingTests() throws Exception {
+        long begin = System.currentTimeMillis();
+        new SchemaViewPane().setPersistenceAdaptor(neo4jAdaptor);
+        long timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        // assumeTrue(timeElapsedSecs <= 3l);
+        System.out.println("SchemaViewPane().setPersistenceAdaptor() returned in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        GKInstance instance = neo4jAdaptor.fetchInstance("IntraChainCrosslinkedResidue", 8874877l);
+        new AttributePane(instance);
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        // assumeTrue(timeElapsedSecs <= 1l);
+        System.out.println("new AttributePane() returned in: " + timeElapsedSecs + "s");
+    }
+
+    @Test
+    public void eventViewTimingTests() throws Exception {
+        // Load initial data for EventCentricViewPane - see: EventCentricViewPane.setPersistenceAdaptor()
+        EventTreeBuildHelper treeHelper = new EventTreeBuildHelper(neo4jAdaptor);
+        long begin = System.currentTimeMillis();
+        Collection topLevelPathways = treeHelper.getTopLevelEvents();
+        long timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        System.out.println("Fetched top level events in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        Collection c = treeHelper.getAllEvents();
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        System.out.println("Fetched all events in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        treeHelper.loadAttribtues(c);
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        System.out.println("Fetched attribute values in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        GKInstance instance = neo4jAdaptor.fetchInstance("Event", 1389350l);
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        System.out.println("Fetched instance in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        // The command below also populates AttributeValueCache with all values for all attributes of all instances in instance's class
+        // (in this case: Event or its subclass)
+        neo4jAdaptor.loadInstanceAttributeValues(instance);
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        System.out.println("neo4jAdaptor.loadInstanceAttributeValues(instance) returned in: " + timeElapsedSecs + "s");
+        begin = System.currentTimeMillis();
+        new AttributePane(instance);
+        timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+        // assumeTrue(timeElapsedSecs <= 1l);
+        System.out.println("new AttributePane() returned in: " + timeElapsedSecs + "s");
+    }
+
+    // =============== Auxiliary methods
     private boolean fitForService() {
         try (Session session = driver.session(SessionConfig.forDatabase("graph.db"))) {
             Result result = session.run(
