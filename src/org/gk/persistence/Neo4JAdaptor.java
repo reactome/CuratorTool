@@ -20,6 +20,9 @@ import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -51,6 +54,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     int RETRIES = 5;
     // Pause between each attempt to allow the other transaction to finish before trying again.
     int BACKOFF = 3000;
+    // Fixed-size thread pool for loading values of attributes into AttributeValueCache
+    private static ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     private static final List<String> META_CYPHER_CHARS =
             Arrays.asList("\\[", "\\]", "\\(", "\\)", "\\?", "\\+", "\\*", "\\.");
@@ -173,6 +178,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
      * Load into attributeValuesCache all values for attribute att of instances of class className - see AttributeValuesCache
      * @param className
      * @param att GKSchemaAttribute
+     * @return true once the method has completed - used in multi-threading to check that the task has completed
      * @throws Exception
      */
     public void loadAllAttributeValues(String className, SchemaAttribute att) throws Exception {
@@ -347,14 +353,29 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 cypherQueries.put(query.toString(), Collections.singletonList(a));
             }
 
+            // Pre-load all the attribute values
+            List<Future<?>> futures = new ArrayList();
+            for (String query : cypherQueries.keySet()) {
+                List<GKSchemaAttribute> atts = cypherQueries.get(query);
+                for (GKSchemaAttribute att : atts) {
+                    Future<?> future = executorService.submit(() -> {
+                        try {
+                            loadAllAttributeValues(instanceClassName, att);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    futures.add(future);
+                }
+            }
+            // Wait for all the loadAllAttributeValues tasks to complete
+            while (!futures.stream().map(Future::isDone).reduce(Boolean::logicalAnd).orElse(false)) {}
+
             // Now run cypherQueries and collect results
             for (String query : cypherQueries.keySet()) {
                 List<GKSchemaAttribute> atts = cypherQueries.get(query);
                 try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
                     Result result = null;
-                    for (GKSchemaAttribute att : atts) {
-                        loadAllAttributeValues(instanceClassName, att);
-                    }
                     if (!useAttributeValuesCache) {
                         // DEBUG System.out.println(query);
                         result = session.run(query);
