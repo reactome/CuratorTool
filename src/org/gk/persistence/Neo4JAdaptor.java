@@ -55,7 +55,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
     // Pause between each attempt to allow the other transaction to finish before trying again.
     int BACKOFF = 3000;
     // Fixed-size thread pool for loading values of attributes into AttributeValueCache
-    private static ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private static ExecutorService executorService = Executors.newFixedThreadPool(20);
 
     private static final List<String> META_CYPHER_CHARS =
             Arrays.asList("\\[", "\\]", "\\(", "\\)", "\\?", "\\+", "\\*", "\\.");
@@ -184,9 +184,6 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
         if (useAttributeValuesCache == false || attributeValuesCache.inCacheAlready(className, att.getName())) {
             return;
         }
-        // DEBUG: System.out.println("loadAllAttributeValues - " + className + ":" + att.getName());
-        // Add placeholder to cache - in case no results are returned for className and att.getName() below
-        attributeValuesCache.addClassAttribute(className, att.getName());
         // Prepare query
         StringBuilder query = new StringBuilder("MATCH (n:").append(className).append(")");
         if (att.getTypeAsInt() > SchemaAttribute.INSTANCE_TYPE) {
@@ -204,6 +201,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
             }
         }
         // DEBUG System.out.println(query);
+        if (attributeValuesCache.inCacheAlready(className, att.getName())) {
+            // For a given className and att, a new thread to populate cache can start before another one started earlier has finished,
+            // hence we check one more time if the cache is already populated before launching a new query
+            return;
+        }
+
+        // DEBUG: System.out.println("loadAllAttributeValues - " + className + ":" + att.getName());
+        // Add placeholder to cache - in case no results are returned for className and att.getName() below
+        attributeValuesCache.addClassAttribute(className, att.getName());
+
         // Run query, collect results and add them to attributeValuesCache
         try (Session session = driver.session(SessionConfig.forDatabase(this.database))) {
             Result result = session.run(query.toString());
@@ -352,11 +359,15 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 cypherQueries.put(query.toString(), Collections.singletonList(a));
             }
 
-            // Pre-load all the attribute values
+            // DEBUG long begin = System.currentTimeMillis();
+            // Pre-load all the attribute values asynchronously
             List<Future<?>> futures = new ArrayList();
             for (String query : cypherQueries.keySet()) {
                 List<GKSchemaAttribute> atts = cypherQueries.get(query);
                 for (GKSchemaAttribute att : atts) {
+                    if (useAttributeValuesCache == false || attributeValuesCache.inCacheAlready(instanceClassName, att.getName())) {
+                        continue;
+                    }
                     Future<?> future = executorService.submit(() -> {
                         try {
                             loadAllAttributeValues(instanceClassName, att);
@@ -368,7 +379,16 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 }
             }
             // Wait for all the loadAllAttributeValues tasks to complete
-            while (!futures.stream().map(Future::isDone).reduce(Boolean::logicalAnd).orElse(false)) {}
+            if (futures.size() > 0) {
+                while (!futures.stream().map(Future::isDone).reduce(Boolean::logicalAnd).orElse(false)) {
+                }
+                /* DEBUG
+                long timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+                if (timeElapsedSecs > 0) {
+                    System.out.println("All loadAllAttributeValues for " + instanceClassName + " completed in: " + timeElapsedSecs + "s"); // TODO: &&&&
+                }
+                 */
+            }
 
             // Now run cypherQueries and collect results
             for (String query : cypherQueries.keySet()) {
@@ -484,8 +504,8 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                                 } else {
                                     for (GKSchemaAttribute gkAtt : atts) {
                                         List<AttributeValueCache.AttValCacheRecord> values =
-                                                attributeValuesCache.getValues(instanceClassName, atts.get(0).getName(), ins.getDBID());
-                                        handleAttributeValue(ins, atts.get(0), values, recursive);
+                                                attributeValuesCache.getValues(instanceClassName, gkAtt.getName(), ins.getDBID());
+                                        handleAttributeValue(ins, gkAtt, values, recursive);
                                     }
                                 }
                             }
