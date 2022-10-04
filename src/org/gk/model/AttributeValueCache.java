@@ -36,26 +36,28 @@ public class AttributeValueCache {
 
     public void addInstanceValue(String className, String attributeName, Long dbId, Value value, String valueSchemaClass) {
         addClassAttribute(className, attributeName);
-        if (!cache.get(className).get(attributeName).containsKey(dbId)) {
-            cache.get(className).get(attributeName).put(dbId, new CopyOnWriteArrayList<AttValCacheRecord>());
+        Map<Long, List<AttValCacheRecord>> dbId2Vals = cache.get(className).get(attributeName);
+        if (!dbId2Vals.containsKey(dbId)) {
+            dbId2Vals.put(dbId, new CopyOnWriteArrayList());
         }
-        cache.get(className).get(attributeName).get(dbId).add(new AttValCacheRecord(value, valueSchemaClass));
+        dbId2Vals.get(dbId).add(new AttValCacheRecord(value, valueSchemaClass));
     }
 
     public void addPrimitiveValue(String className, String attributeName, Long dbId, Value value) {
         addClassAttribute(className, attributeName);
-        if (!cache.get(className).get(attributeName).containsKey(dbId)) {
-            cache.get(className).get(attributeName).put(dbId, new CopyOnWriteArrayList<AttValCacheRecord>());
+        Map<Long, List<AttValCacheRecord>> dbId2Vals = cache.get(className).get(attributeName);
+        if (!dbId2Vals.containsKey(dbId)) {
+            dbId2Vals.put(dbId, new CopyOnWriteArrayList());
         }
-        cache.get(className).get(attributeName).get(dbId).add(new AttValCacheRecord(value));
+        dbId2Vals.get(dbId).add(new AttValCacheRecord(value));
     }
 
     public void addClassAttribute(String className, String attributeName) {
         if (!cache.containsKey(className)) {
-            cache.put(className, new ConcurrentHashMap<String, Map<Long, List<AttValCacheRecord>>>());
+            cache.put(className, new ConcurrentHashMap());
         }
         if (!cache.get(className).containsKey(attributeName)) {
-            cache.get(className).put(attributeName, new ConcurrentHashMap<Long, List<AttValCacheRecord>>());
+            cache.get(className).put(attributeName, new ConcurrentHashMap());
         }
     }
 

@@ -385,7 +385,7 @@ public class Neo4JAdaptor implements PersistenceAdaptor {
                 /* DEBUG
                 long timeElapsedSecs = (System.currentTimeMillis() - begin) / 1000;
                 if (timeElapsedSecs > 0) {
-                    System.out.println("All loadAllAttributeValues for " + instanceClassName + " completed in: " + timeElapsedSecs + "s"); // TODO: &&&&
+                    System.out.println("All loadAllAttributeValues for " + instanceClassName + " completed in: " + timeElapsedSecs + "s");
                 }
                  */
             }
