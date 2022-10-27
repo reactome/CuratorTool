@@ -50,6 +50,7 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
+import org.gk.slicing.updateTracker.UpdateTrackerHandler;
 import org.gk.util.GKApplicationUtilities;
 
 
@@ -224,6 +225,7 @@ public class SlicingEngine {
 //        extractReactionCoordinates();
         extractSpecies();
         extractPathwayDiagrams();
+        extractUpdateTrackerInstances();
         PrintStream output = null;
         if (logFileName != null)
             output = new PrintStream(new FileOutputStream(logFileName));
@@ -267,14 +269,10 @@ public class SlicingEngine {
     private void handleRevisions() throws Exception {
         if (!needUpdateTrackers)
             return; // Do nothing
-        logger.info("Revision checking...");
-        // created
-        RevisionDetector revisonHandler = new RevisionDetector();
-        revisonHandler.setSlicingEngine(this);
-        revisonHandler.handleRevisions(sourceDBA,
-                                       getTargetDBA(),
-                                       previousSliceDBA,
-                                       uploadUpdateTrackersToSource);
+
+        UpdateTrackerHandler updateTrackerHandler =
+            new UpdateTrackerHandler(sourceDBA, getTargetDBA(), previousSliceDBA, defaultPersonId);
+        updateTrackerHandler.handleUpdateTrackerInstances(uploadUpdateTrackersToSource);
     }
 
     /**
@@ -292,14 +290,14 @@ public class SlicingEngine {
      * @throws Exception
      */
     private void fillAttributeValuesForEntitySets(String attributeName) throws Exception {
-    	for (Long dbId : sliceMap.keySet()) {
-    		GKInstance inst = sliceMap.get(dbId);
-    		if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
-    			continue;
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance inst = sliceMap.get(dbId);
+            if (!inst.getSchemClass().isa(ReactomeJavaConstants.EntitySet))
+                continue;
 
-			logger.info(String.format("Populating %s in %s", attributeName, inst));
-    		populateEntitySet(inst, attributeName);
-    	}
+            logger.info(String.format("Populating %s in %s", attributeName, inst));
+            populateEntitySet(inst, attributeName);
+        }
     }
     
     /**
@@ -358,11 +356,11 @@ public class SlicingEngine {
                                                                           ReactomeJavaConstants.hasCandidate);
         Set<GKInstance> memberAttributeValues = new HashSet<>();
         for (GKInstance member : members) {
-			if (!member.getSchemClass().isValidAttribute(attributeName))
-				continue;
-			List<GKInstance> list = member.getAttributeValuesList(attributeName);
-			if (list != null && list.size() != 0)
-				memberAttributeValues.addAll(list);
+            if (!member.getSchemClass().isValidAttribute(attributeName))
+                continue;
+            List<GKInstance> list = member.getAttributeValuesList(attributeName);
+            if (list != null && list.size() != 0)
+                memberAttributeValues.addAll(list);
         }
 
         List<GKInstance> memberList = new ArrayList<>(memberAttributeValues);
@@ -434,7 +432,6 @@ public class SlicingEngine {
      * Create a default instance edit for a given database adaptor.
      *
      * @param dba
-     * @param personId
      * @return GKInstance
      * @throws Exception
      * @throws InvalidAttributeException
@@ -511,6 +508,16 @@ public class SlicingEngine {
             }
         }
         logger.info("extractPathwayDiagrams(): " + sliceMap.size());
+    }
+
+    protected void extractUpdateTrackerInstances() throws Exception {
+        Collection updateTrackerInstances = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
+        Iterator<GKInstance> updateTrackerInstanceIterator = updateTrackerInstances.iterator();
+        while (updateTrackerInstanceIterator.hasNext()) {
+            GKInstance updateTrackerInstance = updateTrackerInstanceIterator.next();
+            extractReferencesToInstance(updateTrackerInstance);
+        }
+        logger.info("extractUpdateTrackerInstances(): " + sliceMap.size());
     }
     
     public Map extractEvents() throws Exception {
@@ -699,19 +706,19 @@ public class SlicingEngine {
     private void validateConditions() {
         if (sourceDBA == null)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		"source database is not specified.");
+                    "source database is not specified.");
         if (targetDbName == null)
             throw new IllegalStateException("SlicingEngine.validateCondition(): " +
-            		"target database is not specified.");
+                    "target database is not specified.");
         // Target database should not the the same as source database
         if (targetDbHost.equals(sourceDBA.getDBHost()) &&
             targetDbName.equals(sourceDBA.getDBName()))
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		"source and target database are the same. This is not allowed.");
+                    "source and target database are the same. This is not allowed.");
         // FronPageID should not be null
         if (processFileName == null)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
-            		                        "File for the list of releasing events is not specified.");
+                                            "File for the list of releasing events is not specified.");
         if (releaseNumber == null || releaseNumber.length() == 0)
             throw new IllegalStateException("SlicingEngine.validateConditions(): " +
                                             "releaseNumber is not specified.");
@@ -753,7 +760,7 @@ public class SlicingEngine {
      * @param instance
      * @throws Exception
      */
-	public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
+    public void storeInstance(GKInstance instance, MySQLAdaptor targetDBA) throws Exception {
         Long dbID = instance.getDBID();
         SchemaClass cls = instance.getSchemClass();
         GKSchema schema = (GKSchema) targetDBA.getSchema();
@@ -1014,11 +1021,11 @@ public class SlicingEngine {
     protected List getReleasedProcesses() throws Exception {
         if (processFileName == null)
             throw new IllegalStateException("SlicingEngine.getReleasedProcesses(): " +
-            		                        "releasing processes file is not specified.");
+                                            "releasing processes file is not specified.");
         File file = new File(processFileName);
         if (!file.exists()) {
             throw new IllegalStateException("SlicingEngine.getReleasedProcesses(): " +
-            		                        "Specified file, " + file.getAbsolutePath() + ", for releasing processes doesn't exist!");
+                                            "Specified file, " + file.getAbsolutePath() + ", for releasing processes doesn't exist!");
         }
         return extractIDsFromFile(file);
     }
@@ -1188,33 +1195,33 @@ public class SlicingEngine {
         return true;
     }
     
-	private static java.util.List getTables(Connection conn) {
-		java.util.List tables = new ArrayList();
-		try {
-			Statement statement = conn.createStatement();
-			ResultSet resultset = statement.executeQuery("Show Tables");
-			while (resultset.next()) {
-				String name = resultset.getString(1);
-				tables.add(name);
-			}
-			resultset.close();
-			statement.close();
-		}
-		catch(SQLException e) {
-			e.printStackTrace();
-		}
-		return tables;
-	}
-	
-	private void changeToMyISAM(java.util.List tables,
-	                            Connection conn) throws SQLException {
-	    Statement statement = conn.createStatement();
-	    for (Iterator it = tables.iterator(); it.hasNext();) {
-	        String table = it.next().toString();
-	        statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
-	    }
-	    statement.close();
-	}
+    private static java.util.List getTables(Connection conn) {
+        java.util.List tables = new ArrayList();
+        try {
+            Statement statement = conn.createStatement();
+            ResultSet resultset = statement.executeQuery("Show Tables");
+            while (resultset.next()) {
+                String name = resultset.getString(1);
+                tables.add(name);
+            }
+            resultset.close();
+            statement.close();
+        }
+        catch(SQLException e) {
+            e.printStackTrace();
+        }
+        return tables;
+    }
+
+    private void changeToMyISAM(java.util.List tables,
+                                Connection conn) throws SQLException {
+        Statement statement = conn.createStatement();
+        for (Iterator it = tables.iterator(); it.hasNext();) {
+            String table = it.next().toString();
+            statement.execute("ALTER TABLE " + table + " ENGINE=MyISAM");
+        }
+        statement.close();
+    }
      
     private boolean runDumpCommand(String tableName, String dumpFileName) throws Exception {
         StringBuilder mysqldump = new StringBuilder();
