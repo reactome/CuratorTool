@@ -50,6 +50,7 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.InvalidAttributeValueException;
 import org.gk.schema.Schema;
 import org.gk.schema.SchemaClass;
+import org.gk.slicing.updateTracker.UpdateTrackerHandler;
 import org.gk.util.GKApplicationUtilities;
 
 
@@ -224,6 +225,7 @@ public class SlicingEngine {
 //        extractReactionCoordinates();
         extractSpecies();
         extractPathwayDiagrams();
+        extractUpdateTrackerInstances();
         PrintStream output = null;
         if (logFileName != null)
             output = new PrintStream(new FileOutputStream(logFileName));
@@ -237,6 +239,8 @@ public class SlicingEngine {
                                      output);
         qa.validateAttributes(output);
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
+        // Better call this method as the last QA to make sure the attributes have been checked.
+        qa.validateUpdateTrackers(output);
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -267,14 +271,13 @@ public class SlicingEngine {
     private void handleRevisions() throws Exception {
         if (!needUpdateTrackers)
             return; // Do nothing
-        logger.info("Revision checking...");
-        // created
-        RevisionDetector revisonHandler = new RevisionDetector();
-        revisonHandler.setSlicingEngine(this);
-        revisonHandler.handleRevisions(sourceDBA,
-                                       getTargetDBA(),
-                                       previousSliceDBA,
-                                       uploadUpdateTrackersToSource);
+        logger.info("Handling UpdateTracker...");
+        UpdateTrackerHandler updateTrackerHandler = new UpdateTrackerHandler(sourceDBA, 
+                                                                             getTargetDBA(), 
+                                                                             previousSliceDBA, 
+                                                                             defaultPersonId);
+        updateTrackerHandler.handleUpdateTrackerInstances(uploadUpdateTrackersToSource);
+        logger.info("Done UpdateTracker.");
     }
 
     /**
@@ -434,7 +437,6 @@ public class SlicingEngine {
      * Create a default instance edit for a given database adaptor.
      *
      * @param dba
-     * @param personId
      * @return GKInstance
      * @throws Exception
      * @throws InvalidAttributeException
@@ -488,7 +490,7 @@ public class SlicingEngine {
         diagramHelper.isInDev = isInDev;
         for (Long dbID : topLevelIDs) {
             GKInstance process = sliceMap.get(dbID);
-            // It may not be release ready. A mistake in the
+            // It may not be a realease ready. A mistake in the
             // topic file.
             if (process == null)
                 continue;
@@ -511,6 +513,16 @@ public class SlicingEngine {
             }
         }
         logger.info("extractPathwayDiagrams(): " + sliceMap.size());
+    }
+    
+    protected void extractUpdateTrackerInstances() throws Exception {
+        if (!needUpdateTrackers)
+            return; // Do nothing
+        Collection<GKInstance> updateTrackerInstances = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
+        for (GKInstance updateTrackerInstance : updateTrackerInstances) {
+            extractReferencesToInstance(updateTrackerInstance);
+        }
+        logger.info("extractUpdateTrackerInstances(): " + sliceMap.size());
     }
     
     public Map extractEvents() throws Exception {

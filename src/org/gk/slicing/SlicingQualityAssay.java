@@ -203,4 +203,24 @@ public class SlicingQualityAssay {
         logger.info("validateExistence(): " + sliceMap.size() + " instances.");
     }
     
+    /**
+     * Make sure only _UpdateTracker instances having updatedInstance filled to be sliced
+     * into the database for release.
+     * @param output
+     * @throws Exception
+     */
+    public void validateUpdateTrackers(PrintStream output) throws Exception {
+        for (Iterator it = sliceMap.keySet().iterator(); it.hasNext();) {
+            Long dbId = (Long) it.next();
+            GKInstance inst = sliceMap.get(dbId);
+            if (!inst.getSchemClass().isa(ReactomeJavaConstants._UpdateTracker))
+                continue;
+            List<GKInstance> updatedInstances = inst.getAttributeValuesList(ReactomeJavaConstants.updatedInstance);
+            if (updatedInstances == null || updatedInstances.size() == 0) {
+                output.println("_UpdatedTracker is exluded: " + inst);
+                it.remove();
+            }
+        }
+    }
+    
 }

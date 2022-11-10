@@ -270,6 +270,7 @@ public class ReactomeJavaConstants {
     public static final String _release = "_release";
     public static final String action = "action";
     public static final String updatedEvent = "updatedEvent";
+    public static final String updatedInstance = "updatedInstance";
     // For CrosslinkedResidue
     public static final String CrosslinkedResidue = "CrosslinkedResidue";
     public static final String InterChainCrosslinkedResidue = "InterChainCrosslinkedResidue";
