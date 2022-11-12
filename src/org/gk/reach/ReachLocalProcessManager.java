@@ -46,17 +46,22 @@ public class ReachLocalProcessManager {
     public ReachLocalProcessManager() {
     }
     
-    public void setRootPath(Path reachRoot) throws IOException {
+    public void setRootPath(Path reachRoot, boolean needReset) throws IOException {
         if (!reachRoot.toFile().exists())
             Files.createDirectories(reachRoot);
 
         paperDir = reachRoot.resolve("papers");
-        resetFolders(paperDir);
-
+        if (!Files.exists(paperDir)) 
+            Files.createDirectories(paperDir);
         outputDir = reachRoot.resolve("output");
-        resetFolders(outputDir);
-
+        if (!Files.exists(outputDir))
+            Files.createDirectories(outputDir);
         errorLog = reachRoot.resolve("error.log");
+        
+        if (needReset) {
+            resetFolders(paperDir);
+            resetFolders(outputDir);
+        }
     }
 
     public void process(List<String> pmcids, Path reachJar, Path reachConf) throws IOException {
@@ -93,9 +98,7 @@ public class ReachLocalProcessManager {
         File bash_file = new File("run_reach.sh");
         PrintWriter printWriter = new PrintWriter(bash_file);
         printWriter.println("#! /bin/bash");
-        printWriter.println("java -Dconfig.file=" + reachConf.toString() +
-                            " -jar " + reachJar.toString() + 
-                            " > out.txt 2>&1");
+        printWriter.println(generateBashCommand(reachJar, reachConf));
         printWriter.close();
         // Start the process
         Runtime runtime = Runtime.getRuntime();
@@ -103,6 +106,13 @@ public class ReachLocalProcessManager {
         Process process = runtime.exec(new String[]{"bash",
                                                     bash_file.getName()});
         outputProcessError(process);
+        System.out.println("Started Reach via bash.");
+    }
+    
+    private String generateBashCommand(Path reachJar, Path reachConf) {
+        return "java -Dconfig.file=" + reachConf.toString() +
+                " -jar " + reachJar.toString() + 
+                " > out.txt 2>&1";
     }
     
     /**
@@ -110,13 +120,13 @@ public class ReachLocalProcessManager {
      * @return
      * @throws IOException
      */
-    private boolean isReachRunning(String reachJar) throws IOException {
+    private boolean isReachRunning(Path reachJar, Path reachConf) throws IOException {
         Runtime runtime = Runtime.getRuntime();
         // TODO make sure log file works and is consistent with other log files (for development).
         Process process = runtime.exec(new String[]{"ps",
                                                     "aux"});
         String output = output(process.getInputStream());
-        return output.contains(reachJar);
+        return output.contains("-Dconfig.file=" + reachConf.toString());
     }
 
     private int handlePMCIDs(List<String> pmcids) throws IOException {
@@ -253,11 +263,6 @@ public class ReachLocalProcessManager {
     }
 
     private void resetFolders(Path dir) throws IOException {
-        if (!Files.exists(dir)) {
-            Files.createDirectories(dir);
-            return;
-        }
-
         File[] files = dir.toFile().listFiles();
         if (files != null && files.length > 0) {
             for (File file : files)
@@ -332,18 +337,22 @@ public class ReachLocalProcessManager {
     		int totalPapers = pmcids.size();
     		ReachLocalProcessManager runner = new ReachLocalProcessManager();
     		if (args.length == 5 && args[4].equals("true")) { // Need to reset
-    		    runner.setRootPath(root);
+    		    runner.setRootPath(root, true);
     		    // Handle papers first
     		    totalPapers = runner.handlePMCIDs(pmcids);
     		}
+    		else 
+    		    runner.setRootPath(root, false);
     		Path jar = Paths.get(args[0], args[2]);
             Path conf = Paths.get(args[0], args[3]);
             int previousHandled = -1;
             int previousHandledInSingleProcess = 0;
     		while (true) {
-    		    if (!runner.isReachRunning(args[2])) {
+    		    if (!runner.isReachRunning(jar, conf)) {
+    		        System.out.println("Reach is not running.");
     		        int currentHandled = runner.getNumberOfProcessedPMCIDs();
     		        if (currentHandled > previousHandled) {// Restart may help 
+    		            System.out.println("Starting Reach...");
     		            runner.startReachViaBash(jar, conf);
     		            previousHandled = currentHandled;
     		        }
@@ -357,7 +366,7 @@ public class ReachLocalProcessManager {
     		        continue;
     		    }
     		    // Do one try. If nothing improved, just stop it.
-    		    if (handledPapers >= totalPapers)
+    		    if (handledPapers >= totalPapers || handledPapers == previousHandledInSingleProcess)
     		        break;
     		}
     	}
