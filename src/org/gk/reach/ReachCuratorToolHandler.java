@@ -59,7 +59,8 @@ public class ReachCuratorToolHandler extends ReachProcessHandler {
         Path reachConf = createConfigFile(rootPath);
         if (progressPanel != null)
             progressPanel.setText("Waiting for results...");
-        ReachLocalProcessManager manager = new ReachLocalProcessManager(rootPath);
+        ReachLocalProcessManager manager = new ReachLocalProcessManager();
+        manager.setRootPath(rootPath);
         manager.process(pmcids, jarPath, reachConf);
         if (progressPanel != null) {
             if (progressPanel.isCancelled())

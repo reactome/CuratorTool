@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,8 +15,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -33,12 +36,17 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
+import uk.ac.ebi.kraken.model.uniprot.comments.AlternativeProductsEventImpl;
+
 public class ReachLocalProcessManager {
     private Path paperDir;
     private Path outputDir;
     private Path errorLog;
 
-    public ReachLocalProcessManager(Path reachRoot) throws IOException {
+    public ReachLocalProcessManager() {
+    }
+    
+    public void setRootPath(Path reachRoot) throws IOException {
         if (!reachRoot.toFile().exists())
             Files.createDirectories(reachRoot);
 
@@ -52,15 +60,11 @@ public class ReachLocalProcessManager {
     }
 
     public void process(List<String> pmcids, Path reachJar, Path reachConf) throws IOException {
-        // The NCBI fetch api supports to download a single nxml file for multiple
-        // PMCIDs. However, it is much easier to download them one by one for downstream
-        // handling
-        Map<String, Reference> pmcid2reference = new HashMap<>();
-        for (String pmcid : pmcids) {
-            Reference reference = downloadPaper(pmcid);
-            pmcid2reference.put(pmcid, reference);
-        }
-        dumpReferences(pmcid2reference);
+        handlePMCIDs(pmcids);
+        startReach(reachJar, reachConf);
+    }
+    
+    private void startReach(Path reachJar, Path reachConf) throws IOException {
         // Start the process
         Runtime runtime = Runtime.getRuntime();
         // TODO make sure log file works and is consistent with other log files (for development).
@@ -69,6 +73,10 @@ public class ReachLocalProcessManager {
                                                     reachConf.toString(),
                                                     "-jar",
                                                     reachJar.toString()});
+        outputProcessError(process);
+    }
+
+    protected void outputProcessError(Process process) throws IOException {
         // Just check if there is any error-X
         InputStream is = process.getErrorStream();
         String error = output(is);
@@ -79,6 +87,52 @@ public class ReachLocalProcessManager {
             }
             return;
         }
+    }
+    
+    protected void startReachViaBash(Path reachJar, Path reachConf) throws IOException {
+        File bash_file = new File("run_reach.sh");
+        PrintWriter printWriter = new PrintWriter(bash_file);
+        printWriter.println("#! /bin/bash");
+        printWriter.println("java -Dconfig.file=" + reachConf.toString() +
+                            " -jar " + reachJar.toString() + 
+                            " > out.txt 2>&1");
+        printWriter.close();
+        // Start the process
+        Runtime runtime = Runtime.getRuntime();
+        // TODO make sure log file works and is consistent with other log files (for development).
+        Process process = runtime.exec(new String[]{"bash",
+                                                    bash_file.getName()});
+        outputProcessError(process);
+    }
+    
+    /**
+     * Check if Reach is running by running ps aux
+     * @return
+     * @throws IOException
+     */
+    private boolean isReachRunning(String reachJar) throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        // TODO make sure log file works and is consistent with other log files (for development).
+        Process process = runtime.exec(new String[]{"ps",
+                                                    "aux"});
+        String output = output(process.getInputStream());
+        return output.contains(reachJar);
+    }
+
+    private int handlePMCIDs(List<String> pmcids) throws IOException {
+        // The NCBI fetch api supports to download a single nxml file for multiple
+        // PMCIDs. However, it is much easier to download them one by one for downstream
+        // handling
+        Map<String, Reference> pmcid2reference = new HashMap<>();
+        for (String pmcid : pmcids) {
+            pmcid = pmcid.trim();
+            if (pmcid.length() == 0)
+                continue; // Do nothing
+            Reference reference = downloadPaper(pmcid);
+            pmcid2reference.put(pmcid, reference);
+        }
+        dumpReferences(pmcid2reference);
+        return pmcid2reference.size();
     }
 
     private void dumpReferences(Map<String, Reference> pmcid2Reference) throws IOException {
@@ -210,6 +264,29 @@ public class ReachLocalProcessManager {
                 file.delete();
         }
     }
+    
+    protected int getNumberOfProcessedPMCIDs() throws IOException {
+        File[] files = outputDir.toFile().listFiles();
+        Set<String> pmcids = new HashSet<>();
+        for (File file : files) {
+            String name = file.getName();
+            if (name.matches("PMC\\d+\\.uaz\\.\\w+\\.json")) {
+                pmcids.add(name.split("\\.")[0]);
+            }
+        }
+        return pmcids.size();
+    }
+    
+    @Test
+    public void testGetProcessedPMCIDs() throws IOException {
+        String name = "PMC4039224.uaz.entities.json";
+        if (name.matches("PMC\\d+\\.uaz\\.\\w+\\.json")) {
+            System.out.println("Matched!");
+        }
+        outputDir = Paths.get("/Volumes/ssd/results/reach_marija/06062022/output");
+        System.out.println("Total processed PMCIDs: " + getNumberOfProcessedPMCIDs());
+    }
+    
 
     @Test
     public void testCreateReference() throws IOException, SAXException, ParserConfigurationException {
@@ -247,13 +324,42 @@ public class ReachLocalProcessManager {
     public static void main(String[] args) {
     	try {
     		if (args.length < 4)
-    			throw new IllegalArgumentException("Need parameters: reach_root_dir pcmidlist_file reach_jar_file application_conf_file");
+    			throw new IllegalArgumentException("Need parameters: reach_root_dir pcmidlist_file reach_jar_file application_conf_file {is_restart}");
     		Path root = Paths.get(args[0]);
+    		// Make sure the file doesn't have an empty line at the end to use the following
+    		// method.
     		List<String> pmcids = Files.readAllLines(Paths.get(args[0], args[1]));
+    		int totalPapers = pmcids.size();
+    		ReachLocalProcessManager runner = new ReachLocalProcessManager();
+    		if (args.length == 5 && args[4].equals("true")) { // Need to reset
+    		    runner.setRootPath(root);
+    		    // Handle papers first
+    		    totalPapers = runner.handlePMCIDs(pmcids);
+    		}
     		Path jar = Paths.get(args[0], args[2]);
-    		Path conf = Paths.get(args[0], args[3]);
-    		ReachLocalProcessManager runner = new ReachLocalProcessManager(root);
-    		runner.process(pmcids, jar, conf);
+            Path conf = Paths.get(args[0], args[3]);
+            int previousHandled = -1;
+            int previousHandledInSingleProcess = 0;
+    		while (true) {
+    		    if (!runner.isReachRunning(args[2])) {
+    		        int currentHandled = runner.getNumberOfProcessedPMCIDs();
+    		        if (currentHandled > previousHandled) {// Restart may help 
+    		            runner.startReachViaBash(jar, conf);
+    		            previousHandled = currentHandled;
+    		        }
+    		    }
+    		    // Wait for one minute and then check if Reach is still running.
+    		    Thread.sleep(60 * 1000);
+    		    int handledPapers = runner.getNumberOfProcessedPMCIDs();
+    		    // If there are updated in one minute, continue the loop.
+    		    if (handledPapers > previousHandledInSingleProcess) {
+    		        previousHandledInSingleProcess = handledPapers;
+    		        continue;
+    		    }
+    		    // Do one try. If nothing improved, just stop it.
+    		    if (handledPapers >= totalPapers)
+    		        break;
+    		}
     	}
     	catch(Exception e) {
     		e.printStackTrace();
