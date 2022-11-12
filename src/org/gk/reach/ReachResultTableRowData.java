@@ -134,7 +134,9 @@ public class ReachResultTableRowData implements Serializable {
     }
     
     public int getCitationCount() {
-        return (int) getReferences().stream().distinct().count();
+        // When references loaded from saved json, multiple references
+        // objects may be created.
+        return (int) getReferences().stream().map(r -> r.getPmcid()).distinct().count();
     }
     
     public int getOccurrenceCoount() {
