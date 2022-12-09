@@ -6,7 +6,7 @@ dbHost=localhost
 # Database name. Usually it should be gk_central.
 #dbName=gk_central_110818
 #dbName=gk_central_082417
-dbName=gk_central_050620
+dbName=gk_central_120622
 
 # Port number. Default 3306.
 dbPort=3306
@@ -18,10 +18,10 @@ dbUser={}
 dbPwd={}
 
 # Name of the file containing a list of topics to be released
-#releaseTopicsFileName=SinglePathway_Topic.txt
+releaseTopicsFileName=topics_circadian_clock.txt
 #releaseTopicsFileName=small_topics.txt
 #releaseTopicsFileName=nursa_topics.txt
-releaseTopicsFileName=ver73_topics.txt
+#releaseTopicsFileName=ver73_topics.txt
 
 # Name of the file containing a list of species that should be in the slice even though some of
 
@@ -40,7 +40,7 @@ slicingDbPwd=macmysql01
 slicingDbPort=3306
 
 # Slicing database name
-slicingDbName=test_ver73_slice
+slicingDbName=test_reviewstatus_slice
 
 # The following parameters are used for the comparing MySQLAdaptor information.
 # The "previousSlice" database will be used to detect revisions for the Event instances.
@@ -73,15 +73,15 @@ isInDev=true
 
 # Release number that is used to create a _Release instance
 #releaseNumber=2
-releaseNumber=73
+releaseNumber=83
 
 # Release Date, in the format of YYYY-MM-DD, which is used to create a _Release instance
 #releaseDate=2017-08-24
-releaseDate=2020-06-15
+releaseDate=2022-12-06
 
 # Last release Date, in the format of YYYY-MM-DD, which is used to assign releasetStatus for NEW or UPDATED event in homo sapiens.
 #lastReleaseDate=2000-01-01
-lastReleaseDate=2020-03-15
+lastReleaseDate=2022-09-15
 
 # This flag is used to control if the released attribute in StableIdentifier instances should be set to true. If this flag is true, StableIdentifiers in the slice database and their original ones in gk_central will be set to TRUE.
 setReleasedInStableIdentifier=false
@@ -91,3 +91,6 @@ setReleasedInStableIdentifier=false
 #defaultPersonId=142011
 # Guanming Wu@CSHL
 defaultPersonId=140537
+
+# To control if the updated reviewStatus to Events should be written back to the source database. Released Events that don't have reviewStatus are assigned to five stars automatically.
+updateReviewStatusToSource=true

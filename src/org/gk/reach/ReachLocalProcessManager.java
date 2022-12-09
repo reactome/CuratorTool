@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.log4j.Logger;
 import org.gk.model.Person;
 import org.gk.model.Reference;
 import org.jdom.Document;
@@ -36,9 +38,8 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
-import uk.ac.ebi.kraken.model.uniprot.comments.AlternativeProductsEventImpl;
-
 public class ReachLocalProcessManager {
+    private static final Logger logger = Logger.getLogger(ReachLocalProcessManager.class);
     private Path paperDir;
     private Path outputDir;
     private Path errorLog;
@@ -74,6 +75,7 @@ public class ReachLocalProcessManager {
         Runtime runtime = Runtime.getRuntime();
         // TODO make sure log file works and is consistent with other log files (for development).
         Process process = runtime.exec(new String[]{"java",
+                                                    "-Xmx96G",
                                                     "-Dconfig.file=" +
                                                     reachConf.toString(),
                                                     "-jar",
@@ -87,7 +89,9 @@ public class ReachLocalProcessManager {
         String error = output(is);
         is.close();
         if (error != null && error.length() > 0) {
-            try(BufferedWriter writer = Files.newBufferedWriter(errorLog, StandardCharsets.UTF_8)) {
+            try(BufferedWriter writer = Files.newBufferedWriter(errorLog, 
+                                                                StandardCharsets.UTF_8, 
+                                                                StandardOpenOption.APPEND)) {
                 writer.write(error, 0, error.length());
             }
             return;
@@ -109,8 +113,14 @@ public class ReachLocalProcessManager {
         System.out.println("Started Reach via bash.");
     }
     
+    /**
+     * Make sure to use enough memory. It seems that there is a top of ~22G as default for Java 11 (not sure).
+     * @param reachJar
+     * @param reachConf
+     * @return
+     */
     private String generateBashCommand(Path reachJar, Path reachConf) {
-        return "java -Dconfig.file=" + reachConf.toString() +
+        return "java -Xmx96G -Dconfig.file=" + reachConf.toString() +
                 " -jar " + reachJar.toString() + 
                 " > out.txt 2>&1";
     }
@@ -138,8 +148,14 @@ public class ReachLocalProcessManager {
             pmcid = pmcid.trim();
             if (pmcid.length() == 0)
                 continue; // Do nothing
-            Reference reference = downloadPaper(pmcid);
-            pmcid2reference.put(pmcid, reference);
+            try {
+                Reference reference = downloadPaper(pmcid);
+                pmcid2reference.put(pmcid, reference);
+            }
+            catch(Exception e) {
+                logger.error(e.getMessage(), e);
+                continue;
+            }
         }
         dumpReferences(pmcid2reference);
         return pmcid2reference.size();
@@ -336,7 +352,7 @@ public class ReachLocalProcessManager {
     		List<String> pmcids = Files.readAllLines(Paths.get(args[0], args[1]));
     		int totalPapers = pmcids.size();
     		ReachLocalProcessManager runner = new ReachLocalProcessManager();
-    		if (args.length == 5 && args[4].equals("true")) { // Need to reset
+    		if (args.length == 5 && args[4].equals("false")) { // Need to reset
     		    runner.setRootPath(root, true);
     		    // Handle papers first
     		    totalPapers = runner.handlePMCIDs(pmcids);

@@ -119,6 +119,8 @@ public class SlicingEngine {
     // Control UpdateTracker instance creation and writing back to gk_central
     private boolean needUpdateTrackers = false;
     private boolean uploadUpdateTrackersToSource = false;
+    // Handle reviewStatus
+    private boolean updateReviewStatusToSource = false;
     
     /**
      * Default constructor
@@ -226,6 +228,7 @@ public class SlicingEngine {
         extractSpecies();
         extractPathwayDiagrams();
         extractUpdateTrackerInstances();
+        extractReviewStatus();
         PrintStream output = null;
         if (logFileName != null)
             output = new PrintStream(new FileOutputStream(logFileName));
@@ -241,6 +244,7 @@ public class SlicingEngine {
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
         // Better call this method as the last QA to make sure the attributes have been checked.
         qa.validateUpdateTrackers(output);
+        qa.validateReviewStatus(output);
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -248,12 +252,14 @@ public class SlicingEngine {
         // Need to fill values for Complex.includedLocation
         fillIncludedLocationForComplex();
         fillAttributeValuesForEntitySets();
+        List<GKInstance> eventsWithReviewStatusUpdated = fillReviewStatus();
         cleanUpPathwayFigures();
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
         handleRevisions();
+        updateReviewStatusToSource(eventsWithReviewStatusUpdated);
     }
 
     /**
@@ -523,6 +529,43 @@ public class SlicingEngine {
             extractReferencesToInstance(updateTrackerInstance);
         }
         logger.info("extractUpdateTrackerInstances(): " + sliceMap.size());
+    }
+    
+    /**
+     * Collect ReviewStatus to handle reviewStatus in Events.
+     * @throws Exception
+     */
+    private void extractReviewStatus() throws Exception {
+        StarSystemHelper helper = new StarSystemHelper();
+        Collection<GKInstance> reviewStatuses = helper.extractReviewStatus(sourceDBA);
+        for (GKInstance reviewStatus : reviewStatuses)
+            extractReferencesToInstance(reviewStatus);
+    }
+    
+    /**
+     * Assign five stars to Events that don't haver reviewStatus filled. This should be
+     * the default behavior. Other reviewStatus should be handled by curators manually.
+     * @throws Exception
+     */
+    private List<GKInstance> fillReviewStatus() throws Exception {
+        StarSystemHelper helper = new StarSystemHelper();
+        return helper.assignFiveStarsToEvents(sourceDBA, sliceMap);
+    }
+    
+    /**
+     * Update reviewStatus to Events that have been assigned five stars back to the source database.
+     * @param eventsToBeUpdated
+     * @throws Exception
+     */
+    private void updateReviewStatusToSource(List<GKInstance> eventsToBeUpdated) throws Exception {
+        if (!updateReviewStatusToSource)
+            return;
+        StarSystemHelper helper = new StarSystemHelper();
+        // Use a new InstanceEdit to flag
+        GKInstance defaultIE = createDefaultIE(sourceDBA); 
+        helper.commitReviewStatusToSourceDB(eventsToBeUpdated,
+                sourceDBA,
+                defaultIE);
     }
     
     public Map extractEvents() throws Exception {
@@ -1362,6 +1405,15 @@ public class SlicingEngine {
             if (defaultPersonId == null || defaultPersonId.trim().length() == 0) {
                 defaultPersonId = getInput("Enter the DB_ID for the default person to create InstanceEdit:");
             }
+            
+            // For review status
+            String updateReviewStatusToSource = properties.getProperty("updateReviewStatusToSource");
+            if (updateReviewStatusToSource == null || updateReviewStatusToSource.trim().length() == 0) {
+                updateReviewStatusToSource = getInput("Do you want to write back reviewStatus for released Events, true or false:");
+            }
+            if (updateReviewStatusToSource.equals("true"))
+                engine.updateReviewStatusToSource = true;
+            
             // Only create UpdateTracker instances if "needUpdateTrackers" is set to true.
             MySQLAdaptor previousSliceDBA = null;
             boolean needUpdateTrackers = false;

@@ -385,4 +385,16 @@ public class ReactomeJavaConstants {
     public static final Long humanID = 48887L;
     public static final Long cosmicID = 1655447L;
     public static final Long cancerID = 1500689L;
+    
+    // Terms used for star systems
+    public static final String ReviewStatus = "ReviewStatus";
+    public static final String reviewStatus = "reviewStatus";
+    public static final String previousReviewStatus = "previewReviewStatus";
+    public static final String internalReviewed = "internalReviewed";
+    // Five stars
+    public static final String OneStar = "one star";
+    public static final String TwoStars = "two stars";
+    public static final String ThreeStars = "three stars";
+    public static final String FourStars = "four stars";
+    public static final String FiveStars = "five stars";
 }
