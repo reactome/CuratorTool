@@ -93,4 +93,4 @@ setReleasedInStableIdentifier=false
 defaultPersonId=140537
 
 # To control if the updated reviewStatus to Events should be written back to the source database. Released Events that don't have reviewStatus are assigned to five stars automatically.
-updateReviewStatusToSource=true
+updateReviewStatusToSource=false
