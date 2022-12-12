@@ -63,6 +63,7 @@ import org.gk.database.AttributeEditManager;
 import org.gk.database.EventCentricViewPane;
 import org.gk.database.EventPanePopupManager;
 import org.gk.database.FrameManager;
+import org.gk.database.ReviewStatusUpdater;
 import org.gk.database.SchemaViewPane;
 import org.gk.database.StableIdentifierUpdater;
 import org.gk.database.SynchronizationManager;
@@ -522,6 +523,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 		StableIdentifierUpdater stidUpdated = new StableIdentifierUpdater();
 		stidUpdated.setParentComp(this);
 		AttributeEditManager.getManager().addAttributeEditListener(stidUpdated);
+		AttributeEditListener listener = new ReviewStatusUpdater();
+		AttributeEditManager.getManager().addAttributeEditListener(listener);
 
 //		RegulationDisplayNameUpdater regulationUpdater = new RegulationDisplayNameUpdater();
 //		regulationUpdater.setParentComponent(this);
@@ -1108,8 +1111,8 @@ public class GKCuratorFrame extends JFrame implements OSXApplication, Launchable
 	}
 
 	private void initMenuBar() {
-//		if (isMac)
-//			GKApplicationUtilities.macOSXRegistration(this);
+		if (isMac)
+			GKApplicationUtilities.macOSXRegistration(this);
 		JMenuBar menuBar = new JMenuBar();
 		int shortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
         // Set up the file menu

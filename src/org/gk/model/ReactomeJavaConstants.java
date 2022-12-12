@@ -389,7 +389,7 @@ public class ReactomeJavaConstants {
     // Terms used for star systems
     public static final String ReviewStatus = "ReviewStatus";
     public static final String reviewStatus = "reviewStatus";
-    public static final String previousReviewStatus = "previewReviewStatus";
+    public static final String previousReviewStatus = "previousReviewStatus";
     public static final String internalReviewed = "internalReviewed";
     // Five stars
     public static final String OneStar = "one star";
