@@ -381,6 +381,8 @@ public class ReactomeJavaConstants {
     public static final String Cell = "Cell";
     public static final String proteinMarker = "proteinMarker";
     public static final String RNAMarker = "RNAMarker";
+    public static final String MarkerReference = "MarkerReference";
+    public static final String marker = "marker";
     
     public static final Long humanID = 48887L;
     public static final Long cosmicID = 1655447L;

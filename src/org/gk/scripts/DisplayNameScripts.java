@@ -7,6 +7,7 @@ package org.gk.scripts;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -45,9 +46,20 @@ public class DisplayNameScripts {
     }
     
     @Test
+    public void updateDisplayNameMarkerReferences() throws Exception {
+        MySQLAdaptor dba = new MySQLAdaptor("", "", "", "");
+        Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.MarkerReference);
+        updateDisplayName(dba, c);
+    }
+    
+    @Test
     public void updateDisplayNamesInFragmentModification() throws Exception {
         MySQLAdaptor dba = getDba();
         Collection<GKInstance> c = dba.fetchInstancesByClass(ReactomeJavaConstants.FragmentModification);
+        updateDisplayName(dba, c);
+    }
+
+    private void updateDisplayName(MySQLAdaptor dba, Collection<GKInstance> c) throws SQLException, Exception {
         int total = 0;
         List<GKInstance> toBeUpdated = new ArrayList<GKInstance>();
         for (GKInstance inst : c) {

@@ -178,6 +178,19 @@ public class InstanceDisplayNameGenerator {
             GKInstance ca = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.catalystActivity);
             builder.append(ca.getDisplayName());
         }
+        else if (instance.getSchemClass().isa(ReactomeJavaConstants.MarkerReference)) {
+            List<GKInstance> markers = instance.getAttributeValuesList(ReactomeJavaConstants.marker);
+            if (markers.size() == 0)
+                builder.append("Marker unknown:");
+            else if (markers.size() == 1) {
+                String markerName = markers.get(0).getDisplayName();
+                builder.append(markerName);
+            }
+            else {
+                String markerName = markers.get(0).getDisplayName();
+                builder.append(markerName + "...");
+            }
+        }
         GKInstance reference = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.literatureReference);
         if (reference != null)
             builder.append(" ").append(reference.getDisplayName());
