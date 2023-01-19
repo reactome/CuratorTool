@@ -91,7 +91,8 @@ public class ReactionRelationshipInferrer {
     private boolean downloadRejectReasons(PathwayEditor editor) {
         JFrame parentFrame = (JFrame) SwingUtilities.getAncestorOfClass(JFrame.class, editor);
         return SynchronizationManager.getManager().downloadControlledVocabulary(parentFrame,
-                                                                                ReactomeJavaConstants.NegativePrecedingEventReason);
+                                                                                ReactomeJavaConstants.NegativePrecedingEventReason,
+                                                                                false);
     }
     
     public void inferRelationships(PathwayEditor pathwayEditor) {

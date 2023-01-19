@@ -37,7 +37,6 @@ import javax.swing.border.BevelBorder;
 import org.gk.graphEditor.GraphEditorPane;
 import org.gk.graphEditor.PathwayEditor;
 import org.gk.graphEditor.ReactionNodeGraphEditor;
-import org.gk.osxAdapter.OSXApplication;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.Project;
 import org.gk.property.PropertyManager;
@@ -53,7 +52,7 @@ import org.gk.util.RecentProjectHelper;
  * The application frame. This is the entry point for the whole application.
  * @author  wgm
  */
-public class GKEditorFrame extends JFrame implements OSXApplication {
+public class GKEditorFrame extends JFrame {
 	// Fixed name
 	public static final String GK_EDITOR_NAME = "Reactome Author Tool";
 	public static final String VERSION = "4.0";
@@ -259,8 +258,6 @@ public class GKEditorFrame extends JFrame implements OSXApplication {
     private JMenuBar createMenuBar() {
         int shortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
         boolean isMac = isMac();
-        if (isMac)
-            GKApplicationUtilities.macOSXRegistration(this);
         JMenuBar menuBar= new JMenuBar();
         fileMenu = new JMenu("File");
         JMenuItem newProjectItem = fileMenu.add(actionCollection.getNewProjectAction());
@@ -375,10 +372,10 @@ public class GKEditorFrame extends JFrame implements OSXApplication {
         switchViewItem.setAccelerator(KeyStroke.getKeyStroke("F3"));
         JMenuItem layoutItem = toolMenu.add(actionCollection.getLayoutAction());
         layoutItem.setAccelerator(KeyStroke.getKeyStroke("F4"));
-        if (!isMac) {
-            toolMenu.addSeparator();
-            JMenuItem optionsItem = toolMenu.add(actionCollection.getOptionAction());
-        }
+//        if (!isMac) { as of January 18, put it directly under tool for easy management.
+         toolMenu.addSeparator();
+         JMenuItem optionsItem = toolMenu.add(actionCollection.getOptionAction());
+//        }
         menuBar.add(toolMenu);
         // Help menu
         JMenu helpMenu = new JMenu("Help");

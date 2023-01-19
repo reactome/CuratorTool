@@ -99,6 +99,8 @@ public class Launcher {
 		else
 			clsName = "org.gk.gkCurator.GKCuratorFrame";
 		final String tmp = clsName;
+        // For some threading related issue, using SwingUtilities.invokeLater() cannot display the content
+        // of the splash window.		
 //		SwingUtilities.invokeLater(new Runnable() {
 //            
 //            @Override

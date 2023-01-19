@@ -52,7 +52,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.gk.osxAdapter.OSXApplication;
 import org.w3c.dom.Document;
 /**
  * A list of utilities that can be used in the gk applications.
@@ -597,55 +596,6 @@ public class GKApplicationUtilities {
 		}
 		return selectedFile;
 	}
-
-	/*
-	 * Generic registration with the Mac OS X application menu.  Checks the platform, then attempts
-	 * to register with the Apple EAWT.
-	 * This method calls OSXAdapter.registerMacOSXApplication() and OSXAdapter.enablePrefs().
-	 * See OSXAdapter.java for the signatures of these methods.
-	 * This method is modified from the sample code MyApp.java from apple.
-	 */
-	 public static void macOSXRegistration(OSXApplication osxApplication) {
-		 try {
-			 Class osxAdapter = Class.forName("org.gk.osxAdapter.OSXAdapter");
-			 Class[] defArgs = { OSXApplication.class };
-			 Method registerMethod =
-				 osxAdapter.getDeclaredMethod(
-					 "registerMacOSXApplication",
-					 defArgs);
-			 if (registerMethod != null) {
-				 Object[] args = { osxApplication };
-				 registerMethod.invoke(osxAdapter, args);
-			 }
-			 // This is slightly gross.  to reflectively access methods with boolean args,
-			 // use "boolean.class", then pass a Boolean object in as the arg, which apparently
-			 // gets converted for you by the reflection system.
-			 defArgs[0] = boolean.class;
-			 Method prefsEnableMethod =
-				 osxAdapter.getDeclaredMethod("enablePrefs", defArgs);
-			 if (prefsEnableMethod != null) {
-				 Object args[] = { Boolean.TRUE };
-				 prefsEnableMethod.invoke(osxAdapter, args);
-			 }
-		 } catch (NoClassDefFoundError e) {
-			 // This will be thrown first if the OSXAdapter is loaded on a system without the EAWT
-			 // because OSXAdapter extends ApplicationAdapter in its def
-			 System.err.println(
-				 "This version of Mac OS X does not support the Apple EAWT.  Application Menu handling has been disabled ("
-					 + e
-					 + ")");
-		 } catch (ClassNotFoundException e) {
-			 // This shouldn't be reached; if there's a problem with the OSXAdapter we should get the
-			 // above NoClassDefFoundError first.
-			 System.err.println(
-				 "This version of Mac OS X does not support the Apple EAWT.  Application Menu handling has been disabled ("
-					 + e
-					 + ")");
-		 } catch (Exception e) {
-			 System.err.println("Exception while loading the OSXAdapter:");
-			 e.printStackTrace();
-		 }
-	 }
 
 	 /**
 	  * Tile a list of Components within the specified Rectangle.
