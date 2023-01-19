@@ -3,11 +3,8 @@
  */
 package org.gk.database;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Window;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -24,7 +21,6 @@ import java.util.Set;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 
 import org.gk.model.AttributeClassNotAllowedException;
 import org.gk.model.GKInstance;
@@ -1499,19 +1495,21 @@ public class SynchronizationManager {
 	 * Download controlled vocabulary.
 	 * @param parentFrame
 	 * @param clsName
+	 * @param needAll true to make sure all instances are downloaded.
 	 * @return
 	 */
     public boolean downloadControlledVocabulary(JFrame parentFrame,
-                                                String clsName) {
+                                                String clsName,
+                                                boolean needAll) {
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-        Collection<?> instances;
+        Collection<GKInstance> instances;
         
         // First check to see if any instances of this
         // class are already present - if so, assume
         // that we don't need to check out anything.
         try {
             instances = fileAdaptor.fetchInstancesByClass(clsName);
-            if (instances != null && instances.size() > 0) {
+            if (instances != null && instances.size() > 0 && !needAll) {
                 // Some instances already present locally, so don't
                 // try to check any out from database.
                 return true; 
@@ -1531,8 +1529,14 @@ public class SynchronizationManager {
             e.printStackTrace();
             return false;
         }
-        if (instances == null || instances.size() == 0)
+        if (instances == null || instances.size() == 0 )
             return true; // It is possible there is nothing in the database for this class.
+        // Check if all instances have been checked out. If true, do nothing.
+        // This is a simple number-based check assuming nothing should be edited for
+        // ControlledVocabulary
+        Collection<GKInstance> localInstances = fileAdaptor.fetchInstancesByClass(clsName);
+        if (localInstances != null && localInstances.size() == instances.size())
+            return true;
         @SuppressWarnings({ "unchecked", "rawtypes" })
         List<?> instancesList = new ArrayList(instances);
         try {

@@ -5,6 +5,7 @@
 package org.gk.database;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -68,6 +69,8 @@ public class EventAttributePropagator {
         // The role attributes to follow recursively
         String[] roleAtts = getPropagationRoleAttributes(valueAttName);
         for (String role: roleAtts) {
+            if (!root.getSchemClass().isValidAttribute(role))
+                continue;
             @SuppressWarnings("unchecked")
             List<GKInstance> values = (List<GKInstance>)root.getAttributeValuesList(role);
             if (!values.isEmpty()) {
@@ -95,7 +98,8 @@ public class EventAttributePropagator {
                 oldValues = tmpEvent.getAttributeValuesList(valueAttName);
                 if (!InstanceUtilities.compareAttValues(attValues, oldValues, att)) {
                     tmpEvent.setAttributeValueNoCheck(att, attValues);
-                    fireAttributeEdit(tmpEvent, valueAttName);
+                    // Figure out an action
+                    fireAttributeEdit(tmpEvent, valueAttName, isAddAction(attValues, oldValues));
                 }
             }
         }
@@ -107,10 +111,19 @@ public class EventAttributePropagator {
                 oldValue = tmpEvent.getAttributeValue(valueAttName);
                 if (attValue != oldValue) {
                     tmpEvent.setAttributeValue(valueAttName, attValue);
-                    fireAttributeEdit(tmpEvent, valueAttName);
+                    fireAttributeEdit(tmpEvent, valueAttName, null); // Don't care if this is true
                 }
             }
         }
+    }
+    
+    private boolean isAddAction(List<?> newValues, List<?> oldValues) {
+       if (newValues == null || newValues.size() == 0)
+           return false;
+       if (oldValues == null || oldValues.size() == 0)
+           return true; // For sure since nothing in the old values
+       Object newestValue = newValues.get(0);
+       return !oldValues.contains(newestValue);
     }
     
     /**
@@ -184,7 +197,13 @@ public class EventAttributePropagator {
         return references;
     }
     
-    private void fireAttributeEdit(GKInstance instance, String attName) {
-        AttributeEditManager.getManager().attributeEdit(instance, attName);
+    private void fireAttributeEdit(GKInstance instance, 
+                                   String attName,
+                                   Boolean isAddingAction) {
+        AttributeEditEvent event = new AttributeEditEvent(AttributeEditManager.getManager());
+        event.setEditingInstance(instance);
+        event.setAttributeName(attName);
+        event.setEditingType(isAddingAction ? AttributeEditEvent.ADDING : AttributeEditEvent.UNDEFINED);
+        AttributeEditManager.getManager().attributeEdit(event);
     }
 }

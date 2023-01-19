@@ -77,6 +77,7 @@ public class AttributeEditPropagator {
                 (attName.equals(ReactomeJavaConstants._doRelease) ||
                  attName.equals(ReactomeJavaConstants.authored) ||
                  attName.equals(ReactomeJavaConstants.reviewed) ||
+                 attName.equals(ReactomeJavaConstants.internalReviewed) ||
                  attName.equals(ReactomeJavaConstants._doNotRelease))) {
             propagateEventAttribute(instance, attName);
         }

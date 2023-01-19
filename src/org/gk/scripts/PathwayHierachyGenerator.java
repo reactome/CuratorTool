@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.util.GKApplicationUtilities;
@@ -130,6 +131,29 @@ public class PathwayHierachyGenerator {
         String fileName = "tmp/PathwayHierarchy_HS_Release39.xml";
         XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat());
         outputter.output(root, new FileOutputStream(fileName));
+    }
+    
+    @Test
+    public void checkPathwaysInTopic() throws Exception {
+    	MySQLAdaptor dba = new MySQLAdaptor("localhost",
+                "gk_current_ver82",
+                "root",
+                "macmysql01");
+    	Long dbId = 1266738L; // Development biology
+    	GKInstance topic = dba.fetchInstance(dbId);
+    	System.out.println("Topic: " + topic);
+    	Set<GKInstance> events = InstanceUtilities.getContainedEvents(topic);
+    	System.out.println("Total events: " + events.size());
+    	Set<GKInstance> pathways = new HashSet<>();
+    	Set<GKInstance> reactions = new HashSet<>();
+    	for (GKInstance event : events) {
+    		if (event.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+    			pathways.add(event);
+    		else if (event.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent))
+    			reactions.add(event);
+    	}
+    	System.out.println("Total pathways: " + pathways.size());
+    	System.out.println("Total reactions: " + reactions.size());
     }
     
     private void addEvent(GKInstance inst, Element parentElm) throws Exception {

@@ -196,7 +196,8 @@ public class InstanceDeletion {
     
     private boolean downloadControlledVocabulary(JFrame parentFrame) {
         return SynchronizationManager.getManager().downloadControlledVocabulary(parentFrame,
-                                                                                ReactomeJavaConstants.DeletedControlledVocabulary);
+                                                                                ReactomeJavaConstants.DeletedControlledVocabulary,
+                                                                                false);
     }
     
     /**
