@@ -135,7 +135,6 @@ public class GKCuratorFrame extends JFrame implements Launchable {
     private JWindow window;
 
     public GKCuratorFrame() {
-        GKApplicationUtilities.enableMacFullScreen(this);
         init();
     }
 

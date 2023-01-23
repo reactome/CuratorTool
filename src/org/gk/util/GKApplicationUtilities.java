@@ -802,23 +802,5 @@ public class GKApplicationUtilities {
              }
          }
      }
-
-     public static void enableMacFullScreen(Window window) {
-    	 if (!isMac())
-    		 return; // Don't do anything if it is not a mac
-    	 // Check if this class exists
-    	 try {
-    		 Class<?> util = Class.forName("com.apple.eawt.FullScreenUtilities");
-    		 Class<?> params[] = new Class[2];
-    		 params[0] = Window.class;
-    		 params[1] = Boolean.TYPE;
-    		 Method method = util.getMethod("setWindowCanFullScreen", params);
-    		 method.invoke(util, window, true);
-    	 }
-    	 catch(Exception e) {
-    		 // Just don't do anything here! It is not a big deal!
-    	 }
-     }
-
-
 }
+
