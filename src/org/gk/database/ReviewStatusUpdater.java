@@ -84,6 +84,8 @@ public class ReviewStatusUpdater implements AttributeEditListener {
                 } 
                 if (newStatus != null)
                     isDemoted = true;
+                // Mark it as long as there is a structural update
+                instance.setIsStructuralUpdated(true);
             }
             if (newStatus == null)
                 return; // Nothing to do
@@ -159,6 +161,9 @@ public class ReviewStatusUpdater implements AttributeEditListener {
     }
 
     private boolean isStructralUpdate(AttributeEditEvent e) {
+        // If there is no attribute name, assume not a structural update
+        if (e.getAttributeName() == null)
+            return false;
         GKInstance instance = e.getEditingInstance();
         if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
             if (e.getAttributeName().equals(ReactomeJavaConstants.hasEvent)) {

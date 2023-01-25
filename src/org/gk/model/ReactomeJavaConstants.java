@@ -99,6 +99,8 @@ public class ReactomeJavaConstants {
     public static final String superTaxon = "superTaxon";
     public static final String maxUnitCount = "maxUnitCount";
     public static final String modified = "modified";
+    // Track structural update for the star system
+    public static final String structureModified = "structureModified";
     public static final String keyword = "keyword";
     public static final String atomicConnectivity = "atomicConnectivity";
     public static final String locationContext = "locationContext";

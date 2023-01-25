@@ -149,9 +149,11 @@ public class EventCellRenderer extends JPanel implements TreeCellRenderer {
 			textLabel.setForeground(UIManager.getColor("Tree.textForeground"));
 		}
 		if (event != null) {
-			if (event.isDirty())
-				textLabel.setText(">" + event.getDisplayName());
-			else
+		    if (event.isDirty() && event.isStructuralUpdated())
+				textLabel.setText(">>" + event.getDisplayName());
+		    else if (event.isDirty()) 
+		        textLabel.setText(">" + event.getDisplayName());
+		    else
 				textLabel.setText(event.getDisplayName());
 			if (isGrayOn) {
 			    Boolean isOnElv = (Boolean) event.getAttributeValueNoCheck("isOnElv");

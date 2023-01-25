@@ -522,7 +522,10 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         instance.setIsShell(shell);
         String isDirty = instanceNode.getAttribute("isDirty");
         if (isDirty != null && isDirty.length() > 0)
-        	instance.setIsDirty(Boolean.valueOf(isDirty).booleanValue());
+        	instance.setIsDirty(Boolean.valueOf(isDirty));
+        String isStructureUpdated = instanceNode.getAttribute("isStructureUpdated");
+        if (isStructureUpdated != null && isStructureUpdated.length() > 0)
+            instance.setIsStructuralUpdated(Boolean.valueOf(isStructureUpdated));
         if (!shell)  // load more attributes. Don't set displayName for it
             loadAttributes(instanceNode, instance);
         else 
@@ -1700,6 +1703,8 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
             buffer.append(" isShell=\"false\"");
             buffer.append(" isDirty=\"");
             buffer.append(instance.isDirty());
+            buffer.append("\" isStructureUpdated=\"");
+            buffer.append(instance.isStructuralUpdated());
             buffer.append("\">\n");
             String indent1 = indent + indent + indent;
             // Put valid attributes in

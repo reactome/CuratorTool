@@ -38,8 +38,10 @@ public class GKInstance implements Instance, Cloneable {
 	private boolean isInflated = false;
 	// Mark if a GKInstance is a shell
 	private boolean isShell = false;
-    // Mark is a GKInstance has been modified
+    // Mark if a GKInstance has been modified
     private boolean isDirty = false;
+    // Mark if there is any structural update
+    private boolean isStructuralUpdated = false;
 	public boolean debug = false;
 	
 	public GKInstance() {
@@ -621,6 +623,10 @@ public class GKInstance implements Instance, Cloneable {
      */
     public void setIsDirty(boolean isDirty) {
         this.isDirty = isDirty;
+        // Since structural update is just subset of editing, if isDirty set to false,
+        // we need to set isStructuralUpdated to false too.
+        if (!isDirty && isStructuralUpdated)
+            this.isStructuralUpdated = false;
     }
     
     /**
@@ -629,6 +635,16 @@ public class GKInstance implements Instance, Cloneable {
      */
     public boolean isDirty() {
         return this.isDirty;
+    }
+    
+    // The following two methods are used for Events currently only to track structural update
+    // for the star system
+    public void setIsStructuralUpdated(boolean isUpdated) {
+        this.isStructuralUpdated = isUpdated;
+    }
+    
+    public boolean isStructuralUpdated() {
+        return this.isStructuralUpdated;
     }
     
     /**

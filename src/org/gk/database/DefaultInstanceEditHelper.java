@@ -299,34 +299,36 @@ public class DefaultInstanceEditHelper {
 	}
 	
 	/**
-	 * Attach the default InstanceEdit GKInstnce to the GKInstance objects
+	 * Attach the default InstanceEdit GKInstance to the GKInstance objects
 	 * @param localSet the list of newly created GKInstance objects
 	 * @param dbList the list of modified GKInstance objects.
 	 * @param attachingIE InstanceEdit to attach
 	 * @throws Exception Thrown if unable to get of add attribute values to instances
 	 * @return the attached GKInstance object for InstanceEdit.
 	 */
-	public GKInstance attachDefaultInstanceEdit(Collection localSet, 
-	                                            Collection dbList, 
+	public GKInstance attachDefaultInstanceEdit(Collection<GKInstance> localSet, 
+	                                            Collection<GKInstance> dbList, 
 	                                            GKInstance attachingIE) throws Exception {
 	    if (attachingIE == null)
 	        return null;
 	    boolean isUsed = false;
 	    GKInstance tmp = null;
 	    if (localSet != null) {
-	        for (Iterator it = localSet.iterator(); it.hasNext();) {
-	            tmp = (GKInstance)it.next();
+	        for (Iterator<GKInstance> it = localSet.iterator(); it.hasNext();) {
+	            tmp = it.next();
 	            // Escape it if there is a created assigned
-	            if (tmp.getAttributeValue("created") != null)
+	            if (tmp.getAttributeValue(ReactomeJavaConstants.created) != null)
 	                continue;
-	            tmp.addAttributeValue("created", attachingIE);
+	            tmp.addAttributeValue(ReactomeJavaConstants.created, attachingIE);
 	            isUsed = true;
 	        }
 	    }
 	    if (dbList != null) {
-	        for (Iterator it = dbList.iterator(); it.hasNext();) {
-	            tmp = (GKInstance)it.next();
-	            tmp.addAttributeValue("modified", attachingIE);
+	        for (Iterator<GKInstance> it = dbList.iterator(); it.hasNext();) {
+	            tmp = it.next();
+	            tmp.addAttributeValue(ReactomeJavaConstants.modified, attachingIE);
+	            if (tmp.isStructuralUpdated())
+	                tmp.addAttributeValue(ReactomeJavaConstants.structureModified, attachingIE);
 	            isUsed = true;
 	        }
 	    }

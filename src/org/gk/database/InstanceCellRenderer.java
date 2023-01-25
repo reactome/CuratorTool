@@ -48,6 +48,7 @@ public class InstanceCellRenderer extends DefaultListCellRenderer {
 		String text = null;
         String tooltipText = null;
 		boolean isDirty = false;
+		boolean isStructuralUpdated = false;
 		if (value instanceof GKInstance) {
 			GKInstance instance = (GKInstance) value;
 			text = instance.getDisplayName();
@@ -57,6 +58,7 @@ public class InstanceCellRenderer extends DefaultListCellRenderer {
 			}
 			setIcon(icon);
 			isDirty = ((GKInstance)value).isDirty();
+			isStructuralUpdated = ((GKInstance)value).isStructuralUpdated();
             tooltipText = instance.getExtendedDisplayName();
 		}
 		else if (value != null) {
@@ -78,7 +80,9 @@ public class InstanceCellRenderer extends DefaultListCellRenderer {
                     text = "[" + species + "] " + text; 
             }
         }
-		if (isDirty)
+        if (isDirty && isStructuralUpdated)
+            setText(">>" + text);
+        else if (isDirty)
 			setText(">" + text);
 		else
 			setText(text);
