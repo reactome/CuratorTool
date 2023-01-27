@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -373,10 +372,16 @@ public class GKApplicationUtilities {
 	public static Calendar getCalendar() {
 		// Use GMT time zone
 		TimeZone timeZone = TimeZone.getTimeZone("GMT");
-		return(Calendar.getInstance(timeZone));
+		return Calendar.getInstance(timeZone);
 	}
 
 	/**
+	 * Note added by G.W. on Jan 26, 2023: This method should be used for process
+	 * the dateTime string kept in the Reactome's InstanceEdit's dataTime slot string,
+	 * which has added one to the Month. Prior to January 26, 2023, the month is not
+	 * reduced to create Calendar. This has been fixed.
+	 * This method is marked Deprecated. To parse the dateTime string in InstanceEdit,
+	 * use org.gk.model.InstanceUtilities.getDateTimeInIE(GKInstance).
 	 * Generates a Calendar version of the given date/time:
 	 *
 	 * YYYYMMDDhhmmss
@@ -388,9 +393,12 @@ public class GKApplicationUtilities {
 	 * @param dateTime String of datetime in the format "YYYMMDDhhmmss"
 	 * @return Calendar object for the datetime passed
 	 */
+	@Deprecated
 	public static Calendar getCalendar(String dateTime) {
 		if (dateTime==null || dateTime.equals(""))
 			return null;
+		
+		// There are
 
 		String year = dateTime.substring(0, 4);
 		if (year==null || year.length()<4)
@@ -416,12 +424,15 @@ public class GKApplicationUtilities {
 		if (second==null || second.length()<2)
 			return null;
 
-		// Use GMT time zone
-		TimeZone timeZone = TimeZone.getTimeZone("GMT");
-		Calendar calendar = Calendar.getInstance(timeZone);
+		Calendar calendar = getCalendar();
 
 		calendar.set(Calendar.YEAR, (new Integer(year)).intValue());
-		calendar.set(Calendar.MONTH, (new Integer(month)).intValue());
+	      // This works for the dataTime slot in Reactome's InstanceEdit only
+        // See getDateTime()
+		int monthValue = Integer.parseInt(month);
+		monthValue --;
+		if (monthValue < 0) monthValue = 0; // Just in case. Should not happen.
+		calendar.set(Calendar.MONTH, monthValue);
 		calendar.set(Calendar.DAY_OF_MONTH, (new Integer(day)).intValue());
 		calendar.set(Calendar.HOUR_OF_DAY, (new Integer(hour)).intValue());
 		calendar.set(Calendar.MINUTE, (new Integer(minute)).intValue());
@@ -434,11 +445,21 @@ public class GKApplicationUtilities {
 	 * Generates a String version of the current date/time:
 	 *
 	 * YYYYMMDDhhmmss
+	 * 
+	 * NB (GW on 1/26/23): The generated string is used for the local InstanceEdit generation. However,
+	 * after this InstanceEdit is committed into a mysql database, the string will be automatically converted
+	 * into the TimeStamp format as YYYY-MM-DD HH:mm:ss.S. In order to make this conversion correct, the month
+	 * in Java has been increased by 1. 
 	 *
 	 * @return String of the current datetime in the format "YYYMMDDhhmmss"
 	 */
 	public static String getDateTime() {
 		Calendar calendar = getCalendar();
+		// The following code can be replaced by the following more standard wawy
+//        TimeZone timeZone = TimeZone.getTimeZone("GMT");
+//        SimpleDateFormat textFormatter = new SimpleDateFormat("yyyyMMddHHmmss");
+//        textFormatter.setTimeZone(timeZone);
+//		  return textFormatter.format(calendar.getTime());
 		StringBuffer buffer = new StringBuffer();
 		buffer.append(calendar.get(Calendar.YEAR));
 		int month = calendar.get(Calendar.MONTH);

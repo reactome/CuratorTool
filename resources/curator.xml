@@ -66,6 +66,7 @@
        		<QAChecker name="NormalEntity" class="org.gk.qualityCheck.EntityFunctionalStatusNormalEntityCheck"></QAChecker>
        </Group>
        <QAChecker name="New StableIdentifier Check" class="org.gk.qualityCheck.StableIdentifierCheck" dbOnly="true" />
+       <QAChecker name="ReviewStatus Check" class="org.gk.qualityCheck.ReviewStatusSlotCheck"></QAChecker>
     </QACheckers>
 	<autoPropagateAtts>
 		<schemaClass name="Event">

@@ -223,29 +223,4 @@ public class SlicingQualityAssay {
         }
     }
     
-    /**
-     * Make sure only 3 stars or update reviewed Events are released. This validation bypassed
-     * Events that don't have reviewStatus assigned. Their reviewStatus should be filled later on.
-     */
-    public void validateReviewStatus(PrintStream output) throws Exception {
-        logger.info("Validating Events' reviewStatus...");
-        for (Iterator<Long> it = sliceMap.keySet().iterator(); it.hasNext();) {
-            Long dbId = it.next();
-            GKInstance inst = sliceMap.get(dbId);
-            if (!inst.getSchemClass().isa(ReactomeJavaConstants.Event))
-                continue;
-            GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.reviewStatus);
-            if (reviewStatus == null) {
-                continue;
-            }
-            else if (reviewStatus.getDisplayName().equals(ReactomeJavaConstants.OneStar)) {
-                output.println("One star reviewStatus: " + inst);
-            }
-            else if (reviewStatus.getDisplayName().equals(ReactomeJavaConstants.TwoStars)) {
-                output.println("Two stars reviewStatus: " + inst);
-            }
-        }
-        logger.info("Done reviewStatus validation.");
-    }
-    
 }

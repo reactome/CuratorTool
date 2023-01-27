@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -32,8 +34,21 @@ public class StarSystemHelper {
      * @param sliceMap
      * @throws Exception
      */
-    public Collection<GKInstance> extractReviewStatus(MySQLAdaptor sourceDBA) throws Exception {
-        Collection<GKInstance> instances = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants.ReviewStatus);
+    public Collection<GKInstance> extractReviewStatus(Map<Long, GKInstance> id2inst) throws Exception {
+        Set<GKInstance> instances = new HashSet<>();
+        for (Long id : id2inst.keySet()) {
+            GKInstance inst = id2inst.get(id);
+            if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.reviewStatus)) {
+                GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.reviewStatus);
+                if (reviewStatus != null)
+                    instances.add(reviewStatus);
+            }
+            if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.previousReviewStatus)) {
+                GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.previousReviewStatus);
+                if (reviewStatus != null)
+                    instances.add(reviewStatus);
+            }
+        }
         return instances;
     }
     

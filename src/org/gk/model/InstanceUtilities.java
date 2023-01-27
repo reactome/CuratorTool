@@ -6,17 +6,20 @@
  */
 package org.gk.model;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import org.gk.schema.GKSchemaAttribute;
@@ -435,6 +438,36 @@ public class InstanceUtilities {
                     return 1;
             }
         });
+    }
+    
+    /**
+     * This utility method is used to parse dateTime string in InstanceEdit to a Date object based on different
+     * format. There are two types representation: local created is displayed like
+     * this: 20071109191417, and value returned from db is: 2007-11-09 19:47:00.
+     * Note: all in GMT. The difference of the formats should be regarded as a bug actually. 
+     * @param ie
+     * @return
+     * @throws Exception
+     */
+    public static Date getDateTimeInInstanceEdit(GKInstance ie) throws Exception {
+        // The type actually should be Java's Date in either java.util or java.sql. However, currently
+        // it is converted from TimeStamp in MySQL to String. 
+        String dateTime = (String) ie.getAttributeValue(ReactomeJavaConstants.dateTime);
+        if (dateTime == null || dateTime.trim().length() == 0)
+            return null;
+        // All are in GMT
+        TimeZone timeZone = TimeZone.getTimeZone("GMT");
+        if (dateTime.matches("(\\d){14}")) {
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+            format.setTimeZone(timeZone);
+            return format.parse(dateTime);
+        }
+        else if (dateTime.matches("(\\d){4}-(\\d){2}-(\\d){2} (\\d){2}:(\\d){2}:(\\d){2}.(\\d)*")) {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+            format.setTimeZone(timeZone);
+            return format.parse(dateTime);
+        }
+        throw new IllegalArgumentException(ie + " has a wrongly formatted dateTime: " + dateTime);
     }
     
     /**

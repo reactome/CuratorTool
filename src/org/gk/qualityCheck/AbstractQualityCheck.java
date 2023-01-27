@@ -108,11 +108,11 @@ public abstract class AbstractQualityCheck implements QualityCheck {
         escapeHelper = new QAEscapeHelper();
     }
     
-    @Override
     /**
      * The default display name is the simple class name with
      * capitalized words delimited by underscore.
      */
+    @Override
     public String getDisplayName() {
         Matcher match = CHECK_SUFFIX_PAT.matcher(getClass().getSimpleName());
         String baseName = match.replaceAll("");

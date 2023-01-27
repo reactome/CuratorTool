@@ -244,7 +244,6 @@ public class SlicingEngine {
         qa.validateStableIds(output); // Added a new check for StableIds on August 1, 2016
         // Better call this method as the last QA to make sure the attributes have been checked.
         qa.validateUpdateTrackers(output);
-        qa.validateReviewStatus(output);
         if (logFileName != null)
             output.close(); // Close it if output is opened by the application
         addReleaseStatus();
@@ -537,7 +536,7 @@ public class SlicingEngine {
      */
     private void extractReviewStatus() throws Exception {
         StarSystemHelper helper = new StarSystemHelper();
-        Collection<GKInstance> reviewStatuses = helper.extractReviewStatus(sourceDBA);
+        Collection<GKInstance> reviewStatuses = helper.extractReviewStatus(sliceMap);
         for (GKInstance reviewStatus : reviewStatuses)
             extractReferencesToInstance(reviewStatus);
     }

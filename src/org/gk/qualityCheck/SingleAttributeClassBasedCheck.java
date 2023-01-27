@@ -435,7 +435,9 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
     /**
      * This method is used to grep all contained PhysicalEntities from a passed
      * container instance. The {@link #followAttributes} hierarchy us
-     * visited to get the indirectly contained attributes.
+     * visited to get the indirectly contained attributes. The search is based on followingAttributes,
+     * which may refer to other types of attributes which are not in the hierarchical relationships (e.g.
+     * created, reviewStatus). Therefore, the method is better to call "getAllReferredInstances".
      * 
      * <em>Note:</em>: {@link SingleAttributeClassBasedCheck} subclasses
      * are responsible for setting the {@link #followAttributes} value. 
