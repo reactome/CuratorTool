@@ -13,7 +13,7 @@ public class QACheckUtilities {
          if (modIEs != null) {
              List<Long> developers = QACheckProperties.getDeveloperDbIds();
              for (int index = modIEs.size() - 1; index >= 0; index--) {
-                 GKInstance modIE = modIEs.get(modIEs.size() - 1);
+                 GKInstance modIE = modIEs.get(index);
                  GKInstance author = (GKInstance) modIE.getAttributeValue("author");
                  // Skip modification instance for developers.
                  if (author != null && !developers.contains(author.getDBID())) {
