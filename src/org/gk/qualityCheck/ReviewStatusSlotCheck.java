@@ -266,8 +266,8 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
         if (!(dataSource instanceof MySQLAdaptor))
             return;
         MySQLAdaptor dba = (MySQLAdaptor) dataSource;
-        dba.loadInstanceReverseAttributeValues(instances,
-                followAttributes);
+        dba.loadInstanceAttributeValues(instances,
+                                        followAttributes);
     }
 
     @Override

@@ -67,6 +67,7 @@
        </Group>
        <QAChecker name="New StableIdentifier Check" class="org.gk.qualityCheck.StableIdentifierCheck" dbOnly="true" />
        <QAChecker name="ReviewStatus Check" class="org.gk.qualityCheck.ReviewStatusSlotCheck"></QAChecker>
+       <QAChecker name="Cell MarkerReference" class="org.gk.qualityCheck.CellMarkerReferenceCheck"></QAChecker>
     </QACheckers>
 	<autoPropagateAtts>
 		<schemaClass name="Event">
