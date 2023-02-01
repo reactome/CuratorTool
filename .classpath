@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="lib/gwt-crypto-1.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/javaws.jar"/>
 	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
@@ -20,8 +25,6 @@
 	<classpathentry kind="lib" path="lib/batik/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/batik/js.jar"/>
 	<classpathentry kind="lib" path="lib/batik/pdf-transcoder.jar"/>
-	<classpathentry kind="lib" path="lib/batik/xerces_2_5_0.jar"/>
-	<classpathentry kind="lib" path="lib/batik/xml-apis.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-core.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/jaxen-jdom.jar"/>
 	<classpathentry kind="lib" path="lib/jdom/saxpath.jar"/>
@@ -49,12 +52,6 @@
 	<classpathentry kind="lib" path="lib/jsonpath/json-path-2.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/jsonpath/json-smart-2.2.jar"/>
 	<classpathentry kind="lib" path="lib/jsonpath/slf4j-api-1.7.13.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
-		<attributes>
-			<attribute name="owner.project.facets" value="java"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="lib/osxAdapter.jar"/>
 	<classpathentry kind="lib" path="lib/ols-client/ols-client-1.18.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-awt-util-1.11.jar"/>
 	<classpathentry kind="lib" path="lib/batik/batik-constants-1.11.jar"/>
@@ -75,5 +72,6 @@
 	<classpathentry kind="lib" path="lib/jackson-annotations-2.9.9.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-core-2.9.9.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-databind-2.9.9.jar"/>
+	<classpathentry kind="lib" path="lib/xercesImpl-2.12.2.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
