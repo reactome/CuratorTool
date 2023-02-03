@@ -536,7 +536,7 @@ public class SlicingEngine {
      */
     private void extractReviewStatus() throws Exception {
         StarSystemHelper helper = new StarSystemHelper();
-        Collection<GKInstance> reviewStatuses = helper.extractReviewStatus(sliceMap);
+        Collection<GKInstance> reviewStatuses = helper.extractReviewStatus(sourceDBA);
         for (GKInstance reviewStatus : reviewStatuses)
             extractReferencesToInstance(reviewStatus);
     }

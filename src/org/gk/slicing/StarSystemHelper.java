@@ -29,27 +29,14 @@ public class StarSystemHelper {
     }
 
     /**
-     * Extract ReviewStatus instances.
+     * Extract ReviewStatus instances. All ReviewStatus instances are collected regardless whether
+     * they are used or not.
      * @param sourceDBA
      * @param sliceMap
      * @throws Exception
      */
-    public Collection<GKInstance> extractReviewStatus(Map<Long, GKInstance> id2inst) throws Exception {
-        Set<GKInstance> instances = new HashSet<>();
-        for (Long id : id2inst.keySet()) {
-            GKInstance inst = id2inst.get(id);
-            if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.reviewStatus)) {
-                GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.reviewStatus);
-                if (reviewStatus != null)
-                    instances.add(reviewStatus);
-            }
-            if (inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.previousReviewStatus)) {
-                GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.previousReviewStatus);
-                if (reviewStatus != null)
-                    instances.add(reviewStatus);
-            }
-        }
-        return instances;
+    public Collection<GKInstance> extractReviewStatus(MySQLAdaptor dba) throws Exception {
+        return dba.fetchInstancesByClass(ReactomeJavaConstants.ReviewStatus);
     }
     
     /**
