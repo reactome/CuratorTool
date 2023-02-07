@@ -74,8 +74,9 @@
              <attribute name="_doNotRelease" />
              <attribute name="_doRelease" />
              <attribute name="authored" />
-             <attribute name="reviewed" />
-             <attribute name="internalReviewed" />
+             <!-- Disable these two to avoid reviewStatus update that may not be noticed -->
+<!--              <attribute name="reviewed" /> -->
+<!--              <attribute name="internalReviewed" /> -->
 			<attribute name="species" />
 		</schemaClass>
 		<schemaClass name="Reaction">

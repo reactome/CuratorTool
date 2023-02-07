@@ -122,7 +122,7 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
             issues.append("No reviewed"); // This is a must
         }
         else if (lastStructureUpdateTime.after(lastReviewedTime)) {
-            issues.append("reviewed later than structureModified");
+            issues.append("reviewed before structureModified");
         }
         if (issues.length() > 0) {
             inst2issue.put(instance, issues.toString());
@@ -167,7 +167,7 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
                 issues.append("No internalReviewed");
             }
             else if (lastInternalReviewedTime.before(lastStructureUpdateTime)) {
-                issues.append("internalReviewed earlier than structureModified");
+                issues.append("internalReviewed before structureModified");
             }
             if (lastReviewedTime == null) {
                 if (issues.length() > 0)
@@ -177,7 +177,7 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
             else if (lastReviewedTime.after(lastStructureUpdateTime)) {
                 if (issues.length() > 0)
                     issues.append("; ");
-                issues.append("reviewed later than structureModified");
+                issues.append("reviewed after structureModified");
             }
         }
         // There is no need to check between internalReviewed and reviewed. The importance
@@ -222,7 +222,7 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
             lastInternalReviewedTime.before(lastStructureUpdateTime)) {
             if (issues.length() > 0)
                 issues.append("; ");
-            issues.append("structureModified later than internalReviewed");
+            issues.append("internalReviewed before structureModified");
         }
         if (issues.length() > 0) {
             inst2issue.put(instance, issues.toString());
