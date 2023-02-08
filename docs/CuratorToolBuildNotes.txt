@@ -1,3 +1,16 @@
+Build 113 (Version 4.0.2) note (February 8, 2023)
+
+This build includes the following updates:
+
+1). Switched from Java 8 to Java 11. For Windows and Linux users and Mac users who need to use terminal, please download Java 11 from https://adoptium.net/temurin/releases/?version=11. Note for Mac Ventrua (OS 13) users: after you install the curator tool from the download site, try to double click to launch it. If you see Mac blocks the launching, open "System Settings" and search for "Privacy & Security". You can find a warning there for "ReactomeCuratorTool". Choose allow anyway. After that, double click the curator tool again. 
+
+2). Implemented features for ReviewStatus (aka the star system) as described in Slide 7 (automatic assignment of ReviewStatus to Events) and 8 (ReviewStatus value check for the local project and the database): https://docs.google.com/presentation/d/1Y3fxXS3DzE0aRZmPnE1K6PC51BHd5dak/edit#slide=id.p8.
+
+3). _displayName update for MarkerReference.
+
+4). To manage the new reviewStatus slot reliably, the auto-propagation of the reviewed assignment has been disabled in this build.
+
+
 Build 112 (Version 4.0.2) note (April 26, 2022)
 
 This is a minor maintenance build with the following updates:

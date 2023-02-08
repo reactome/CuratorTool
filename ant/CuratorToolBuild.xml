@@ -237,6 +237,9 @@
     <!-- Run this task as the third step to build installer -->
     <!-- The following target is used to create installers for Windows and Linux -->
     <!-- To create the native Intaller for mac, use another ant script: JavaBuildPackaging.xml" -->
+	<!-- G.W. NB (2/8/2023): The curator tool has been updated to Java 11. It will be better to run the build
+	in a terminal after set java to 11 using: export JAVA_HOME=`/usr/libexec/java_home -v 11`. The build will
+	take OpenJDK runtime automatically.-->
     <target name="createInstaller" depends="build">
         <mkdir dir="${targetDir}/InstData" />
         <delete dir="${targetDir}/InstData/win_linux"></delete>
