@@ -253,12 +253,46 @@ public class SlicingEngine {
         fillAttributeValuesForEntitySets();
         List<GKInstance> eventsWithReviewStatusUpdated = fillReviewStatus();
         cleanUpPathwayFigures();
+        // This step has to be called just before dumpInstances() since the replacementInstance
+        // slot in _Deleted will be checked against the sliceMap.
+        handleDeletions();
         dumpInstances();
         addFrontPage();
         addReleaseNumber();
         setStableIdReleased();
         handleRevisions();
         updateReviewStatusToSource(eventsWithReviewStatusUpdated);
+    }
+    
+    /**
+     * Pull out deletion related instances: two types of instances should be sliced into the slice database
+     * _Deleted and _DeletedInstance. To make things easier, we will pull out all _Deleted and its associated
+     * _DeletedInstances together. 
+     * @throws Exception
+     */
+    private void handleDeletions() throws Exception {
+        logger.info("Handling deletion...");
+        // Load _Deleted instances and two slots: replacementInstances and deletedInstance
+        Collection<GKInstance> _Deleteds = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._Deleted);
+        sourceDBA.loadInstanceAttributeValues(_Deleteds,
+                new String[]{ReactomeJavaConstants.replacementInstances,
+                             ReactomeJavaConstants.deletedInstance});
+        // To control the size of the reference graph, we will make sure referred replacementInstances are in the slicemap.
+        // Otherwise, replacementInstances will be updated.
+        for (GKInstance _Deleted : _Deleteds) {
+            List<GKInstance> replacementInstances = _Deleted.getAttributeValuesList(ReactomeJavaConstants.replacementInstances);
+            // Make sure all replacementInstances have been checked out. Otherwise, remove it.
+            // The list is updated directly. 
+            for (Iterator<GKInstance> it = replacementInstances.iterator(); it.hasNext();) {
+                GKInstance inst = it.next();
+                if (!sliceMap.keySet().contains(inst.getDBID())) {
+                    it.remove();
+                    logger.info(_Deleted + ": Remove replacementInstance, " + inst);
+                }
+            }
+            extractReferencesToInstance(_Deleted);
+        }
+        logger.info("Done deletion.");
     }
 
     /**

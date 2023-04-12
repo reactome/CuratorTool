@@ -302,10 +302,13 @@ public class ReactomeJavaConstants {
     // Constants related to deletion
     public static final String DeletedControlledVocabulary = "DeletedControlledVocabulary";
     public static final String _Deleted = "_Deleted";
+    public static final String _DeletedInstance = "_DeletedInstance";
     public static final String deletedInstanceDB_ID = "deletedInstanceDB_ID";
+    public static final String deletedInstance = "deletedInstance";
     public static final String replacementInstances = "replacementInstances";
     public static final String reason = "reason";
     public static final String curatorComment = "curatorComment";
+    public static final String deletedStableIdentifier = "deletedStableIdentifier";
     
     // New class FragmentReplacedModification on June 18, 2013
     public static final String FragmentReplacedModification = "FragmentReplacedModification";
