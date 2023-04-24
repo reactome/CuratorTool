@@ -24,11 +24,12 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
+import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.SchemaClass;
-import org.gk.util.StringUtils;
 
 /**
  * This class is used to do instance deletion.
@@ -65,7 +66,6 @@ public class InstanceDeletion {
                 return;
         }
         XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-        
         // Create a _Deleted instance
         // These instances are used to keep track of
         // deletions.
@@ -113,13 +113,15 @@ public class InstanceDeletion {
      * @param instance
      */
     private boolean createDeleteInstance(XMLFileAdaptor fileAdaptor,
-                                         List<?> instances,
+                                         List<GKInstance> instances,
                                          JFrame parentFrame,
                                          boolean needWarning) throws Exception {
         if (!isDeletedNeeded(instances))
             return true; // Correct handling
         // Make sure DeletedControlledVocabulary existing
         if(!downloadControlledVocabulary(parentFrame))
+            return false;
+        if (!checkShellInstances(instances, parentFrame))
             return false;
         // Create an instance of class "_Deleted".  It's done
         // in this rather complicated way, rather than using
@@ -132,10 +134,10 @@ public class InstanceDeletion {
         deleted.setDBID(dbID);
         
         // Add the DB_IDs of all instances to be deleted
-        boolean notFirst = false; // A flag in order to control is ", " should be added
         //TODO A bug in the data model: using integer, instead of long for _Deleted's deltedInstanceDB_ID
         // This should be fixed!
         List<Integer> deletedIds = new ArrayList<Integer>();
+        boolean required = false;
         for (Iterator<?> it = instances.iterator(); it.hasNext();) {
             GKInstance instance = (GKInstance)it.next();
             if (instance.getSchemClass().isa(ReactomeJavaConstants._Deleted))
@@ -143,25 +145,27 @@ public class InstanceDeletion {
             if (instance.getDBID() < 0)
                 continue;
             deletedIds.add(instance.getDBID().intValue());
+            if (instance.getSchemClass().isa(ReactomeJavaConstants.Event) ||
+                instance.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity))
+                required = true;
         }
         // For sure deletedIds should not be null. However, just in case, do this extra check
         if (deletedIds.size() == 0)
             return true;
         Collections.sort(deletedIds);
-        String displayName = null;
-        if (deletedIds.size() == 1)
-            displayName = "Deletion of instance: " + StringUtils.join(", ", deletedIds);
-        else
-            displayName = "Deletion of instances: " + StringUtils.join(", ", deletedIds);
-        deleted.setDisplayName(displayName);
         deleted.setAttributeValue(ReactomeJavaConstants.deletedInstanceDB_ID,
-                                  deletedIds);
+                deletedIds);
+        InstanceDisplayNameGenerator.setDisplayName(deleted);
         if (needWarning) {
             // Let the curator add comment, etc.
             DeletedInstanceDialog deletedInstanceDialog = new DeletedInstanceDialog(parentFrame, deleted);
             deletedInstanceDialog.setModal(true);
             deletedInstanceDialog.setSize(475, 600);
             deletedInstanceDialog.setLocationRelativeTo(parentFrame);
+            // As of April, 2023, deleting a PE or an Event must create a _Deleted instance
+            // regardless whether it is released or not.
+            if (required)
+                deletedInstanceDialog.hideSkipButton();
             deletedInstanceDialog.setVisible(true);
             if (!deletedInstanceDialog.isOKClicked)
                 return false; // Cancel has been clicked. Abort the whole deletion
@@ -171,7 +175,53 @@ public class InstanceDeletion {
         else {
             fileAdaptor.addNewInstance(deleted);
         }
+        createDeletedInstances(deleted);
         return true;
+    }
+    
+    private boolean checkShellInstances(List<GKInstance> instances,
+                                        Component parentComp) throws Exception {
+        boolean hasShell = instances.stream().anyMatch(inst -> inst.isShell());
+        if (!hasShell)
+            return true;
+        // Have to make sure we have database connection
+        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentComp);
+        if (dba == null) {
+            JOptionPane.showMessageDialog(parentComp,
+                    "One or more shell instances are being deleted. Need a DB connection for doing so.",
+                    "No DB Connection",
+                    JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+    
+    private void createDeletedInstances(GKInstance deleted) throws Exception {
+        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+        MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(); // This should be active
+        // Return integers for the time being
+        List<Integer> dbIds = deleted.getAttributeValuesList(ReactomeJavaConstants.deletedInstanceDB_ID);
+        for (Integer dbId : dbIds) {
+            GKInstance deletedInst = fileAdaptor.fetchInstance((long)dbId);
+            if (deletedInst.isShell()) {
+                GKInstance dbCopy = dba.fetchInstance((long)dbId);
+                if (dbCopy == null) {
+                    // This instance has been deleted. Don't do anything here
+                    continue;
+                }
+                SynchronizationManager.getManager().updateFromDB(deletedInst, dbCopy);
+            }
+            GKInstance _deletedInstance = fileAdaptor.createNewInstance(ReactomeJavaConstants._DeletedInstance);
+            _deletedInstance.setAttributeValue(ReactomeJavaConstants.deletedInstanceDB_ID, dbId);
+            GKInstance stableId = (GKInstance) deletedInst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
+            _deletedInstance.setAttributeValue(ReactomeJavaConstants.deletedStableIdentifier, stableId);
+            GKInstance species = (GKInstance) deletedInst.getAttributeValue(ReactomeJavaConstants.species);
+            _deletedInstance.setAttributeValue(ReactomeJavaConstants.species, species);
+            String name = (String) deletedInst.getAttributeValue(ReactomeJavaConstants.name);
+            _deletedInstance.setAttributeValue(ReactomeJavaConstants.name, name);
+            _deletedInstance.setAttributeValue("class", deletedInst.getSchemClass().getName());
+            InstanceDisplayNameGenerator.setDisplayName(_deletedInstance);
+        }
     }
     
     /**
@@ -208,6 +258,7 @@ public class InstanceDeletion {
         private AttributePane attributePane;
         private boolean isOKClicked;
         private boolean isDeletedInstanceNeeded = false;
+        private JButton skipBtn;
         
         public DeletedInstanceDialog(JFrame parentFrame, GKInstance instance) {
             super(parentFrame, "Deletion information");
@@ -236,7 +287,7 @@ public class InstanceDeletion {
             });
             okBtn.setMnemonic('O');
             okBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-            JButton skipBtn = new JButton("Delete without _Deleted Instance");
+            skipBtn = new JButton("Delete without _Deleted Instance");
             skipBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     isOKClicked = true;
@@ -268,13 +319,9 @@ public class InstanceDeletion {
             buttonPane.add(Box.createRigidArea(new Dimension(5, 5)));
             getContentPane().add(buttonPane, BorderLayout.NORTH);
         }
-        
-        public boolean isOKClicked() {
-            return this.isOKClicked;
-        }
-        
-        public boolean isDeletedInstanceNeeded() {
-            return this.isDeletedInstanceNeeded;
+                
+        public void hideSkipButton() {
+            this.skipBtn.setVisible(false);
         }
     }
 }

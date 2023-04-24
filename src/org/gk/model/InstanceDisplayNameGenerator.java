@@ -17,6 +17,7 @@ import org.gk.schema.GKSchemaClass;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
+import org.gk.util.StringUtils;
 
 /**
  * A utility class to generate the display name for the GKInstance object. This class 
@@ -116,6 +117,10 @@ public class InstanceDisplayNameGenerator {
             }
             if (schemaClass.isa(ReactomeJavaConstants.NegativePrecedingEvent))
                 return generateNegativePrecedingEventName(instance);
+            if (schemaClass.isa(ReactomeJavaConstants._Deleted))
+                return generateDeletedName(instance);
+            if (schemaClass.isa(ReactomeJavaConstants._DeletedInstance))
+                return generateDeletedInstanceName(instance);
             if (schemaClass.isValidAttribute("name")) {
                 java.util.List list = instance.getAttributeValuesList("name");
                 if (list != null && list.size() > 0) 
@@ -166,6 +171,35 @@ public class InstanceDisplayNameGenerator {
         Object releaseNumber = instance.getAttributeValue(ReactomeJavaConstants.releaseNumber);
         Object releaseDate = instance.getAttributeValue(ReactomeJavaConstants.releaseDate);
         return releaseNumber + " on " + releaseDate;
+    }
+    
+    private static String generateDeletedName(GKInstance instance) throws InvalidAttributeException, Exception {
+        List<?> deletedIds = instance.getAttributeValuesList(ReactomeJavaConstants.deletedInstanceDB_ID);
+        String displayName = null;
+        if (deletedIds == null || deletedIds.size() == 0)
+            displayName = "Deletion of instance: unknown";
+        else if (deletedIds.size() == 1)
+            displayName = "Deletion of instance: " + StringUtils.join(", ", deletedIds);
+        else
+            displayName = "Deletion of instances: " + StringUtils.join(", ", deletedIds);
+        return displayName;
+    }
+    
+    private static String generateDeletedInstanceName(GKInstance instance) throws InvalidAttributeException, Exception {
+        StringBuilder displayName = new StringBuilder();
+        displayName.append("Deleted Instance - [");
+        String clsName = (String) instance.getAttributeValue("class");
+        displayName.append(clsName).append(": ");
+        String name = (String) instance.getAttributeValue("name");
+        displayName.append(name).append(" (");
+        Object dbId = instance.getAttributeValue(ReactomeJavaConstants.deletedInstanceDB_ID);
+        displayName.append(dbId).append(") - ");
+        GKInstance species = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.species);
+        if (species == null)
+            displayName.append("]");
+        else
+            displayName.append(species.getDisplayName()).append("]");
+        return displayName.toString();
     }
 
     private static String generateControlReferenceName(GKInstance instance) throws Exception {
