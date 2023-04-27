@@ -201,6 +201,7 @@ public class InstanceDeletion {
         MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(); // This should be active
         // Return integers for the time being
         List<Integer> dbIds = deleted.getAttributeValuesList(ReactomeJavaConstants.deletedInstanceDB_ID);
+        List<GKInstance> deletedInstances = new ArrayList<>();
         for (Integer dbId : dbIds) {
             GKInstance deletedInst = fileAdaptor.fetchInstance((long)dbId);
             if (deletedInst.isShell()) {
@@ -221,7 +222,10 @@ public class InstanceDeletion {
             _deletedInstance.setAttributeValue(ReactomeJavaConstants.name, name);
             _deletedInstance.setAttributeValue("class", deletedInst.getSchemClass().getName());
             InstanceDisplayNameGenerator.setDisplayName(_deletedInstance);
+            deletedInstances.add(_deletedInstance);
         }
+        if (deletedInstances.size() > 0)
+            deleted.setAttributeValue(ReactomeJavaConstants.deletedInstance, deletedInstances);
     }
     
     /**

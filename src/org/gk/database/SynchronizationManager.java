@@ -1520,8 +1520,10 @@ public class SynchronizationManager {
         }
         
         MySQLAdaptor dbAdaptor = PersistenceManager.getManager().getActiveMySQLAdaptor(parentFrame);
-        if (dbAdaptor == null)
-            return false;
+        if (dbAdaptor == null) {
+            // We have to have an active MySQLAdaptor now
+            throw new IllegalStateException("Cannot establish a connection to the database.");
+        }
         try {
             instances = dbAdaptor.fetchInstancesByClass(clsName);
         } 

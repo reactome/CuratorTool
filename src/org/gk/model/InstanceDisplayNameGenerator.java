@@ -193,12 +193,15 @@ public class InstanceDisplayNameGenerator {
         String name = (String) instance.getAttributeValue("name");
         displayName.append(name).append(" (");
         Object dbId = instance.getAttributeValue(ReactomeJavaConstants.deletedInstanceDB_ID);
-        displayName.append(dbId).append(") - ");
+        displayName.append(dbId).append(")");
+        // Sometimes we may don't have species
         GKInstance species = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.species);
         if (species == null)
             displayName.append("]");
-        else
+        else {
+            displayName.append(" - ");
             displayName.append(species.getDisplayName()).append("]");
+        }
         return displayName.toString();
     }
 
