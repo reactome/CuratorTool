@@ -117,6 +117,9 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
         if (lastStructureUpdateTime == null)
             return true;
         Date lastReviewedTime = getLastDateTime(reviewed);
+        if (lastReviewedTime != null && lastStructureUpdateTime != null &&
+            lastReviewedTime.after(lastStructureUpdateTime))
+            return true; // This is a good case
         StringBuilder issues = new StringBuilder();
         if (lastReviewedTime == null) {
             issues.append("No reviewed"); // This is a must

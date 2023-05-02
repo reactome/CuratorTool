@@ -576,7 +576,7 @@ public class SlicingEngine {
     }
     
     /**
-     * Assign five stars to Events that don't haver reviewStatus filled. This should be
+     * Assign five stars to Events that don't have reviewStatus filled. This should be
      * the default behavior. Other reviewStatus should be handled by curators manually.
      * @throws Exception
      */
