@@ -467,6 +467,11 @@ public class InstanceUtilities {
             format.setTimeZone(timeZone);
             return format.parse(dateTime);
         }
+        else if (dateTime.matches("(\\d){4}-(\\d){2}-(\\d){2} (\\d){2}:(\\d){2}:(\\d){2}")) { // For MySQL 8
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            format.setTimeZone(timeZone);
+            return format.parse(dateTime);
+        }
         throw new IllegalArgumentException(ie + " has a wrongly formatted dateTime: " + dateTime);
     }
     
