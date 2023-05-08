@@ -203,6 +203,8 @@ public class EventAttributePropagator {
         AttributeEditEvent event = new AttributeEditEvent(AttributeEditManager.getManager());
         event.setEditingInstance(instance);
         event.setAttributeName(attName);
+        if (isAddingAction == null)
+            isAddingAction = false;
         event.setEditingType(isAddingAction ? AttributeEditEvent.ADDING : AttributeEditEvent.UNDEFINED);
         AttributeEditManager.getManager().attributeEdit(event);
     }
