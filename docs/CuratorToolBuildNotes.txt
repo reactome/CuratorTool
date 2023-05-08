@@ -1,3 +1,23 @@
+Build 115 (Version 4.0.2) note (May 8, 2023)
+
+This build is for bug fixes. Thanks to Lisa for pointing the following two bugs, which have been fixed now.
+
+1). The setting in the event tree for _doRelease cannot propagate.
+
+2). The ReviewStatus QA check cannot work for Events having 5 stars.
+
+
+Build 114 (Version 4.0.2) note (April 27, 2023)
+
+This build has made the following changes:
+
+1). Automatically generated _DeletedInstance instances together with _Deleted when one or more instances are deleted.
+
+2). Made it mandatory to create _Deleted instance (together with _DeletedInstance) for PhysicalEntity and Event whether or not they are released.
+
+3). Fixed a bug related to the display name generation of _Delete instance.
+
+
 Build 113 (Version 4.0.2) note (February 8, 2023)
 
 This build includes the following updates:
