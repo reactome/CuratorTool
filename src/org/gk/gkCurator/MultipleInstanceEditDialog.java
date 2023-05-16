@@ -32,6 +32,7 @@ import org.gk.database.InstanceListPane;
 import org.gk.database.InstanceSelectDialog;
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.ReactomeJavaConstants;
 import org.gk.schema.InvalidAttributeException;
 import org.gk.schema.SchemaAttribute;
 import org.gk.schema.SchemaClass;
@@ -508,6 +509,10 @@ public class MultipleInstanceEditDialog extends JDialog {
                 continue;
             attNames.add(att.getName());
         }
+        // As of May 16, 2023, reviewed cannot be edited in batch to avoid
+        // set reviewStatus accidentally
+        if (attNames.contains(ReactomeJavaConstants.reviewed))
+            attNames.remove(ReactomeJavaConstants.reviewed);
         Collections.sort(attNames);
         for (Iterator it = attNames.iterator(); it.hasNext();) {
             attributeList.addItem(it.next());
