@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
@@ -70,6 +71,85 @@ public class StarSystemHelper {
             }
         }
         return updatedEvents;
+    }
+    
+    /**
+     * This method is used to handle the following scenario related to pathway: A released pathways (3, 4, and 5 stars)
+     * may be added a new Event in hasEvent, resulting the demoting of the start to 1 or 2 at gk_central. However, during 
+     * the slicing or release, this newly Event is flagged for not releasing. Therefore, the original pathway structure 
+     * that is determined by "hasEvent" is reverted back. Therefore, we should copy the original star from the previous release
+     * (or slice) back to this slice. In reality, we copy a higher star to any lower star if a pathway's hasEvent is not changed.
+     * @param sourceDBA
+     * @param priorDBA
+     * @param sliceMap
+     * @return
+     * @throws Exception
+     */
+    public List<GKInstance> copyReviewStatusFromPriorSliceForPathways(MySQLAdaptor sourceDBA,
+                                                                      MySQLAdaptor priorDBA,
+                                                                      Map<Long, GKInstance> sliceMap) throws Exception {
+        logger.info("Copying higher stars from previous slice for pathways having no structural update...");
+        if (priorDBA == null) {
+            logger.info("No priorDBA specified. Stop this step.");
+            return Collections.EMPTY_LIST;
+        }
+        Map<String, GKInstance> star2inst = loadReviewStatus(sourceDBA);
+        // Map the review status to numbers so that we can do comparison
+        Map<String, Integer> star2number = new HashMap<>();
+        star2number.put(ReactomeJavaConstants.OneStar, 1);
+        star2number.put(ReactomeJavaConstants.TwoStars, 2);
+        star2number.put(ReactomeJavaConstants.ThreeStars, 3);
+        star2number.put(ReactomeJavaConstants.FourStars, 4);
+        star2number.put(ReactomeJavaConstants.FiveStars, 5);
+        List<GKInstance> updatedPathways = new ArrayList<>();
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance inst = sliceMap.get(dbId);
+            if (!inst.getSchemClass().isValidAttribute(ReactomeJavaConstants.reviewStatus)) {
+                continue;
+            }
+            if (!inst.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                continue; // Work for pathway only
+            GKInstance reviewStatus = (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.reviewStatus);
+            // Escape five stars: They should be good.
+            if (reviewStatus != null && reviewStatus.getDisplayName().equals(ReactomeJavaConstants.FiveStars))
+                continue;
+            // Check the old pathway
+            GKInstance oldInst = priorDBA.fetchInstance(inst.getDBID());
+            if (oldInst == null)
+                continue; // Nothing to do
+            if (!oldInst.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                continue; // It is not a pathway. Don't do anything
+            if (!oldInst.getSchemClass().isValidAttribute(ReactomeJavaConstants.reviewStatus))
+                continue; // Old model. Don't bother.
+            List<GKInstance> oldHasEvent = oldInst.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+            List<Long> oldHasEventIds = oldHasEvent.stream().map(GKInstance::getDBID).collect(Collectors.toList());
+            List<GKInstance> newHasEvent = inst.getAttributeValuesList(ReactomeJavaConstants.hasEvent);
+            List<Long> newHasEventIds = newHasEvent.stream()
+                                                   .map(GKInstance::getDBID)
+                                                   .collect(Collectors.toList());
+            if (!oldHasEventIds.equals(newHasEventIds))
+                continue; // The copy is applied to cases that have the same list of hasEvent only.
+            // Get the old review status
+            GKInstance oldReviewStatus = (GKInstance) oldInst.getAttributeValue(ReactomeJavaConstants.reviewStatus);
+            if (oldReviewStatus == null)
+                continue; // Nothing to copy
+            Integer oldReviewStand = star2number.get(oldReviewStatus.getDisplayName());
+            // Get the stand for the new 
+            Integer newReviewStand = star2number.get(reviewStatus.getDisplayName());
+            if (newReviewStand == null)
+                newReviewStand = 0; // Put it at the bottom
+            if (newReviewStand < oldReviewStand) {
+                // Copy the old review status to the new. But we need to use the copy of the sourceDBA
+                logger.info("Copying old reviewStatus for " + inst + ": " +
+                            oldReviewStatus.getDisplayName() + "->" +
+                            reviewStatus.getDisplayName());
+                inst.setAttributeValue(ReactomeJavaConstants.reviewStatus,
+                                       star2inst.get(oldReviewStatus.getDisplayName()));
+                updatedPathways.add(inst);
+            }
+        }
+        logger.info("Done copying. The number of pathways touched: " + updatedPathways.size());
+        return updatedPathways;
     }
     
     /**

@@ -17,7 +17,7 @@ import org.gk.persistence.XMLFileAdaptor;
 
 /**
  * This class is used to perform the following review status update: 
- * The implementation will be based on the following actions (see details 
+ * The implementation here is based on the following actions (see details 
  * https://docs.google.com/presentation/d/1aQ5hLPl3mzKf2kFvK0KMcPqriEleuRdq/edit?usp=share_link&ouid=106679115272778152377&rtpof=true&sd=true).
  * 1). When an internalReviewed is assigned to an Event, one of the following occurs (promotion):
  *      a). Null -> 3 stars

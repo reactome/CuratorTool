@@ -216,10 +216,14 @@ public class InstanceDeletion {
             _deletedInstance.setAttributeValue(ReactomeJavaConstants.deletedInstanceDB_ID, dbId);
             GKInstance stableId = (GKInstance) deletedInst.getAttributeValue(ReactomeJavaConstants.stableIdentifier);
             _deletedInstance.setAttributeValue(ReactomeJavaConstants.deletedStableIdentifier, stableId);
-            GKInstance species = (GKInstance) deletedInst.getAttributeValue(ReactomeJavaConstants.species);
-            _deletedInstance.setAttributeValue(ReactomeJavaConstants.species, species);
-            String name = (String) deletedInst.getAttributeValue(ReactomeJavaConstants.name);
-            _deletedInstance.setAttributeValue(ReactomeJavaConstants.name, name);
+            if (deletedInst.getSchemClass().isValidAttribute(ReactomeJavaConstants.species)) {
+                GKInstance species = (GKInstance) deletedInst.getAttributeValue(ReactomeJavaConstants.species);
+                _deletedInstance.setAttributeValue(ReactomeJavaConstants.species, species);
+            }
+            if (deletedInst.getSchemClass().isValidAttribute(ReactomeJavaConstants.name)) {
+                String name = (String) deletedInst.getAttributeValue(ReactomeJavaConstants.name);
+                _deletedInstance.setAttributeValue(ReactomeJavaConstants.name, name);
+            }
             _deletedInstance.setAttributeValue("class", deletedInst.getSchemClass().getName());
             InstanceDisplayNameGenerator.setDisplayName(_deletedInstance);
             deletedInstances.add(_deletedInstance);

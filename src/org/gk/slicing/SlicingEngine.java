@@ -252,6 +252,8 @@ public class SlicingEngine {
         fillIncludedLocationForComplex();
         fillAttributeValuesForEntitySets();
         List<GKInstance> eventsWithReviewStatusUpdated = fillReviewStatus();
+        // There is no need to get anything here
+        copyReviewStatus();
         cleanUpPathwayFigures();
         // This step has to be called just before dumpInstances() since the replacementInstance
         // slot in _Deleted will be checked against the sliceMap.
@@ -583,6 +585,20 @@ public class SlicingEngine {
     private List<GKInstance> fillReviewStatus() throws Exception {
         StarSystemHelper helper = new StarSystemHelper();
         return helper.assignFiveStarsToEvents(sourceDBA, sliceMap);
+    }
+    
+    
+    /**
+     * Copy higher review status from the previous slice for pathways that don't have
+     * a structure change causing by release/unrelease updating during the slicing.
+     * @return
+     * @throws Exception
+     */
+    private List<GKInstance> copyReviewStatus() throws Exception {
+        StarSystemHelper helper = new StarSystemHelper();
+        return helper.copyReviewStatusFromPriorSliceForPathways(sourceDBA, 
+                previousSliceDBA,
+                sliceMap);
     }
     
     /**
