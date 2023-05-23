@@ -2,7 +2,9 @@ package org.gk.qualityCheck;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,8 +18,9 @@ import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 
 /**
- * This QA check is used to make sure the Cell instance referring to a MarkerReference is 
- * listed in the cell slot of the MarkerReference instance.
+ * This QA check is used to make sure the Cell instance referring to a MarkerReference that is 
+ * listed in the cell slot of the MarkerReference instance and the MarkerReference's marker is
+ * referred in the Cell's marker slot.
  * @author wug
  *
  */
@@ -41,16 +44,45 @@ public class CellMarkerReferenceCheck extends SingleAttributeClassBasedCheck {
             return true;
         StringBuilder issue = null;
         for (GKInstance ref : markerReferences) {
-            if (!ref.getSchemClass().isValidAttribute(ReactomeJavaConstants.cell)) {
-                continue;
+            if (ref.getSchemClass().isValidAttribute(ReactomeJavaConstants.cell)) {
+                // Check if the cell is the reference
+                List<GKInstance> cells = ref.getAttributeValuesList(ReactomeJavaConstants.cell);
+                if (cells == null || !cells.contains(instance)) {
+                    if (issue == null) 
+                        issue = new StringBuilder();
+                    if (issue.length() > 0)
+                        issue.append(";");
+                    issue.append(instance.getDisplayName() + " is not in " + ref.getDisplayName());
+                }
             }
-            List<GKInstance> cells = ref.getAttributeValuesList(ReactomeJavaConstants.cell);
-            if (cells == null || !cells.contains(instance)) {
-                if (issue == null) 
-                    issue = new StringBuilder();
-                if (issue.length() > 0)
-                    issue.append(";");
-                issue.append(ref.getDisplayName());
+            if (ref.getSchemClass().isValidAttribute(ReactomeJavaConstants.marker) &&
+                (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.proteinMarker) ||
+                (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.RNAMarker)))) {
+                List<GKInstance> cellMarkers = new ArrayList<>();
+                if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.proteinMarker)) {
+                    List<GKInstance> markers = instance.getAttributeValuesList(ReactomeJavaConstants.proteinMarker);
+                    if (markers != null)
+                        cellMarkers.addAll(markers);
+                }
+                if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.RNAMarker)) {
+                    List<GKInstance> markers = instance.getAttributeValuesList(ReactomeJavaConstants.RNAMarker);
+                    if (markers != null)
+                        cellMarkers.addAll(markers);
+                }
+                // Check the marker is referred in the cell's markers
+                List<GKInstance> refMarkers = ref.getAttributeValuesList(ReactomeJavaConstants.marker);
+                if (refMarkers == null)
+                    refMarkers = Collections.EMPTY_LIST;
+                // Make sure at least there is one marker matched
+                Set<GKInstance> refMarkersCopy = new HashSet<>(refMarkers); 
+                refMarkersCopy.retainAll(cellMarkers);
+                if (refMarkers.size() == 0) {
+                    if (issue == null) 
+                        issue = new StringBuilder();
+                    if (issue.length() > 0)
+                        issue.append(";");
+                    issue.append(ref.getDisplayName() + " marker doesn't contain cell marker"); 
+                }
             }
         }
         if (issue == null)
