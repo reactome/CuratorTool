@@ -14,6 +14,8 @@
         <!-- auto-generate by some software tool -->
         <attribute name="shortName" />
         <attribute name="releaseStatus" />
+        <attribute name="reviewStatus" />
+        <attribute name="previousReviewStatus" />
         <!-- Value should be generated during slicing for complexes -->
         <attribute name="includedLocation" />
 	</uneditableAttributes>

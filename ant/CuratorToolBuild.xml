@@ -239,7 +239,7 @@
     <!-- To create the native Intaller for mac, use another ant script: JavaBuildPackaging.xml" -->
 	<!-- G.W. NB (2/8/2023): The curator tool has been updated to Java 11. It will be better to run the build
 	in a terminal after set java to 11 using: export JAVA_HOME=`/usr/libexec/java_home -v 11`. The build will
-	take OpenJDK runtime automatically.-->
+	take OpenJDK runtime automatically. The following command should use: ant -f CuratorToolBuild.xml. -->
     <target name="createInstaller" depends="build">
         <mkdir dir="${targetDir}/InstData" />
         <delete dir="${targetDir}/InstData/win_linux"></delete>

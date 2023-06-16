@@ -1,3 +1,15 @@
+Build 116 (Version 4.0.2) note (June 16, 2023)
+
+This build is for one bug fix:
+
+1). An error is thrown when deleting an instance with "Deleted with _Deleted Instance" and the instance doesn't have species as its valid attribute. This bug is fixed now.
+
+and two changes:
+
+1). Disabled batch editing for the reviewed slot to make it easier to control review status update.
+
+2). Added a QA check for MarkerReference's marker slot.
+
 Build 115 (Version 4.0.2) note (May 8, 2023)
 
 This build is for bug fixes. Thanks to Lisa for pointing the following two bugs, which have been fixed now.
