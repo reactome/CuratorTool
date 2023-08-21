@@ -276,12 +276,13 @@ public class SlicingEngine {
         logger.info("Handling deletion...");
         // Load _Deleted instances and two slots: replacementInstances and deletedInstance
         Collection<GKInstance> _Deleteds = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._Deleted);
-        sourceDBA.loadInstanceAttributeValues(_Deleteds,
-                new String[]{ReactomeJavaConstants.replacementInstances,
-                             ReactomeJavaConstants.deletedInstance});
+//        sourceDBA.loadInstanceAttributeValues(_Deleteds,
+//                new String[]{ReactomeJavaConstants.replacementInstances,
+//                             ReactomeJavaConstants.deletedInstance});
         // To control the size of the reference graph, we will make sure referred replacementInstances are in the slicemap.
         // Otherwise, replacementInstances will be updated.
         for (GKInstance _Deleted : _Deleteds) {
+            sourceDBA.fastLoadInstanceAttributeValues(_Deleted);
             List<GKInstance> replacementInstances = _Deleted.getAttributeValuesList(ReactomeJavaConstants.replacementInstances);
             // Make sure all replacementInstances have been checked out. Otherwise, remove it.
             // The list is updated directly. 
@@ -292,7 +293,7 @@ public class SlicingEngine {
                     logger.info(_Deleted + ": Remove replacementInstance, " + inst);
                 }
             }
-            extractReferencesToInstance(_Deleted);
+            extractReferencesToInstance(_Deleted, false);
         }
         logger.info("Done deletion.");
     }
@@ -1054,7 +1055,8 @@ public class SlicingEngine {
         logger.info("Time for extractReferences: " + (System.currentTimeMillis() - time1));
     }
     
-    protected void extractReferencesToInstance(GKInstance instance) throws Exception {
+    private void extractReferencesToInstance(GKInstance instance,
+                                             boolean needFastLoadAttributes) throws Exception {
         Set current = new HashSet();
         Set next = new HashSet();
         current.add(instance);
@@ -1079,7 +1081,8 @@ public class SlicingEngine {
 //                sourceDBA.loadInstanceAttributeValues(tmp);
 
                 // Use this version to increase the performance hopefully
-                sourceDBA.fastLoadInstanceAttributeValues(tmp);
+                if (needFastLoadAttributes)
+                    sourceDBA.fastLoadInstanceAttributeValues(tmp);
                 
                 for (Iterator it1 = tmp.getSchemaAttributes().iterator(); it1.hasNext();) {
                     att = (GKSchemaAttribute) it1.next();
@@ -1103,6 +1106,10 @@ public class SlicingEngine {
             next.clear();
 //            logger.info("Current: " + current.size());
         }
+    }
+    
+    private void extractReferencesToInstance(GKInstance instance) throws Exception {
+        extractReferencesToInstance(instance, true);
     }
     
     protected void pushToMap(GKInstance instance, Map map) {
