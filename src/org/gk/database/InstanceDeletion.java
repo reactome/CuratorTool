@@ -169,13 +169,15 @@ public class InstanceDeletion {
             deletedInstanceDialog.setVisible(true);
             if (!deletedInstanceDialog.isOKClicked)
                 return false; // Cancel has been clicked. Abort the whole deletion
-            if (deletedInstanceDialog.isDeletedInstanceNeeded)
+            if (deletedInstanceDialog.isDeletedInstanceNeeded) {
                 fileAdaptor.addNewInstance(deleted);
+                createDeletedInstances(deleted);
+            }
         }
         else {
             fileAdaptor.addNewInstance(deleted);
+            createDeletedInstances(deleted);
         }
-        createDeletedInstances(deleted);
         return true;
     }
     
