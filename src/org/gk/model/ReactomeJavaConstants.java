@@ -306,6 +306,7 @@ public class ReactomeJavaConstants {
     public static final String deletedInstanceDB_ID = "deletedInstanceDB_ID";
     public static final String deletedInstance = "deletedInstance";
     public static final String replacementInstances = "replacementInstances";
+    public static final String replacementInstanceDB_IDs = "replacementInstanceDB_IDs";
     public static final String reason = "reason";
     public static final String curatorComment = "curatorComment";
     public static final String deletedStableIdentifier = "deletedStableIdentifier";

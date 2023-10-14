@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.JOptionPane;
 
@@ -81,6 +82,34 @@ public class AttributeEditPropagator {
                  attName.equals(ReactomeJavaConstants._doNotRelease))) {
             propagateEventAttribute(instance, attName);
         }
+        else if (cls.isa(ReactomeJavaConstants._Deleted) &&
+                attName.equals(ReactomeJavaConstants.replacementInstances)) {
+            propagate_DeletedAttribute(instance, attName);
+        }
+    }
+    
+    /**
+     * Copy the dbIds of replacementInstanes to the replacemnetInstance_DBIDs slot.
+     * @param instance
+     * @param attName
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    private void propagate_DeletedAttribute(GKInstance instance, String attName) throws Exception {
+        if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.replacementInstanceDB_IDs))
+            return; 
+        List<GKInstance> replacementInstances = instance.getAttributeValuesList(ReactomeJavaConstants.replacementInstances);
+        if (replacementInstances == null || replacementInstances.size() == 0)
+            return; // Do nothing
+        //TODO: For the time being Integer is used for other slots that are related to DB_IDs
+        // This most likely is fine in the foreseeable future: MySQL use int(10) for all integer types, which gives
+        // us maximum 4294967295 (unsigned). Java int (32 bit) is signed, have a range of -2147483648 to 2147483647.
+        List<Integer> dbIds = replacementInstances.stream()
+                .map(GKInstance::getDBID)
+                .map(Long::intValue)
+                .collect(Collectors.toList());
+        instance.setAttributeValue(ReactomeJavaConstants.replacementInstanceDB_IDs, dbIds);
+        fireAttributeEdit(instance, ReactomeJavaConstants.replacementInstanceDB_IDs);
     }
     
     private void propagateTaxonSettingInComplex(GKInstance complex) throws Exception {

@@ -18,6 +18,8 @@
         <attribute name="previousReviewStatus" />
         <!-- Value should be generated during slicing for complexes -->
         <attribute name="includedLocation" />
+        <!-- To be copied automatically from replacementInstances -->
+        <attribute name="replacementInstanceDB_IDs" />
 	</uneditableAttributes>
 	<uncreatableClass contact="Peter D'Eustachio"> <!-- Only the contact can create instances for these cases" -->
 		<class name = "Compartment" />
@@ -87,6 +89,9 @@
 		<schemaClass name="Complex">
 			<attribute name="species" />
 			<attribute name="compartment" />
+		</schemaClass>
+		<schemaClass name="_Deleted">
+		  <attribute name="replacementInstances" />
 		</schemaClass>
 	</autoPropagateAtts>
 	<attributeAutoFillers>
