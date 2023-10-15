@@ -1,3 +1,7 @@
+Build 117 (Version 4.0.2) note (October 14, 2023)
+
+This build is used to support auto-filling replacementInstanceDB_IDs when the replacementInstances slot is edited for _Deleted instances.
+
 Build 116 (Version 4.0.2) note (June 16, 2023)
 
 This build is for one bug fix:
