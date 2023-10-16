@@ -26,6 +26,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -270,15 +272,14 @@ public class SlicingEngine {
      * Pull out deletion related instances: two types of instances should be sliced into the slice database
      * _Deleted and _DeletedInstance. To make things easier, we will pull out all _Deleted and its associated
      * _DeletedInstances together. 
+     * Note: Make this public so that it can be tested in other places.
      * @throws Exception
      */
-    private void handleDeletions() throws Exception {
+    public void handleDeletions() throws Exception {
         logger.info("Handling deletion...");
         // Load _Deleted instances and two slots: replacementInstances and deletedInstance
         Collection<GKInstance> _Deleteds = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._Deleted);
-//        sourceDBA.loadInstanceAttributeValues(_Deleteds,
-//                new String[]{ReactomeJavaConstants.replacementInstances,
-//                             ReactomeJavaConstants.deletedInstance});
+        ensureReplacementInstances(_Deleteds);
         // To control the size of the reference graph, we will make sure referred replacementInstances are in the slicemap.
         // Otherwise, replacementInstances will be updated.
         for (GKInstance _Deleted : _Deleteds) {
@@ -296,6 +297,88 @@ public class SlicingEngine {
             extractReferencesToInstance(_Deleted, false);
         }
         logger.info("Done deletion.");
+    }
+    
+    /**
+     * It is possible a replacementInstance may be deleted in an _Deleted instance. This method is used to figure
+     * out if a replacementInstance can be found based on denormalized replacementInstanceDB_IDs in the same _Deleted
+     * instance. This is a recursive search since the replacementInstance for the deleted replacementInstance may be
+     * deleted again :-). 
+     * @param deleted
+     * @throws Exception
+     */
+    private void ensureReplacementInstances(Collection<GKInstance> _deleteds) throws Exception {
+        // Load these attributes to increase the performance
+        sourceDBA.loadInstanceAttributeValues(_deleteds,
+                new String[]{ReactomeJavaConstants.replacementInstances,
+                             ReactomeJavaConstants.replacementInstanceDB_IDs,
+                             ReactomeJavaConstants.deletedInstance});
+        // Cache the deleted instance to replacement instances for quick search
+        // A deleted instance may have multiple replacement instances, which makes the matter more complicated!
+        Map<Integer, List<Integer>> deletedDBID2ReplacementDBIDs = new HashMap<>(); 
+        for (GKInstance deleted : _deleteds) {
+            List<Integer> deletedInstanceDB_IDList = deleted.getAttributeValuesList(ReactomeJavaConstants.deletedInstanceDB_ID);
+            if (deletedInstanceDB_IDList == null || deletedInstanceDB_IDList.size() == 0)
+                continue;
+            List<Integer> replacementInstanceDB_IDList = deleted.getAttributeValuesList(ReactomeJavaConstants.replacementInstanceDB_IDs);
+            if (replacementInstanceDB_IDList == null) {
+                // An instance may get deleted without replacement. Register it so that there is no need to check the database
+                replacementInstanceDB_IDList = Collections.EMPTY_LIST;
+            }
+            // Each deleted instance shares the same set of replacementInstances
+            for (Integer dbId : deletedInstanceDB_IDList)
+                deletedDBID2ReplacementDBIDs.put(dbId, replacementInstanceDB_IDList);
+        }
+        // Make sure replacementInstances are listed. If a replacementInstance is not listed, the code will try to find another
+        // one recursively.
+        for (GKInstance deleted : _deleteds) {
+            List<Integer> replacementInstanceDB_IDList = deleted.getAttributeValuesList(ReactomeJavaConstants.replacementInstanceDB_IDs);
+            if (replacementInstanceDB_IDList == null || replacementInstanceDB_IDList.size() == 0)
+                continue; // Cannot do anything
+            Set<Integer> replacementDB_IDSet = new HashSet<>();
+            for (Integer dbId : replacementInstanceDB_IDList) {
+                ensureReplacementDBID(dbId,
+                                      deletedDBID2ReplacementDBIDs,
+                                      replacementDB_IDSet);
+            }
+            List<GKInstance> replacementInstancesList = deleted.getAttributeValuesList(ReactomeJavaConstants.replacementInstances);
+            // For quick check
+            Set<Integer> idSet = replacementInstancesList.stream().map(GKInstance::getDBID).map(Long::intValue).collect(Collectors.toSet());
+            for (Integer dbId : replacementDB_IDSet) {
+                if (idSet.contains(dbId))
+                    continue; // Good. It is still there!
+                // Make sure this instance existing
+                if (!sourceDBA.exist((dbId.longValue()))) {
+                    logger.warn(deleted + " has a replacement instance deleted. "
+                            + "But cannot find its replacement (dbId is collected recursively): " + dbId);
+                    continue;
+                }
+                GKInstance inst = sourceDBA.fetchInstance(dbId.longValue());
+                if (!replacementInstanceDB_IDList.contains(dbId))
+                    replacementInstanceDB_IDList.add(dbId);
+                replacementInstancesList.add(inst); // Directly push it into the list. It should be placed into the value.
+                logger.info(deleted + " has a replacement instance deleted but replaced with another: " + inst);
+            }
+        }
+    }
+    
+    /**
+     * Make sure the replacementDBIDs are not deleted. Otherwise, try to find their replacement DB_IDs recursively.
+     * @param replacementDBIDs
+     */
+    private void ensureReplacementDBID(Integer dbId,
+                                       Map<Integer, List<Integer>> deletedDBID2ReplacementDBIDs,
+                                       Set<Integer> existedDBIDs) {
+        List<Integer> replacementDBIDs = deletedDBID2ReplacementDBIDs.get(dbId);
+        if (replacementDBIDs == null) {
+            existedDBIDs.add(dbId); // This dbId has not been deleted. This is good. Nothing needs to be done.
+            return; 
+        }
+        // replacementDBIDs may be an empty List, which means it is deleted without replacement.
+        for (Integer replacementDBID : replacementDBIDs)
+            ensureReplacementDBID(replacementDBID, 
+                                  deletedDBID2ReplacementDBIDs, 
+                                  existedDBIDs);
     }
 
     /**

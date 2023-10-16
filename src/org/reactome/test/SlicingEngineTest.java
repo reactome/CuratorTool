@@ -7,6 +7,7 @@ package org.reactome.test;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.log4j.PropertyConfigurator;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
@@ -24,11 +25,21 @@ import org.junit.Test;
 public class SlicingEngineTest {
 
     public SlicingEngineTest() {
+        // Set up log4j
+        PropertyConfigurator.configure("SliceLog4j.properties");
+    }
+    
+    @Test
+    public void testHandleDeletions() throws Exception {
+        MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost", "gk_central_101223_new_schema", "", "");
+        SlicingEngine engine = new SlicingEngine();
+        engine.setSource(sourceDBA);
+        engine.handleDeletions();
     }
     
     @Test
     public void check() throws Exception {
-        MySQLAdaptor dba = new MySQLAdaptor("localhost", "test_slice_54a", "root", "macmysql01");
+        MySQLAdaptor dba = new MySQLAdaptor("localhost", "test_slice_54a", "", "");
         SchemaClass eventCls = dba.fetchSchema().getClassByName(ReactomeJavaConstants.Event);
         Collection<?> events = dba.fetchInstanceByAttribute(ReactomeJavaConstants.Event,
                                                             ReactomeJavaConstants.species,
