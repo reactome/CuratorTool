@@ -11,9 +11,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.DiagramGKBReader;
 import org.gk.persistence.DiagramGKBWriter;
@@ -27,8 +29,11 @@ import org.gk.render.Node;
 import org.gk.render.ProcessNode;
 import org.gk.render.RenderUtility;
 import org.gk.render.Renderable;
+import org.gk.render.RenderableCompartment;
 import org.gk.render.RenderablePathway;
 import org.gk.schema.InvalidAttributeException;
+import org.gk.schema.SchemaAttribute;
+import org.gk.schema.SchemaClass;
 import org.junit.Test;
 
 /**
@@ -36,7 +41,7 @@ import org.junit.Test;
  * @author wgm
  *
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class PathwayDiagramSlicingHelper {
     // Logger for this class.
     private final static Logger logger = Logger.getLogger(PathwayDiagramSlicingHelper.class);
@@ -63,8 +68,8 @@ public class PathwayDiagramSlicingHelper {
      * @throws Exception
      */
     public void removeDoNotReleaseEvents(RenderablePathway diagram,
-                                          GKInstance diagramInstance,
-                                          MySQLAdaptor dba) throws Exception {
+                                         GKInstance diagramInstance,
+                                         MySQLAdaptor dba) throws Exception {
         List<Renderable> components = diagram.getComponents();
         if (components == null || components.size() == 0)
             return;
@@ -113,8 +118,7 @@ public class PathwayDiagramSlicingHelper {
         // Clear-up EntitySetAndMember links if any
         List<FlowLine> linksToBeRemoved = new ArrayList<FlowLine>();
         for (Renderable r : components) {
-            if (r instanceof EntitySetAndMemberLink ||
-                r instanceof EntitySetAndEntitySetLink) {
+            if (r instanceof FlowLine) {
                 FlowLine link = (FlowLine) r;
                 Node input = link.getInputNode(0);
                 Node output = link.getOutputNode(0);
@@ -128,6 +132,10 @@ public class PathwayDiagramSlicingHelper {
         for (Renderable r : toBeRemoved)
             r.clearConnectWidgets();
         diagram.getComponents().removeAll(toBeRemoved);
+        
+        // Two more extra steps to do cleaning.
+        checkOrphanProcessNodes(diagram, diagramInstance);
+        checkCompartments(diagram);
         // Make changes to the diagram instance
         // Dimension may be changed because of the above removable
         Dimension size = RenderUtility.getDimension(diagram);
@@ -140,6 +148,74 @@ public class PathwayDiagramSlicingHelper {
         String xml = diagramWriter.generateXMLString(project);
         diagramInstance.setAttributeValue(ReactomeJavaConstants.storedATXML, 
                                           xml);
+    }
+    
+    /**
+     * Check compartments and remove those compartments don't contain any objects.
+     * @param diagram
+     * @throws Exception
+     */
+    private void checkCompartments(RenderablePathway diagram) throws Exception {
+        // Get the current compartments
+        List<RenderableCompartment> compartments = new ArrayList<>();
+        for (Object r : diagram.getComponents()) {
+            if (r instanceof RenderableCompartment) {
+                compartments.add((RenderableCompartment)r);
+            }
+        }
+        // Check at least once
+        int currentSize = 0;
+        do {
+            currentSize = compartments.size();
+            for (Iterator<RenderableCompartment> it = compartments.iterator(); it.hasNext();) {
+                RenderableCompartment compartment = it.next();
+                List<Node> contained = compartment.getComponents();
+                boolean removed = true;
+                for (Node node : contained) {
+                    if (diagram.getComponents().contains(node)) {
+                        removed = false;
+                        break;
+                    }
+                }
+                if (removed) {
+                    diagram.getComponents().remove(compartment);
+                    it.remove();
+                }
+            }
+        }
+        while (currentSize > compartments.size()); // Means some compartments have been deleted.
+    }
+    
+    /**
+     * Check ProcessNodes (pathways) and delete orphan ProcessNodes that are not contained by pathways
+     * represented by diagramInstance.
+     * @param diagram
+     * @param diagramInstance
+     * @throws Exception
+     */
+    private void checkOrphanProcessNodes(RenderablePathway diagram,
+                                         GKInstance diagramInstance) throws Exception {
+        Set<GKInstance> containedEvents = null;
+        List<GKInstance> representedPathways = diagramInstance.getAttributeValuesList(ReactomeJavaConstants.representedPathway);
+        if (representedPathways != null) {
+            containedEvents = InstanceUtilities.getContainedEvents(representedPathways);
+        }
+        Set<Long> containedEventDBIDs = containedEvents.stream()
+                .filter(e -> e.getSchemClass().isa(ReactomeJavaConstants.Pathway))
+                .map(e -> e.getDBID())
+                .collect(Collectors.toSet());
+        List<Renderable> toBeRemoved = new ArrayList<>();
+        for (Object r : diagram.getComponents()) {
+            if (r instanceof ProcessNode) {
+                ProcessNode processNode = (ProcessNode) r;
+                List<HyperEdge> edges = processNode.getConnectedReactions();
+                if (edges.size() == 0 && !containedEventDBIDs.contains(processNode.getReactomeId())) {
+                    toBeRemoved.add(processNode);
+                }
+            }
+        }
+        // There is no need to clear up connections. Just remove these nodes.
+        diagram.getComponents().removeAll(toBeRemoved); 
     }
     
     private boolean isToBeRemoved(List<HyperEdge> edges,
@@ -160,6 +236,7 @@ public class PathwayDiagramSlicingHelper {
                                           Set<Renderable> toBeRemoved,
                                           MySQLAdaptor dba) throws Exception {
         toBeRemoved.add(r);
+        // There are only two types of renderables that have _doRelease = False
         if (r instanceof ProcessNode) {
             List<HyperEdge> edges = ((ProcessNode)r).getConnectedReactions();
             for (HyperEdge edge : edges) {
@@ -181,15 +258,17 @@ public class PathwayDiagramSlicingHelper {
                     if (connectedEdge instanceof EntitySetAndMemberLink ||
                         connectedEdge instanceof EntitySetAndEntitySetLink)
                         continue; // Should not be considered a valid criteria to keep a Node.
-                    // Special cases
-                    if (connectedEdge.getReactomeId() == null) {
-                        needRemove = false;
-                        break;
+                    // As of October 17, 2023: A node connected to others via FlowLine may need to be deleted
+                    // regardless if it is connected to a ProcessNode with _doRelease = True.
+                    if (connectedEdge.getReactomeId() == null) { // Just a flowline
+//                        needRemove = false;
+                        continue;
                     }
                     GKInstance inst = dba.fetchInstance(connectedEdge.getReactomeId());
                     if (inst == null) {
-                        needRemove = false;
-                        break; // This has been linked to some FlowLines
+//                        needRemove = false;
+//                        break; // This has been linked to some FlowLines
+                        continue; // Check others. Should not come here really. Maybe there is some reaction deleted.
                     }
                     Boolean doRelease = (Boolean) inst.getAttributeValue(ReactomeJavaConstants._doRelease);
                     if (doRelease != null && doRelease.booleanValue()) {
@@ -279,28 +358,31 @@ public class PathwayDiagramSlicingHelper {
      */
     @Test
     public void testRemoveDoNotReleaseEvents() throws Exception {
-        MySQLAdaptor targetDBA = new MySQLAdaptor("localhost", 
-                                                  "gk_central_091112",
-                                                  "root",
-                                                  "macmysql01");
         MySQLAdaptor sourceDBA = new MySQLAdaptor("localhost",
-                                                  "gk_central_091112", 
+                                                  "gk_central_101723", 
                                                   "root", 
                                                   "macmysql01");
         // Diagram wanted to be processed
 //        Long dbId = 451075L;
-        Long dbId = 2029401L;
+        Long dbId = 9700218L;
         GKInstance sourceInst = sourceDBA.fetchInstance(dbId);
+        String oldXML = (String) sourceInst.getAttributeValue(ReactomeJavaConstants.storedATXML);
+        System.out.println(oldXML);
+        System.out.println();
         RenderablePathway pathway = diagramReader.openDiagram(sourceInst);
         removeDoNotReleaseEvents(pathway, sourceInst, sourceDBA);
         String xml = (String) sourceInst.getAttributeValue(ReactomeJavaConstants.storedATXML);
         System.out.println(xml);
         
         // Do an update in the target DBA
-//        sourceInst.setDbAdaptor(targetDBA);
-//        SchemaClass cls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
-//        SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.storedATXML);
-//        targetDBA.updateInstanceAttribute(sourceInst, att);
+        MySQLAdaptor targetDBA = new MySQLAdaptor("localhost",
+                "test_gk_central_101723",
+                "root",
+                "macmysql01");
+        sourceInst.setDbAdaptor(targetDBA);
+        SchemaClass cls = targetDBA.getSchema().getClassByName(ReactomeJavaConstants.PathwayDiagram);
+        SchemaAttribute att = cls.getAttribute(ReactomeJavaConstants.storedATXML);
+        targetDBA.updateInstanceAttribute(sourceInst, att);
     }
     
 }
