@@ -4,13 +4,18 @@
  */
 package org.reactome.test;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.TimeZone;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceUtilities;
@@ -142,6 +147,54 @@ public class ProjectFixer {
             }
         }
         fileAdaptor.save("/Users/wgm/Documents/gkteam/mcaudy/KRAB-KAP1_binding_CT52_fixed.rtpj");
+    }
+    
+    @Test
+    public void checkCalendarText() throws ParseException {
+        String dateTime = "20230124015948";
+        System.out.println("dateTime: " + dateTime);
+        Calendar calendar = GKApplicationUtilities.getCalendar(dateTime);
+        System.out.println("Month: " + calendar.get(Calendar.MONTH));
+        System.out.println("Day: " + calendar.get(Calendar.DAY_OF_MONTH));
+        System.out.println("Hour: " + calendar.get(Calendar.HOUR_OF_DAY));
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String text = formatter.format(calendar.getTime());
+        System.out.println(text);
+        
+        Calendar now = GKApplicationUtilities.getCalendar();
+        System.out.println("This month: " + now.get(Calendar.MONTH));
+        System.out.println("This day: " + now.get(Calendar.DAY_OF_MONTH));
+        System.out.println("This hour: " + now.get(Calendar.HOUR_OF_DAY));
+        System.out.println("Current dataTime: " + GKApplicationUtilities.getDateTime());
+        TimeZone timeZone = TimeZone.getTimeZone("GMT");
+        SimpleDateFormat textFormatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        textFormatter.setTimeZone(timeZone);
+        System.out.println("Formated calendar: " + textFormatter.format(now.getTime()));
+        
+        text = "2023-01-24 01:59:48.0";
+        // Use GMT time zone
+        calendar = Calendar.getInstance(timeZone);
+        calendar.setTime(formatter.parse(text));
+        System.out.println("Converted back: " + formatter.format(calendar.getTime()));
+        
+        String[] testCases = {
+                "20230124015948",
+                "2023-01-24 01:59:48.0"
+        };
+        for (String test : testCases) {
+            System.out.println(test);
+            if (test.matches("(\\d){14}")) {
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                Date date = format.parse(test);
+                System.out.println("Date: " + formatter.format(date));
+            }
+            else if (test.matches("(\\d){4}-(\\d){2}-(\\d){2} (\\d){2}:(\\d){2}:(\\d){2}.(\\d)*")) {
+                Date date = formatter.parse(test);
+                System.out.println("Date: " + formatter.format(date));
+            }
+        }
+        
     }
     
     @Test

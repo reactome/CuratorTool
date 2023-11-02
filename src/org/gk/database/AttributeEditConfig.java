@@ -413,7 +413,9 @@ public class AttributeEditConfig {
 	 * @return Returns the allowComboBoxEditor.
 	 */
 	public boolean isAllowComboBoxEditor() {
-		return allowComboBoxEditor;
+	    // As of November 2, 2023, this is not allowed any more to control reviewStatus automatic update.
+	    return false; 
+//		return allowComboBoxEditor;
 	}
 	
 	/**

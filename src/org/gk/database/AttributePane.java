@@ -258,7 +258,8 @@ public class AttributePane extends JPanel {
 	            setTooltipForAllowCBEditorButton();
 	        }
 	    });
-	    toolbar.add(allowComboBoxEditorBtn);
+	    // As of Nov 2, 2023, disable pull down editing for easy managing.
+//	    toolbar.add(allowComboBoxEditorBtn);
 
 	    JButton btn;
 	    btn = toolbar.add(controller.getSortByAlphabetAction());
