@@ -237,11 +237,13 @@ public class PathwayEncapsulateHelper {
             RenderableCompartment compart = (RenderableCompartment) r;
             List<?> list = compart.getComponents();
             boolean needToRemove = true;
-            for (Iterator<?> it1 = list.iterator(); it1.hasNext();) {
-                Renderable r1 = (Renderable) it1.next();
-                if (kept.contains(r1.getReactomeId())) {
-                    needToRemove = false;
-                    break;
+            if (list != null) {
+                for (Iterator<?> it1 = list.iterator(); it1.hasNext();) {
+                    Renderable r1 = (Renderable) it1.next();
+                    if (kept.contains(r1.getReactomeId())) {
+                        needToRemove = false;
+                        break;
+                    }
                 }
             }
             if (needToRemove)
