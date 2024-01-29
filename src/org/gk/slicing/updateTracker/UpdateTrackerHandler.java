@@ -42,72 +42,15 @@ public class UpdateTrackerHandler {
     }
 
     public void handleUpdateTrackerInstances(boolean uploadUpdateTrackerInstancesToSource) throws Exception {
-        EventMatcher eventMatcher = new EventMatcher(getPreviousSliceDBA(), getCurrentSliceDBA(), getSourceDBA());
-        EventComparer eventComparer = new EventComparer(eventMatcher);
-
-        PhysicalEntityMatcher physicalEntityMatcher = new PhysicalEntityMatcher(getPreviousSliceDBA(), getCurrentSliceDBA(), getSourceDBA());
-
-        UpdateTracker.UpdateTrackerBuilder updateTrackerBuilder =
-            getUpdateTrackerBuilder(getCurrentSliceDBA());
-
-        Set<Map.Entry<GKInstance,GKInstance>> equivalentEventPairs =
-            eventMatcher.getCurationPreviousToCurrentInstanceMap().entrySet();
-        Set<Map.Entry<GKInstance, GKInstance>> equivalentPhysicalEntityPairs =
-            physicalEntityMatcher.getCurationPreviousToCurrentInstanceMap().entrySet();
-
-        List<GKInstance> toBeUploadedToSrcDBA = new ArrayList<>();
-
-        for (Map.Entry<GKInstance, GKInstance> equivalentEventPair : equivalentEventPairs) {
-            Set<Action> actions = eventComparer.getChanges(equivalentEventPair);
-
-            if (!actions.isEmpty()) {
-                GKInstance currentEvent = equivalentEventPair.getValue();
-
-                if (uploadUpdateTrackerInstancesToSource) {
-                    GKInstance sourceEvent = getSourceDBA().fetchInstance(currentEvent.getDBID());
-                    GKInstance updateTracker = updateTrackerBuilder
-                                              .build(sourceEvent, actions)
-                                              .createUpdateTrackerInstance(getSourceDBA());
-                    toBeUploadedToSrcDBA.add(updateTracker);
-                }
-
-                getCurrentSliceDBA().storeInstance(
-                    updateTrackerBuilder
-                        .build(currentEvent, actions)
-                        .createUpdateTrackerInstance(getCurrentSliceDBA())
-                );
-            }
-        }
-        for (Map.Entry<GKInstance, GKInstance> equivalentPhysicalEntityPair : equivalentPhysicalEntityPairs) {
-            Set<Action> actions = PhysicalEntityComparerFactory.create(equivalentPhysicalEntityPair).
-                getChanges(equivalentPhysicalEntityPair);
-
-            if (!actions.isEmpty()) {
-                GKInstance currentPhysicalEntity = equivalentPhysicalEntityPair.getValue();
-
-                if (uploadUpdateTrackerInstancesToSource) {
-                    GKInstance sourcePhysicalEntity = getSourceDBA().fetchInstance(currentPhysicalEntity.getDBID());
-                    GKInstance updateTracker = updateTrackerBuilder
-                                                .build(sourcePhysicalEntity, actions)
-                                                .createUpdateTrackerInstance(getSourceDBA());
-                    toBeUploadedToSrcDBA.add(updateTracker);
-                }
-
-                getCurrentSliceDBA().storeInstance(
-                    updateTrackerBuilder
-                        .build(currentPhysicalEntity, actions)
-                    .createUpdateTrackerInstance(getCurrentSliceDBA())
-                );
-            }
-        }
-        commitToSourceDB(toBeUploadedToSrcDBA);
+        createAndStoreUpdateTrackerInstances(ComparisonType.EVENT, uploadUpdateTrackerInstancesToSource);
+        createAndStoreUpdateTrackerInstances(ComparisonType.PHYSICAL_ENTITY, uploadUpdateTrackerInstancesToSource);
     }
 
-    private List<UpdateTracker> processEquivalentInstancePairs(ComparisonType comparisonType) throws Exception {
+    private void createAndStoreUpdateTrackerInstances(
+        ComparisonType comparisonType, boolean uploadUpdateTrackerInstancesToSource) throws Exception {
+
         UpdateTracker.UpdateTrackerBuilder updateTrackerBuilder =
             getUpdateTrackerBuilder(getCurrentSliceDBA());
-
-        List<UpdateTracker> updateTrackerList = new ArrayList<>();
 
         InstanceMatcher instanceMatcher = getInstanceMatcher(comparisonType);
 
@@ -116,26 +59,40 @@ public class UpdateTrackerHandler {
             instanceMatcher.getCurationCurrentToPreviousInstances().entrySet();
 
         System.out.println("Instance pairs size: " + equivalentInstancePairs.size());
+        List<GKInstance> toBeUploadedToSrcDBA = new ArrayList<>();
         for (Map.Entry<GKInstance, GKInstance> equivalentInstancePair : equivalentInstancePairs) {
-            GKInstance previousInstance = equivalentInstancePair.getKey();
-            GKInstance currentInstance = equivalentInstancePair.getValue();
-
-            InstanceComparer instanceComparer;
-            if (comparisonType == ComparisonType.EVENT) {
-                instanceComparer = new EventComparer((EventMatcher) instanceMatcher);
-            } else {
-                instanceComparer = PhysicalEntityComparerFactory.create(equivalentInstancePair);
-            }
-
-            Set<Action> actions = instanceComparer.getChanges(equivalentInstancePair);
+            Set<Action> actions = getInstanceComparer(comparisonType, equivalentInstancePair)
+                .getChanges(equivalentInstancePair);
 
             if (!actions.isEmpty()) {
-                GKInstance targetInstance = getDbAdaptorMap().getTargetDbAdaptor().fetchInstance(currentInstance.getDBID());
-                UpdateTracker updateTracker = updateTrackerBuilder.build(targetInstance, actions);
-                updateTrackerList.add(updateTracker);
+                GKInstance currentInstance = equivalentInstancePair.getValue();
+
+                if (uploadUpdateTrackerInstancesToSource) {
+                    GKInstance sourceInstance = getSourceDBA().fetchInstance(currentInstance.getDBID());
+                    GKInstance updateTracker = updateTrackerBuilder
+                        .build(sourceInstance, actions)
+                        .createUpdateTrackerInstance(getSourceDBA());
+                    toBeUploadedToSrcDBA.add(updateTracker);
+                }
+
+                getCurrentSliceDBA().storeInstance(
+                    updateTrackerBuilder
+                        .build(currentInstance, actions)
+                        .createUpdateTrackerInstance(getCurrentSliceDBA())
+                );
             }
         }
-        return updateTrackerList;
+        commitToSourceDB(toBeUploadedToSrcDBA);
+    }
+
+    private InstanceComparer getInstanceComparer(ComparisonType comparisonType, Map.Entry<GKInstance, GKInstance> equivalentInstancePair ) throws Exception {
+        InstanceComparer instanceComparer;
+        if (comparisonType == ComparisonType.EVENT) {
+            instanceComparer = new EventComparer(new EventMatcher(getPreviousSliceDBA(), getCurrentSliceDBA(), getSourceDBA()));
+        } else {
+            instanceComparer = PhysicalEntityComparerFactory.create(equivalentInstancePair);
+        }
+        return instanceComparer;
     }
 
     private InstanceMatcher getInstanceMatcher(ComparisonType comparisonType)
