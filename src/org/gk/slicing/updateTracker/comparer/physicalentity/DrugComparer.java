@@ -33,16 +33,6 @@ public class DrugComparer extends AbstractPhysicalEntityComparer {
             )
         );
 
-        if (bothHaveSpeciesAttribute(equivalentDrugPair)) {
-            drugActions.addAll(
-                getInstanceActions(
-                    earlierDrug,
-                    newDrug,
-                    ReactomeJavaConstants.species
-                )
-            );
-        }
-
         return drugActions;
     }
 
