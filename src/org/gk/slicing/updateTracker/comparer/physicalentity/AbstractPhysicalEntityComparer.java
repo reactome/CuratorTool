@@ -18,9 +18,9 @@ import static org.gk.slicing.updateTracker.comparer.physicalentity.Utils.bothSet
  * @author Joel Weiser (joel.weiser@oicr.on.ca)
  *         Created 4/25/2022
  */
-public abstract class PhysicalEntityComparer extends InstanceComparer {
+public abstract class AbstractPhysicalEntityComparer extends InstanceComparer {
 
-    public PhysicalEntityComparer() {
+    public AbstractPhysicalEntityComparer() {
         super();
     }
 

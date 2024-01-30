@@ -14,7 +14,7 @@ import static org.gk.slicing.updateTracker.comparer.physicalentity.Utils.*;
  */
 public class PhysicalEntityComparerFactory {
 
-    public static PhysicalEntityComparer create(Map.Entry<GKInstance, GKInstance> equivalentPhysicalEntityPair) {
+    public static AbstractPhysicalEntityComparer create(Map.Entry<GKInstance, GKInstance> equivalentPhysicalEntityPair) {
         if (bothGEEs(equivalentPhysicalEntityPair)) {
             if (bothEWASs(equivalentPhysicalEntityPair)) {
                 return new EWASComparer();
@@ -40,7 +40,7 @@ public class PhysicalEntityComparerFactory {
         } else {
             System.err.println("The schema classes for " + equivalentPhysicalEntityPair +
                 " do not match or are unknown/unsupported - using basic physical entity comparer");
-            return new BasicPhysicalEntityComparer();
+            return new DefaultPhysicalEntityComparer();
         }
     }
 

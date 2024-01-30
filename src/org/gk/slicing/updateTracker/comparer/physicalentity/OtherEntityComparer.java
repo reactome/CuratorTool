@@ -12,7 +12,7 @@ import java.util.TreeSet;
  * @author Joel Weiser (joel.weiser@oicr.on.ca)
  *         Created 6/28/2023
  */
-public class OtherEntityComparer extends PhysicalEntityComparer {
+public class OtherEntityComparer extends AbstractPhysicalEntityComparer {
 
     @Override
     public Set<Action> getChanges(Map.Entry<GKInstance, GKInstance> equivalentOtherEntityPair)
