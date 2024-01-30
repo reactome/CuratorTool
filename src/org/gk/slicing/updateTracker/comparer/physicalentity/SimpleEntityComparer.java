@@ -30,6 +30,7 @@ public class SimpleEntityComparer extends AbstractPhysicalEntityComparer {
                 earlierSimpleEntity,
                 newSimpleEntity,
                 ReactomeJavaConstants.compartment,
+                ReactomeJavaConstants.referenceEntity,
                 ReactomeJavaConstants.species
             )
         );

@@ -28,7 +28,8 @@ public class DrugComparer extends AbstractPhysicalEntityComparer {
             getInstanceActions(
                 earlierDrug,
                 newDrug,
-                ReactomeJavaConstants.compartment
+                ReactomeJavaConstants.compartment,
+                ReactomeJavaConstants.referenceEntity
             )
         );
 
