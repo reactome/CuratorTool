@@ -32,6 +32,21 @@ public class Action implements Comparable<Action> {
     }
 
     /**
+     * Returns the type of action (e.g. "add", "remove", etc.)
+     * @return Type of action
+     */
+    public ActionType getActionType() {
+        return this.actionType;
+    }
+
+    /**
+     * Returns the entity for the action occurred
+     */
+    public ActionObject getActionObject() {
+        return this.actionObject;
+    }
+
+    /**
      * Returns the String representation of the Action as a combination of its ActionType and ActionObject.
      *
      * For example, an ActionType of "add" and and ActionObject of "catalyst" will return the String "addCatalyst".
