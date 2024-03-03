@@ -7,8 +7,12 @@ package org.gk.scripts;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -19,6 +23,7 @@ import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
+import org.gk.schema.GKSchemaAttribute;
 import org.gk.util.GKApplicationUtilities;
 import org.w3c.dom.Document;
 
@@ -131,6 +136,19 @@ public class ScriptUtilities {
             }
         }
         return (GKInstance) inst.getAttributeValue(ReactomeJavaConstants.created);
+    }
+    
+    public static Set<GKInstance> getAllReferrersForDBInstance(GKInstance inst) throws Exception {
+        Collection<?> refAtts = inst.getSchemClass().getReferers();
+        Set<GKInstance> allReferrers = new HashSet<GKInstance>();
+        for (Iterator<?> it1 = refAtts.iterator(); it1.hasNext();) {
+            GKSchemaAttribute att = (GKSchemaAttribute) it1.next();
+            @SuppressWarnings("unchecked")
+            Collection<GKInstance> referrers = inst.getReferers(att);
+            if (referrers != null)
+                allReferrers.addAll(referrers);
+        }
+        return allReferrers;
     }
     
 }

@@ -242,8 +242,8 @@ public class ReactionRelationshipInferrer {
      * @return
      * @throws Exception
      */
-    private Set<GKInstance> checkOverlap(GKInstance rxt1,
-                                         GKInstance rxt2) throws Exception {
+    public Set<GKInstance> checkOverlap(GKInstance rxt1,
+                                        GKInstance rxt2) throws Exception {
         // Here we want to check if rxt1 is a preceding event of rxt2. Therefore, rxt1's output is checked
         Set<GKInstance> rtn = new HashSet<>();
         List<GKInstance> rxt1Output = rxt1.getAttributeValuesList(ReactomeJavaConstants.output);
