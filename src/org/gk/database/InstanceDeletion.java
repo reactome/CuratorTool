@@ -10,9 +10,12 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -25,11 +28,13 @@ import javax.swing.JPanel;
 
 import org.gk.model.GKInstance;
 import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.InstanceUtilities;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
 import org.gk.schema.SchemaClass;
+import org.gk.util.ProgressPane;
 
 /**
  * This class is used to do instance deletion.
@@ -57,38 +62,125 @@ public class InstanceDeletion {
         if (list == null || list.size() == 0)
             return;
         if (needWarning) {
+            String message = "Are you sure you want to delete the selected instance" + (list.size() == 1 ? "" : "s") + "? The slot values in\n"
+                           + "other instances referring the deleted instances will be set to null.";
+            if (needReferrers(list)) {
+                message += "\nStructure related referrers will be checked and downloaded from the"
+                        +  "\ndatabase if needed. Their review status will be demoted automatically."
+                        +  "\nThis may take some time.";
+            }
             int reply = JOptionPane.showConfirmDialog(parentFrame,
-                                                      "Are you sure you want to delete the selected instance" + (list.size() == 1 ? "" : "s") + "? " +
-                                                              "The slot values in \nother instances referring the deleted instances will be set to null.",
-                                                              "Delete Confirmation",
-                                                              JOptionPane.YES_NO_OPTION);
+                                                      message,
+                                                      "Delete Confirmation",
+                                                      JOptionPane.YES_NO_OPTION);
             if (reply != JOptionPane.YES_OPTION)
                 return;
         }
-        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
-        // Create a _Deleted instance
-        // These instances are used to keep track of
-        // deletions.
-        try {
-            boolean isCreateDeleteInstanceOK = createDeleteInstance(fileAdaptor, 
-                                                                    list,
-                                                                    parentFrame, 
-                                                                    needWarning);
-            // Do the actual deletions
-            if (isCreateDeleteInstanceOK) {
-                for (GKInstance instance : list) {
-                    fileAdaptor.deleteInstance(instance);
+        _delete(list, parentFrame, needWarning);
+    }
+
+    /**
+     * A threaded deletion to show the progress.
+     * @param list
+     * @param parentFrame
+     * @param needWarning
+     */
+    private void _delete(List<GKInstance> list, JFrame parentFrame, boolean needWarning) {
+        Thread t = new Thread() {
+            public void run() {
+                // Need the database connection
+                MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor(parentFrame);
+                if (dba == null) {
+                    if (dba == null) {
+                        JOptionPane.showMessageDialog(
+                            parentFrame,
+                            "Cannot connect to the database. The deletion is aborted.",
+                            "Error in DB Connecting",
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                }
+                ProgressPane progressPane = null;
+                boolean needReferrers = needReferrers(list);
+                try {
+                    if (needReferrers) {
+                        // Start with a progress pane
+                        progressPane = new ProgressPane();
+                        progressPane.setSize(progressPane.getWidth() + 75, progressPane.getHeight());
+                        parentFrame.setGlassPane(progressPane);
+                        progressPane.setIndeterminate(true);
+                        progressPane.setText("Check structure related referrers...");
+                        parentFrame.getGlassPane().setVisible(true);
+                        Set<GKInstance> referrers = new HashSet<>();
+                        for (GKInstance inst : list) {
+                            GKInstance dbInst = dba.fetchInstance(inst.getDBID());
+                            if (dbInst == null)
+                                continue;
+                            for (String attName : InstanceUtilities.getStructureRelatedAttributes()) {
+                                @SuppressWarnings("unchecked")
+                                Collection<GKInstance> refs = dbInst.getReferers(attName);
+                                if (refs != null && refs.size() > 0)
+                                    referrers.addAll(refs);
+                            }
+                        }
+                        filterReferrers(referrers);
+                        if (referrers.size() > 0) {
+                            progressPane.setText(String.format("Check out %d structure related referrer" + (referrers.size() == 1 ? "":"s") + "...",
+                                    referrers.size()));
+                            SynchronizationManager.getManager().checkOut(new ArrayList<>(referrers), parentFrame);
+                            progressPane.setText("Checking-out Done");
+                        }
+                    }
+                    XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+                    // Create a _Deleted instance
+                    // These instances are used to keep track of
+                    // deletions.
+                    if (progressPane != null)
+                        progressPane.setText("Deleting...");
+                    boolean isCreateDeleteInstanceOK = createDeleteInstance(fileAdaptor, 
+                            list,
+                            parentFrame, 
+                            needWarning);
+                    // Do the actual deletions
+                    if (isCreateDeleteInstanceOK) {
+                        for (GKInstance instance : list) {
+                            fileAdaptor.deleteInstance(instance);
+                        }
+                    }
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(parentFrame,
+                            "Error in deletion: " + e.getMessage(),
+                            "Error in Deletion",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+                if (progressPane != null) {
+                    // Don't set glasspane to null. Otherwise, a null exception will be thrown.
+                    parentFrame.getGlassPane().setVisible(false);
                 }
             }
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(parentFrame,
-                                          "Error in deletion: " + e.getMessage(),
-                                          "Error in Deletion",
-                                          JOptionPane.ERROR_MESSAGE);
+        };
+        t.start();
+    }
+    
+    private boolean needReferrers(List<GKInstance> list) {
+        boolean needReferrers = !list.stream()
+                .filter(inst -> InstanceUtilities.isStructureRelatedInstance(inst)).findAny().isEmpty();
+        return needReferrers;
+    }
+    
+    private void filterReferrers(Set<GKInstance> referrers) {
+        XMLFileAdaptor fileAdaptor = PersistenceManager.getManager().getActiveFileAdaptor();
+        for (Iterator<GKInstance> it = referrers.iterator(); it.hasNext();) {
+            GKInstance dbInst = it.next();
+            GKInstance local = fileAdaptor.fetchInstance(dbInst.getDBID());
+            if (local == null || local.isShell()) // Download only shell instances or instances not here yet
+                continue;
+            it.remove();
         }
     }
+    
     
     public void delete(GKInstance instance,
                        JFrame parentFrame) {

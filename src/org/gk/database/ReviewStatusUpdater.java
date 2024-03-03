@@ -11,6 +11,8 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceUtilities;
+import org.gk.model.InstanceUtilities.StructureEditAction;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.PersistenceManager;
 import org.gk.persistence.XMLFileAdaptor;
@@ -40,7 +42,16 @@ public class ReviewStatusUpdater implements AttributeEditListener {
     // A flag to control all ReviewStatus instances have been downloaded.
     private Map<String, GKInstance> name2inst;
 
-    public ReviewStatusUpdater() {
+    // Make this as a singleton so that we can use one name2inst attribute value
+    private ReviewStatusUpdater() {
+    }
+    
+    private static ReviewStatusUpdater updater; 
+    
+    public static final ReviewStatusUpdater getReviewStatusUpdater() {
+        if (updater == null)
+            updater = new ReviewStatusUpdater();
+        return updater;
     }
 
     @Override
@@ -104,7 +115,8 @@ public class ReviewStatusUpdater implements AttributeEditListener {
             reviewStatusEdit.setAttributeName(ReactomeJavaConstants.reviewStatus);
             AttributeEditManager.getManager().attributeEdit(reviewStatusEdit);
             if (isDemoted) {
-                String message = "Your edit changes the pathway structure. The reviewStatus has been demoted.";
+                String message = "Your edit changes the structure of the event instance. The reviewStatus has been demoted.";
+                message += "\nInstance: " + instance;
                 JOptionPane.showMessageDialog(e.getEditingComponent(),
                         message,
                         "ReviewStatus Demoted",
@@ -161,32 +173,14 @@ public class ReviewStatusUpdater implements AttributeEditListener {
     }
 
     private boolean isStructralUpdate(AttributeEditEvent e) {
-        // If there is no attribute name, assume not a structural update
-        if (e.getAttributeName() == null)
-            return false;
-        GKInstance instance = e.getEditingInstance();
-        if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
-            if (e.getAttributeName().equals(ReactomeJavaConstants.hasEvent)) {
-                return e.getEditingType() == AttributeEditEvent.ADDING ||
-                       e.getEditingType() == AttributeEditEvent.REMOVING;
-            }
-            return false;
-        }
-        else if (instance.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
-            if (e.getEditingType() == AttributeEditEvent.ADDING ||
-                    e.getEditingType() == AttributeEditEvent.REMOVING) {
-                String attName = e.getAttributeName();
-                if (attName.equals(ReactomeJavaConstants.catalystActivity) ||
-                    attName.equals(ReactomeJavaConstants.regulatedBy) ||
-                    attName.equals(ReactomeJavaConstants.input) ||
-                    attName.equals(ReactomeJavaConstants.output))
-                    return true;
-                return false;
-            }
-            return false;
-        }
-        else
-            return false;
+        StructureEditAction editAction = null;
+        if (e.getEditingType() == AttributeEditEvent.ADDING)
+            editAction = StructureEditAction.ADD;
+        else if (e.getEditingType() == AttributeEditEvent.REMOVING)
+            editAction = StructureEditAction.REMOVE;
+        return InstanceUtilities.isStructralUpdate(e.getEditingInstance(), 
+                e.getAttributeName(), 
+                editAction);
     }
 
 }

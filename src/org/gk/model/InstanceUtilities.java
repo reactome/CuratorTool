@@ -98,6 +98,61 @@ public class InstanceUtilities {
 		}
 		return out;
 	}
+	
+	/**
+	 * Determine if the editing is a structure related update.
+	 * @param e
+	 * @return
+	 */
+    public static boolean isStructralUpdate(GKInstance instance, 
+                                      String attributeName,
+                                      StructureEditAction action) {
+        // If there is no attribute name, assume not a structural update
+        if (attributeName == null)
+            return false;
+        if (instance.getSchemClass().isa(ReactomeJavaConstants.Pathway)) {
+            if (attributeName.equals(ReactomeJavaConstants.hasEvent)) {
+                return action == StructureEditAction.ADD ||
+                       action == StructureEditAction.REMOVE;
+            }
+            return false;
+        }
+        else if (instance.getSchemClass().isa(ReactomeJavaConstants.ReactionlikeEvent)) {
+            if (action == StructureEditAction.ADD ||
+                action == StructureEditAction.REMOVE) {
+                if (attributeName.equals(ReactomeJavaConstants.catalystActivity) ||
+                        attributeName.equals(ReactomeJavaConstants.regulatedBy) ||
+                        attributeName.equals(ReactomeJavaConstants.input) ||
+                        attributeName.equals(ReactomeJavaConstants.output))
+                    return true;
+                return false;
+            }
+            return false;
+        }
+        else
+            return false;
+    }
+    
+    public static String[] getStructureRelatedAttributes() {
+        return new String[] {
+                ReactomeJavaConstants.hasEvent,
+                ReactomeJavaConstants.catalystActivity,
+                ReactomeJavaConstants.input,
+                ReactomeJavaConstants.output
+        };
+    }
+    
+    public static boolean isStructureRelatedInstance(GKInstance inst) {
+        return inst.getSchemClass().isa(ReactomeJavaConstants.Event) || 
+               inst.getSchemClass().isa(ReactomeJavaConstants.PhysicalEntity) ||
+               inst.getSchemClass().isa(ReactomeJavaConstants.CatalystActivity) ||
+               inst.getSchemClass().isa(ReactomeJavaConstants.Regulation);
+    }
+    
+    public enum StructureEditAction {
+        ADD,
+        REMOVE
+    }
     
 
 	/*

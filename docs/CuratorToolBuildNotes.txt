@@ -1,3 +1,11 @@
+Build 118 (Version 4.0.3) note (March 3, 2024)
+
+This build is created to fix a bug related to updating the review status: When an instance (e.g. a reaction) is deleted from the local project, the container's review status (e.g. a pathway has the reaction in its hasEvent slot) is not updated. The following changes have been made in this build:
+
+1). When a structural related instance (instances of PhysicalEntity, Event, CatalystActivity and Regulation) is selected for deletion, the curator tool will check out its referrers that may need to update their review status because of the deletion.
+
+2). The review status of the downloaded referrers will be demoted once the instance is deleted. These referrers will be marked as structure changed and must be committed into the database manually as with deletion. Please use "Database Synchronization" to make sure this happens.
+
 Build 117 (Version 4.0.2) note (October 14, 2023)
 
 This build is used to support auto-filling replacementInstanceDB_IDs when the replacementInstances slot is edited for _Deleted instances.

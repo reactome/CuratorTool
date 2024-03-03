@@ -99,8 +99,8 @@ public class GKCuratorFrame extends JFrame implements Launchable {
     // System info
     public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
     public static final String PROJECT_EXT_NAME = ".rtpj";
-    public static final String VERSION = "4.0.2 (October 14, 2023)";
-    public static final int BUILD_NUMBER = 117;
+    public static final String VERSION = "4.0.3 (March 3, 2024)";
+    public static final int BUILD_NUMBER = 118;
     static final String QA_MENU_TEXT = "QA Check";
     // For tab title
     private final String PROJECT_TITLE = "Event Hierarchical View";
@@ -262,7 +262,7 @@ public class GKCuratorFrame extends JFrame implements Launchable {
         Thread t = new Thread() {
             public void run() {
                 try {
-                    Thread.sleep(1000); // Wait for three seconds
+                    Thread.sleep(1000); // Wait for some time in case it is not needed if the computer runs very fast.
                     if (GKCuratorFrame.this.isVisible())
                         return;
                     window = new JWindow();
@@ -339,12 +339,23 @@ public class GKCuratorFrame extends JFrame implements Launchable {
         autoSaveThread.setPriority(autoSaveThread.getPriority() - 2);
         autoSaveChanged();
 
-        if (window != null && window.isVisible()) {
-            window.setVisible(false);
-            window.dispose();
+        
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                @Override
+                public void run() {
+                    if (window != null && window.isVisible()) {
+                        window.setVisible(false);
+                        window.dispose();
+                    }
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("GKCuratorFrame.init1(): " + e);
+            e.printStackTrace();
         }
+        
         setVisible(true);
-
     }
 
     private void initFileAdaptor() {
@@ -412,6 +423,15 @@ public class GKCuratorFrame extends JFrame implements Launchable {
                     else if (e.getPropertyName().equals("clearDeleteRecord")) {
                         if (e.getNewValue() instanceof Collection)
                             schemaView.clearDeleteRecord((Collection)e.getNewValue());
+                    }
+                    else if (e.getPropertyName().equals("structureChanged")) {
+                        // This is a hacking to use a PropertyChangeEvent to encode the needed information
+                        AttributeEditEvent editEvent = new AttributeEditEvent(GKCuratorFrame.this);
+                        editEvent.setEditingComponent(GKCuratorFrame.this);
+                        editEvent.setAttributeName((String)e.getOldValue());
+                        editEvent.setEditingInstance((GKInstance)e.getNewValue());
+                        editEvent.setEditingType(AttributeEditEvent.REMOVING);
+                        ReviewStatusUpdater.getReviewStatusUpdater().attributeEdit(editEvent);
                     }
                     else if (e.getPropertyName().equals("fileIsDirty"))
                         actionCollection.enableSaveAction(true);
@@ -524,7 +544,7 @@ public class GKCuratorFrame extends JFrame implements Launchable {
         StableIdentifierUpdater stidUpdated = new StableIdentifierUpdater();
         stidUpdated.setParentComp(this);
         AttributeEditManager.getManager().addAttributeEditListener(stidUpdated);
-        AttributeEditListener listener = new ReviewStatusUpdater();
+        AttributeEditListener listener = ReviewStatusUpdater.getReviewStatusUpdater();
         AttributeEditManager.getManager().addAttributeEditListener(listener);
 
 //      RegulationDisplayNameUpdater regulationUpdater = new RegulationDisplayNameUpdater();

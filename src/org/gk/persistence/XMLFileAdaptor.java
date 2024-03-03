@@ -35,6 +35,7 @@ import org.gk.model.Instance;
 import org.gk.model.InstanceCache;
 import org.gk.model.InstanceDisplayNameGenerator;
 import org.gk.model.InstanceUtilities;
+import org.gk.model.InstanceUtilities.StructureEditAction;
 import org.gk.model.PathwayDiagramInstance;
 import org.gk.model.PersistenceAdaptor;
 import org.gk.model.ReactomeJavaConstants;
@@ -786,7 +787,7 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
         }
         ((GKInstance)instance).setIsDirty(true);
 		// Check if instance is a new GKInstance object. It will occur
-	    // if a GKInstance is editing in the new instance dialog.
+	    // if a GKInstance is being edited in the new instance dialog.
 	    SchemaClass cls = instance.getSchemClass();
 	    try {
 	        if (fetchInstance(cls.getName(), instance.getDBID()) == null)
@@ -833,6 +834,12 @@ public class XMLFileAdaptor implements PersistenceAdaptor {
                             it2.remove();
                     }
                     markAsDirty(refer);
+                    if (InstanceUtilities.isStructralUpdate(refer, att.getName(), StructureEditAction.REMOVE)) {
+                        // This is a hacking to use a PropertyChangeEvent to encode the needed information
+                        propertyChangeSupport.firePropertyChange("structureChanged", 
+                                att.getName(), 
+                                refer);
+                    }
                 }
             }
             // Need to clear referrers of this instance
