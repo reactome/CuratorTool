@@ -645,6 +645,12 @@ public class SlicingEngine {
             return; // Do nothing
         Collection<GKInstance> updateTrackerInstances = sourceDBA.fetchInstancesByClass(ReactomeJavaConstants._UpdateTracker);
         for (GKInstance updateTrackerInstance : updateTrackerInstances) {
+            GKInstance updatedInstance = (GKInstance) updateTrackerInstance.getAttributeValue(ReactomeJavaConstants.updatedInstance);
+            if (updatedInstance == null || updatedInstance.getDBID() == null)
+                continue; // Not useful
+            // Make sure the updated instance is in the slice database
+            if (!sliceMap.containsKey(updatedInstance.getDBID()))
+                continue; // The updated instance is not extracted, don't need this UpdatedTracker instance.
             extractReferencesToInstance(updateTrackerInstance);
         }
         logger.info("extractUpdateTrackerInstances(): " + sliceMap.size());
