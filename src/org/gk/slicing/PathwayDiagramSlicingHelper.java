@@ -169,9 +169,9 @@ public class PathwayDiagramSlicingHelper {
             currentSize = compartments.size();
             for (Iterator<RenderableCompartment> it = compartments.iterator(); it.hasNext();) {
                 RenderableCompartment compartment = it.next();
-                List<Node> contained = compartment.getComponents();
+                List<Renderable> contained = compartment.getComponents();
                 boolean removed = true;
-                for (Node node : contained) {
+                for (Renderable node : contained) {
                     if (diagram.getComponents().contains(node)) {
                         removed = false;
                         break;
