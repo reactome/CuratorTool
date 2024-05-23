@@ -7,6 +7,7 @@ package org.gk.slicing;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -170,6 +171,8 @@ public class PathwayDiagramSlicingHelper {
             for (Iterator<RenderableCompartment> it = compartments.iterator(); it.hasNext();) {
                 RenderableCompartment compartment = it.next();
                 List<Renderable> contained = compartment.getComponents();
+                if (contained == null)
+                    contained = Collections.EMPTY_LIST;
                 boolean removed = true;
                 for (Renderable node : contained) {
                     if (diagram.getComponents().contains(node)) {
