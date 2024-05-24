@@ -2,55 +2,22 @@ package org.gk.slicing.updateTracker.comparer;
 
 import org.gk.model.GKInstance;
 import org.gk.schema.InvalidAttributeException;
-
 import org.gk.slicing.updateTracker.model.Action;
 import org.gk.slicing.updateTracker.model.ActionObject;
 import org.gk.slicing.updateTracker.model.ActionType;
-import org.gk.slicing.updateTracker.matcher.InstanceMatcher;
+
 
 import java.util.*;
 
 /**
  * @author Joel Weiser (joel.weiser@oicr.on.ca)
+ *         Created 4/25/2022
  */
 public abstract class InstanceComparer {
-    private InstanceMatcher instanceMatcher;
 
-    public InstanceComparer(InstanceMatcher instanceMatcher) {
-        this.instanceMatcher = instanceMatcher;
-    }
-
-    public Map<GKInstance, Set<Action>> getCurrentUpdates() throws Exception {
-        Map<GKInstance, Set<Action>> currentUpdates = new HashMap<>();
-
-        int totalPairs = getPreviousToCurrentInstanceMap().size();
-        int pairsProcessed = 0;
-        for (Map.Entry<GKInstance, GKInstance> equivalentInstancePair : getPreviousToCurrentInstanceMap().entrySet()) {
-            GKInstance newInstance = equivalentInstancePair.getValue();
-
-            Set<Action> actions = getChanges(equivalentInstancePair);
-            if (!actions.isEmpty()) {
-                currentUpdates.put(newInstance, actions);
-            }
-            pairsProcessed++;
-            System.out.println(pairsProcessed + ": " + newInstance);
-            if (pairsProcessed % 100 == 0) {
-                System.out.println(pairsProcessed + " instance pairs finished out of " + totalPairs +
-                    " (" + percentProcessed(pairsProcessed, totalPairs) + "%)");
-            }
-        }
-        return currentUpdates;
-    }
+    public InstanceComparer() {}
 
     public abstract Set<Action> getChanges(Map.Entry<GKInstance, GKInstance> equivalentInstancePair) throws Exception;
-
-    protected Map<GKInstance, GKInstance> getPreviousToCurrentInstanceMap() {
-        return this.instanceMatcher.getCurationPreviousToCurrentInstanceMap();
-    }
-
-    protected Map<GKInstance, GKInstance> getCurrentToPreviousInstanceMap() {
-        return this.instanceMatcher.getCurationCurrentToPreviousInstances();
-    }
 
     protected Set<Action> getInstanceActions(
         GKInstance earlierInstance, GKInstance newInstance, String... attributeNames) throws Exception {
@@ -89,10 +56,8 @@ public abstract class InstanceComparer {
         );
     }
 
-    protected Set<Action> getActionsComparingAttrValues(List<?> earlierAttributeValues, 
-                                                        List<?> newAttributeValues,
-                                                        String attributeName, 
-                                                        boolean isInstanceType) {
+    protected Set<Action> getActionsComparingAttrValues(List<?> earlierAttributeValues, List<?> newAttributeValues,
+                                                        String attributeName, boolean isInstanceType) {
         // No actions if no attribute values to compare
         if (earlierAttributeValues.isEmpty() && newAttributeValues.isEmpty()) {
             return new TreeSet<>();
@@ -163,10 +128,5 @@ public abstract class InstanceComparer {
                 .findFirst()
                 .orElse(null);
         }
-    }
-
-    private String percentProcessed(int amount, int total) {
-        double percent = (((double) amount) / total) * 100;
-        return String.format("%.2f", percent);
     }
 }
