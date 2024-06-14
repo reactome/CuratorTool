@@ -56,7 +56,7 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
     @Override
     protected boolean checkInstance(GKInstance instance) throws Exception {
         // This is an old database
-        if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants .reviewStatus) ||
+        if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.reviewStatus) ||
             !instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.structureModified))
             return true;
         // Get all instances that should be checked.

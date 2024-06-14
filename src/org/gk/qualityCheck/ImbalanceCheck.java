@@ -52,7 +52,7 @@ import org.gk.util.GKApplicationUtilities;
 
 /**
  * This QualityCheck is used to check imbalance in an Reaction instance.
- * This class is modifed from Esther's QA_collection.pm script.
+ * This class is modified from Esther's QA_collection.pm script.
  * @author wgm
  *
  */

@@ -12,7 +12,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.gk.model.Person;
 import org.gk.model.Reference;
 import org.gk.util.GKApplicationUtilities;

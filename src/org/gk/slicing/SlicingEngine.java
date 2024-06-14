@@ -257,6 +257,9 @@ public class SlicingEngine {
         // There is no need to get anything here
         copyReviewStatus();
         cleanUpPathwayFigures();
+        // Add this step to remove NegativePrecedingEvent instances that don't have negativePrecedingEvent value
+        // These NegativePrecedingEvent instances will also be removed from their referrers.
+        cleanUpNegativePrecedingEvents();
         // This step has to be called just before dumpInstances() since the replacementInstance
         // slot in _Deleted will be checked against the sliceMap.
         handleDeletions();
@@ -266,6 +269,34 @@ public class SlicingEngine {
         setStableIdReleased();
         handleRevisions();
         updateReviewStatusToSource(eventsWithReviewStatusUpdated);
+    }
+    
+    private void cleanUpNegativePrecedingEvents() throws Exception {
+        logger.info("Cleaning up NegativePrecedingEvents...");
+        // Get all NegativePrecedignEvents that don't have negativeEventValues
+        Set<GKInstance> toBeRemoved = new HashSet<>();
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = (GKInstance) sliceMap.get(dbId);
+            if (!instance.getSchemClass().isa(ReactomeJavaConstants.NegativePrecedingEvent)) {
+                continue;
+            }
+            GKInstance negativeEvent = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.precedingEvent);
+            if (negativeEvent != null)
+                continue; // This is good
+            toBeRemoved.add(instance);
+        }
+        // Go over all events now
+        for (Long dbId : sliceMap.keySet()) {
+            GKInstance instance = (GKInstance) sliceMap.get(dbId);
+            if (!instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.negativePrecedingEvent))
+                continue;
+            List<GKInstance> negativePrecedingEvent = instance.getAttributeValuesList(ReactomeJavaConstants.negativePrecedingEvent);
+            if (negativePrecedingEvent == null || negativePrecedingEvent.size() == 0)
+                continue;
+            negativePrecedingEvent.removeAll(toBeRemoved);
+        }
+        for (GKInstance inst : toBeRemoved)
+            sliceMap.remove(inst.getDBID()); // Don't slice this!
     }
     
     /**

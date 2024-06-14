@@ -73,7 +73,7 @@ public abstract class AbstractAttributeAutoFiller implements AttributeAutoFiller
     public abstract void process(GKInstance instance, Component parentComp) throws Exception;   
 
     public List<GKInstance> getAutoCreatedInstances() {
-        // To avoid exposing the interal data structure
+        // To avoid exposing the internal data structure
         if (autoCreatedInstances == null)
             return new ArrayList<GKInstance>();
         return new ArrayList<GKInstance>(autoCreatedInstances);
