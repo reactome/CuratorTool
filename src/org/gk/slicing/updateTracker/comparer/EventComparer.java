@@ -15,8 +15,11 @@ import java.util.*;
  * @author Joel Weiser (joel.weiser@oicr.on.ca)
  */
 public class EventComparer extends InstanceComparer {
+    private EventMatcher eventMatcher;
+
     public EventComparer(EventMatcher eventMatcher) {
-        super(eventMatcher);
+        super();
+        this.eventMatcher = eventMatcher;
     }
 
     @Override
@@ -209,6 +212,14 @@ public class EventComparer extends InstanceComparer {
             .filter(entry -> entry.getKey().getDBID().equals(previousEvent.getDBID()))
             .findFirst()
             .orElse(null);
+    }
+
+    private Map<GKInstance, GKInstance> getPreviousToCurrentInstanceMap() {
+        return this.eventMatcher.getCurationPreviousToCurrentInstanceMap();
+    }
+
+    private Map<GKInstance, GKInstance> getCurrentToPreviousInstanceMap() {
+        return this.eventMatcher.getCurationCurrentToPreviousInstances();
     }
 
     private List<Action> getSummationActions(GKInstance earlierEvent, GKInstance newEvent) throws Exception {
