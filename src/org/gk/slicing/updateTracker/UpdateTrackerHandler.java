@@ -26,6 +26,8 @@ import org.gk.slicing.updateTracker.model.UpdateTracker;
 public class UpdateTrackerHandler {
     private final static Logger logger = Logger.getLogger(UpdateTracker.class);
 
+    private EventComparer eventComparer;
+
     private DbAdaptorMap dbAdaptorMap;
     private long personId;
 
@@ -42,7 +44,9 @@ public class UpdateTrackerHandler {
     }
 
     public void handleUpdateTrackerInstances(boolean uploadUpdateTrackerInstancesToSource) throws Exception {
+        logger.info("Creating event update tracker instances");
         createAndStoreUpdateTrackerInstances(ComparisonType.EVENT, uploadUpdateTrackerInstancesToSource);
+        logger.info("Creating physical entity update tracker instances");
         createAndStoreUpdateTrackerInstances(ComparisonType.PHYSICAL_ENTITY, uploadUpdateTrackerInstancesToSource);
     }
 
@@ -54,20 +58,22 @@ public class UpdateTrackerHandler {
 
         InstanceMatcher instanceMatcher = getInstanceMatcher(comparisonType);
 
-        System.out.println("Getting " + comparisonType.name() + " instance pairs...");
+        logger.info("Getting " + comparisonType.name() + " instance pairs...");
         Set<Map.Entry<GKInstance,GKInstance>> equivalentInstancePairs =
             instanceMatcher.getCurationCurrentToPreviousInstances().entrySet();
 
-        System.out.println("Instance pairs size: " + equivalentInstancePairs.size());
+        logger.info("Instance pairs size: " + equivalentInstancePairs.size());
         List<GKInstance> toBeUploadedToSrcDBA = new ArrayList<>();
         for (Map.Entry<GKInstance, GKInstance> equivalentInstancePair : equivalentInstancePairs) {
             Set<Action> actions = getInstanceComparer(comparisonType, equivalentInstancePair)
                 .getChanges(equivalentInstancePair);
 
             if (!actions.isEmpty()) {
+                logger.info("Actions " + actions);
                 GKInstance currentInstance = equivalentInstancePair.getValue();
 
                 if (uploadUpdateTrackerInstancesToSource) {
+                    logger.info("Adding toBeUploadedToSrcDBA " + currentInstance);
                     GKInstance sourceInstance = getSourceDBA().fetchInstance(currentInstance.getDBID());
                     GKInstance updateTracker = updateTrackerBuilder
                         .build(sourceInstance, actions)
@@ -75,6 +81,7 @@ public class UpdateTrackerHandler {
                     toBeUploadedToSrcDBA.add(updateTracker);
                 }
 
+                logger.info("Storing instance in current slice dba " + currentInstance);
                 getCurrentSliceDBA().storeInstance(
                     updateTrackerBuilder
                         .build(currentInstance, actions)
@@ -85,14 +92,21 @@ public class UpdateTrackerHandler {
         commitToSourceDB(toBeUploadedToSrcDBA);
     }
 
-    private InstanceComparer getInstanceComparer(ComparisonType comparisonType, Map.Entry<GKInstance, GKInstance> equivalentInstancePair ) throws Exception {
+    private InstanceComparer getInstanceComparer(ComparisonType comparisonType, Map.Entry<GKInstance, GKInstance> equivalentInstancePair) throws Exception {
         InstanceComparer instanceComparer;
         if (comparisonType == ComparisonType.EVENT) {
-            instanceComparer = new EventComparer(new EventMatcher(getPreviousSliceDBA(), getCurrentSliceDBA(), getSourceDBA()));
+            instanceComparer = getEventComparer();
         } else {
             instanceComparer = PhysicalEntityComparerFactory.create(equivalentInstancePair);
         }
         return instanceComparer;
+    }
+
+    private EventComparer getEventComparer() throws Exception {
+        if (this.eventComparer == null) {
+            this.eventComparer = new EventComparer(new EventMatcher(getPreviousSliceDBA(), getCurrentSliceDBA(), getSourceDBA()));
+        }
+        return this.eventComparer;
     }
 
     private InstanceMatcher getInstanceMatcher(ComparisonType comparisonType)
@@ -115,6 +129,7 @@ public class UpdateTrackerHandler {
     private void commitToSourceDB(List<GKInstance> instances) throws Exception {
         if (instances == null || instances.size() == 0)
             return; // Nothing to do.
+        logger.info("Instances to commit source database: " + instances);
         boolean needTransaction = getSourceDBA().supportsTransactions();
         try {
             if (needTransaction) {
