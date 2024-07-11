@@ -1998,9 +1998,15 @@ public class MySQLAdaptor implements PersistenceAdaptor {
 	    Collection<?> c = fetchInstancesByClass(ReactomeJavaConstants._Release);
 	    if (c == null || c.size() == 0)
 	        return null;
-	    GKInstance release = (GKInstance) c.iterator().next();
-	    Integer releaseNumber = (Integer) release.getAttributeValue(ReactomeJavaConstants.releaseNumber);
-	    return releaseNumber;
+	    // There are many _Release instances available. We only need the highest release number
+	    int currentRelease = 0;
+	    for (Iterator<?> it = c.iterator(); it.hasNext();) {
+	        GKInstance release = (GKInstance) it.next();
+	        Integer releaseNumber = (Integer) release.getAttributeValue(ReactomeJavaConstants.releaseNumber);
+	        if (releaseNumber != null && releaseNumber > currentRelease)
+	            currentRelease = releaseNumber;
+	    }
+	    return currentRelease;
 	}
 	
 	private void updateInstanceSinglevalueAttribute (GKInstance instance, SchemaAttribute attribute) throws Exception {
