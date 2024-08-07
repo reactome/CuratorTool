@@ -513,6 +513,9 @@ public class MultipleInstanceEditDialog extends JDialog {
         // set reviewStatus accidentally
         if (attNames.contains(ReactomeJavaConstants.reviewed))
             attNames.remove(ReactomeJavaConstants.reviewed);
+        // Disable internalReviewed too
+        if (attNames.contains(ReactomeJavaConstants.internalReviewed))
+            attNames.remove(ReactomeJavaConstants.internalReviewed);
         Collections.sort(attNames);
         for (Iterator it = attNames.iterator(); it.hasNext();) {
             attributeList.addItem(it.next());
