@@ -136,7 +136,7 @@ public class PathwayHierachyGenerator {
     @Test
     public void checkPathwaysInTopic() throws Exception {
     	MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_current_ver85",
+                "gk_current_ver87",
                 "root",
                 "macmysql01");
     	Long dbId = 1266738L; // Development biology
