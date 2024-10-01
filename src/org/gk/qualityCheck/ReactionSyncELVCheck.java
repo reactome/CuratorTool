@@ -108,14 +108,19 @@ public class ReactionSyncELVCheck extends ReactionELVCheck {
             for (GKInstance rle : rxts) {
                 GKInstance modified = QACheckUtilities.getLatestCuratorIEFromInstance(rle);
                 GKInstance created = (GKInstance) rle.getAttributeValue(ReactomeJavaConstants.created);
+
+                if (created == null) {
+                    System.out.println("Reaction with null created instance: " + rle.getExtendedDisplayName());
+                }
+                
                 String issue = dbIdsToIssue.get(pd.getDBID() + "." + rle.getDBID());
                 String[] colValues = new String[] {
                         pd.getDBID().toString(),
                         pathway.getDisplayName(),
                         pathway.getDBID().toString(),
                         rle.getDBID() + "",
-                        issue == null ? "" : issue,
-                        created.getDisplayName(),
+                        issue != null ? issue : "",
+                        created != null ? created.getDisplayName() : "",
                         modified.getDisplayName()
                 };
                 String detail = String.join("\t", colValues);
