@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
+import org.gk.model.InstanceDisplayNameGenerator;
+import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
 import org.gk.slicing.updateTracker.comparer.EventComparer;
 import org.gk.slicing.updateTracker.comparer.InstanceComparer;
@@ -19,6 +21,7 @@ import org.gk.slicing.updateTracker.matcher.InstanceMatcher;
 import org.gk.slicing.updateTracker.matcher.PhysicalEntityMatcher;
 import org.gk.slicing.updateTracker.model.Action;
 import org.gk.slicing.updateTracker.model.UpdateTracker;
+import org.gk.slicing.updateTracker.utils.DBUtils;
 
 /**
  * @author Joel Weiser (joel.weiser@oicr.on.ca)
@@ -44,16 +47,39 @@ public class UpdateTrackerHandler {
     }
 
     public void handleUpdateTrackerInstances(boolean uploadUpdateTrackerInstancesToSource) throws Exception {
+        if (uploadUpdateTrackerInstancesToSource) {
+        	logger.info("Storing release instance in source database");
+        	storeReleaseInstanceInSourceDatabase();
+        }
         logger.info("Creating event update tracker instances");
         createAndStoreUpdateTrackerInstances(ComparisonType.EVENT, uploadUpdateTrackerInstancesToSource);
         logger.info("Creating physical entity update tracker instances");
         createAndStoreUpdateTrackerInstances(ComparisonType.PHYSICAL_ENTITY, uploadUpdateTrackerInstancesToSource);
     }
+    
+    private void storeReleaseInstanceInSourceDatabase() throws Exception {
+    	GKInstance releaseInstanceFromSlice = getMostRecentReleaseInstance(getCurrentSliceDBA());
+    	GKInstance newReleaseInstance = cloneReleaseInstance(releaseInstanceFromSlice, getSourceDBA());
+    	getSourceDBA().storeInstance(newReleaseInstance);
+    }
+    
+    private GKInstance cloneReleaseInstance(GKInstance releaseInstance, MySQLAdaptor dba) throws Exception {
+    	GKInstance newReleaseInstance = new GKInstance(DBUtils.getSchemaClass(dba, ReactomeJavaConstants._Release));
+    	newReleaseInstance.setDbAdaptor(dba);
+    	newReleaseInstance.setAttributeValue(ReactomeJavaConstants.releaseDate, 
+			releaseInstance.getAttributeValue(ReactomeJavaConstants.releaseDate));
+    	newReleaseInstance.setAttributeValue(ReactomeJavaConstants.releaseNumber, 
+			releaseInstance.getAttributeValue(ReactomeJavaConstants.releaseNumber));
+    	InstanceDisplayNameGenerator.setDisplayName(newReleaseInstance);
+    	return newReleaseInstance;
+    }
 
     private void createAndStoreUpdateTrackerInstances(
         ComparisonType comparisonType, boolean uploadUpdateTrackerInstancesToSource) throws Exception {
 
-        UpdateTracker.UpdateTrackerBuilder updateTrackerBuilder =
+    	UpdateTracker.UpdateTrackerBuilder sourceUpdateTrackerBuilder =
+    		getUpdateTrackerBuilder(getSourceDBA());
+        UpdateTracker.UpdateTrackerBuilder sliceUpdateTrackerBuilder =
             getUpdateTrackerBuilder(getCurrentSliceDBA());
 
         InstanceMatcher instanceMatcher = getInstanceMatcher(comparisonType);
@@ -75,7 +101,7 @@ public class UpdateTrackerHandler {
                 if (uploadUpdateTrackerInstancesToSource) {
                     logger.info("Adding toBeUploadedToSrcDBA " + currentInstance);
                     GKInstance sourceInstance = getSourceDBA().fetchInstance(currentInstance.getDBID());
-                    GKInstance updateTracker = updateTrackerBuilder
+                    GKInstance updateTracker = sourceUpdateTrackerBuilder
                         .build(sourceInstance, actions)
                         .createUpdateTrackerInstance(getSourceDBA());
                     toBeUploadedToSrcDBA.add(updateTracker);
@@ -83,7 +109,7 @@ public class UpdateTrackerHandler {
 
                 logger.info("Storing instance in current slice dba " + currentInstance);
                 getCurrentSliceDBA().storeInstance(
-                    updateTrackerBuilder
+                    sliceUpdateTrackerBuilder
                         .build(currentInstance, actions)
                         .createUpdateTrackerInstance(getCurrentSliceDBA())
                 );
