@@ -407,4 +407,8 @@ public class ReactomeJavaConstants {
     public static final String ThreeStars = "three stars";
     public static final String FourStars = "four stars";
     public static final String FiveStars = "five stars";
+    
+    // RetractionStatus
+    public static final String RetractionStatus = "RetractionStatus";
+    public static final String retractionStatus = "retractionStatus";
 }
