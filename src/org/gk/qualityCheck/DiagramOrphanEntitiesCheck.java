@@ -18,7 +18,7 @@ import org.junit.Test;
  * to any ReactionlikeEvent instance. The results from this check should be the same, 
  * more or less, as ones reported by the diagram-converter T108, isolated glypgh QA checks. 
  * 
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramOrphanEntitiesCheck extends DiagramReactionsCheck {
     

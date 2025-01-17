@@ -30,7 +30,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
     /**
      * Item reported in the QA check.
      *
-     * @author Fred Loney <loneyf@ohsu.edu>
+     * @author Fred Loney loneyf@ohsu.edu
      */
     // TODO - this class and the issue collector mechanism should be pulled up
     // into the superclass as the generic QA check mechanism. Ideally, issues
@@ -92,7 +92,7 @@ public abstract class CompartmentCheck extends SingleAttributeClassBasedCheck {
      * This is the issue column value.
      * 
      * @return the instance issue column value
-     * @see {@link #getIssueTitle()}
+     * @see #getIssueTitle()
      */
     @Override
     protected String getIssue(GKInstance instance) throws Exception {

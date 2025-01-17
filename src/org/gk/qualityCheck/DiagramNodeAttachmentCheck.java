@@ -35,7 +35,7 @@ import org.junit.Test;
  * are correctly displayed in pathway diagrams. The output should be similar to that of the
  * diagram-converter T114 and T115 checks.
  * 
- * @author Fred Loney <loneyf@ohsu.edu> & Guanming Wu <wug@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu and Guanming Wu wug@ohsu.edu
  */
 @SuppressWarnings("unchecked")
 public class DiagramNodeAttachmentCheck extends AbstractPathwayDiagramCheck {

@@ -571,7 +571,7 @@ public class CuratorActionCollection {
         Thread t = new Thread() {
             public void run() {
                 try {
-                    yield(); // Make sure progDialog.setVisible is called first.
+                    Thread.yield(); // Make sure progDialog.setVisible is called first.
                     MODReactomeAnalyzer merger = new MODReactomeAnalyzer();
                     merger.setModReactome(modDba);
                     progressDialog.setText("Checking instances in the MOD database...");
@@ -1012,7 +1012,8 @@ public class CuratorActionCollection {
 				GKSchemaClass cls = schemaPane.getSelectedClass();
 				if (cls.isAbstract()) {
 					JOptionPane.showMessageDialog(dialog,
-					                              "\"" + cls.getName() + "\" is an abstract class. An abstract class cannot " +					                              "have instances.\nPlease select a non-abstract class.",
+					                              "\"" + cls.getName() + "\" is an abstract class. An abstract class cannot " +
+					                              "have instances.\nPlease select a non-abstract class.",
 					                              "Error",
 					                              JOptionPane.ERROR_MESSAGE);
 					return;

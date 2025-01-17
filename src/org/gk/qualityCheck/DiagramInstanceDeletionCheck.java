@@ -23,7 +23,7 @@ import org.junit.Test;
  * Although this class performs a specific QA check, subclasses
  * can extend it to perform other diagram checks.
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramInstanceDeletionCheck extends AbstractPathwayDiagramCheck {
 

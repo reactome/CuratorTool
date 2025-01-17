@@ -32,8 +32,7 @@ public class StarSystemHelper {
     /**
      * Extract ReviewStatus instances. All ReviewStatus instances are collected regardless whether
      * they are used or not.
-     * @param sourceDBA
-     * @param sliceMap
+     * @param dba
      * @throws Exception
      */
     public Collection<GKInstance> extractReviewStatus(MySQLAdaptor dba) throws Exception {

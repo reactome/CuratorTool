@@ -335,7 +335,7 @@ public class PhysicalEntityRename {
     /**
      * About 5,000 human EWASes are missed from the first time renaming effor.
      * This method is used to rename those missed EWASes.
-     * @throws Execption
+     * @throws Exception
      */
     @Test
     public void renameMissedEWASes() throws Exception {

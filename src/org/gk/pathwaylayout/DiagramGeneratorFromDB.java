@@ -668,9 +668,8 @@ public class DiagramGeneratorFromDB {
      * Disease and normal pathway sharing the same pathway diagram. If isNormalInDisease is true,
      * only objects related to normal pathways should be drawn.
      * @param diagram
+     * @param pathway
      * @param pathwayDir
-     * @param isForDisease
-     * @param isNormalInDisease
      * @return
      * @throws Exception
      */
@@ -915,7 +914,7 @@ public class DiagramGeneratorFromDB {
     
     /**
      * This helper method is used to grep a list of DB_IDs for pathways having diagrams available.
-     * @param dbda
+     * @param dba
      * @return
      * @throws Exception
      */

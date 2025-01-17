@@ -63,7 +63,6 @@ public class DiseasePathwayImageEditorViaEFS extends DiseasePathwayImageEditor {
      * Overlay a single disease reaction onto a normal reaction.
      * @param normalReaction
      * @param diseaseReaction
-     * @param overlaidObjects
      */
     @Override
     @SuppressWarnings("unchecked")

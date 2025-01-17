@@ -31,7 +31,6 @@ public class ComparingReactionsInSkyModel {
 
     /**
      * Get the list of reactions that should be in the sky.
-     * @param releasedPathways a list of top-level pathway instances.
      * @return
      */
     public List getReactionsInSky() {

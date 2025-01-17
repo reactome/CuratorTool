@@ -107,7 +107,7 @@ public class PantherPathwayImporter {
         Thread t = new Thread() {
             public void run() {
                 try {
-                    yield(); // Make sure progDialog.setVisible is called first.
+                    Thread.yield(); // Make sure progDialog.setVisible is called first.
                     importPathways(pathways);
                 }
                 catch(Exception e) {

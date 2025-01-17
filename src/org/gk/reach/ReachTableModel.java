@@ -73,7 +73,6 @@ public class ReachTableModel extends AbstractTableModel {
 	 * Add REACH data to the given table.
 	 *
 	 * @param dataObjects
-	 * @throws IOException 
 	 */
     public void setReachData(List<FriesObject> dataObjects) {
         tableData.clear();

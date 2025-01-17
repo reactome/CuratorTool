@@ -220,7 +220,6 @@ public class ReachResultTableFrame extends JFrame {
      * Add FRIES data to table.
      *
      * @param friesObjects
-     * @throws Exception
      */
     public void setReachData(List<FriesObject> friesObjects) {
         ReachTableModel tableModel = (ReachTableModel) eventTable.getModel();

@@ -110,7 +110,7 @@ public class QAReport {
     
     /**
      * This method is for debugging purpose.
-     * @param builder
+     * @param maximumRow
      */
     public void output(int maximumRow) {
         List<String> headers = getHeaders();

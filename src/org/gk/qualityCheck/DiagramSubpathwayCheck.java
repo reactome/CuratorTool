@@ -19,7 +19,7 @@ import org.gk.persistence.MySQLAdaptor;
  * which has a diagram. The report lists the reactions which
  * are not contained in the embedding diagram.
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramSubpathwayCheck extends PathwayELVCheck {
 

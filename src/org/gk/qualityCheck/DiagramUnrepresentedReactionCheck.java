@@ -15,7 +15,7 @@ import org.gk.schema.InvalidAttributeException;
  * This QA check reports human, normal reactions which are not
  * represented in a diagram.
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramUnrepresentedReactionCheck extends AbstractQualityCheck {
 

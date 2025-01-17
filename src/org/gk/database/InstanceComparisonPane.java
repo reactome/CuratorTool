@@ -466,7 +466,6 @@ public class InstanceComparisonPane extends JPanel {
 	/**
 	 * Refactored method for subclassing.
 	 * @param merged
-	 * @param adaptor
 	 */
 	protected void replaceFirstInstance(GKInstance merged) {
 		ComparisonTableModel model = (ComparisonTableModel) table.getModel();

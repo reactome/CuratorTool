@@ -101,7 +101,9 @@ public class InstanceUtilities {
 	
 	/**
 	 * Determine if the editing is a structure related update.
-	 * @param e
+	 * @param instance
+	 * @param attributeName
+	 * @param action
 	 * @return
 	 */
     public static boolean isStructralUpdate(GKInstance instance, 

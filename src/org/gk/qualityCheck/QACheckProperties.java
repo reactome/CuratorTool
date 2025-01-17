@@ -20,7 +20,7 @@ import org.apache.log4j.Logger;
  * 
  * <em>Note</em>: this service is only used for command line execution.
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class QACheckProperties {
 

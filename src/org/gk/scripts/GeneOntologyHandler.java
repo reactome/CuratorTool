@@ -121,7 +121,7 @@ public class GeneOntologyHandler {
     
     /**
      * Generate a network for the surroundedBy relationships that can be viewed in Cytoscape.
-     * @throws IOExeption
+     * @throws IOException
      */
     @Test
     public void outputGOSurrounedBy() throws IOException {

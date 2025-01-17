@@ -314,7 +314,6 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * Overlay a single disease reaction onto a normal reaction.
      * @param normalReaction
      * @param diseaseReaction
-     * @param overlaidObjects
      */
     protected void overlayDiseaseReaction(HyperEdge normalReaction,
                                           GKInstance diseaseReaction) throws Exception {
@@ -492,11 +491,12 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
      * Map mutated nodes in a disease reaction to displayed nodes in a normal reaction. The mapping
      * is based on sharing of referenceEntity. This may not be reliable!
      * @param diseaseReaction
-     * @param nodes
+     * @param normalReaction
+     * @param lofInstances
      * @throws InvalidAttributeException
      * @throws Exception
-     * @TODO: add a new attribute normalEntity in the PhysicalEntity class.
      */
+    // TODO: add a new attribute normalEntity in the PhysicalEntity class.
     protected Map<Node, GKInstance> mapNormalToMutatedEntity(GKInstance diseaseReaction,
                                                              HyperEdge normalReaction,
                                                              Set<GKInstance> lofInstances) throws InvalidAttributeException, Exception {
@@ -652,7 +652,7 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     /**
      * In case where MySQLAdaptor cache is turned off, GKInstances having the same DB_IDs from the database
      * are different during different queries. Using this helper method to check if a GKInstance is contained
-     * in a Collection<GKInstance> created in different time point. 
+     * in a Collection of GKInstances created in different time point.
      * @param inst
      * @param c
      * @return

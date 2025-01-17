@@ -39,7 +39,7 @@ import org.gk.schema.SchemaClass;
  * The subclass should set the {@link #checkAttribute} field if and
  * only if a single attribute should be displayed in progress messages.
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCheck {
     
@@ -208,13 +208,13 @@ public abstract class SingleAttributeClassBasedCheck extends ClassBasedQualityCh
      * This is the issue column value.
      * 
      * @return the instance issue column value
-     * @see {@link #getIssueTitle()}
+     * @see #getIssueTitle()
      */
     protected abstract String getIssue(GKInstance instance) throws Exception; 
     
     /**
      * @return the issue column heading
-     * @see {@link #getIssueTitle()}
+     * @see #getIssueTitle()
      */
     protected String getIssueTitle() {
         return "Issue";

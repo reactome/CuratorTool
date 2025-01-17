@@ -37,7 +37,7 @@ import org.junit.Test;
  * 1). Assign specific type to BlackBoxEvent as transition, association, or dissociation
  * 2). Use the generic transition to other types.
  * 
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramReactionShapeCheck extends DiagramReactionsCheck {
     

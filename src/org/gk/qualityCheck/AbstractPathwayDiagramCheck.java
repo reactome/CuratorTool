@@ -39,7 +39,7 @@ import org.gk.schema.InvalidAttributeException;
  * {@link SingleAttributeClassBasedCheck} is extended because it provides
  * convenient reporting functionality.  
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBasedCheck {
 
@@ -69,7 +69,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
      * The headers for the diagram db id, pathway name, pathway db id,
      * issue and author columns.
      * 
-     * @see {@link #getReportLines(GKInstance)}
+     * @see #getReportLines(GKInstance)
      */
     @Override
     protected String[] getColumnHeaders() {
@@ -84,7 +84,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
      * issue and most recent author columns.
      * 
      * @param instance the pathway diagram instance with an issue
-     * @see {@link #getIssue(GKInstance)}
+     * @see #getIssue(GKInstance)
      */
     @Override
     protected String[][] getReportLines(GKInstance instance) throws Exception {
@@ -212,7 +212,7 @@ abstract public class AbstractPathwayDiagramCheck extends SingleAttributeClassBa
      * 
      * The table title is specific to the missing db id check.
      * Subclasses should override either this method or
-     * {@link #getResultTableModel(String)}.
+     * #getResultTableModel(String).
      */
     @Override
     protected ResultTableModel getResultTableModel() throws Exception {

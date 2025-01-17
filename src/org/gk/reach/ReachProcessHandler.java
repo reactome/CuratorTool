@@ -35,8 +35,6 @@ public abstract class ReachProcessHandler {
     /**
      * The user interface entry point for submit a job to the WS servlet.
      * @param parent
-     * @throws IOException
-     * @throws IOException
      */
     public void submitPMCIDs(ReachResultTableFrame parent) {
         if (!ensureRequirements(parent))

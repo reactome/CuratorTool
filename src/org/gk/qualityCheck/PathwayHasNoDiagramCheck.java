@@ -21,7 +21,7 @@ import org.junit.Test;
  * as having an associated diagram if it has its own PathwayDiagram or its contained RLEs
  * are drawn in its ancestor pathway diagram.
  *
- * @author Fred Loney <loneyf@ohsu.edu> & Guanming Wu <wug@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu and Guanming Wu wug@ohsu.edu
  */
 public class PathwayHasNoDiagramCheck extends PathwayELVCheck {
 

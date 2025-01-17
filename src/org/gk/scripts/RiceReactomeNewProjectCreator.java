@@ -22,9 +22,9 @@ import org.junit.Test;
  * 2). Find all new instances created by the above IEs
  * 3). Find all modified instances create by the above IEs. Two cases in the modified instances:
  *   i>. modified instances are dumped from the rice_reactome project: instances have
- *    DB_IDs > max_ids from original gk_central
+ *    DB_IDs greater than max_ids from original gk_central
  *   ii> modified instances are from the original Reactome gk_central database: instances have 
- *   DB_IDs <= max_id from original gk_central
+ *   DB_IDs less than or equal to max_id from original gk_central
  * 4). Check out instances from both 2 and 3. Flip instances from 2) and 3.i to negative DB_IDs 
  * to mark them as new instances. Keep original DB_IDs for instances from 3.ii. 
  * 5). The new project should work against a new updated rice_reactome_database by manual 

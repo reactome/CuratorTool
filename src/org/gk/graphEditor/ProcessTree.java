@@ -159,7 +159,8 @@ public class ProcessTree extends JTree {
 	
 	/**
 	 * A recursive method to insert components to parent node.
-	 * @param objs
+	 * @param parentNode
+	 * @param parent
 	 */
 	protected void insertChildren(DefaultMutableTreeNode parentNode, Renderable parent) {
 		if (parent.getComponents() != null) {

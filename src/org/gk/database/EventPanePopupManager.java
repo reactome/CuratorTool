@@ -181,7 +181,7 @@ public class EventPanePopupManager {
             public void run() {
                 try {
                     //long time1 = System.currentTimeMillis();
-                    yield(); // Make sure progDialog.setVisible is called first.
+                    Thread.yield(); // Make sure progDialog.setVisible is called first.
                     progDialog.setText("Pulling instances out of the database...");
                     GKInstance event = (GKInstance) eventNode.getUserObject();
                     EventCheckOutHandler handler = new EventCheckOutHandler();

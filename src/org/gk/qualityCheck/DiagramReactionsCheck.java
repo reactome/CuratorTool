@@ -102,7 +102,7 @@ public abstract class DiagramReactionsCheck extends AbstractPathwayDiagramCheck 
     /**
      * Returns the <code>DB_IDs</code> values of event objects in the given diagram.
      * 
-     * @param instance the PathwayDiagram instance
+     * @param diagram
      * @return the db ids
      */
     protected Collection<Long> getDisplayedEventIds(RenderablePathway diagram) throws Exception {
@@ -114,7 +114,7 @@ public abstract class DiagramReactionsCheck extends AbstractPathwayDiagramCheck 
     /**
      * Returns the ReactomeRenderable objects in the given diagram.
      * 
-     * @param instance the PathwayDiagram instance
+     * @param diagram
      * @return the ReactomeRenderable objects
      */
     protected Collection<RenderableReaction> getDisplayedRLEes(RenderablePathway diagram) throws Exception {

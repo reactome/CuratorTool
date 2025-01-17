@@ -101,7 +101,7 @@ public class PsiModAttributeAutoFiller extends AbstractAttributeAutoFiller {
     /**
      * Default implementation used as a template.
      * @param instance
-     * @param term
+     * @param termId
      * @param services
      * @throws Exception
      */

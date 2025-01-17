@@ -17,7 +17,7 @@ import org.gk.schema.SchemaClass;
  * equal the species of its participants. Both the <code>species</code>
  * and <code>relatedSpecies</code> values are used. 
  *
- * @author Fred Loney <loneyf@ohsu.edu>
+ * @author Fred Loney loneyf@ohsu.edu
  */
 public class ReactionSpeciesCheck extends SpeciesCheck {
     private ReactionQACheckHelper qaHelper;
