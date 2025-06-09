@@ -1,5 +1,8 @@
 package org.gk.qualityCheck;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -361,21 +364,54 @@ public class ReviewStatusSlotCheck extends SingleAttributeClassBasedCheck {
                             latestDataTimeText
             };
         }
-
-        /**
-         * Grep the latest dateTime from the passed InstanceEdit instance list.
-         * @param ies
-         * @return
-         */
-        private GKInstance getLatestIE(List<GKInstance> ies) throws Exception {
-            if (ies == null || ies.size() == 0)
-                return null;
-            // The last IE should have the latest date time
-            GKInstance ie = ies.get(ies.size() - 1);
-            return ie;
-        }
-
+    }
+    
+    /**
+     * Grep the latest dateTime from the passed InstanceEdit instance list.
+     * @param ies
+     * @return
+     */
+    private GKInstance getLatestIE(List<GKInstance> ies) throws Exception {
+        if (ies == null || ies.size() == 0)
+            return null;
+        // The last IE should have the latest date time
+        GKInstance ie = ies.get(ies.size() - 1);
+        return ie;
     }
 
+    
+    /**
+     * Helper method to dump some essential information (DB_ID, class, and _displayName)
+     * into a simple text file.
+     * @param file
+     * @param instances
+     */
+    @Override
+    protected void dumpInstancesToFile(File file,
+                                       List instances) {
+        try {
+            FileWriter writer = new FileWriter(file);
+            PrintWriter printWriter = new PrintWriter(writer);
+            // Generate a simple text file
+            // Output format is: DB_ID\tClass\t_displayName
+            printWriter.println("DB_ID\tSchemaClass\tdisplayName\tIssue\tlastStructuredModified");
+            for (Object obj : instances) {
+                GKInstance instance = (GKInstance) obj;
+                List<GKInstance> structureModified = instance.getAttributeValuesList(ReactomeJavaConstants.structureModified);
+                GKInstance latestIE = getLatestIE(structureModified);
+                printWriter.println(instance.getDBID() + "\t" + 
+                                    instance.getSchemClass().getName() + "\t" + 
+                                    instance.getDisplayName() + "\t" + 
+                                    this.inst2issue.get(instance) + "\t" +
+                                    latestIE + "");
+            }
+            printWriter.close();
+            writer.close();
+        }
+        catch(Exception e) {
+            System.err.println("AbstractQualityCheck.dumpInstancesToFile(): " + e);
+            e.printStackTrace();
+        }
+    }
 
 }

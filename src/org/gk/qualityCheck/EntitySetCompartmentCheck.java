@@ -18,6 +18,7 @@ import org.gk.persistence.MySQLAdaptor;
 /**
  * This class is used to check EntitySetCompartment. This is a very simple check
  * to make sure EntitySet and its members have the same compartment setting.
+ * 
  * @author wgm
  *
  */
@@ -29,10 +30,7 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
 
     public EntitySetCompartmentCheck() {
         checkClsName = ReactomeJavaConstants.EntitySet;
-        followAttributes = new String[] {
-                ReactomeJavaConstants.hasMember,
-                ReactomeJavaConstants.hasCandidate
-        };
+        followAttributes = new String[] { ReactomeJavaConstants.hasMember, ReactomeJavaConstants.hasCandidate };
     }
 
     @Override
@@ -51,16 +49,12 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
         if (progressPane != null)
             progressPane.setText("Load PhysicalEntity compartment...");
 
-        for (GKInstance instance : toBeLoaded)
-        {
+        for (GKInstance instance : toBeLoaded) {
             // PhysicalEntity does not have a "compartment" attribute anymore,
             // but many subclasses may have this attribute.
-            if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment))
-            {
-                loadAttributes(Arrays.asList(instance),
-                    instance.getSchemClass().getName(),
-                    ReactomeJavaConstants.compartment,
-                    dba);
+            if (instance.getSchemClass().isValidAttribute(ReactomeJavaConstants.compartment)) {
+                loadAttributes(Arrays.asList(instance), instance.getSchemClass().getName(),
+                        ReactomeJavaConstants.compartment, dba);
             }
 
         }
@@ -73,16 +67,18 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
 
     @Override
     /**
-     * Compartments used by an EntitySet's members should be the same as
-     * its container EntitySet instance.
+     * Compartments used by an EntitySet's members should be the same as its
+     * container EntitySet instance.
      *
      * @param container
      * @param containedCompartments
      * @param containerCompartments
      * @return
      */
-    protected Issue getIssue(GKInstance container, Set<GKInstance> containedCompartments,
-            List<GKInstance> containerCompartments) throws Exception {
+    protected Issue getIssue(GKInstance container,
+                             Set<GKInstance> containedCompartments,
+                             List<GKInstance> containerCompartments)
+            throws Exception {
         // Check if there are more than two member compartments.
         if (containedCompartments.size() > 2) {
             return new Issue(TOO_MANY_MEMBER_COMPARTMENTS, containedCompartments);
@@ -105,44 +101,41 @@ public class EntitySetCompartmentCheck extends CompartmentCheck {
         return null;
     }
 
-    private Issue createMismatchIssue(Set<GKInstance> containedCompartments,
-            List<GKInstance> containerCompartments) throws Exception {
+    private Issue createMismatchIssue(Set<GKInstance> containedCompartments, List<GKInstance> containerCompartments)
+            throws Exception {
         Set<GKInstance> shared = new HashSet<GKInstance>(containedCompartments);
-                shared.retainAll(containerCompartments);
-                containedCompartments.removeAll(shared);
-                containerCompartments.removeAll(shared);
-                StringBuilder builder = new StringBuilder();
-                builder.append(COMPARTMENTS_MISMATCH);
-                builder.append(": ");
-                if (containerCompartments.size() > 0) {
-                    builder.append("EntitySet:");
-                    containerCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
-                    builder.deleteCharAt(builder.length() - 1);
-                }
-                if (containedCompartments.size() > 0) {
-                    if (builder.length() > 0)
-                        builder.append("; ");
-                    builder.append("Members:");
-                    containedCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
-                    builder.deleteCharAt(builder.length() - 1);
-                }
+        shared.retainAll(containerCompartments);
+        containedCompartments.removeAll(shared);
+        containerCompartments.removeAll(shared);
+        StringBuilder builder = new StringBuilder();
+        builder.append(COMPARTMENTS_MISMATCH);
+        builder.append(": ");
+        if (containerCompartments.size() > 0) {
+            builder.append("EntitySet:");
+            containerCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        if (containedCompartments.size() > 0) {
+            if (builder.length() > 0)
+                builder.append("; ");
+            builder.append("Members:");
+            containedCompartments.forEach(c -> builder.append(c.getDisplayName()).append(","));
+            builder.deleteCharAt(builder.length() - 1);
+        }
         String text = builder.toString();
 
         return new Issue(text);
     }
 
-    protected void grepCheckOutInstances(GKInstance complex,
-                                         Set<GKInstance> checkOutInstances) throws Exception {
+    protected void grepCheckOutInstances(GKInstance complex, Set<GKInstance> checkOutInstances) throws Exception {
         Set<GKInstance> components = getAllContainedEntities(complex);
         checkOutInstances.addAll(components);
     }
 
     protected ResultTableModel getResultTableModel() {
         ResultTableModel tableModel = new ComponentTableModel();
-        tableModel.setColNames(new String[] {"Member", "Compartment"});
+        tableModel.setColNames(new String[] { "Member", "Compartment" });
         return tableModel;
     }
-
-
 
 }

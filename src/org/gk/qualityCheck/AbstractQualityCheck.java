@@ -558,8 +558,8 @@ public abstract class AbstractQualityCheck implements QualityCheck {
      * @param file
      * @param instances
      */
-    private void dumpInstancesToFile(File file,
-                                     List instances) {
+    protected void dumpInstancesToFile(File file,
+                                       List instances) {
         try {
             FileWriter writer = new FileWriter(file);
             PrintWriter printWriter = new PrintWriter(writer);
