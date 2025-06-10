@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,6 +79,8 @@ public class StarSystemHelper {
      * the slicing or release, this newly Event is flagged for not releasing. Therefore, the original pathway structure 
      * that is determined by "hasEvent" is reverted back. Therefore, we should copy the original star from the previous release
      * (or slice) back to this slice. In reality, we copy a higher star to any lower star if a pathway's hasEvent is not changed.
+     * (Added on June 9, 2025) To avoid flagging the pathway for the ReviewStatus QA, we also make sure that the list of 
+     * structureModified instances are the same as in the old slice database after copying the reviewStatus.
      * @param sourceDBA
      * @param priorDBA
      * @param sliceMap
@@ -144,6 +147,32 @@ public class StarSystemHelper {
                             reviewStatus.getDisplayName());
                 inst.setAttributeValue(ReactomeJavaConstants.reviewStatus,
                                        star2inst.get(oldReviewStatus.getDisplayName()));
+                // Make sure the list of structureModified instances are the same as in the old slice database.
+                // By doing this, we can avoid to flag this pathway for the ReviewStatus QA during the release.
+                List<GKInstance> structureModified = inst.getAttributeValuesList(ReactomeJavaConstants.structureModified);
+                if (structureModified != null && structureModified.size() > 0) {
+                    // Reset the structureModified list
+                    boolean isModified = false;
+                    List<GKInstance> oldStructureModified = oldInst.getAttributeValuesList(ReactomeJavaConstants.structureModified);
+                    Set<Long> oldStructureModifiedIds = new HashSet<>();
+                    if (oldStructureModified != null && oldStructureModified.size() > 0) {
+                        oldStructureModifiedIds = oldStructureModified.stream()
+                                                                      .map(GKInstance::getDBID)
+                                                                      .collect(Collectors.toSet());
+                    }
+                    for (Iterator<GKInstance> it = structureModified.iterator(); it.hasNext();) {
+                        GKInstance sm = it.next();
+                        if (!oldStructureModifiedIds.contains(sm.getDBID())) {
+                            // This is not in the old structureModified. Remove it.
+                            it.remove();
+                            isModified = true;
+                        }
+                    }
+                    if (isModified) {
+                        // Update the structureModified
+                        inst.setAttributeValue(ReactomeJavaConstants.structureModified, structureModified);
+                    }
+                }
                 updatedPathways.add(inst);
             }
         }
