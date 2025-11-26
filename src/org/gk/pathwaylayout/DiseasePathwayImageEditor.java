@@ -56,7 +56,9 @@ import org.gk.schema.InvalidAttributeException;
 import org.gk.util.DialogControlPane;
 
 /**
- * This customized PathwayEditor is used to draw disease related pathway.
+ * This customized PathwayEditor is used to draw disease related pathway. 
+ * This class is more like an abstract class now. Use DiseasePathwayImageEditorViaEFS
+ * instead for the actual rendering and XML generation.
  * @author gwu
  *
  */
@@ -79,6 +81,10 @@ public class DiseasePathwayImageEditor extends PathwayEditor {
     // only one copy disease node is needed to create per DB_ID
     private Map<Node, Map<Long,Node>> normalToDBIDToDiseaseNode;
     
+    /**
+     * Default constructor.
+     */
+    @Deprecated
     public DiseasePathwayImageEditor() {
     }
     

@@ -37,14 +37,10 @@ public class DefaultFlowLineRenderer extends DefaultReactionRenderer {
         Stroke oldStroke = g2.getStroke();
         Stroke lineStroke = new BasicStroke(flowLine.getLineWidth());
         g2.setStroke(lineStroke);
-        // These are the control points for a reaction
-        Point inputHub, reactionHub, outputHub;
         // Only the backbone needs to be drawn
         Point prevP, nextP = null; // For drawing line segments
         List<Point> backbonePoints = flowLine.getBackbonePoints();
-        inputHub = (Point) backbonePoints.get(0);
-        outputHub = (Point) backbonePoints.get(backbonePoints.size() - 1);
-        reactionHub = flowLine.getPosition();
+        Point outputHub = (Point) backbonePoints.get(backbonePoints.size() - 1);
         // This list should have no less than three elements 
         prevP = (Point) backbonePoints.get(0);
         for (int i = 1; i < backbonePoints.size(); i++) {
