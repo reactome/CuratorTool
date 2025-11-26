@@ -411,4 +411,6 @@ public class ReactomeJavaConstants {
     // RetractionStatus
     public static final String RetractionStatus = "RetractionStatus";
     public static final String retractionStatus = "retractionStatus";
+    
+    public static final String PhysicalEntityCellType = "PhysicalEntityCellType";
 }
