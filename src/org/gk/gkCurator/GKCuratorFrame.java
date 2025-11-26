@@ -99,8 +99,8 @@ public class GKCuratorFrame extends JFrame implements Launchable {
     // System info
     public static final String CURATOR_TOOL_NAME = "Reactome Curator Tool";
     public static final String PROJECT_EXT_NAME = ".rtpj";
-    public static final String VERSION = "4.0.3 (March 3, 2024)";
-    public static final int BUILD_NUMBER = 118;
+    public static final String VERSION = "4.0.4 (November 26, 2025)";
+    public static final int BUILD_NUMBER = 119;
     static final String QA_MENU_TEXT = "QA Check";
     // For tab title
     private final String PROJECT_TITLE = "Event Hierarchical View";

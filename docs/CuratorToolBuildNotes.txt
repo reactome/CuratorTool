@@ -1,3 +1,9 @@
+Build 119 (Version 4.0.4) note (November 26, 2025)
+
+1). Updated the auto-fetch script for ReferenceTherapeutic to use the new Guide To Pharmacology - Ligands reference database name.
+2). Added a method to genreate display name for PhysicalEntityCellType instances.
+3). Updated to use the latest gk_central schema for cell type specific pathway annoation.
+
 Build 118 (Version 4.0.3) note (March 3, 2024)
 
 This build is created to fix a bug related to updating the review status: When an instance (e.g. a reaction) is deleted from the local project, the container's review status (e.g. a pathway has the reaction in its hasEvent slot) is not updated. The following changes have been made in this build:
