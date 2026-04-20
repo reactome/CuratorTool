@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.log4j.Logger;
 import org.gk.model.GKInstance;
 import org.gk.model.ReactomeJavaConstants;
 import org.gk.persistence.MySQLAdaptor;
@@ -22,6 +24,7 @@ import org.gk.persistence.MySQLAdaptor;
  * @author Fred Loney loneyf@ohsu.edu
  */
 public class DiagramSubpathwayCheck extends PathwayELVCheck {
+    private static Logger logger = Logger.getLogger(DiagramSubpathwayCheck.class);
 
     private static class Detail {
         GKInstance embedder;
@@ -97,6 +100,11 @@ public class DiagramSubpathwayCheck extends PathwayELVCheck {
             // Skip non-human pathways.
             GKInstance species =
                     (GKInstance) pathway.getAttributeValue(ReactomeJavaConstants.species);
+            if (species == null) {
+                logger.error(pathway + " has no species instance");
+                continue;
+            }
+
             if (!HUMAN.equals(species.getDisplayName())) {
                 continue;
             }
