@@ -86,7 +86,7 @@ public class UpdateTrackerHandler {
 
         logger.info("Getting " + comparisonType.name() + " instance pairs...");
         Set<Map.Entry<GKInstance,GKInstance>> equivalentInstancePairs =
-            instanceMatcher.getCurationCurrentToPreviousInstances().entrySet();
+            instanceMatcher.getCurationPreviousToCurrentInstanceMap().entrySet();
 
         logger.info("Instance pairs size: " + equivalentInstancePairs.size());
         List<GKInstance> toBeUploadedToSrcDBA = new ArrayList<>();
