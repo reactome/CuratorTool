@@ -1,3 +1,7 @@
+Build 120 (Version 4.0.5) note (June 29, 2026)
+
+1). Updated the code so that "Build Project" can be done when the curator tool connects to ext.curator.reactome.org for the database event view.
+
 Build 119 (Version 4.0.4) note (November 26, 2025)
 
 1). Updated the auto-fetch script for ReferenceTherapeutic to use the new Guide To Pharmacology - Ligands reference database name.
