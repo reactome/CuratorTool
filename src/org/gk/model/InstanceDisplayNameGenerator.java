@@ -121,6 +121,8 @@ public class InstanceDisplayNameGenerator {
                 return generateDeletedName(instance);
             if (schemaClass.isa(ReactomeJavaConstants._DeletedInstance))
                 return generateDeletedInstanceName(instance);
+            if (schemaClass.isa(ReactomeJavaConstants.PhysicalEntityCellType))
+                return generatePhysicalEntityCellTypeName(instance);
             if (schemaClass.isValidAttribute("name")) {
                 java.util.List list = instance.getAttributeValuesList("name");
                 if (list != null && list.size() > 0) 
@@ -165,6 +167,22 @@ public class InstanceDisplayNameGenerator {
         GKInstance updatedEvent = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.updatedEvent);
         Long updatedEventDBID = updatedEvent.getDBID();
         return "Revision of instance: " + updatedEventDBID;
+    }
+    
+    private static String generatePhysicalEntityCellTypeName(GKInstance instance) throws InvalidAttributeException, Exception {
+        String peName = null;
+        GKInstance pe = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.physicalEntity);
+        if (pe != null)
+            peName = pe.getDisplayName();
+        else
+            peName = "unknown physical entity";
+        String cellName = null;
+        GKInstance cell = (GKInstance) instance.getAttributeValue(ReactomeJavaConstants.cell);
+        if (cell != null)
+            cellName = cell.getDisplayName();
+        else
+            cellName = "unknown cell type";
+        return peName + " in " + cellName;
     }
 
     private static String generateReleaseName(GKInstance instance) throws InvalidAttributeException, Exception {

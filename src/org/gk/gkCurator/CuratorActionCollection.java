@@ -1271,6 +1271,9 @@ public class CuratorActionCollection {
         // Check the connection information
         MySQLAdaptor dba = PersistenceManager.getManager().getActiveMySQLAdaptor();
         String dbHost = dba.getDBHost();
+        // Get rid of dbHost. This is a hack for cloudflare. The host name is not the same as the one used in the URL.
+        if (dbHost.equals("ext.curator.reactome.org"))
+            dbHost = "curator.reactome.org";
         // Check if there is a service available
         String url = AttributeEditConfig.getConfig().getPDUrl();
         // Get the defined host
