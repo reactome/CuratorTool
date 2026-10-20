@@ -24,7 +24,8 @@ import org.junit.Test;
 /**
  * This class is used to check if any pubmed ids that are used in Reactome have been retracted.
  * The retraction list is downloaded from https://api.labs.crossref.org/data/retractionwatch?name@email.org
- * and saved locally for performance.
+ * and saved locally for performance. To run this class, please download the latest retraction list and also
+ * the latest gk_central database.
  * @author wug
  *
  */
@@ -32,11 +33,13 @@ import org.junit.Test;
 public class LiteratureReferenceRetractionChecker {
     // This is hard-coded and should be updated every year.
 //    private String dir = "/Volumes/ssd/datasets/retraction_watch/2023/";
-    private String dir = "/Volumes/ssd/datasets/retraction_watch/2024/";
+//    private String dir = "/Volumes/ssd/datasets/retraction_watch/2024/";
+    private String dir = "/Volumes/ssd/datasets/retraction_watch/2025/";
     
     private String retractionFile = dir + "retractions.csv";
 //    private String outputFile = dir + "retraction_in_Reactome_11292023.tsv";
-    private String outputFile = dir + "retraction_in_Reactome_10012024.tsv";
+//    private String outputFile = dir + "retraction_in_Reactome_10012024.tsv";
+    private String outputFile = dir + "retraction_in_Reactome_10062025.tsv";
     
     public LiteratureReferenceRetractionChecker() {
     }
@@ -49,7 +52,7 @@ public class LiteratureReferenceRetractionChecker {
 //                "macmysql01");
         // 2024
         MySQLAdaptor dba = new MySQLAdaptor("localhost",
-                "gk_central_10012024",
+                "gk_central_10062025",
                 "root",
                 "macmysql01");
         return dba;
@@ -140,7 +143,8 @@ public class LiteratureReferenceRetractionChecker {
     public void checkLiteratureReferences() throws Exception {
         FileUtilities fu = new FileUtilities();
         fu.setOutput(outputFile);
-        fu.printLine("LitRef_DBID\tLitRef_DisplayName\tPubMedId\tReferrer_DBID"
+        fu.printLine("LitRef_DBID\tLitRef_DisplayName\tPubMedId\tRetraction_Status\tComment"
+                + "\tReferrer_DBID"
                 + "\tReferrer_DisplayName\tReferrer_SchemaClass\tReferer_FirstIE"
                 + "\tReferrer_LastIE\tReferrer_Release_Status\tReferrer_Other_PMIDs");
         // Use string on purpose in case there is any format error.
@@ -198,6 +202,11 @@ public class LiteratureReferenceRetractionChecker {
     }
     
     private void generateReport(GKInstance literatureReference, FileUtilities fu) throws Exception {
+        GKInstance retractionStatus = (GKInstance) literatureReference.getAttributeValue(ReactomeJavaConstants.retractionStatus);
+        String statusText = retractionStatus == null ? "" : retractionStatus.getDisplayName();
+        String comment = (String) literatureReference.getAttributeValue(ReactomeJavaConstants.comment);
+        if (comment == null)
+            comment = "";
         Set<GKInstance> referrers = ScriptUtilities.getAllReferrersForDBInstance(literatureReference);
         Integer pubmedId = (Integer) literatureReference.getAttributeValue(ReactomeJavaConstants.pubMedIdentifier);
         for (GKInstance referrer : referrers) {
@@ -206,6 +215,8 @@ public class LiteratureReferenceRetractionChecker {
             fu.printLine(literatureReference.getDBID() + "\t" + 
                     literatureReference.getDisplayName() + "\t" + 
                     pubmedId + "\t" + 
+                    statusText + "\t" + 
+                    comment + "\t" + 
                     referrer.getDBID() + "\t" + 
                     referrer.getDisplayName() + "\t" + 
                     referrer.getSchemClass().getName() + "\t" + 
